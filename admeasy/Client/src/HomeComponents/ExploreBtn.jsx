@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components';
-
 const ExploreBtn = ({text='Explore'}) => {
   return (
     <StyledWrapper>
@@ -21,7 +20,7 @@ const ExploreBtn = ({text='Explore'}) => {
     </StyledWrapper>
   );
 }
-
+// styling for Explorebtn
 const StyledWrapper = styled.div`
   .btn-conteiner {
     display: flex;
