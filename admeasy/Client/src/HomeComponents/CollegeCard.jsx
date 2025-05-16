@@ -1,5 +1,5 @@
 import React from 'react'
-import CollegeCards from '../assets/CollegeCard.json'
+import CollegeCards from '../assets/CollegeData/CollegeCard.json'
 import ExploreBtn from './ExploreBtn'
 const CollegeCard = () => {
   return (
@@ -16,10 +16,9 @@ const CollegeCard = () => {
     {CollegeCards.map(
       // Function here
       (college, index) => (
-      <>
       
-      <a href='/colleges'>
-      <div key={index} className="bg-red-100 cursor-pointer m-2.5 rounded-3xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden p-2 md:p-1 lg:p-2 flex w-max">
+      <a key={index} href='/colleges'>
+      <div className="bg-red-100 cursor-pointer m-2.5 rounded-3xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden p-2 md:p-1 lg:p-2 flex w-max">
         <div className='w-18 md:w-25 m-0 md:mr-2'>
         <img src={college.image} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill"/>
        <p className="text-yellow-500 text-[10px] m-1">⭐ {college.rating}</p>
@@ -29,7 +28,7 @@ const CollegeCard = () => {
           <h2 className=" text-[14px] md:text-xl mb-2 font-bold text-gray-900">
             {college.name}
           </h2>
-          {/* <p className="text-sm text-gray-700 line-clamp-3">
+          {/* <p className="text-sm text-gray-700 line-clamp-3">cd
             {college.description}
           </p> */}
           <div className='text-center'> 
@@ -39,7 +38,6 @@ const CollegeCard = () => {
         
       </div>
       </a>
-      </>
     ))}
   </div>
   <div className='text-center'>

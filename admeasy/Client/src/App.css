@@ -1,11 +1,11 @@
 .bg{
-    background: url('./assets/college-bg.jpg');
+    background: url('./assets/CollegesImg/college-bg.jpg');
     width: 100%;
     background-size:cover;
     background-repeat: no-repeat;
 }
 #collegebg{
-  background: url('./assets//Medicap-Road.jpg');
+  background: url('./assets/CollegesImg/Medicap-Road.jpg');
   background-repeat: no-repeat;
   background-size:cover;
   background-position: center;
@@ -72,7 +72,7 @@ h1{
   }
   /* Girl Background On Home */
 .girl-bg{
-    background: url('./assets/Girl.png');
+    background: url('./assets/Others/Girl.png');
     background-size: cover;
     background-repeat: no-repeat;
     position: sticky;

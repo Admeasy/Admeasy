@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "daisyui";
 @font-face{
   font-family: 'admeasyFont';
   src: url('./assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2')

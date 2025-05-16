@@ -1,6 +1,6 @@
 // It is the component of Home page
 import React from 'react'
-import SearchLogo from '../assets/Search-logo.webp'
+import SearchLogo from '../assets/Others/Search-logo.webp'
 const FrontHome = () => {
   return (
     <div>

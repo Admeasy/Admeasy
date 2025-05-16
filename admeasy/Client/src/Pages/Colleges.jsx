@@ -1,13 +1,9 @@
 import React from 'react'
-import CollegesData from '../assets/CollegesData.json'
+import CollegesData from '../assets/CollegeData/CollegesData.json'
 const Colleges = () => {
   return (
     <div>
-      {CollegesData.map(
-        (items,idx)=>{
-          <div key={idx}></div>
-        }
-      )}
+      <h1 className='text-center mt-40 text-3xl'>Colleges Will be here</h1>
     </div>
   )
 }
