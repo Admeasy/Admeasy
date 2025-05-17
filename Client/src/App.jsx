@@ -7,7 +7,6 @@ import Contact from './Pages/Contact'
 import About from './Pages/About'
 import Colleges from './Pages/Colleges'
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <>
