@@ -1,26 +1,30 @@
-@font-face{
+@font-face {
     font-family: 'admeasyFont';
     src: url('../assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2');
-  }
+}
 
-*{
+* {
     box-sizing: border-box;
 }
-#nav{
+
+#nav {
     top: 0px;
     z-index: 999;
     position: fixed;
     box-shadow: 0px 0px 22px 8px rgba(0, 0, 0, 0.473);
     background-color: rgb(255, 255, 255);
 }
-.nav-links{
+
+.nav-links {
     font-family: 'admeasyFont';
     font-size: 20px;
 }
-.active{
+
+.active {
     color: rgb(251, 146, 60);
     border-bottom: 3px solid rgb(251, 146, 60);
 }
+
 /* body{
     background-color: rgb(219, 246, 255);
 } */
