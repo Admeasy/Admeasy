@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@font-face{
+  font-family: 'admeasyFont';
+  src: url('./assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2')
+}
+*{
+  box-sizing: border-box;
+}
+#root{
+  width: 100%;
+padding-top: 85px;
+}
+html,body{
+  height: 100%;
+  width: 100%;
+}

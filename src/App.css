@@ -1,0 +1,114 @@
+/* .bg{
+    background: url('./assets/CollegesImg/college-bg.jpg');
+    width: 100%;
+    background-size:cover;
+    background-repeat: no-repeat;
+}
+#collegebg{
+  background: url('./assets/CollegesImg/Medicap-Road.jpg');
+  background-repeat: no-repeat;
+  background-size:cover;
+  background-position: center;
+  height: max-content;
+  width: 100%;
+}
+/* @media(min-width:768px){
+  #collegebg{
+    height: 35rem;
+  }
+}
+@media(min-width:1020px){
+  #collegebg{
+    height: 25rem;
+  }
+} */
+
+.bgshadefronthome{
+  border-top: 2px solid white;
+  height:100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.438);
+}
+.bgcollegeshade{
+  height:100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.438);
+}
+@font-face{
+    font-family: 'ExtraBold';
+    src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+    font-weight: bolder;
+}
+.home-main{
+    padding: 50px;
+}
+@media(max-width:500px){
+.home-main{ 
+  padding: 40px 12px;
+}
+}
+h1{
+    font-family: 'ExtraBold',sans-serif;
+}
+#btn-college{
+  box-shadow: 3px 4px 18px 1px red;
+}
+.bg-shade{
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.616);
+    padding: 0px;
+    border-radius: 30px;
+    display: flex;
+    animation: float 6s ease-in-out infinite; 
+    backdrop-filter: blur(5px);
+}
+@keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px);
+    }
+  }
+  /* Girl Background On Home */
+.girl-bg{
+    background: url('./assets/Others/Girl.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    position: sticky;
+    bottom: 0px;
+}
+#college-contain{
+  padding: 20px;
+    animation: float 8s ease-in-out infinite; 
+}
+.college-Card-Container{
+    margin-top: 2rem;
+} */
+::-webkit-scrollbar {
+    width: 2px; /* width of vertical scrollbar */
+  }
+  /* Track */
+::-webkit-scrollbar-track {
+    background: #5d6e74;
+    border-radius: 20px;
+  }
+  
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #504d4d;
+    border-radius: 10px;
+  }
+  
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #8d8d8d;
+  }
+.c-card{
+ box-shadow: 0px 0px 3px 1px rgba(0, 0, 0, 0.521);
+ border-radius: 22px;
+  padding: 20px;
+}
+.Cards-container{
+  padding: 20px;
+}
