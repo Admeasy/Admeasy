@@ -10,9 +10,6 @@ function App() {
 
   return (
     <>
-    
-    {/* Call Navbar here */}
-  
 <Navbar/>
 <Routes>
   

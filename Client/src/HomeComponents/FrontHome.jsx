@@ -24,8 +24,8 @@ const FrontHome = () => {
                   <button className='text-[12px] lg:text-[16px] xl:text-[17px] absolute right-8 w-10'><img src={SearchLogo} /></button>
                 </div>
               </div>
-              {/* girl-bg */}
-              <div className="girl-bg md:h-100 md:w-96"></div>
+              {/* girl-img */}
+              <img src='./src/assets/Others/Girl.webp' className="md:h-100 md:w-96 drop-shadow-xl drop-shadow-[#000000]" />
             </div>
             {/* Front Page */}
           </div>

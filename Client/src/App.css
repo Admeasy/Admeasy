@@ -64,7 +64,7 @@ h1 {
 
 .bg-shade {
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.438);
+  background-color: rgba(0, 0, 0, 0.35);
   padding: 0px;
   border-radius: 30px;
   display: flex;
@@ -82,15 +82,6 @@ h1 {
   50% {
     transform: translateY(-7px);
   }
-}
-
-/* Girl Background On Home */
-.girl-bg {
-  background: url('./assets/Others/Girl.webp');
-  background-size: cover;
-  background-repeat: no-repeat;
-  position: sticky;
-  bottom: 0px;
 }
 
 #college-contain {
