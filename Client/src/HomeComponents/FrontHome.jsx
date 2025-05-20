@@ -5,7 +5,7 @@ const FrontHome = () => {
     <div>
       {/* Background image Div */}
       <div className="bg h-3/6">
-        <div className="bgshadefronthome h-3/6">
+        <div className="bgshadefronthome shade h-3/6">
 
           {/* Main div*/}
           <div className="home-main flex justify-center items-center">
@@ -20,12 +20,12 @@ const FrontHome = () => {
                 <p id='college-para' className='text-[14px] md:text-[18px] text-gray-300'>Discover top-rated colleges near you and connect with alumni to make the right choice for your future.</p>
                 <div className="college-search  flex items-center w-full flex-row">
                   {/* <i className="fa-solid fa-magnifying-glass text-[12px] lg:text-[16px] xl:text-[17px] absolute opacity-50" style={{padding:"15px"}}></i> */}
-                  <input className='md:pl-6 outline-0 bg-white rounded-3xl h-12 w-full placeholder:text-gray-800 text-[12px] sm:text-[14px] lg:text-[18px]' type="text" placeholder='Search Best B.Tech colleges near me...' />
+                  <input name='search' className='md:pl-6 outline-0 bg-white rounded-3xl h-12 w-full placeholder:text-gray-800 text-[12px] sm:text-[14px] lg:text-[18px]' type="text" placeholder='Search Best B.Tech colleges near me...' />
                   <button className='text-[12px] lg:text-[16px] xl:text-[17px] absolute right-8 w-10'><img src={SearchLogo} /></button>
                 </div>
               </div>
               {/* girl-img */}
-              <img src='./src/assets/Others/Girl.webp' className="md:h-100 md:w-96 drop-shadow-xl drop-shadow-[#000000]" />
+              <img src='./src/assets/Others/Girl.webp' className="md:h-100 md:w-96 drop-shadow-[3px_0_10px_#000000, -3px_0_10px_#000000]" />
             </div>
             {/* Front Page */}
           </div>

@@ -6,7 +6,7 @@ const CollegeCard = () => {
 
 
     <div id='collegebg' className="">
-      <div className="bgcollegeshade pt-4">
+      <div className="shade pt-4">
 
         <h1 className="text-2xl md:text-3xl font-semibold  text-center text-white mb-2">
           Discover the Best Colleges Near You

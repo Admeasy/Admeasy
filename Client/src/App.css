@@ -1,3 +1,13 @@
+.shade {
+  @apply bg-[#00000050]
+}
+
+@font-face {
+  font-family: 'ExtraBold';
+  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+  font-weight: bolder;
+}
+
 .bg {
   background: url('./assets/CollegesImg/college-bg.webp');
   width: 100%;
@@ -29,19 +39,11 @@
   border-top: 2px solid white;
   height: 100%;
   width: 100%;
-  background: rgba(0, 0, 0, 0.438);
 }
 
 .bgcollegeshade {
   height: 100%;
   width: 100%;
-  background: rgba(0, 0, 0, 0.438);
-}
-
-@font-face {
-  font-family: 'ExtraBold';
-  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
-  font-weight: bolder;
 }
 
 .home-main {
@@ -91,28 +93,6 @@ h1 {
 
 .college-Card-Container {
   margin-top: 2rem;
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  /* width of vertical scrollbar */
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-  background: #5d6e74;
-  border-radius: 20px;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-  background: #504d4d;
-  border-radius: 10px;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-  background: #8d8d8d;
 }
 
 .c-card {
