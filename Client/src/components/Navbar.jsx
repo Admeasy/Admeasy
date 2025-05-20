@@ -1,6 +1,6 @@
 import React from 'react'
 import './Navbar.css'
-import logo from '../assets/Others/LOGO.webp'
+import logo from '../assets/Admeasy/LOGO.webp'
 import { NavLink } from 'react-router-dom'
 const Navbar = () => {
   return (
@@ -11,7 +11,7 @@ const Navbar = () => {
       <div className=" block md:hidden nav-bars text-3xl">
         <i className="fa-solid fa-bars"></i>
       </div>
-      <div className="nav-links hidden md:flex gap-10 font-semibold">
+      <div className="nav-links text-xl -tracking-tighter hidden md:flex gap-10 font-semibold">
         <NavLink className={'links hover:text-orange-400 px-2 transition-colors duration-500'} to='/'>Home</NavLink>
         <NavLink className={'links hover:text-orange-400 px-2 transition-colors duration-500'} to='/about'>About Us</NavLink>
         <NavLink className={'links hover:text-orange-400 px-2 transition-colors duration-500'} to='/contact'>Contact Us</NavLink>

@@ -1,11 +1,5 @@
 .shade {
-  @apply bg-[#00000050]
-}
-
-@font-face {
-  font-family: 'ExtraBold';
-  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
-  font-weight: bolder;
+  background-color: #00000050;
 }
 
 .bg {
@@ -57,14 +51,14 @@
 }
 
 h1 {
-  font-family: 'ExtraBold', sans-serif;
+  font-family: 'Poppins Extrabold';
 }
 
 #btn-college {
   box-shadow: 3px 4px 18px 1px red;
 }
 
-.bg-shade {
+.bgshade {
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.35);
   padding: 0px;

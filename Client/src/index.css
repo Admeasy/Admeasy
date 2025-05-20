@@ -1,7 +1,10 @@
 @import "tailwindcss";
-@font-face{
-  font-family: 'admeasyFont';
-  src: url('./assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2')
+
+
+@font-face {
+  font-family: 'Poppins Extrabold';
+  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+  font-weight: bolder;
 }
 
 ::-webkit-scrollbar {
@@ -22,7 +25,7 @@
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #8d8d8d;
+  background: #aaaaaa;
 }
 
 *{
@@ -32,4 +35,5 @@
 html,body{
   height: 100%;
   width: 100%;
+  scroll-behavior: smooth;
 }

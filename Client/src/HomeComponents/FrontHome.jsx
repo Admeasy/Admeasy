@@ -1,5 +1,6 @@
 // It is the component of Home page
 import SearchLogo from '../assets/Others/Search-logo.webp'
+import Girl from '../assets/Others/Girl.webp'
 const FrontHome = () => {
   return (
     <div>
@@ -11,10 +12,10 @@ const FrontHome = () => {
           <div className="home-main flex justify-center items-center">
 
             {/* div for background */}
-            <div className='bg-shade w-full'>
+            <div className='bgshade w-full'>
               {/* Div of finding colleges in indore */}
               <div id='college-contain' className="flex flex-col text-center justify-center w-full md:w-1/2 xl:gap-5 gap-4 sm:gap-8 lg:gap-6">
-                <h1 id='CollegeHeading' className='xl:text-7xl lg:text-6xl text-2xl sm:text-3xl md:text-4xl font-bold text-white'>
+                <h1 id='CollegeHeading' className='xl:text-7xl lg:text-[4rem] text-2xl sm:text-3xl md:text-[3rem] font-bold text-white'>
                   Find the <span className="text-orange-400">Best</span><br />
                   <span className="text-orange-400">College</span> in INDORE</h1>
                 <p id='college-para' className='text-[14px] md:text-[18px] text-gray-300'>Discover top-rated colleges near you and connect with alumni to make the right choice for your future.</p>
@@ -25,7 +26,7 @@ const FrontHome = () => {
                 </div>
               </div>
               {/* girl-img */}
-              <img src='./src/assets/Others/Girl.webp' className="md:h-100 md:w-96 drop-shadow-[3px_0_10px_#000000, -3px_0_10px_#000000]" />
+              <img src={Girl} className="md:h-100 md:w-96 drop-shadow-[3px_0_10px_#000000, -3px_0_10px_#000000]" />
             </div>
             {/* Front Page */}
           </div>

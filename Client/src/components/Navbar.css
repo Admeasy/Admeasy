@@ -1,5 +1,5 @@
 @font-face {
-    font-family: 'admeasyFont';
+    font-family: 'Admeasy';
     src: url('../assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2');
 }
 
@@ -8,8 +8,7 @@
 }
 
 .nav-links {
-    font-family: 'admeasyFont';
-    font-size: 20px;
+    font-family: 'Admeasy';
 }
 
 .active {
