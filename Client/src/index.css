@@ -1,12 +1,5 @@
 @import "tailwindcss";
 
-
-@font-face {
-  font-family: 'Poppins Extrabold';
-  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
-  font-weight: bolder;
-}
-
 ::-webkit-scrollbar {
   width: 8px;
   /* width of vertical scrollbar */

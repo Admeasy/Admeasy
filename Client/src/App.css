@@ -1,3 +1,19 @@
+@font-face {
+  font-family: 'Poppins Extrabold';
+  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+  font-weight: bolder;
+}
+
+@font-face {
+    font-family: 'Admeasy';
+    src: url('./assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Admeasy Extrabold';
+  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+}
+
 .shade {
   background-color: #00000050;
 }
@@ -54,6 +70,10 @@ h1 {
   font-family: 'Poppins Extrabold';
 }
 
+#h-about {
+  font-family: 'Admeasy';
+}
+
 #btn-college {
   box-shadow: 3px 4px 18px 1px red;
 }
@@ -97,4 +117,17 @@ h1 {
 
 .Cards-container {
   padding: 20px;
+}
+
+.nav-links {
+    font-family: 'Admeasy';
+}
+
+.active {
+    color: rgb(251, 146, 60);
+    border-bottom: 3px solid rgb(251, 146, 60);
+}
+
+.h-about {
+  font-family: 'Poppins Extrabold';
 }
