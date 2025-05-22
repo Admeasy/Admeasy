@@ -4,7 +4,7 @@ import logo from '../assets/Admeasy/LOGO.webp'
 import { NavLink } from 'react-router-dom'
 const Navbar = () => {
   return (
-    <nav className='w-full flex items-center justify-between px-5 py-2 bg-white sticky top-0 z-1000 shadow-[0_7px_10px_#00000079] rounded-b-2xl' id='nav'>
+    <nav className='w-full flex items-center justify-between px-5 py-2 bg-[#f5cac3] sticky top-0 z-1000 shadow-[0_7px_10px_#00000079] rounded-b-2xl' id='nav'>
       <div className="logo">
         <img draggable='false' className='w-50' src={logo} alt="logo" />
       </div>

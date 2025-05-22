@@ -14,6 +14,11 @@
   src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
 }
 
+@theme {
+  --font-admeasy: 'Admeasy', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+}
+
 .shade {
   background-color: #00000050;
 }

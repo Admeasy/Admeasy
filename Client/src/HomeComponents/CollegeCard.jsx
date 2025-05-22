@@ -18,7 +18,7 @@ const CollegeCard = () => {
             (college, index) => (
 
               <a key={index} href='/colleges'>
-                <div className="bg-red-100 cursor-pointer m-2.5 rounded-3xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden p-2 md:p-1 lg:p-2 flex w-max">
+                <div className="bg-[#f5cac3] cursor-pointer m-2.5 rounded-3xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden p-2 md:p-1 lg:p-2 flex w-max">
                   <div className='w-18 md:w-25 m-0 md:mr-2'>
                     <img src={college.image} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
                     <p className="text-yellow-500 text-[10px] m-1">⭐ {college.rating}</p>
