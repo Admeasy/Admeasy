@@ -9,8 +9,8 @@ const CollegeCard = () => {
    <div id='collegebg' className="bg-gray-500">
         <div className="bgcollegeshade">
 
-  <h1 className="text-2xl md:text-3xl pt-3 font-semibold  text-center text-white mb-2 mt-1 flex items-center justify-center">
-  <span><img draggable='false' className='w-10' src={instituteImg}/></span> &nbsp;
+  <h1 className="text-2xl md:text-3xl pt-3 font-semibold text-white mb-2 mt-1 justify-center md:items-center flex">
+  <p className='text-[14px]'><img draggable='false' className='w-10' src={instituteImg}/></p>
  Discover the Best Colleges Near You
   </h1>
 

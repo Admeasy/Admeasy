@@ -4,7 +4,7 @@ import logo from '../assets/Others/LOGO.webp'
 import { NavLink } from 'react-router-dom'
 const Navbar = () => {
   return (
-    <div className='w-full flex items-center justify-between px-5 py-2' id='nav'>
+    <div className='w-full flex items-center justify-between px-14 py-2' id='nav'>
 <div className="logo">
 <img draggable='false' className='w-50' src={logo} alt="logo"/>
 </div>

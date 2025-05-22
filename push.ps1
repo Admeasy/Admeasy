@@ -1,1 +1,1 @@
-git add .; git commit -m /"Auto-Sync"/ --no-verify; git push
+git add .; git commit -m /"Auto-Sync"/ --no-verify; git git push origin main
