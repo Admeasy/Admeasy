@@ -13,7 +13,7 @@ const Section = ({ children }) => {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="xl:w-75/100 p-5 md:p-10 text-center bg-[#f5cac3] flex flex-col items-center gap-5 sm:gap-10  border-[0.25px] border-white rounded-4xl shadow-[2px_3px_15px_#00000079]"
+      className="xl:w-75/100 p-5 md:p-10 text-center bg-[#E7ECF3] flex flex-col items-center gap-5 sm:gap-10 rounded-4xl shadow-[8px_8px_16px_#d1d9e6,_inset_8px_8px_16px_#ffffff]"
     >
       {children}
     </motion.section>

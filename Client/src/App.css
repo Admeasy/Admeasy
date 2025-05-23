@@ -19,22 +19,11 @@
   --font-poppins: 'Poppins', sans-serif;
 }
 
-.shade {
-  background-color: #00000050;
-}
-
 .bg {
-  background: url('./assets/CollegesImg/college-bg.webp');
   width: 100%;
-  background-size: cover;
-  background-repeat: no-repeat;
 }
 
 #collegebg {
-  background: url('./assets/CollegesImg/Medicap-Road.webp');
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
   height: max-content;
   width: 100%;
 }
@@ -81,7 +70,6 @@ h1 {
 
 .bgshade {
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.35);
   padding: 0px;
   border-radius: 30px;
   display: flex;
@@ -125,8 +113,8 @@ h1 {
 }
 
 .active {
-    color: rgb(251, 146, 60);
-    border-bottom: 3px solid rgb(251, 146, 60);
+    color: #0057A0;
+    border-bottom: 3px solid #0057A0;
 }
 
 .h-about {

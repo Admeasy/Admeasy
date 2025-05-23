@@ -1,4 +1,3 @@
-import React from 'react'
 import FrontHome from '../HomeComponents/FrontHome'
 import CollegeCard from '../HomeComponents/CollegeCard'
 const Home = () => {

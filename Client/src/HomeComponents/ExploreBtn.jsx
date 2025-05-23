@@ -1,9 +1,8 @@
-import React from 'react';
 import styled from 'styled-components';
 const ExploreBtn = ({ text = 'Explore' }) => {
   return (
     <StyledWrapper>
-      <div className="btn-conteiner">
+      <div className="btn-container">
         <button className="btn-content" href="/colleges">
           <span className="btn-title text-[12px] md:text-[18px]">{text}</span>
           <span className="icon-arrow">
@@ -22,7 +21,7 @@ const ExploreBtn = ({ text = 'Explore' }) => {
 }
 // styling for Explorebtn
 const StyledWrapper = styled.div`
-  .btn-conteiner {
+  .btn-container {
     display: flex;
     justify-content: center;
     --color-text: #ffffff;
@@ -43,7 +42,7 @@ const StyledWrapper = styled.div`
     background: red;
     transition: 1s;
     border-radius: 100px;
-    box-shadow: 0 0 .7em 0 red;
+    box-shadow: 0 0 8px 0 red;
   }
 
   .btn-content:hover, .btn-content:focus {
