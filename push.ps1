@@ -1,1 +1,1 @@
-git add .; git commit -m /"Auto-Sync"/ --no-verify; git push origin nitish
+git add .; git commit -m /"Auto-Sync"/ --no-verify; git push

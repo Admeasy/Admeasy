@@ -1,4 +1,3 @@
-import React from 'react'
 import CollegesData from '../assets/CollegeData/CollegesData.json'
 const Colleges = () => {
   return (
