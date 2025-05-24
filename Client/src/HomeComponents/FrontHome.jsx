@@ -28,7 +28,7 @@ const FrontHome = () => {
               <h1 id='CollegeHeading' className='xl:text-7xl lg:text-[4rem] text-2xl sm:text-3xl md:text-[3rem] font-bold text-tprimary'>
                 Find the <span className="text-orange-400">Best</span><br />
                 <span className="text-orange-400">College</span> in INDORE</h1>
-              <h3 className='text-[14px] md:text-[18px] text-tsecondary'>Discover top-rated colleges near you and connect with alumni to make the right choice for your future.</h3>
+              <h3 className='text-[14px] md:text-[18px] text-tsecondary'>Explore top-rated colleges near you and connect with alumni to make the right choice for your future.</h3>
               <div className="college-search flex items-center w-full flex-row">
                 <input name='search' className='md:pl-6 outline-0 bg-white rounded-3xl h-12 w-full placeholder:text-tsecondary shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' type="text" placeholder='Search Best B.Tech colleges near me...' />
                 <button className='text-[12px] lg:text-[16px] xl:text-[17px] absolute right-8 w-10'><img src={SearchLogo} /></button>

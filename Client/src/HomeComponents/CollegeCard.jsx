@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import CollegeCards from '../assets/CollegeData/CollegeCard.json'
 import ExploreBtn from './ExploreBtn'
+import Institute from '../assets/Icons/Institute.webp'
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -18,10 +19,12 @@ const CollegeCard = () => {
       id='collegebg'
       className=" text-tprimary">
       <div className="pt-4">
-
-        <h1 className="text-2xl md:text-3xl font-semibold  text-center mb-2">
-          Discover the Best Colleges Near You
-        </h1>
+        <div className="w-full mb-8 flex items-center justify-center gap-3">
+          <img src={Institute} alt="" className="w-14" />
+          <h1 className="text-2xl md:text-4xl m-0 mt-1 p-0 font-semibold text-center">
+            Discover the Best Colleges Near You
+          </h1>
+        </div>
 
         <div className="flex flex-wrap justify-around p-0 md:p-2">
           {CollegeCards.map(
