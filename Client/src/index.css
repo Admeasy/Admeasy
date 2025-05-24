@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Poppins Extrabold';
+  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+  font-weight: bolder;
+}
+
+@font-face {
+    font-family: 'Admeasy';
+    src: url('./assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Admeasy Extrabold';
+  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
+}
+
+@theme {
+  --color-bg: #F2F4F8;
+  --color-primary: #E7ECF3;
+  --color-tprimary: #2C2E3E;
+  --color-tsecondary: #5A5C6C;
+  --color-cta: #FF6B00;
+  --color-cta-hover: #FF6B00;
+  --font-poppins-extrabold: 'Poppins Extrabold', sans-serif;
+  --font-admeasy: 'Admeasy', sans-serif;
+  --font-admeasy-extrabold: 'Admeasy Extrabold', sans-serif;
+  --shadow-3d: 8px 8px 16px #d1d9e6, inset 8px 8px 16px #ffffff;
+  --shadow-inset-2: inset 2px 2px 4px #d1d9e6;
+  --shadow-inset-4: inset 4px 4px 8px #d1d9e6;
+  --shadow-inset-6: inset 6px 6px 12px #d1d9e6;
+  --shadow-inset-8: inset 8px 8px 16px #d1d9e6;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   /* width of vertical scrollbar */
@@ -7,18 +40,18 @@
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: #f7ede3;
+  background: transparent;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #f5cac3;
+  background: #aeb0b4;
   border-radius: 20px;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #f7d7d2;
+  background: #7c7d7f;
 }
 
 *{

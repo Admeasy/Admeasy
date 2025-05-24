@@ -3,7 +3,7 @@ const ExploreBtn = ({ text = 'Explore' }) => {
   return (
     <StyledWrapper>
       <div className="btn-container">
-        <button className="btn-content" href="/colleges">
+        <button className="btn-content bg-cta hover:bg-cta-hover" href="/colleges">
           <span className="btn-title text-[12px] md:text-[18px]">{text}</span>
           <span className="icon-arrow">
             <svg width="33px" height="21px" viewBox="0 0 66 43" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
@@ -39,7 +39,6 @@ const StyledWrapper = styled.div`
     font-weight: 600;
     font-size: 20px;
     color: white;
-    background: red;
     transition: 1s;
     border-radius: 100px;
     box-shadow: 0 0 8px 0 red;

@@ -16,7 +16,7 @@ const CollegeCard = () => {
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
-      className=" text-[#2C2E3E]">
+      className=" text-tprimary">
       <div className="pt-4">
 
         <h1 className="text-2xl md:text-3xl font-semibold  text-center mb-2">
@@ -29,7 +29,7 @@ const CollegeCard = () => {
             (college, index) => (
 
               <a key={index} href='/colleges'>
-                <div className="bg-[#E7ECF3] cursor-pointer m-2.5 rounded-3xl shadow-[8px_8px_16px_#d1d9e6,_inset_8px_8px_16px_#ffffffff] transition-shadow duration-300 overflow-hidden p-2 md:p-1 lg:p-2 flex w-max">
+                <div className="w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-2 flex">
                   <div className='w-18 md:w-25 m-0 md:mr-2'>
                     <img src={college.image} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
                     <p className="text-yellow-500 text-[10px] m-1">⭐ {college.rating}</p>
@@ -38,7 +38,7 @@ const CollegeCard = () => {
                     <h2 className=" text-[14px] md:text-xl mb-2 font-bold">
                       {college.name}
                     </h2>
-                    <p className="text-[12px] md:text-sm text-[#5A5C6C]">{college.location}</p>
+                    <p className="text-[12px] md:text-sm text-tsecondary">{college.location}</p>
                     {/* <p className="text-sm text-gray-700 line-clamp-3">cd
             {college.description}
           </p> */}

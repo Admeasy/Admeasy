@@ -63,7 +63,7 @@ const About = () => {
         className="w-full h-fit m-auto p-8 sm:p-12 pt-[6.25rem] sm:pt-[7rem] md:pt-[6.5rem] lg:pt-20 xl:pt-24 text-center relative" style={pt}>
         <h1 className='h-about text-[2.5rem] sm:text-[4rem] md:text-7xl xl:text-8xl m-0 p-0 tracking-wide  lg:tracking-widest z-5 absolute top-16 lg:top-11 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
         <img src={GroupPic} className='w-full md:w-8/10 lg:w-7/10 xl:w-6/10 m-auto relative z-10 rounded-4xl' />
-        <h1 className='h-about text-[2.5rem] sm:text-[4rem] md:text-7xl xl:text-8xl m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-16 lg:top-11 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1>
+        <h1 className='text-[2.5rem] sm:text-[4rem] md:text-7xl xl:text-8xl m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-16 lg:top-11 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1>
       </motion.header>
       <main className='w-full p-[1.5625rem] sm:p-[3.125rem] md:p-25 flex flex-col items-center gap-20'>
         <Section>

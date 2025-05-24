@@ -16,9 +16,9 @@ const Contact = () => {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-2/3 p-5 pb-9 bg-[#E7ECF3] flex flex-col gap-6 absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2 rounded-3xl shadow-[8px_8px_16px_#d1d9e6,_inset_8px_8px_16px_#ffffff]">
+      className="w-2/3 p-5 pb-9 bg-primary flex flex-col gap-6 absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2 rounded-3xl shadow-3d">
       <h2 className="text-6xl font-poppins">Contact Us</h2>
-      <div className="w-full m-0 p-3 flex flex-col gap-4 rounded-2xl shadow-[8px_8px_16px_#d1d9e6,_inset_8px_8px_16px_#ffffff]">
+      <div className="w-full m-0 p-3 flex flex-col gap-4 rounded-2xl shadow-3d">
         <h2 className="text-2xl ml-1">Need help or have any queries? Don't worry! You're just a mail or call away</h2>
         <ul className="flex flex-col gap-2">
           <li className="">

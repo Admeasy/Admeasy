@@ -1,24 +1,3 @@
-@font-face {
-  font-family: 'Poppins Extrabold';
-  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
-  font-weight: bolder;
-}
-
-@font-face {
-    font-family: 'Admeasy';
-    src: url('./assets/AdmeasyFonts/NationalPark-Regular.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Admeasy Extrabold';
-  src: url('./assets/AdmeasyFonts/Poppins-ExtraBold.woff2') format('woff2');
-}
-
-@theme {
-  --font-admeasy: 'Admeasy', sans-serif;
-  --font-poppins: 'Poppins', sans-serif;
-}
-
 .bg {
   width: 100%;
 }
@@ -38,12 +17,6 @@
     height: 25rem;
   }
 } */
-
-.bgshadefronthome {
-  border-top: 2px solid white;
-  height: 100%;
-  width: 100%;
-}
 
 .bgcollegeshade {
   height: 100%;
@@ -65,16 +38,15 @@ h1 {
 }
 
 #btn-college {
-  box-shadow: 3px 4px 18px 1px red;
+  box-shadow: 3px 4px 18px 1px #FF6B00;
 }
 
 .bgshade {
-  justify-content: center;
   padding: 0px;
   border-radius: 30px;
   display: flex;
+  justify-content: center;
   animation: float 6s ease-in-out infinite;
-  backdrop-filter: blur(5px);
 }
 
 @keyframes float {
@@ -108,15 +80,7 @@ h1 {
   padding: 20px;
 }
 
-.nav-links {
-    font-family: 'Admeasy';
-}
-
 .active {
-    color: #0057A0;
-    border-bottom: 3px solid #0057A0;
-}
-
-.h-about {
-  font-family: 'Poppins Extrabold';
+  color: #0057A0;
+  border-bottom: 3px solid #0057A0;
 }
