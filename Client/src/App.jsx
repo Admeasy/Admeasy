@@ -6,14 +6,16 @@ import Home from './Pages/Home'
 import Contact from './Pages/Contact'
 import About from './Pages/About'
 import Colleges from './Pages/Colleges'
+import ModernNavbar from './Navbar/ModernNavbar'
 function App() {
+  const [count, setCount] = useState(0)
 
   return (
     <>
     
     {/* Call Navbar here */}
-  
-<Navbar/>
+  <Navbar/>
+{/* <ModernNavbar/> */}
 <Routes>
   
 <Route path='/' element={<Home/>}></Route> 

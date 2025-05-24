@@ -4,10 +4,10 @@ import CollegeCard from '../HomeComponents/CollegeCard'
 const Home = () => {
   return (
     <>
-      <FrontHome />
-      <CollegeCard />
+   <FrontHome/>
+   <CollegeCard/>
     </>
-
+   
   )
 }
 
