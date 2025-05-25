@@ -2,22 +2,6 @@
   width: 100%;
 }
 
-#collegebg {
-  height: max-content;
-  width: 100%;
-}
-
-/* @media(min-width:768px){
-  #collegebg{
-    height: 35rem;
-  }
-}
-@media(min-width:1020px){
-  #collegebg{
-    height: 25rem;
-  }
-} */
-
 .bgcollegeshade {
   height: 100%;
   width: 100%;
@@ -38,7 +22,7 @@ h1 {
 }
 
 #btn-college {
-  box-shadow: 3px 4px 18px 1px #FF6B00;
+  box-shadow: 3px 4px 18px 1px var(--color-cta);
 }
 
 .bgshade {
@@ -80,6 +64,6 @@ h1 {
 }
 
 .active {
-  color: #0057A0;
-  border-bottom: 3px solid #0057A0;
+  color: var(--color-link);
+  border-bottom: 3px solid var(--color-link);
 }
