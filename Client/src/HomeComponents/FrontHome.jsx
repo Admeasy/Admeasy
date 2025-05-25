@@ -14,17 +14,14 @@ const FrontHome = () => {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.7, ease: 'easeOut' }}>
-      {/* Background image Div */}
-      <div>
-
+      transition={{ duration: 0.7, ease: 'easeOut' }}
+      className='w-full h-2/3'>
         {/* Main div*/}
-        <div className="home-main flex justify-center items-center">
-
+        <div className="home-main h-full flex justify-center items-center">
           {/* div for background */}
-          <div className='bgshade bg-primary w-full shadow-3d'>
+          <div className='bgshade bg-primary w-full h-full flex justify-center p-0 rounded-4xl shadow-3d'>
             {/* Div of finding colleges in indore */}
-            <div id='college-contain' className="flex flex-col text-center justify-center w-full md:w-1/2 xl:gap-5 gap-4 sm:gap-8 lg:gap-6">
+            <div id='college-contain' className="w-2/3 max-h-full p-5 flex flex-col text-center justify-center md:w-1/2 xl:gap-5 gap-4 sm:gap-8 lg:gap-6">
               <h1 id='CollegeHeading' className='xl:text-7xl lg:text-[4rem] text-2xl sm:text-3xl md:text-[3rem] font-bold text-tprimary'>
                 Find the <span className="text-orange-400">Best</span><br />
                 <span className="text-orange-400">College</span> in INDORE</h1>
@@ -35,13 +32,12 @@ const FrontHome = () => {
               </div>
             </div>
             {/* girl-img */}
-            <img src={Girl} className="md:h-100 md:w-96 drop-shadow-[8px_0px_16px_#d1d9e6]" />
+            <div className="w-1/3 h-full m-0 p-0 flex items-center justify-center">
+              <img src={Girl} className="max-w-full max-h-full object-contain drop-shadow-[8px_0px_16px_#d1d9e6]" />
+            </div>
           </div>
           {/* Front Page */}
         </div>
-        {/* Background div ends here*/}
-
-      </div>
     </motion.section>
   )
 }
