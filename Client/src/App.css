@@ -74,8 +74,7 @@ h1 {
 .Cards-container{
   padding: 20px;
 }
-
-.active {
+.nav-links .active{
   color: #0057A0;
   border-bottom: 3px solid #0057A0;
 }
