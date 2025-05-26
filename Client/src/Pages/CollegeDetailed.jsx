@@ -114,7 +114,9 @@ const CollegeDetailed = () => {
         />
       </div> */}
     </div>
+    <div className='mt-20'>
 <StudentSwiper></StudentSwiper>
+    </div>
     </div>
   )
 }
