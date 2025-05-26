@@ -8,6 +8,7 @@ import { BsBookmarkStarFill } from "react-icons/bs";
 import { FaCheckCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/CustomButton';
 import StudentSwiper from '../components/StudentSwiper';
+import Courses from '../components/Courses';
 const CollegeDetailed = () => {
   return (
  
@@ -117,6 +118,48 @@ const CollegeDetailed = () => {
     <div className='mt-20'>
 <StudentSwiper></StudentSwiper>
     </div>
+    <div className="bg-[#F2F4F9] py-10 px-4 flex justify-center">
+      <div className="bg-white rounded-2xl p-6 w-[90%] shadow-3d">
+        {/* Title */}
+        <h2 className="text-center text-xl sm:text-2xl font-bold text-[#5A4BFF] mb-6">
+          Authentic Student Video Reviews
+        </h2>
+
+        {/* Main Content Box */}
+        <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start bg-[#EDF1F8] p-4 rounded-2xl shadow-inner">
+          {/* Video Preview or Placeholder */}
+          <div className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 bg-white rounded-xl shadow-md overflow-hidden flex items-center justify-center">
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/477/477292.png"
+              alt="Student with Camera"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Questions Section */}
+          <div className="text-gray-800 text-sm space-y-1 w-full">
+            <p className="text-[#5A4BFF] font-semibold text-base">
+              Ravi Kumar
+            </p>
+            <p className="text-gray-600 text-xs mb-2">B.Tech CSE Student</p>
+          <ul className="list-none space-y-1 text-sm text-gray-800">
+  <li>Q. Is admission to B.Tech accepted through CUET scores?</li>
+  <li className="font-semibold">Q. What was your JEE or CUET percentile?</li>
+  <li><span className="font-semibold">Q. Could you share</span> your experience regarding ragging policies?</li>
+  <li>Q. How are the hostel facilities on campus?</li>
+  <li>Q. Are placement opportunities provided, or do students need to find them independently?</li>
+</ul>
+
+          </div>
+        </div>
+
+        {/* Button */}
+        <div className="flex justify-center mt-6">
+         <CustomButton>View More <span className="text-lg">→</span></CustomButton>
+        </div>
+      </div>
+    </div>
+<Courses></Courses>
     </div>
   )
 }

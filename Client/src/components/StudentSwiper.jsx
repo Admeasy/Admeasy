@@ -21,14 +21,14 @@ const students = [
   { name: "Yash Jain", img: "/images/student6.jpg" },
 ];
 
-export default function StudentSwiper() {
+export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
 
   return (
-    <div className="relative cursor-pointer active:cursor-grab bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[95%] mx-auto">
+    <div className="relative cursor-pointer active:cursor-grab bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
       <h2 className="text-center text-xl sm:text-2xl font-bold text-[#5A4BFF] mb-4">
-        Talk to Students
+        {SwiperHeading}
       </h2>
 
       {/* Custom Arrow Buttons */}
@@ -36,13 +36,13 @@ export default function StudentSwiper() {
         ref={prevRef}
         className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-        <IoIosArrowBack/>
+       <CustomButton><IoIosArrowBack/></CustomButton>
       </div>
       <div
         ref={nextRef}
         className="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-        <IoIosArrowForward/>
+        <CustomButton> <IoIosArrowForward/> </CustomButton> 
       </div>
 
       <Swiper
