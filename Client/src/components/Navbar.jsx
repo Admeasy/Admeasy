@@ -2,6 +2,8 @@ import React from 'react'
 import '../App.css'
 import logo from '../assets/Admeasy/LOGO.webp'
 import { NavLink } from 'react-router-dom'
+
+
 const Navbar = () => {
   // Function to handle the click event on the bars icon
   const handleBarsClick = () => {
