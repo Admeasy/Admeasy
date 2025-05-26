@@ -26,7 +26,7 @@ export default function StudentSwiper() {
   const nextRef = useRef(null);
 
   return (
-    <div className="relative  bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[95%] mx-auto">
+    <div className="relative cursor-pointer active:cursor-grab bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[95%] mx-auto">
       <h2 className="text-center text-xl sm:text-2xl font-bold text-[#5A4BFF] mb-4">
         Talk to Students
       </h2>
