@@ -9,10 +9,11 @@ import { FaCheckCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/CustomButton';
 import StudentSwiper from '../components/StudentSwiper';
 import Courses from '../components/Courses';
+import CollegeCard from '../components/CollegeCard';
 const CollegeDetailed = () => {
   return (
  
-    <div className='w-full bg-rgba(0, 0, 0, 0.08)'>
+    <div className='pb-4 w-full bg-rgba(0, 0, 0, 0.08)'>
 
   <div className='p-3 mt-4 ml-auto mr-auto flex justify-center rounded-2xl flex-col shadow-3d'>
 <div className='relative w-full h-full'>
@@ -159,7 +160,16 @@ const CollegeDetailed = () => {
         </div>
       </div>
     </div>
+    <div>
 <Courses></Courses>
+   </div>
+
+   <div>
+    <StudentSwiper SwiperHeading="College Portraits" ></StudentSwiper>
+   </div>
+   <div>
+<CollegeCard/>
+   </div>
     </div>
   )
 }
