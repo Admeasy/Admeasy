@@ -18,7 +18,7 @@
 }
 
 h1 {
-  font-family: 'Poppins Extrabold';
+  font-family: var(--font-poppins-extrabold);
 }
 
 #btn-college {
@@ -47,20 +47,6 @@ h1 {
 
 #college-contain {
   animation: float 8s ease-in-out infinite;
-}
-
-.college-Card-Container {
-  margin-top: 2rem;
-}
-
-.c-card {
-  box-shadow: 0px 0px 3px 1px rgba(0, 0, 0, 0.521);
-  border-radius: 22px;
-  padding: 20px;
-}
-
-.Cards-container {
-  padding: 20px;
 }
 
 .active {
