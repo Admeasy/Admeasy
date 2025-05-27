@@ -6,7 +6,7 @@ import { FaLocationDot } from "react-icons/fa6";
 import { HiMiniAcademicCap } from "react-icons/hi2";
 import { BsBookmarkStarFill } from "react-icons/bs";
 import { FaCheckCircle } from "react-icons/fa";
-import CustomButton from '../HomeComponents/CustomButton';
+import btn from '../HomeComponents/3d-btn';
 import StudentSwiper from '../components/StudentSwiper';
 import Courses from '../components/Courses';
 import CollegeCard from '../components/CollegeCard';
@@ -68,7 +68,7 @@ const CollegeDetailed = () => {
 
   {/* Button Section */}
   <div className="flex justify-center">
-    <CustomButton>View More<span className="text-lg font-admeasy-extrabold">→</span></CustomButton>
+    <btn>View More<span className="text-lg font-admeasy-extrabold">→</span></btn>
       
   </div>
 </div>
@@ -103,7 +103,7 @@ const CollegeDetailed = () => {
 
         {/* Button */}
         <div className="mt-6">
-         <CustomButton>Explore More</CustomButton>
+         <btn>Explore More</btn>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ const CollegeDetailed = () => {
       </div> */}
     </div>
     <div className='mt-20'>
-<StudentSwiper></StudentSwiper>
+<StudentSwiper />
     </div>
     <div className="bg-[#F2F4F9] py-10 px-4 flex justify-center">
       <div className="bg-white rounded-2xl p-6 w-[90%] shadow-3d">
@@ -156,7 +156,7 @@ const CollegeDetailed = () => {
 
         {/* Button */}
         <div className="flex justify-center mt-6">
-         <CustomButton>View More <span className="text-lg">→</span></CustomButton>
+         <btn>View More <span className="text-lg">→</span></btn>
         </div>
       </div>
     </div>

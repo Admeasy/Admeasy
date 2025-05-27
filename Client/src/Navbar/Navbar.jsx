@@ -23,9 +23,9 @@ const Navbar = () => {
   }
 
   return (
-    <nav className='w-full flex items-center justify-between px-5 py-2 2xl:py-4 bg-[#F2F4F8] sticky top-0 z-1000 shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl' id='nav'>
+    <nav className='w-full flex items-center justify-between px-5 py-2 bg-[#F2F4F8] sticky top-0 z-1000 shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl' id='nav'>
       <div className="logo">
-        <img draggable='false' className='w-50 2xl:w-65 ' src={logo} alt="logo" />
+        <img draggable='false' className='w-55' src={logo} alt="logo" />
       </div>
       <div className="flex items-center justify-center">
         <div className="nav-links text-xl lg:tracking-wider font-admeasy hidden md:flex gap-5 lg:gap-10 font-semibold">

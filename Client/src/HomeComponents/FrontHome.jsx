@@ -2,6 +2,8 @@ import { motion } from 'framer-motion'
 import SearchLogo from '../assets/Others/Search-logo.webp'
 import Girl from '../assets/Others/Girl.webp'
 import UpGirl from '../assets/Others/UpGirl.png'
+
+
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -19,7 +21,7 @@ const FrontHome = () => {
         {/* Main div*/}
         <div className="home-main h-full flex justify-center items-center">
           {/* div for background */}
-          <div className='bgshade items-center flex md:flex-row flex-col bg-primary w-full shadow-3d'>
+          <div className='h-full bgshade items-center flex md:flex-row flex-col bg-primary w-full shadow-3d'>
             {/* Div of finding colleges in indore */}
             <div id='college-contain' className="flex flex-col text-center justify-center w-full md:w-1/2 xl:gap-6 gap-4 md:gap-3 sm:gap-8 lg:gap-6">
               <h1 id='CollegeHeading' className='xl:text-6xl lg:text-[2.5rem] text-2xl sm:text-3xl md:text-[1.6rem] font-bold text-tprimary'>

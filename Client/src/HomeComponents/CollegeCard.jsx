@@ -46,7 +46,7 @@ const CollegeCard = () => {
                     {/* <p className="text-sm text-gray-700 line-clamp-3">cd
             {college.description}
           </p> */}
-                      <ExploreBtn linkbtn='/' />
+                      <ExploreBtn/>
                   </div>
 
                 </div>

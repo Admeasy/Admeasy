@@ -1,6 +1,6 @@
 import React from "react";
 
-const CustomButton = ({ children }) => {
+const btn = ({ children }) => {
   // Custom shadow styles from your CSS
   const baseShadow =
     "0 2px 4px rgba(45, 35, 66, 0.2), 0 7px 13px -3px rgba(45, 35, 66, 0.15), inset 0 -3px 0 #d6d6e7";
@@ -14,21 +14,7 @@ const CustomButton = ({ children }) => {
     <button
       type="button"
       role="button"
-      className="
-        inline-flex items-center justify-center
-        px-4
-        h-12
-        rounded-[13px]
-        bg-[#fcfcfd]
-        text-[#36395a]
-        text-[18px]
-        font-normal
-        cursor-pointer
-        select-none
-        whitespace-nowrap
-        transition-transform transition-shadow duration-150
-        outline-none
-        "
+      className="inline-flex items-center justify-center px-4 h-12 rounded-[13px] bg-[#fcfcfd] text-[#36395a] text-[18px] font-normal cursor-pointer select-none whitespace-nowrap transition-transform duration-150 outline-none"
       style={{
         boxShadow: baseShadow,
       }}
@@ -56,4 +42,4 @@ const CustomButton = ({ children }) => {
   );
 };
 
-export default CustomButton;
+export default btn;

@@ -2,7 +2,7 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import { useRef, useEffect } from "react";
-import CustomButton from "../HomeComponents/CustomButton";
+import btn from "../HomeComponents/3d-btn";
 import "swiper/css";
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
@@ -26,7 +26,7 @@ export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
   const nextRef = useRef(null);
 
   return (
-    <div className="relative cursor-pointer active:cursor-grab bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
+    <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
       <h2 className="text-center text-xl sm:text-2xl font-bold text-[#5A4BFF] mb-4">
         {SwiperHeading}
       </h2>
@@ -36,13 +36,13 @@ export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
         ref={prevRef}
         className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-       <CustomButton><IoIosArrowBack/></CustomButton>
+       <btn><IoIosArrowBack/></btn>
       </div>
       <div
         ref={nextRef}
         className="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-        <CustomButton> <IoIosArrowForward/> </CustomButton> 
+        <btn> <IoIosArrowForward/> </btn> 
       </div>
 
       <Swiper
@@ -63,7 +63,7 @@ export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
       >
         {students.map((student, index) => (
           <SwiperSlide key={index}>
-            <div className="flex flex-col items-center bg-white rounded-xl shadow-lg p-4">
+            <div className="flex flex-col items-center bg-white rounded-xl shadow-lg p-4 cursor-pointer">
               <img
                 src={student.img}
                 alt={student.name}
@@ -78,9 +78,9 @@ export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
       </Swiper>
 
       <div className="flex justify-center mt-4">
-        <CustomButton>
+        <btn>
           View More <span className="text-lg">→</span>
-        </CustomButton>
+        </btn>
       </div>
     </div>
   );

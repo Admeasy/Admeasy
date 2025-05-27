@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+
 const ModernNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
