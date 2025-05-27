@@ -20,6 +20,7 @@
   --color-bg: #F2F4F8;
   --color-primary: #E7ECF3;
   --color-tprimary: #2C2E3E;
+  --color-college: #575CFF;
   --color-tsecondary: #5A5C6C;
   --color-cta: #FF6B00;
   --color-cta-hover: #FF6B00;
@@ -36,23 +37,21 @@
 
 ::-webkit-scrollbar {
   width: 8px;
-  /* width of vertical scrollbar */
 }
 
 /* Track */
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #aeb0b4;
-  border-radius: 20px;
+  background: #d6d6d6;
+  border-radius: 29px;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #7c7d7f;
+  background: #acacac;
 }
 
 *{
