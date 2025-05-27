@@ -2,12 +2,12 @@ import { Link, NavLink } from 'react-router-dom'
 import CollegesData from '../assets/CollegeData/CollegesData.json'
 const Colleges = () => {
   return (
-    <div className='p-3 flex flex-wrap gap-4'>
+    <div className='p-3 flex justify-evenly flex-wrap gap-10'>
       {CollegesData.map(
         // Function Here Bro!
         (college,index)=>(
       <Link to='/' key={index}>
-  <div className="bg-primary rounded-2xl p-6 shadow-3d w-80 hover:-translate-y-1 transition-transform h-[420px] flex flex-col justify-between">
+  <div className="bg-primary rounded-2xl p-6 shadow-3d w-80 hover:scale-103 transition-transform h-[420px] flex flex-col justify-between">
     <img src={college.image} alt={college.name} className="h-16 mx-auto" />
     
     <div className="text-[#2C2E3E] text-lg font-bold mt-4 text-center">
