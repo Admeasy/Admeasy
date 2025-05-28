@@ -49,6 +49,10 @@ const collegeSchema = new mongoose.Schema({
       trim: true
     }
   },
+  keywords: [{
+    type: String,
+    trim: true
+  }],
   childDocs: {
     coursesId: {
       type: String,

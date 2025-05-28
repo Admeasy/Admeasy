@@ -29,7 +29,7 @@ const FrontHome = () => {
                 <span className="text-orange-400">College</span> in INDORE</h1>
               <h3 className='text-[14px] xl:text-2xl md:text-[16px] text-tsecondary'>Discover top-rated colleges near you and connect with alumni to make the right choice for your future.</h3>
               <div className="college-search flex items-center w-full flex-row">
-                <input name='search' className='pl-4 outline-0 bg-white rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' type="text" placeholder='Search Best B.Tech colleges near me...' />
+                <input name='search' className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' type="text" placeholder='Search Best B.Tech colleges near me...' />
                 <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'><img draggable="false" src={SearchLogo} /></button>
               </div>
             </div>

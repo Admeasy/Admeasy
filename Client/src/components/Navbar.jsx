@@ -30,9 +30,9 @@ const Navbar = () => {
       <div className="flex items-center justify-center">
         <div className="nav-links text-xl lg:tracking-wider font-admeasy hidden md:flex gap-5 lg:gap-10 font-semibold">
           <NavLink className={'links hover:text-[#0057A0] px-2 transition-colors duration-500'} to='/'>Home</NavLink>
+          <NavLink className={'links hover:text-[#0057A0] px-2 transition-colors duration-500'} to='/colleges'>Find Colleges</NavLink>
           <NavLink className={'links hover:text-[#0057A0] px-2 transition-colors duration-500'} to='/about'>About Us</NavLink>
           <NavLink className={'links hover:text-[#0057A0] px-2 transition-colors duration-500'} to='/contact'>Contact Us</NavLink>
-          <NavLink className={'links hover:text-[#0057A0] px-2 transition-colors duration-500'} to='/colleges'>Find Colleges</NavLink>
         </div>
         <div className=" block md:hidden nav-bars text-3xl">
           <i id='bars' onClick={handleBarsClick} className="fa-solid fa-bars transition-all duration-500"></i>

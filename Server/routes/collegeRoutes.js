@@ -28,7 +28,7 @@ router.post('/', (req, res) => {
         website: req.body.website,
         desc: req.body.description
     });
-    
+
     newCollege.save();
 });
 

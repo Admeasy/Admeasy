@@ -11,17 +11,28 @@ const fadeUpVariant = {
 }
 
 const CollegeCard = () => {
+  // State to hold the list of colleges
   const [Colleges, setColleges] = useState([])
 
   // Fetching colleges from the server
   useEffect(() => {
-    async function fetchColleges() {
-      await fetch('/api/colleges').then(response => response.json()).then(data => {
-        setColleges(data)
-      }).catch(error => console.error('Error fetching colleges:', error))
+  async function fetchColleges() {
+    try {
+      const response = await fetch('/api/colleges');
+      const data = await response.json();
+
+      // Select 4 random colleges from the fetched data
+      const shuffled = [...data].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 4);
+      setColleges(selected);
+
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
     }
-    fetchColleges();
-  }, [])
+  }
+
+  fetchColleges();
+}, []);
 
   return (
     <motion.section
@@ -44,7 +55,7 @@ const CollegeCard = () => {
           {Colleges.map(
             // Function here
             (college) => (
-              <Link key={college._id} to={`/`}>
+              <Link to='/' key={college._id}>
                 <div className="w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-2 flex">
                   <div className='w-18 md:w-25 m-0 md:mr-2'>
                     <img src={college.logo} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
