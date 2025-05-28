@@ -12,7 +12,7 @@ app.use(express.json());
 app.use('/api/colleges', CollegesRoutes);
 
 // Example route
-app.get("/", (req, res) => res.send("Back-end is under development...."));
+app.get("/", (req, res) => res.send("Back-end is under development..."));
 
 const PORT = process.env.SERVER_PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port http://localhost:${PORT}`));
