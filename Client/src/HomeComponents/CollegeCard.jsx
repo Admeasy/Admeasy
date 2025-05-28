@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import CollegeCards from '../assets/CollegeData/CollegeCard.json'
 import ExploreBtn from './ExploreBtn'
@@ -10,6 +11,18 @@ const fadeUpVariant = {
 }
 
 const CollegeCard = () => {
+  const [Colleges, setColleges] = useState([])
+
+  // Fetching colleges from the server
+  useEffect(() => {
+    async function fetchColleges() {
+      await fetch('/api/colleges').then(response => response.json()).then(data => {
+        setColleges(data)
+      }).catch(error => console.error('Error fetching colleges:', error))
+    }
+    fetchColleges();
+  }, [])
+
   return (
     <motion.section
       variants={fadeUpVariant}
@@ -28,14 +41,13 @@ const CollegeCard = () => {
         </div>
 
         <div className="flex flex-wrap justify-around p-0 md:p-2 md:m-2">
-          {CollegeCards.map(
+          {Colleges.map(
             // Function here
-            (college, index) => (
-
-              <Link key={index} to={`/`}>
+            (college) => (
+              <Link key={college._id} to={`/`}>
                 <div className="w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-2 flex">
                   <div className='w-18 md:w-25 m-0 md:mr-2'>
-                    <img src={college.image} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
+                    <img src={college.logo} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
                     <p className="text-yellow-500 text-[10px] m-1">⭐ {college.rating}</p>
                   </div>
                   <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12 justify-center">
