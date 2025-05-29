@@ -42,4 +42,16 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/:id', async (req, res) => {
+    try {
+        const college = await College.findById(req.params.id);
+        if (!college) {
+            return res.status(404).json({ message: 'College not found' });
+        }
+        res.json(college);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching college', error: error.message });
+    }
+});
+
 module.exports = router;

@@ -2,7 +2,7 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import { useRef, useEffect } from "react";
-import btn from "../HomeComponents/3d-btn";
+import CustomButton from "../HomeComponents/3d-btn";
 import "swiper/css";
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
@@ -21,7 +21,7 @@ const students = [
   { name: "Yash Jain", img: "/images/student6.jpg" },
 ];
 
-export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
+export default function StudentSwiper({ SwiperHeading = "Talk To Students" }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
 
@@ -36,13 +36,13 @@ export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
         ref={prevRef}
         className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-       <btn><IoIosArrowBack/></btn>
+        <CustomButton><IoIosArrowBack /></CustomButton>
       </div>
       <div
         ref={nextRef}
         className="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-        <btn> <IoIosArrowForward/> </btn> 
+        <CustomButton> <IoIosArrowForward /> </CustomButton>
       </div>
 
       <Swiper
@@ -78,9 +78,9 @@ export default function StudentSwiper( {SwiperHeading="Talk To Students"} ) {
       </Swiper>
 
       <div className="flex justify-center mt-4">
-        <btn>
+        <CustomButton>
           View More <span className="text-lg">→</span>
-        </btn>
+        </CustomButton>
       </div>
     </div>
   );

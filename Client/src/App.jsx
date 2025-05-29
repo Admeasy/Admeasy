@@ -16,7 +16,7 @@ function App() {
         <Route path='/contact' element={<Contact />}></Route>
         <Route path='/about' element={<About />} ></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
-        <Route path='/DetailedCollege' element={<CollegeDetailed/>}></Route>
+        <Route path='/colleges/:id' element={<CollegeDetailed/>}></Route>
       </Routes>
 {/*Remove the commment when it's responsive and working fine */}
       {/* <Footer/> */}

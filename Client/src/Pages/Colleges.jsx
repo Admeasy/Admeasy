@@ -47,7 +47,7 @@ const Colleges = () => {
         {Colleges.map(
           // Function Here Bro!
           (college) => (
-            <Link to={'/'} key={college._id}>
+            <Link to={`/colleges/${college._id}`} key={college._id}>
               <motion.div
                 variants={fadeUpVariant}
                 initial="hidden"

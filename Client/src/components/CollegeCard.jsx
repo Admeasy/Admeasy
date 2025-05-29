@@ -1,4 +1,7 @@
-export default function CollegeCard() {
+export default function CollegeCard(college) {
+
+  
+
   return (
     <div className="bg-white w-[90%] text-center mx-auto mt-6 rounded-2xl shadow-3d px-6 py-4">
       <div className="text-sm sm:text-base  text-gray-800 space-y-2">
@@ -9,7 +12,7 @@ export default function CollegeCard() {
             href="mailto:info@medicaps.ac.in"
             className="text-[#5A4BFF] hover:underline"
           >
-            info@medicaps.ac.in
+            {college.data.website}
           </a>
         </p>
         <p>
@@ -18,7 +21,7 @@ export default function CollegeCard() {
             href="mailto:info@medicaps.ac.in"
             className="text-[#5A4BFF] hover:underline"
           >
-            info@medicaps.ac.in
+            {}
           </a>
         </p>
         <p>
