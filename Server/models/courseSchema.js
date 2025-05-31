@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
-const courseObjectSchema = new mongoose.Schema({
+const CoursesCollectionsSchema = new mongoose.Schema({
+    courses : [{
     title: {
         type: String,
         required: true
@@ -28,6 +29,7 @@ const courseObjectSchema = new mongoose.Schema({
             default: {}
         }
     }
-}, { _id: false });
+}]
+})
 
-module.exports = mongoose.model('Courses', courseObjectSchema);
+module.exports = mongoose.model('Courses', CoursesCollectionsSchema);
