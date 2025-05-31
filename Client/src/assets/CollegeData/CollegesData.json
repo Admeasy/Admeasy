@@ -2,112 +2,112 @@
     {
       "name": "Indian Institute of Technology Indore (IIT Indore)",
       
-      "image": "https://www.iiti.ac.in/public/themes/iitindore/demos/update-logo.png",
+      "logo": "https://www.iiti.ac.in/public/themes/iitindore/demos/update-logo.png",
       "rating": 4.5,
       "location": "Simrol, Indore, Madhya Pradesh",
-      "established": 2009,
+      "establishedYear": 2009,
       "type": "Public",
       "courses": ["B.Tech", "M.Tech", "Ph.D."],
       "website": "https://iiti.ac.in/",
-      "description": "IIT Indore is a premier engineering institute established in 2009. It offers various undergraduate, postgraduate, and doctoral programs. The campus spans over 500 acres with state-of-the-art facilities."
+      "desc": "IIT Indore is a premier engineering institute establishedYear in 2009. It offers various undergraduate, postgraduate, and doctoral programs. The campus spans over 500 acres with state-of-the-art facilities."
     },
     {
       "name": "Shri Govindram Seksaria Institute of Technology and Science (SGSITS)",
-      "image": "https://upload.wikimedia.org/wikipedia/en/4/4b/SGSITS_Indore.png",
+      "logo": "https://upload.wikimedia.org/wikipedia/en/4/4b/SGSITS_Indore.png",
       "rating": 4.2,
       "location": "Indore, Madhya Pradesh",
-      "established": 1952,
+      "establishedYear": 1952,
       "type": "Public",
       "courses": ["B.E.", "M.E.", "MCA", "Ph.D."],
       "website": "http://www.sgsits.ac.in/",
-      "description": "SGSITS is one of the oldest and most prestigious engineering institutes in Indore, offering a range of undergraduate and postgraduate programs."
+      "desc": "SGSITS is one of the oldest and most prestigious engineering institutes in Indore, offering a range of undergraduate and postgraduate programs."
     },
     {
       "name": "Institute of Engineering and Technology (IET) DAVV",
-      "image": "https://img.collegepravesh.com/2017/05/IET-DAVV-Indore-Logo.png",
+      "logo": "https://img.collegepravesh.com/2017/05/IET-DAVV-Indore-Logo.png",
       "rating": 4.0,
       "location": "Khandwa Road, Indore, Madhya Pradesh",
-      "established": 1996,
+      "establishedYear": 1996,
       "type": "Public",
       "courses": ["B.E.", "M.E.", "Ph.D."],
       "website": "https://www.ietdavv.edu.in/",
-      "description": "IET DAVV is a constituent institute of Devi Ahilya Vishwavidyalaya, offering quality engineering education with modern infrastructure."
+      "desc": "IET DAVV is a constituent institute of Devi Ahilya Vishwavidyalaya, offering quality engineering education with modern infrastructure."
     },
     {
       "name": "Acropolis Institute of Technology and Research (AITR)",
-      "image": "https://www.eduska.com/assets/user_logo/7155e2a41ad3b4aef7f64ddf65f27f49.jpg",
+      "logo": "https://www.eduska.com/assets/user_logo/7155e2a41ad3b4aef7f64ddf65f27f49.jpg",
       "rating": 3.8,
       "location": "Indore, Madhya Pradesh",
-      "established": 2005,
+      "establishedYear": 2005,
       "type": "Private",
       "courses": ["B.E.", "M.E.", "MBA"],
       "website": "https://www.acropolis.in/",
-      "description": "AITR is a private engineering college known for its emphasis on research and innovation, offering various technical and management programs."
+      "desc": "AITR is a private engineering college known for its emphasis on research and innovation, offering various technical and management programs."
     },
     {
       "name": "Indore Institute of Science and Technology (IIST)",
-      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRs8ay_F5au6ntDzcVriY10QKliYWcOTfsU3Q&s",
+      "logo": "https://encrypted-tbn0.gstatic.com/logos?q=tbn:ANd9GcRs8ay_F5au6ntDzcVriY10QKliYWcOTfsU3Q&s",
       "rating": 3.7,
       "location": "Rau, Indore, Madhya Pradesh",
-      "established": 2003,
+      "establishedYear": 2003,
       "type": "Private",
       "courses": ["B.E.", "M.E.", "MBA"],
       "website": "http://www.iistindore.in/",
-      "description": "IIST offers a blend of engineering and management courses with a focus on practical learning and industry exposure."
+      "desc": "IIST offers a blend of engineering and management courses with a focus on practical learning and industry exposure."
     },
     {
       "name": "IPS Academy, Institute of Engineering and Science",
-      "image": "https://upload.wikimedia.org/wikipedia/en/6/6c/Institute_of_Engineering_and_Science_IPS_Academy_logo.jpg",
+      "logo": "https://upload.wikimedia.org/wikipedia/en/6/6c/Institute_of_Engineering_and_Science_IPS_Academy_logo.jpg",
       "rating": 3.9,
       "location": "Rajendra Nagar, Indore, Madhya Pradesh",
-      "established": 1999,
+      "establishedYear": 1999,
       "type": "Private",
       "courses": ["B.E.", "M.E.", "MBA"],
       "website": "https://www.ipsacademy.org/",
-      "description": "IPS Academy is a multidisciplinary institute offering a range of programs in engineering, management, and other fields."
+      "desc": "IPS Academy is a multidisciplinary institute offering a range of programs in engineering, management, and other fields."
     },
     {
       "name": "Prestige Institute of Engineering Management and Research (PIEMR)",
-      "image": "https://d3md8ar2i5icyz.cloudfront.net/wp-content/uploads/2022/11/footer_logo.svg",
+      "logo": "https://d3md8ar2i5icyz.cloudfront.net/wp-content/uploads/2022/11/footer_logo.svg",
       "rating": 4.1,
       "location": "Indore, Madhya Pradesh",
-      "established": 2008,
+      "establishedYear": 2008,
       "type": "Private",
       "courses": ["B.E.", "M.E."],
       "website": "https://www.piemr.edu.in/",
-      "description": "PIEMR is known for its quality engineering education and strong industry connections, facilitating excellent placement opportunities."
+      "desc": "PIEMR is known for its quality engineering education and strong industry connections, facilitating excellent placement opportunities."
     },
     {
       "name": "Medi-Caps University",
-      "image": "https://mpnvva.in/Image/UniversityLogo?instituteID=18",
+      "logo": "https://mpnvva.in/logo/UniversityLogo?instituteID=18",
       "rating": 4.0,
       "location": "Pigdamber, Indore, Madhya Pradesh",
-      "established": 2000,
+      "establishedYear": 2000,
       "type": "Private",
       "courses": ["B.E.", "M.E.", "MBA", "Ph.D."],
       "website": "https://www.medicaps.ac.in/",
-      "description": "Medi-Caps University offers a wide range of programs in engineering, management, and sciences, with a focus on research and innovation."
+      "desc": "Medi-Caps University offers a wide range of programs in engineering, management, and sciences, with a focus on research and innovation."
     },
     {
       "name": "SAGE University",
-      "image": "https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg",
+      "logo": "https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg",
       "rating": 3.9,
       "location": "Indore, Madhya Pradesh",
-      "established": 2017,
+      "establishedYear": 2017,
       "type": "Private",
       "courses": ["B.E.", "M.E.", "MBA", "Ph.D."],
       "website": "https://sageuniversity.in/",
-      "description": "SAGE University is a multidisciplinary institution offering a variety of programs with modern infrastructure and facilities."
+      "desc": "SAGE University is a multidisciplinary institution offering a variety of programs with modern infrastructure and facilities."
     },
     {
       "name": "Oriental University",
-      "image": "https://upload.wikimedia.org/wikipedia/en/7/7e/Oriental_University_logo.png",
+      "logo": "https://upload.wikimedia.org/wikipedia/en/7/7e/Oriental_University_logo.png",
       "rating": 3.8,
       "location": "Indore, Madhya Pradesh",
-      "established": 2011,
+      "establishedYear": 2011,
       "type": "Private",
       "courses": ["B.E.", "M.E.", "MBA", "Ph.D."],
       "website": "https://oui.edu.in/",
-      "description": "Oriental University offers diverse programs in engineering, management, and other fields, focusing on holistic development."
+      "desc": "Oriental University offers diverse programs in engineering, management, and other fields, focusing on holistic development."
     }
   ]

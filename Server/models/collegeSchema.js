@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const collegeSchema = new mongoose.Schema({
+const CollegesSchema = new mongoose.Schema({
   name: {
     type: String,
     trim: true
@@ -55,22 +55,22 @@ const collegeSchema = new mongoose.Schema({
   }],
   childDocs: {
     coursesId: {
-      type: String,
-      trim: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Courses'
     },
     scholarshipsId: {
-      type: String,
-      trim: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Scholarships'
     },
     galleryId: {
-      type: String,
-      trim: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Gallery'
     },
     videoReviewsId: {
-      type: String,
-      trim: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'VidReviews'
     }
   }
 });
 
-module.exports = mongoose.model('College', collegeSchema);
+module.exports = mongoose.model('Colleges', CollegesSchema);

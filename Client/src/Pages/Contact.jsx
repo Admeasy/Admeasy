@@ -24,19 +24,19 @@ const Contact = () => {
         <h2 className="md:text-2xl sm:text-[18px] text-[13px] ml-1">Need help or have any queries? Don't worry! You're just a mail or call away</h2>
         <ul className="flex flex-col gap-2">
           <li className="">
-            <a href="mailto:support@admeasy.in" className="m-0 p-0 flex items-center gap-2 font-semibold">
+            <a href="mailto:support@admeasy.in" className="w-fit m-0 p-0 flex items-center gap-2 font-semibold">
               <img src={Envelope} className='md:w-12 md:h-12 h-5 w-5 sm:w-8 sm:h-8' />
               <h4 className="m-0 pb-1 text-[12px] sm:text-[16px] md:text-2xl">support@admeasy.in</h4>
             </a>
           </li>
           <li className="">
-            <a href="tel:" className="m-0 p-0 flex items-center gap-2 font-semibold">
+            <a href="tel:+919243299145" className="w-fit m-0 p-0 flex items-center gap-2 font-semibold">
               <img src={Phone} className='md:w-12 md:h-12 h-5 w-5 sm:w-8 sm:h-8' />
-              <h4 className="m-0 pb-1 text-[12px] sm:text-[16px] md:text-2xl">+91 9410451807</h4>
+              <h4 className="m-0 pb-1 text-[12px] sm:text-[16px] md:text-2xl">+91 9243299145</h4>
             </a>
           </li>
           <li className="">
-            <a href="https://wa.me/+919410451807" target='_blank' className="m-0 p-0 flex items-center gap-2 font-semibold">
+            <a href="https://wa.me/+919243299145" target='_blank' className="w-fit m-0 p-0 flex items-center gap-2 font-semibold">
               <img src={WA} className='md:w-12 md:h-12 h-5 w-5 sm:w-8 sm:h-8' />
               <h4 className="m-0 pb-1 text-[12px] sm:text-[16px] md:text-2xl">Connect with us on WhatsApp</h4>
             </a>

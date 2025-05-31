@@ -16,7 +16,7 @@ if (conn) {
 
 
 //Route to create a new college
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const newCollege = new College({
         name: req.body.name,
         logo: req.body.logo,
@@ -29,7 +29,7 @@ router.post('/', (req, res) => {
         desc: req.body.description
     });
 
-    newCollege.save();
+    await newCollege.save();
 });
 
 // Route to get all colleges
