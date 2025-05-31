@@ -95,7 +95,7 @@ const CollegesSchema = new mongoose.Schema({
     },
     scholarshipsId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,``
+      required: true,
       ref: 'Scholarships'
     },
     galleryId: {
