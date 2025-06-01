@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import SearchLogo from '../assets/Others/Search-logo.webp'
 import Girl from '../assets/Others/Girl.webp'
-import UpGirl from '../assets/Others/UpGirl.png'
+import UpGirl from '../assets/Others/UpGirl.webp'
 
 
 const fadeUpVariant = {

@@ -26,7 +26,7 @@ const Colleges = () => {
     const searchQuery = e.target.value.toLowerCase();
     if (searchQuery) {
       const filteredColleges = Colleges.filter(college =>
-        college.name.toLowerCase().includes(searchQuery) || college.location.toLowerCase().includes(searchQuery) || college.type.toLowerCase().includes(searchQuery) || college.coursesOffered.join(' ').toLowerCase().includes(searchQuery) || college.keywords.join(' ').toLowerCase().includes(searchQuery)
+        college.name.toLowerCase().includes(searchQuery) || college.location.toLowerCase().includes(searchQuery) || college.type.toLowerCase().includes(searchQuery) || college.coursesOffered?.join(' ').toLowerCase().includes(searchQuery) || college.keywords?.join(' ').toLowerCase().includes(searchQuery)
       );
       setColleges(filteredColleges);
     } else {
@@ -66,7 +66,7 @@ const Colleges = () => {
                 </div>
 
                 <div className="text-[#FFB400] font-semibold text-sm text-center mt-1">
-                  ⭐ {college.rating}
+                  ⭐ {college.rating?.overall || 'N/A'}
                 </div>
 
                 <div className="text-sm text-[#5A5C6C] mt-4 space-y-1 overflow-hidden">

@@ -1,12 +1,11 @@
 // StudentSwiper.jsx
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import CustomButton from "../HomeComponents/3d-btn";
 import "swiper/css";
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
-
 import "swiper/css/navigation";
 
 const students = [

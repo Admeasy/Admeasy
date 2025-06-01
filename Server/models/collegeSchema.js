@@ -17,10 +17,42 @@ const CollegesSchema = new mongoose.Schema({
     trim: true
   },
   rating: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 5
+    overall: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    educationalQuality: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    faculty: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    infrastructure: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    placements: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    facilities: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    }
   },
   location: {
     type: String,
@@ -36,10 +68,6 @@ const CollegesSchema = new mongoose.Schema({
     required: true,
     enum: ['Public', 'Private'],
   },
-  coursesOffered: [{
-    type: String,
-    required: true,
-  }],
   website: {
     type: String,
     required: true,
@@ -91,7 +119,7 @@ const CollegesSchema = new mongoose.Schema({
         default: {}
       }
     }
-  }, { _id: false }],
+  }],
   facilities: [{
     type: String,
     required: true,
@@ -137,12 +165,17 @@ const CollegesSchema = new mongoose.Schema({
       required: true,
       trim: true
     }
-  }, { _id: false }],
+  }],
   gallery: {
     type: String,
     required: true,
     trim: true
-  }
+  },
+  whyChoose: [{
+    type: String,
+    required: true,
+    trim: true
+  }]
 });
 
 module.exports = mongoose.model('Colleges', CollegesSchema);

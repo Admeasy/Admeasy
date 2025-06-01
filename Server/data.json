@@ -2,7 +2,14 @@
     "name": "Indore Institute of Science and Technology",
     "desc": "Indore Institute of Science & Technology (IIST), established in 2003, is among the top engineering colleges in Indore, Madhya Pradesh. Affiliated with Rajiv Gandhi Proudyogiki Vishwavidyalaya (RGPV) and Devi Ahilya Vishwavidyalaya (DAVV), IIST offers undergraduate and postgraduate programs in engineering, management, and pharmacy. The institute emphasizes holistic development, innovation, and industry-aligned education.",
     "logo": "https://encrypted-tbn0.gstatic.com/logos?q=tbn:ANd9GcRs8ay_F5au6ntDzcVriY10QKliYWcOTfsU3Q&s",
-    "rating": 4.2,
+    "rating": {
+        "overall": 4.2,
+        "educationalQuality": 4.5,
+        "faculty": 4.3,
+        "infrastructure": 4.4,
+        "placements": 4.6,
+        "facilities": 4.7
+    },
     "location": "Indore, Madhya Pradesh, India",
     "establishedYear": 2003,
     "type": "Private",
@@ -80,6 +87,13 @@
             }
         }
     ],
+    "facilities": [
+        "Hostel Facilities",
+        "Sports Facilities",
+        "Canteen",
+        "Library",
+        "Computer Lab"
+    ],
     "package": {
         "average": "₹4.23 LPA",
         "highest": "₹28 LPA"
@@ -118,5 +132,12 @@
             "amount": "20% tuition waiver"
         }
     ],
-    "gallery": "https://indoreinstitute.com/gallery/"
+    "gallery": "https://indoreinstitute.com/gallery/",
+    "whyChoose": [
+        "100% Placement Opportunities",
+        "52 LPA Highest Package (B.Tech)",
+        "Premium and Best Facilities",
+        "Collaborations with Top Companies",
+        "Excellent Infrastructure and Labs"
+    ]
 }

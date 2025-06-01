@@ -7,6 +7,8 @@ import Contact from './Pages/Contact'
 import About from './Pages/About'
 import Colleges from './Pages/Colleges'
 import CollegeDetailed from './Pages/CollegeDetailed'
+import Course from './Pages/Course'
+
 function App() {
   return (
     <>
@@ -17,6 +19,7 @@ function App() {
         <Route path='/about' element={<About />} ></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/colleges/:id' element={<CollegeDetailed/>}></Route>
+        <Route path='/colleges/:id/courses/:courseId' element={<Course/>}></Route>
       </Routes>
 {/*Remove the commment when it's responsive and working fine */}
       {/* <Footer/> */}
