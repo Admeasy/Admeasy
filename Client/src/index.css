@@ -19,6 +19,7 @@
 @theme {
   --color-bg: #F2F4F8;
   --color-primary: #E7ECF3;
+  --smooth-transition: .7s ease-in-out;
   --color-tprimary: #2C2E3E;
   --color-college: #575CFF;
   --color-tsecondary: #5A5C6C;
@@ -61,4 +62,15 @@ html,body{
   height: 100%;
   width: 100%;
   scroll-behavior: smooth;
+}
+.active{
+  border-bottom: 2px solid #0057A0;
+  color: #0057A0;
+}
+@media (min-width:800px) {
+  
+.active{
+  border-bottom: 4px solid #0057A0;
+  border-radius: 3px;
+}
 }

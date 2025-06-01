@@ -7,6 +7,8 @@ import Contact from './Pages/Contact'
 import About from './Pages/About'
 import Colleges from './Pages/Colleges'
 import CollegeDetailed from './Pages/CollegeDetailed'
+import PrivacyPolicy from './Pages/PrivacyPolicy'
+import TermsAndConditions from './Pages/TermsAndConditions'
 function App() {
   return (
     <>
@@ -17,9 +19,11 @@ function App() {
         <Route path='/about' element={<About />} ></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/DetailedCollege' element={<CollegeDetailed/>}></Route>
+        <Route path='/Policies' element={<PrivacyPolicy/>}></Route>
+        <Route path='/Terms' element={<TermsAndConditions/>}></Route>
       </Routes>
-{/*Remove the commment when it's responsive and working fine */}
-      {/* <Footer/> */}
+{/* Remove the commment when it's responsive and working fine */}
+      <Footer/>
     </>
   )
 }
