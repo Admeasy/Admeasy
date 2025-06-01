@@ -77,9 +77,6 @@ const Colleges = () => {
                     <span className="font-semibold text-[#2C2E3E]">Type:</span> {college.type}
                   </p>
                   <p>
-                    <span className="font-semibold text-[#2C2E3E]">Courses:</span> {college.coursesOffered}
-                  </p>
-                  <p>
                     <span className="font-semibold line-clamp-3 text-[#2C2E3E]">Description:</span> {college.desc}
                   </p>
                 </div>

@@ -1,0 +1,122 @@
+{
+    "name": "Indore Institute of Science and Technology",
+    "desc": "Indore Institute of Science & Technology (IIST), established in 2003, is among the top engineering colleges in Indore, Madhya Pradesh. Affiliated with Rajiv Gandhi Proudyogiki Vishwavidyalaya (RGPV) and Devi Ahilya Vishwavidyalaya (DAVV), IIST offers undergraduate and postgraduate programs in engineering, management, and pharmacy. The institute emphasizes holistic development, innovation, and industry-aligned education.",
+    "logo": "https://encrypted-tbn0.gstatic.com/logos?q=tbn:ANd9GcRs8ay_F5au6ntDzcVriY10QKliYWcOTfsU3Q&s",
+    "rating": 4.2,
+    "location": "Indore, Madhya Pradesh, India",
+    "establishedYear": 2003,
+    "type": "Private",
+    "coursesOffered": [
+        "B.Tech in Computer Science and Engineering",
+        "B.Tech in Information Technology",
+        "B.Tech in Electronics and Communication Engineering",
+        "B.Tech in Mechanical Engineering",
+        "B.Tech in Civil Engineering",
+        "B.Tech in Chemical Engineering",
+        "M.Tech in Computer Science and Engineering",
+        "M.Tech in Machine Design",
+        "M.Tech in Digital Communication",
+        "MBA",
+        "BBA",
+        "B.Com (Hons.)",
+        "B.Sc (Computer Science, Maths, Statistics)"
+    ],
+    "website": "https://iist.indoreinstitute.com",
+    "contact": {
+        "email": "info@indoreinstitute.com",
+        "phone": "+91-731-4010555"
+    },
+    "keywords": [
+        "IIST",
+        "Indore Institute of Science and Technology",
+        "Engineering College Indore",
+        "Top Engineering Colleges in Madhya Pradesh",
+        "Private Engineering College"
+    ],
+    "courses": [
+        {
+            "title": "B.Tech in Computer Science and Engineering",
+            "desc": "A 4-year undergraduate program focusing on computer science fundamentals, programming, and software development.",
+            "duration": "4 years",
+            "semesters": 8,
+            "feeStructure": {
+                "feePerSemester": 52500,
+                "additionals": {
+                    "Hostel (Non-AC)": 80000,
+                    "Hostel (AC)": 95000,
+                    "Security Deposit": 5000,
+                    "Transport Fee": 15000
+                }
+            }
+        },
+        {
+            "title": "M.Tech in Computer Science and Engineering",
+            "desc": "A 2-year postgraduate program specializing in advanced computer science topics and research.",
+            "duration": "2 years",
+            "semesters": 4,
+            "feeStructure": {
+                "feePerSemester": 37500,
+                "additionals": {
+                    "Hostel (Non-AC)": 80000,
+                    "Hostel (AC)": 95000,
+                    "Security Deposit": 5000,
+                    "Transport Fee": 15000
+                }
+            }
+        },
+        {
+            "title": "MBA",
+            "desc": "A 2-year postgraduate program in business administration covering various management disciplines.",
+            "duration": "2 years",
+            "semesters": 4,
+            "feeStructure": {
+                "feePerSemester": 42000,
+                "additionals": {
+                    "Hostel (Non-AC)": 80000,
+                    "Hostel (AC)": 95000,
+                    "Security Deposit": 5000,
+                    "Transport Fee": 15000
+                }
+            }
+        }
+    ],
+    "package": {
+        "average": "₹4.23 LPA",
+        "highest": "₹28 LPA"
+    },
+    "recruiters": [
+        "Amazon",
+        "Wipro",
+        "Tech Mahindra",
+        "Zensar Technologies",
+        "Optimus Information Inc.",
+        "Infosys",
+        "TCS",
+        "Capgemini",
+        "Canopus Infosystem"
+    ],
+    "placementRate": "Approximately 90%",
+    "scholarships": [
+        {
+            "title": "Merit-based Scholarship for B.Tech",
+            "eligibilityCriteria": "Awarded to students who secure a JEE Main percentile greater than 85. Eligibility is determined during the MP DTE Counseling process or via direct admission if applicable.",
+            "amount": "25% tuition waiver"
+        },
+        {
+            "title": "Government Scholarship",
+            "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+            "amount": "As per government norms"
+        },
+        {
+            "title": "GATE Scholarship for M.Tech",
+            "eligibilityCriteria": "Students enrolled in M.Tech programs who qualify the GATE examination with a valid score above 45 are eligible for this scholarship. It is awarded under AICTE guidelines.",
+            "amount": "Monthly stipend as per AICTE norms"
+        },
+        {
+            "title": "Merit-based Scholarship for MBA",
+            "eligibilityCriteria": "Students who secure more than 75 percentile in the CMAT entrance exam are eligible for this scholarship. The scholarship is granted at the time of admission after document verification.",
+            "amount": "20% tuition waiver"
+        }
+    ],
+    "gallery": "https://indoreinstitute.com/gallery/"
+}

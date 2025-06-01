@@ -1,17 +1,16 @@
 import { useState } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
-import { FaCheckCircle } from "react-icons/fa";
+import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
 import StudentSwiper from '../components/StudentSwiper';
 import Courses from '../components/Courses';
-import CollegeCard from '../components/CollegeCard';
+
+
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
 
-export default function Tabs(props) {
-
-  const college = props.data
+export default function Tabs({ college }) {
 
   let [categories] = useState({
     Overview: [],
@@ -71,12 +70,25 @@ export default function Tabs(props) {
                 {college.desc}
               </p>
             </div>
+            <div className="mt-20 mx-auto w-[90%] text-center bg-white rounded-2xl shadow-3d p-6 space-y-6">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+                Facilities
+              </h2>
+              <ul className='space-y-4 text-tsecondary text-sm'>
+                {college.facilities.map((facility) => {
+                  <li>
+                    <FaDotCircle className='w-5 h-6 text-thead2' />
+                    {facility}
+                  </li>
+                })}
+              </ul>
+            </div>
             <div className="mt-20 mr-auto ml-auto w-[90%] relative justify-center flex flex-col md:flex-row bg-white rounded-2xl shadow-3d p-6 md:space-x-6 space-y-6 md:space-y-0">
               {/* Left Section: Text Content */}
               <div className="w-full md:w-1/2 flex flex-col justify-between bg-primary rounded-xl shadow-3d p-6  transition-shadow">
                 <div>
                   <h2 className="text-xl font-semibold text-thead1 mb-4">Why Choose Medi-Caps?</h2>
-                  <ul className="space-y-4 text-gray-700 text-sm">
+                  <ul className="space-y-4 text-tsecondary text-sm">
                     <li className="flex items-center gap-2">
                       <FaCheckCircle className="text-thead1 w-5 h-5" />
                       100% Placement Opportunities
@@ -107,13 +119,13 @@ export default function Tabs(props) {
               </div>
 
               {/* Right Section: Illustration */}
-              {/* <div className="w-full md:w-1/2 h-64 md:h-auto flex items-center justify-center bg-white rounded-xl shadow-[6px_6px_15px_rgba(0,0,0,0.1)]">
-        <img
-          src="https://via.placeholder.com/150x150.png?text=Illustration"
-          alt="Illustration Placeholder"
-          className="w-2/3 md:w-1/2 object-contain"
-        />
-      </div> */}
+              <div className="w-full md:w-1/2 h-64 md:h-auto flex items-center justify-center bg-white rounded-xl shadow-[6px_6px_15px_rgba(0,0,0,0.1)]">
+                <img
+                  src="https://via.placeholder.com/150x150.png?text=Illustration"
+                  alt="Illustration Placeholder"
+                  className="w-2/3 md:w-1/2 object-contain"
+                />
+              </div>
             </div>
             <StudentSwiper SwiperHeading="College Portraits" ></StudentSwiper>
           </TabPanel>

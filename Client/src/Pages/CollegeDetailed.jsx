@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import medicaps from '../assets/CollegesImg/medicapsimage.jpg'
-import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png"
 import { FaLocationDot, FaStar } from "react-icons/fa6";
 import { HiMiniAcademicCap } from "react-icons/hi2";
-import { BsBookmarkStarFill } from "react-icons/bs";
 import CollegeCard from '../components/CollegeCard';
 import Tabs from '../components/Tabs';
 
@@ -13,14 +11,27 @@ const CollegeDetailed = () => {
   const [college, setCollege] = useState({});
 
   const { id } = useParams(); // Get the college ID from the URL
+  console.log('component mounted with: ' + id);
+
 
   useEffect(() => {
-  fetch(`/api/colleges/${id}`)
-    .then(res => res.json())
-    .then(data => {
-      setCollege(data);
-  });
-}, [id]);
+    console.log("useEffect triggered"); // ❗ You didn’t see this before — must see it now
+
+    const fetchCollege = async () => {
+      try {
+        console.log("Fetching college with ID:", id);
+        const res = await fetch(`/api/colleges/${id}`);
+        const data = await res.json();
+        console.log("Fetched college:", data);
+        setCollege(data);
+      } catch (err) {
+        console.error("Error fetching college:", err);
+      }
+    };
+
+    fetchCollege();
+  }, [id]);
+
 
   return (
     <div className='pb-4 w-[95%] m-auto'>

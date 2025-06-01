@@ -63,6 +63,40 @@ const CollegesSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  courses: [{
+    title: {
+      type: String,
+      required: true
+    },
+    desc: {
+      type: String,
+      required: true
+    },
+    duration: {
+      type: String,
+      required: true
+    },
+    semesters: {
+      type: Number,
+      required: true
+    },
+    feeStructure: {
+      feePerSemester: {
+        type: Number,
+        required: true
+      },
+      additionals: {
+        type: Map,
+        of: Number,
+        default: {}
+      }
+    }
+  }],
+  facilities: [{
+    type: String,
+    required: true,
+    trim: true
+  }],
   package: {
     average: {
       type: String,
@@ -87,21 +121,27 @@ const CollegesSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  childDocs: {
-    coursesId: {
-      type: mongoose.Schema.Types.ObjectId,
+  scholarships: [{
+    title: {
+      type: String,
       required: true,
-      ref: 'Courses'
+      trim: true
     },
-    scholarshipsId: {
-      type: mongoose.Schema.Types.ObjectId,
+    eligibilityCriteria: {
+      type: String,
       required: true,
-      ref: 'Scholarships'
+      trim: true
     },
-    galleryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Gallery'
+    amount: {
+      type: String,
+      required: true,
+      trim: true
     }
+  }],
+  gallery: {
+    type: String,
+    required: true,
+    trim: true
   }
 });
 

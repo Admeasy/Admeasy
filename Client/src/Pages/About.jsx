@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import '../App.css'
 import { motion } from 'framer-motion'
-import Section from '../components/About-section'
+import Section from '../components/AboutSection'
 import GroupPic from '../assets/CollegesImg/Medicap-Road.webp'
 
 

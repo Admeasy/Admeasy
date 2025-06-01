@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const College = require('../models/collegeSchema');
+const data = require('../data.json')
 
-
-const app = express();
 
 let conn = mongoose.connect(process.env.COLLEGES_MONGO_URI)
 
@@ -14,6 +13,9 @@ if (conn) {
     console.error('Failed to connect to MongoDB');
 }
 
+
+const coll = new College(data);
+coll.save()
 
 //Route to create a new college
 router.post('/', async (req, res) => {
@@ -49,6 +51,7 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: 'College not found' });
         }
         res.json(college);
+        res.status(300).json('College sent')
     } catch (error) {
         res.status(500).json({ message: 'Error fetching college', error: error.message });
     }
