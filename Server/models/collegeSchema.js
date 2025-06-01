@@ -91,7 +91,7 @@ const CollegesSchema = new mongoose.Schema({
         default: {}
       }
     }
-  }],
+  }, { _id: false }],
   facilities: [{
     type: String,
     required: true,
@@ -137,7 +137,7 @@ const CollegesSchema = new mongoose.Schema({
       required: true,
       trim: true
     }
-  }],
+  }, { _id: false }],
   gallery: {
     type: String,
     required: true,
