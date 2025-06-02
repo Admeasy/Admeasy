@@ -96,16 +96,28 @@ const CollegesSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    introDesc: {
+      type: String,
+      required: true
+    },
     desc: {
       type: String,
       required: true
     },
     duration: {
-      type: String,
+      type: Number,
       required: true
     },
     semesters: {
       type: Number,
+      required: true
+    },
+    rating: {
+      type: Number,
+      required: true
+    },
+    eligibility: {
+      type: String,
       required: true
     },
     feeStructure: {

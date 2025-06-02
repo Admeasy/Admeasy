@@ -306,7 +306,7 @@ export default function Tabs({ college = {} }) {
                     <li key={index} className='bg-primary p-4 text-lg sm:text-xl text-center text-tprimary rounded-2xl shadow-3d-4 cursor-pointer hover:scale-105 transition-transform duration-300'>
                       <Link to={`/colleges/${college._id}/courses/${course._id}`} className='block w-full h-full space-y-2'>
                         <h4 className='text-thead2 text-xl sm:text-2xl font-admeasy-bold'>{course?.title || 'Course Title'}</h4>
-                        <p>{course?.desc || 'Course description not available'}</p>
+                        <p>{course?.introDesc || 'Course description not available'}</p>
                       </Link>
                     </li>
                   ))

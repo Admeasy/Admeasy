@@ -73,6 +73,22 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+router.get('/:collegeId/courses/:courseId', async (req, res) => {
+    try {
+        const college = await College.findById(req.params.collegeId);
+        if (!college) {
+            return res.status(404).json({ message: 'College not found' });
+        }
+        const course = college.courses.find(course => course._id.toString() === req.params.courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.json(course);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching course', error: error.message });
+    }
+});
+
 // router.get('/gallery/:id', async (req, res) => {
 //     try {
 //         const id = req.params.id;

@@ -43,9 +43,12 @@
     "courses": [
         {
             "title": "B.Tech in Computer Science and Engineering",
-            "desc": "A 4-year undergraduate program focusing on computer science fundamentals, programming, and software development.",
-            "duration": "4 years",
+            "introDesc": "A comprehensive 4-year program that builds strong foundations in computer science, programming, and software development.",
+            "desc": "The B.Tech in Computer Science and Engineering program is designed to create industry-ready software professionals. Students learn core computer science concepts, advanced programming languages, and modern software development practices.\n\nThe curriculum covers fundamental subjects like Data Structures, Algorithms, Database Management, and Operating Systems, along with emerging technologies like Artificial Intelligence, Machine Learning, and Cloud Computing. Through practical labs, projects, and industry internships, students gain hands-on experience in solving real-world problems.\n\nThe program emphasizes both theoretical knowledge and practical skills, preparing students for successful careers in software development, system design, and technology innovation. Regular workshops, coding competitions, and industry expert sessions enhance the learning experience.",
+            "duration": 4,
             "semesters": 8,
+            "rating": 4.5,
+            "eligibility": "10+2 with Physics, Chemistry, and Mathematics",
             "feeStructure": {
                 "feePerSemester": 52500,
                 "additionals": {
@@ -58,9 +61,12 @@
         },
         {
             "title": "M.Tech in Computer Science and Engineering",
-            "desc": "A 2-year postgraduate program specializing in advanced computer science topics and research.",
-            "duration": "2 years",
+            "introDesc": "An advanced 2-year program focusing on specialized computer science domains and research methodologies.",
+            "desc": "The M.Tech in Computer Science and Engineering is an advanced postgraduate program that deepens understanding of computer science concepts and research methodologies. This program is ideal for those looking to specialize in cutting-edge technology domains.\n\nStudents engage in advanced coursework covering areas like Distributed Systems, Advanced Algorithms, Network Security, and Software Architecture. The program includes a significant research component, allowing students to work on innovative projects and publish research papers.\n\nWith a focus on both theoretical knowledge and practical applications, the program prepares students for leadership roles in technology, research positions, and doctoral studies. Regular seminars, research workshops, and industry collaborations provide exposure to the latest technological developments.",
+            "duration": 2,
             "semesters": 4,
+            "rating": 4.5,
+            "eligibility": "B.Tech in Computer Science and Engineering",
             "feeStructure": {
                 "feePerSemester": 37500,
                 "additionals": {
@@ -73,9 +79,12 @@
         },
         {
             "title": "MBA",
-            "desc": "A 2-year postgraduate program in business administration covering various management disciplines.",
-            "duration": "2 years",
+            "introDesc": "A dynamic 2-year program that develops business leadership skills and management expertise.",
+            "desc": "The Master of Business Administration program is designed to create future business leaders with strong analytical and decision-making capabilities. This comprehensive program covers all major aspects of business management and organizational leadership.\n\nThe curriculum includes core management subjects like Finance, Marketing, Human Resources, and Operations, along with specialized electives in emerging business domains. Students gain practical exposure through case studies, business simulations, and industry projects.\n\nThe program emphasizes developing leadership qualities, strategic thinking, and entrepreneurial skills. Regular industry interactions, management workshops, and business competitions provide students with real-world business insights and networking opportunities.",
+            "duration": 2,
             "semesters": 4,
+            "rating": 4.5,
+            "eligibility": "B.Com (Hons.) or B.A. (Economics, Business Studies, or Commerce)",
             "feeStructure": {
                 "feePerSemester": 42000,
                 "additionals": {
