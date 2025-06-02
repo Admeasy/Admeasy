@@ -42,7 +42,7 @@ const CollegeCard = () => {
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
-      className=" text-tprimary">
+      className=" text-tprimary my-5">
       <div className="pt-4">
         <div className="w-full mb-8 flex items-center justify-center gap-3">
           <img src={Institute} alt="" className="w-14" />
