@@ -16,12 +16,7 @@ const Contact = () => {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="
-        p-5  mt-5 pb-9 bg-primary flex flex-col gap-6 
-        rounded-3xl shadow-3d 
-        max-w-3xl w-full mx-auto
-      "
-    >
+      className="p-5 my-15 bg-primary flex flex-col gap-6 rounded-3xl shadow-3d max-w-3xl w-full mx-auto">
       {/* Heading */}
       <h2 className="text-[22px] md:text-3xl lg:text-4xl font-bold font-poppins text-center">
         Contact Us
@@ -37,7 +32,7 @@ const Contact = () => {
           <li>
             <a
               href="mailto:support@admeasy.in"
-              className="flex items-center gap-3 font-semibold"
+              className="max-w-fit flex items-center gap-3 font-semibold"
             >
               <img
                 src={Envelope}
@@ -53,7 +48,7 @@ const Contact = () => {
           <li>
             <a
               href="tel:+919243299145"
-              className="flex items-center gap-3 font-semibold"
+              className="max-w-fit flex items-center gap-3 font-semibold"
             >
               <img
                 src={Phone}
@@ -71,7 +66,7 @@ const Contact = () => {
               href="https://wa.me/+919243299145"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 font-semibold"
+              className="max-w-fit flex items-center gap-3 font-semibold"
             >
               <img
                 src={WA}

@@ -11,6 +11,7 @@ import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import Course from './Pages/Course'
 
+import CollegeCourse from './Pages/CollegeCourse'
 function App() {
   return (
     <>
@@ -24,6 +25,7 @@ function App() {
         <Route path='/Policies' element={<PrivacyPolicy/>}></Route>
         <Route path='/Terms' element={<TermsAndConditions/>}></Route>
         <Route path='/colleges/:id/courses/:courseId' element={<Course/>}></Route>
+         <Route path='/Course' element={<CollegeCourse/>}></Route>
       </Routes>
 {/* Remove the commment when it's responsive and working fine */}
       <Footer/>

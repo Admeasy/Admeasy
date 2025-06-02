@@ -1,6 +1,6 @@
 import React from "react";
 
-const btn = ({ children }) => {
+const CustomButton = ({ children }) => {
   // Custom shadow styles from your CSS
   const baseShadow =
     "0 2px 4px rgba(45, 35, 66, 0.2), 0 7px 13px -3px rgba(45, 35, 66, 0.15), inset 0 -3px 0 #d6d6e7";
@@ -42,4 +42,4 @@ const btn = ({ children }) => {
   );
 };
 
-export default btn;
+export default CustomButton;

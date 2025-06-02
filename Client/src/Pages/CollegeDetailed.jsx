@@ -1,99 +1,157 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import medicaps from '../assets/CollegesImg/medicapsimage.jpg'
-import { FaBuilding, FaDochub, FaLocationDot, FaPage4, FaPager, FaStar } from "react-icons/fa6";
-import CollegeCard from '../components/CollegeCard';
+import medicaps from '../assets/CollegesImg/medicapsimage.jpg';
+import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png";
+import { FaCalendarAlt } from "react-icons/fa";
+import { FaBriefcase, FaBuilding, FaLocationDot, FaStar } from "react-icons/fa6";
+import { HiMiniAcademicCap } from "react-icons/hi2";
 import Tabs from '../components/Tabs';
-import { FaCalendarAlt } from 'react-icons/fa';
+import CollegeCard from '../components/CollegeCard';
 import { motion } from 'framer-motion';
-import { useLocation } from "react-router-dom";
-
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
-}
+};
+
+// Info pod items configuration
+const infoPods = [
+  { Icon: FaLocationDot, key: 'location' },
+  { Icon: FaCalendarAlt, key: 'establishedYear', prefix: 'Est. ' },
+  { Icon: HiMiniAcademicCap, key: 'nirfRank', prefix: 'NIRF - ' },
+  { Icon: FaBuilding, key: 'type' },
+  { Icon: FaStar, key: 'rating.overall' },
+  { Icon: FaBriefcase, key: 'placementRate' }
+];
+
+const InfoPod = ({ Icon, value }) => (
+  <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-md transition-transform hover:scale-105">
+    <Icon className="text-thead1 text-xl" />
+    <span className="text-gray-700">{value}</span>
+  </div>
+);
 
 const CollegeDetailed = () => {
   const [college, setCollege] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const { id } = useParams(); // Get the college ID from the URL
-  console.log('component mounted with: ' + id);
-
-  const { pathname } = useLocation();
+  const [error, setError] = useState(null);
+  const { id } = useParams();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname])
+  },);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/colleges/${id}`).then(res => res.json()).then((data) => {
-      setCollege(data);
-      setLoading(false);
-      console.log('College fetched...');
-    }).catch(err => {
-      console.error('Error: ' + err);
-      setLoading(false);
-    });
+    const fetchCollege = async () => {
+      try {
+        const response = await fetch(`/api/colleges/${id}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch college data (${response.status})`);
+        }
+        const data = await response.json();
+        setCollege(data);
+      } catch (err) {
+        console.error('Error fetching college data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCollege();
   }, [id]);
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-    </div>;
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white p-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">Unable to Load College Data</h1>
+          <p className="text-gray-700">{error}</p>
+        </div>
+      </div>
+    );
   }
 
   if (!college) {
-    return <div className="flex justify-center items-center min-h-screen">
-      <div className="text-xl text-red-500">Failed to load college data</div>
-    </div>;
+    return (
+      <div className="min-h-screen bg-white p-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-gray-700">No College Data Available</h1>
+        </div>
+      </div>
+    );
   }
 
+  // Helper function to safely get nested object values
+  const getValue = (obj, path) => {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj) || 'N/A';
+  };
+
   return (
-    <>
-      <motion.div variants={fadeUpVariant} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.7, ease: 'easeOut' }} className='pb-4 w-[95%] m-auto'>
-        <div className='p-3 mt-4 mx-auto bg-primary flex justify-center rounded-2xl flex-col shadow-3d-4'>
-          <div className='w-full h-full'>
-            <div className='w-full h-[60vh] bg-cover rounded-2xl' style={{ backgroundImage: `url(${medicaps})` }}>
-              <div className="w-full h-full bg-linear-to-b from-black/20 to-black/60 flex items-center justify-center gap-8 rounded-2xl">
-                <img className='h-30 aspect-square rounded-2xl' src={college.logo} alt={college.name} />
-                <h1 className='text-5xl text-white font-admeasy-extrabold'>{college.name}</h1>
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <motion.header
+        variants={fadeUpVariant}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.9, ease: 'easeOut' }}>
+        <div className="w-full h-[60vh] relative">
+          <div
+            className="w-full h-full bg-cover bg-center transition-transform duration-300"
+            style={{ backgroundImage: `url(${medicaps})` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/60">
+              <div className="container mx-auto h-full flex flex-col sm:flex-row items-center justify-center gap-8">
+                <img
+                  src={college.logo || MediLogo}
+                  alt={college.name}
+                  className="w-25 h-25 sm:h-32 sm:w-32 object-contain bg-white rounded-2xl transition-transform duration-300 hover:scale-105"
+                  onError={(e) => {
+                    e.target.src = MediLogo;
+                  }}
+                />
+                <h1 className="w-fit mx-auto text-3xl sm:text-5xl text-center text-white font-bold">{college.name}</h1>
               </div>
             </div>
           </div>
-          <div className="flex gap-4 items-center justify-around bg-primary p-4 rounded-xl">
-            {/* Item 1 */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d text-md text-thead2">
-              <span className="text-icon font-semibold"><FaLocationDot /></span>
-              <span>{college.location}</span>
-            </div>
+        </div>
 
-            {/* Item 2 */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d text-md text-thead2">
-              <span className="text-icon font-semibold"><FaCalendarAlt /></span>
-              <span>{college.establishedYear}</span>
-            </div>
-
-            {/* Item 3 */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d text-md text-thead2">
-              <span className="text-icon font-semibold"><FaBuilding /></span>
-              <span>{college.type}</span>
-            </div>
-
-            {/* Item 4 */}
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d text-md text-thead2">
-              <span className="text-icon font-semibold"><FaStar /></span>
-              <span>{college?.rating?.overall}</span>
+        {/* Info Pods */}
+        <div className="w-full bg-primary -mt-8 relative rounded-b-2xl">
+          <div className="w-full mx-auto">
+            <div className="w-full flex flex-wrap gap-4 sm:gap-0 justify-evenly py-6">
+              {infoPods.map(({ Icon, key, prefix = '', suffix = '' }) => (
+                <InfoPod
+                  key={key}
+                  Icon={Icon}
+                  value={`${prefix}${getValue(college, key)}${suffix}`}
+                />
+              ))}
             </div>
           </div>
         </div>
-      </motion.div>
-      <Tabs college={college} />
-      <CollegeCard data={college} />
-    </>
-  )
-}
+      </motion.header>
 
-export default CollegeDetailed
+      {/* Tabs Section */}
+      <section className="container mx-auto px-2 sm:px-4 py-8">
+        <Tabs college={college} />
+      </section>
+
+      {/* College Card Section */}
+      <section className="container mx-auto px-4 py-8">
+        <CollegeCard data={college} />
+      </section>
+    </div>
+  );
+};
+
+export default CollegeDetailed;

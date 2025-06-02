@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { RiQuestionAnswerFill } from "react-icons/ri";
+
+
 const faqs = [
   {
     question: "🎓 What is Admeasy?",
@@ -44,7 +46,7 @@ const fadeUpVariant = {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-full px-4 py-10 bg-gray-50"
+      className="w-full px-4 py-10"
     >
       <div className="max-w-4xl mx-auto">
         <h2 className="text-3xl text-gray-800 font-admeasy-extrabold justify-center flex gap-4 sm:text-4xl text-center mb-8 ">

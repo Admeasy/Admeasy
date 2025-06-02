@@ -8,19 +8,21 @@ import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 
+const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
 const students = [
   {
     name: "Mohit Verma",
     img: "https://cdn.pixabay.com/photo/2024/03/15/19/51/ai-generated-8635685_960_720.png",
   },
-  { name: "Ruchi Patidar", img: "/images/student2.jpg" },
-  { name: "Riya Verma", img: "/images/student3.jpg" },
-  { name: "Ankit Sharma", img: "/images/student4.jpg" },
-  { name: "Megha Sinha", img: "/images/student5.jpg" },
-  { name: "Yash Jain", img: "/images/student6.jpg" },
+  { name: "Ruchi Patidar", img: fallbackImage },
+  { name: "Riya Verma", img: fallbackImage },
+  { name: "Ankit Sharma", img: fallbackImage },
+  { name: "Megha Sinha", img: fallbackImage },
+  { name: "Yash Jain", img: fallbackImage },
 ];
 
-export default function StudentSwiper({ SwiperHeading = "Talk To Students" }) {
+export default function StudentSwiper({ SwiperHeading = "Talk To Students", college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
 
@@ -67,6 +69,9 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students" }) {
                 src={student.img}
                 alt={student.name}
                 className="w-20 h-20 rounded-full object-cover shadow-md"
+                onError={(e) => {
+                  e.target.src = fallbackImage;
+                }}
               />
               <p className="mt-2 text-sm font-medium text-gray-800">
                 {student.name}

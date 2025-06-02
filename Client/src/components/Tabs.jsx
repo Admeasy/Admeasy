@@ -3,7 +3,6 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
 import StudentSwiper from '../components/StudentSwiper';
-import Courses from '../components/Courses';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Institute from '../assets/Others/Institute.webp'
@@ -43,28 +42,29 @@ const getRatingColor = (rating) => {
 
 const RatingBar = ({ rating, label }) => {
   // Convert rating to percentage (assuming rating is out of 5)
-  const percentage = ((rating || 0) / 5) * 100;
-  const colorClass = getRatingColor(rating);
-  
+  const ratingValue = typeof rating === 'number' ? rating : 0;
+  const percentage = (ratingValue / 5) * 100;
+  const colorClass = getRatingColor(ratingValue);
+
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex justify-between items-center">
         <span className="text-thead1 text-lg">{label}</span>
-        <span className={`font-medium ${rating >= 4.5 ? 'text-green-600' : 
-          rating >= 4.0 ? 'text-teal-600' : 
-          rating >= 3.5 ? 'text-blue-600' : 
-          rating >= 3.0 ? 'text-yellow-600' : 
-          rating >= 2.0 ? 'text-orange-600' : 
-          'text-red-600'}`}>
-          {rating || 'N/A'}/5
+        <span className={`font-medium ${ratingValue >= 4.5 ? 'text-green-600' :
+          ratingValue >= 4.0 ? 'text-teal-600' :
+            ratingValue >= 3.5 ? 'text-blue-600' :
+              ratingValue >= 3.0 ? 'text-yellow-600' :
+                ratingValue >= 2.0 ? 'text-orange-600' :
+                  'text-red-600'}`}>
+          {typeof rating === 'number' ? rating.toFixed(1) : 'N/A'}/5
         </span>
       </div>
       <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-        <div 
+        <div
           className={`h-full bg-gradient-to-r ${colorClass} rounded-full transition-all duration-500 ease-out`}
-          style={{ 
+          style={{
             width: `${percentage}%`,
-            opacity: rating ? '1' : '0.3'
+            opacity: typeof rating === 'number' ? '1' : '0.3'
           }}
         />
       </div>
@@ -73,6 +73,9 @@ const RatingBar = ({ rating, label }) => {
 };
 
 export default function Tabs({ college = {} }) {
+  console.log('Tabs component rendering with college:', college); // Debug log
+
+  const [selectedTab, setSelectedTab] = useState(0);
   const [gallery, setGallery] = useState([]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
   const [galleryError, setGalleryError] = useState(null);
@@ -115,51 +118,62 @@ export default function Tabs({ college = {} }) {
     setIsGalleryLoading(true);
     setGalleryError(null);
     const files = [];
-    const baseURL = `http://localhost:9000/images/${college._id}/`;
+    
+    // For development, if the API isn't ready, use placeholder images
+    const placeholderImages = [
+      'https://placehold.co/600x400?text=Campus+View',
+      'https://placehold.co/600x400?text=Library',
+      'https://placehold.co/600x400?text=Laboratory',
+      'https://placehold.co/600x400?text=Sports+Complex'
+    ];
 
+    // Try to fetch from API, fallback to placeholders if it fails
     fetch(`/api/colleges/gallery/${college._id}`)
       .then(res => {
         if (!res.ok) {
-          throw new Error('Failed to fetch gallery');
+          throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
         }
         return res.json();
       })
       .then(data => {
         if (!data || data.length === 0) {
-          setGalleryError('No images available');
+          console.log('No gallery images found, using placeholders');
+          setGallery(placeholderImages);
           return;
         }
+        const baseURL = `http://localhost:9000/images/${college._id}/`;
         files.push(...data);
         setGallery(files.map(name => baseURL + name));
       })
       .catch(err => {
-        console.error('Gallery fetch error:', err);
-        setGalleryError('Failed to load gallery');
+        console.log('Gallery fetch error, using placeholders:', err);
+        setGallery(placeholderImages);
+        setGalleryError('Unable to load gallery images');
       })
       .finally(() => {
         setIsGalleryLoading(false);
       });
-  }, [college?._id])
-
+  }, [college?._id]);
 
   return (
     <section className="w-full flex justify-center items-center px-2 py-16">
-      <TabGroup className='w-full'>
+      <TabGroup selectedIndex={selectedTab} onChange={setSelectedTab} className='w-full'>
         <motion.div
           variants={fadeUpVariant}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
+          className='w-full'
         >
-          <TabList className="w-4/5 mx-auto flex justify-around space-x-1 rounded-2xl bg-blue-900/20 p-1">
+          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1">
             {Object.keys(categories).map((category) => (
               <Tab
                 key={category}
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-2xl py-2.5 text-[18px] font-medium leading-5',
-                    'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer ',
+                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[18px] font-medium leading-5',
+                    'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer',
                     selected
                       ? 'bg-white text-link shadow'
                       : 'text-black hover:bg-white/[0.12] hover:text-link'
@@ -181,7 +195,7 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-20 mx-auto w-[90%] md:w-[70%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
                 About {college?.name || 'College'}
@@ -200,7 +214,7 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-20 mx-auto w-[90%] md:w-[70%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
                 Facilities
@@ -228,7 +242,7 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-20 mx-auto w-[90%] md:w-[70%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
                 Placements
               </h2>
@@ -247,17 +261,18 @@ export default function Tabs({ college = {} }) {
                 <img src={BoyWithLaptop} alt="Student with Laptop" className="w-1/2 hidden sm:block object-contain" />
               </div>
             </motion.section>
+
             <motion.section
               variants={fadeUpVariant}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-20 mx-auto w-[90%] md:w-[70%] relative justify-evenly flex md:flex-row bg-primary rounded-2xl shadow-3d p-8 md:space-x-6 space-y-6 md:space-y-0"
+              className="mt-20 mx-auto w-[90%] md:w-[80%] relative justify-evenly flex md:flex-row bg-primary rounded-2xl shadow-3d p-4 sm:p-8 md:space-x-6 space-y-6 md:space-y-0"
             >
-              <img src={Boy} alt="Student" className="w-1/2 md:w-1/4 h-1/2 lg:h-1/4 hidden sm:block object-cover" />
+              <img src={Boy} alt="Student" className="w-1/2 md:w-1/3 h-1/2 lg:h-1/4 hidden sm:block object-contain" />
               {/* Left Section: Text Content */}
-              <div className="md:w-3/4 bg-primary rounded-xl shadow-3d p-6 transition-shadow">
+              <div className="bg-primary rounded-xl shadow-3d p-6 transition-shadow">
                 <h2 className="text-xl sm:text-2xl text-center font-admeasy-extrabold text-thead1 mb-4">Why Choose {college?.name || 'this College'}?</h2>
                 <ul className="space-y-4 text-tsecondary text-sm">
                   {Array.isArray(college?.whyChoose) && college.whyChoose.length > 0 ? (
@@ -271,22 +286,8 @@ export default function Tabs({ college = {} }) {
                     <li className="text-center text-lg">No information available</li>
                   )}
                 </ul>
-
-                {/* Button */}
-                {/* <div className="mt-6 mx-auto">
-                  <CustomButton>Explore More</CustomButton>
-                </div> */}
               </div>
             </motion.section>
-
-            {/* <motion.section
-              variants={fadeUpVariant}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}>
-              <StudentSwiper SwiperHeading="College Portraits" college={college}></StudentSwiper>
-            </motion.section> */}
           </TabPanel>
 
           <TabPanel>
@@ -344,7 +345,7 @@ export default function Tabs({ college = {} }) {
                       alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
                       className='w-full h-64 object-cover rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
                       onError={(e) => {
-                        e.target.src = 'fallback-image-url'; // Add a fallback image URL
+                        e.target.src = 'fallback-image-url';
                         e.target.alt = 'Image not available';
                       }}
                     />
@@ -356,7 +357,6 @@ export default function Tabs({ college = {} }) {
 
           <TabPanel>
             {/* Reviews */}
-
             <motion.section
               variants={fadeUpVariant}
               initial="hidden"
@@ -368,42 +368,42 @@ export default function Tabs({ college = {} }) {
                 Rating
               </h1>
               <div className="flex flex-col md:flex-row gap-8">
-                <div className="w-full md:w-1/3 flex flex-col items-center justify-center p-6 bg-white/50 rounded-xl">
+                <div className="w-full md:w-1/3 flex flex-col items-center justify-center p-3 sm:p-6 bg-white/50 rounded-xl">
                   <h4 className="mb-2 text-thead1 text-lg">Overall Rating</h4>
                   <div className="text-8xl flex items-center justify-evenly">
-                    <h1 className="m-0 p-0 text-thead1 leading-6 font-admeasy-extrabold">{college?.rating?.overall || 'N/A'}</h1>
-                    <img src={Star} alt="Rating Star" className="w-26" />
+                    <h1 className="m-0 p-0 text-thead1 font-admeasy-extrabold">
+                      {typeof college?.rating?.overall === 'number' ? college.rating.overall.toFixed(1) : 'N/A'}
+                    </h1>
+                    <img src={Star} alt="Rating Star" className="w-13 sm:w-26" />
                   </div>
                 </div>
                 <div className="w-full md:w-2/3 flex flex-col gap-6">
-                  <RatingBar 
-                    label="Educational Quality" 
-                    rating={college?.rating?.educationalQuality} 
+                  <RatingBar
+                    label="Educational Quality"
+                    rating={college?.rating?.educationalQuality}
                   />
-                  <RatingBar 
-                    label="Faculty" 
-                    rating={college?.rating?.faculty} 
+                  <RatingBar
+                    label="Faculty"
+                    rating={college?.rating?.faculty}
                   />
-                  <RatingBar 
-                    label="Infrastructure" 
-                    rating={college?.rating?.infrastructure} 
+                  <RatingBar
+                    label="Infrastructure"
+                    rating={college?.rating?.infrastructure}
                   />
-                  <RatingBar 
-                    label="Placements" 
-                    rating={college?.rating?.placements} 
+                  <RatingBar
+                    label="Placements"
+                    rating={college?.rating?.placements}
                   />
-                  <RatingBar 
-                    label="Facilities" 
-                    rating={college?.rating?.facilities} 
+                  <RatingBar
+                    label="Facilities"
+                    rating={college?.rating?.facilities}
                   />
                 </div>
               </div>
             </motion.section>
-
-            
           </TabPanel>
         </TabPanels>
       </TabGroup>
     </section>
-  )
+  );
 }
