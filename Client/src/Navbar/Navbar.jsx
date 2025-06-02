@@ -43,8 +43,8 @@ const Navbar = () => {
   return (
     <nav className="w-full flex items-center justify-between px-5 py-3 2xl:py-4 bg-[#F2F4F8] sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
       {/* Logo */}
-      <div className="flex-shrink-0">
-        <img draggable="false" className="w-36 2xl:w-48" src={logo} alt="logo" />
+      <div className="flex-shrink-0 w-max">
+        <img draggable="false" className="w-25 [@media(min-width:320px)]:w-30 [@media(min-width:420px)]:w-40 2xl:w-48" src={logo} alt="logo" />
       </div>
 
       {/* Desktop Links */}

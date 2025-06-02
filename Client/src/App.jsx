@@ -9,6 +9,7 @@ import Colleges from './Pages/Colleges'
 import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
+import CollegeCourse from './Pages/CollegeCourse'
 function App() {
   return (
     <>
@@ -21,6 +22,7 @@ function App() {
         <Route path='/DetailedCollege' element={<CollegeDetailed/>}></Route>
         <Route path='/Policies' element={<PrivacyPolicy/>}></Route>
         <Route path='/Terms' element={<TermsAndConditions/>}></Route>
+         <Route path='/Course' element={<CollegeCourse/>}></Route>
       </Routes>
 {/* Remove the commment when it's responsive and working fine */}
       <Footer/>

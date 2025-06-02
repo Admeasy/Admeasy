@@ -29,8 +29,8 @@ const features = [
   },
   {
     icon: <FaPhoneAlt className="w-8 h-8 text-red-500" />,
-    title: "Direct College Connect",
-    description: "Reach out to colleges directly, without annoying middlemen.",
+    title: "🎯Direct College Connect",
+    description: "Admeasy lets you connect directly with verified colleges — skip the agents, spam calls, and confusing middle steps. Talk to colleges transparently and make confident decisions, all in one platform.",
     Upcoming:false
   },
   {

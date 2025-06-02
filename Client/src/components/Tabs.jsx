@@ -126,12 +126,12 @@ const infoItems = [
   {/* Content Section */}
   <div className="flex flex-col md:flex-row items-center justify-center md:space-x-6 space-y-6 md:space-y-0">
     {/* Video Section */}
-    <div className="flex items-center justify-center w-full md:w-1/3 aspect-video bg-white rounded-xl shadow-3d">
+    <div className="flex items-center justify-center w-[70%] h-50 bg-white rounded-xl shadow-3d">
       <span className="text-gray-500">[Video]</span>
     </div>
 
     {/* Questions Section */}
-    <div className=" flex flex-col max-w-max md:w-2/3 bg-white rounded-xl shadow-3d px-20 py-11 p-4">
+    <div className=" flex flex-col max-w-max md:w-2/3 bg-white rounded-xl shadow-3d p-4">
       <ul className="text-sm font-bold text-gray-700 space-y-2">
         <li>Q. How is Campus life?</li>
         <li>Q. Do they get easy Scholarship?</li>
