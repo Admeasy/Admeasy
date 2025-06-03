@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import CollegeCards from '../assets/CollegeData/CollegeCard.json'
 import ExploreBtn from './ExploreBtn'
 import { Link } from 'react-router-dom'
-
+import FooterBtn from './FooterBtn'
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -24,19 +24,20 @@ const CollegeCard = () => {
           Discover the Best Colleges Near You
         </h1>
 
-        <div className="flex flex-wrap justify-around p-0 md:p-2 md:m-2">
+        <div className="flex my-4 flex-wrap justify-around p-0 md:p-2 md:m-2">
           {CollegeCards.map(
             // Function here
             (college, index) => (
 
               <Link key={index} to={`/about`}>
-                <div className="w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-2 flex">
+                <div className=' hidden md:flex '>
+                <div className="  w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-2 flex">
                   <div className='w-18 md:w-25 m-0 md:mr-2'>
                     <img src={college.image} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
                     <p className="text-yellow-500 text-[10px] m-1">⭐ {college.rating}</p>
                   </div>
                   <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12 justify-center">
-                    <h2 className=" text-[14px] md:text-xl font-bold">
+                    <h2 className="text-[18px] font-bold">
                       {college.name}
                     </h2>
                     <p className="text-[12px] md:text-sm text-tsecondary">{college.location}</p>
@@ -47,6 +48,44 @@ const CollegeCard = () => {
                   </div>
 
                 </div>
+                </div>
+                 <div className="md:hidden w-[300px] h-[350px] bg-primary cursor-pointer m-2.5 rounded-3xl shadow-lg transition-shadow duration-300 p-4 flex flex-col items-center gap-2">
+        
+        {/* Logo of College */}
+        <img 
+          src={college.image} 
+          alt={college.name} 
+          draggable="false" 
+          className="h-30 w-30 object-contain" 
+        />
+
+        {/* College Name */}
+        <h2 className="text-lg font-bold text-center mt-2">
+          {college.name}
+        </h2>
+
+        {/* Rating & Address Row */}
+        <div className="flex justify-between w-full px-2 mt-2">
+          <p className="text-yellow-500 text-sm">⭐ {college.rating}</p>
+          <p className="text-[12px] md:text-sm text-tsecondary text-right">{college.location}</p>
+        </div>
+
+        {/* Button at the bottom */}
+      <div className="relative h-full mt-4 w-full">
+  <button
+    type="submit"
+    className="absolute bottom-0 left-1/2 transform -translate-x-1/2
+    cursor-pointer transition-all bg-blue-500 text-white px-6 py-2 rounded-lg
+    border-blue-600 w-full sm:w-max
+    border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px]
+    active:border-b-[2px] active:brightness-90 active:translate-y-[2px]"
+  >
+    Explore
+  </button>
+</div>
+
+
+      </div>
               </Link>
             ))}
         </div>

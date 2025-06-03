@@ -7,8 +7,8 @@ const Colleges = () => {
         // Function Here Bro!
         (college,index)=>(
       <Link to='/' key={index}>
-  <div className="bg-primary rounded-2xl p-6 shadow-3d w-80 hover:scale-103 transition-transform h-[420px] flex flex-col justify-between">
-    <img src={college.image} alt={college.name} className="h-16 mx-auto" />
+  <div className="bg-primary rounded-2xl p-4 shadow-3d w-70 hover:scale-103 transition-transform h-[420px] flex flex-col justify-between">
+    <img src={college.image} alt={college.name} className='h-20 w-20 lg:h-30 lg:w-30 mx-auto' />
     
     <div className="text-[#2C2E3E] text-lg font-bold mt-4 text-center">
       {college.name}
@@ -32,8 +32,8 @@ const Colleges = () => {
       <p>
         <span className="font-semibold text-[#2C2E3E]">Courses:</span> {college.courses}
       </p>
-      <p>
-        <span className="font-semibold line-clamp-3 text-[#2C2E3E]">Description:</span> {college.description}
+      <p className='line-clamp-3'>
+        <span className="font-semibold text-[#2C2E3E]">Description:</span> {college.description}
       </p>
     </div>
   </div>

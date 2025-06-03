@@ -50,7 +50,7 @@ const About = () => {
     },
     {
       emoji: '🎨',
-      name: 'Nitish Kumar Yadav',
+      name: 'Nitish Kr. Yadav',
       title: 'Co-founder & Co-CTO',
       description: 'Frontend expert, UI designer, and student outreach strategist.',
     },
@@ -86,10 +86,10 @@ const About = () => {
       </motion.header>
       </div>
       {/* Main Sections */}
-      <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-20 relative z-40 bg-white">
+      <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-40 bg-white">
         <Section>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4">What is Admeasy?</h2>
-          <p className="text-[16px] md:text-xl text-gray-700 px-4">
+          <h2 className="text-2xl md:text-4xl font-semibold">What is Admeasy?</h2>
+          <p className="text-[12px] md:text-2xl text-gray-700 px-4">
           Admeasy is a student-driven educational startup based in Indore, India, operating under the motto
           <strong> "Made for Students, By Students".</strong> We focus on enhancing the academic experience by providing
           tailored solutions and resources for students. With a small, dedicated team, we aim to bridge gaps in the
@@ -98,8 +98,8 @@ const About = () => {
           </p>
         </Section>
         <Section>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4">Who We Are?</h2>
-          <p className="text-[16px] md:text-xl text-gray-700 px-4">
+          <h2 className="text-2xl md:text-4xl font-semibold">Who We Are?</h2>
+          <p className="text-[12px] md:text-2xl text-gray-700 px-4">
  At <strong>Admeasy</strong>, we’re not just another college admission platform — we’re a solution born from frustration.
 It all started when our founder, <strong> Aadesh Panwar</strong>, completed school and began his college search. Instead of clarity, he found chaos: too many options, too little guidance, and worst of all — endless spam calls after signing up on "big" admission websites that sold his personal data to colleges.
 That’s when the idea for Admeasy was born — a platform that connects students with the right colleges <strong> without compromising their privacy</strong>.
@@ -107,15 +107,15 @@ That’s when the idea for Admeasy was born — a platform that connects student
         </Section>
        <Section className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
+        <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
           <span role="img" aria-label="developer">👨‍💻</span>
           Meet Our Team
         </h2>
         <div className="flex flex-wrap justify-center gap-6">
           {teamMembers.map((member, index) => (
             <div key={index}
-              className="flex flex-col bg-white p-6 rounded-2xl shadow hover:shadow-md w-full sm:w-[45%] lg:w-[22%] transition">
-              <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-1">
+              className="flex flex-col bg-white p-3 md:gap-2 rounded-2xl shadow hover:shadow-md w-full sm:w-[45%] lg:w-[22%] transition">
+              <h3 className="text-2xl md:text-3xl font-semibold text-gray-800 flex items-center gap-1 mb-1">
                 <span>{member.emoji}</span> {member.name}
               </h3>
               <p className="text-sm text-indigo-600 font-medium mb-2">{member.title}</p>
@@ -127,11 +127,11 @@ That’s when the idea for Admeasy was born — a platform that connects student
     </Section>
          <Section className="bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-6 flex items-center justify-center gap-2">
+        <h2 className="text-1xl md:text-4xl font-bold tracking-tight text-gray-900 mb-6 flex items-center justify-center gap-2">
           <span role="img" aria-label="lock">🔐</span> 
           What Makes Us Different
         </h2>
-        <ul className="text-lg text-gray-700 space-y-4 text-left">
+        <ul className="text-[15px] md:text-2xl text-gray-700 space-y-4 text-left">
           <li className="flex items-start gap-3">
             <span className="text-green-600 font-semibold">✔</span>
             <span><strong>We never sell your data</strong> — ever.</span>
@@ -152,8 +152,8 @@ That’s when the idea for Admeasy was born — a platform that connects student
       </div>
     </Section>
         <Section>
-          <h2 className="text-3xl md:text-4xl font-semibold mb-4">Our Vision</h2>
-          <p className="text-lg md:text-xl text-gray-700 px-4">
+          <h2 className="text-2xl md:text-4xl font-semibold">Our Vision</h2>
+          <p className="text-[14px] md:text-xl lg:text-2xl text-gray-700 px-16">
             We’re currently focused on expanding our college network — especially from top institutions like <strong> Delhi University</strong> — so students across India get access to opportunities they deserve.
           </p>
         </Section>

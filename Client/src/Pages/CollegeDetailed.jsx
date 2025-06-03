@@ -9,7 +9,7 @@ import { FaCheckCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/CustomButton';
 import StudentSwiper from '../components/StudentSwiper';
 import Courses from '../components/Courses';
-import CollegeCard from '../components/CollegeCard';
+import CollegeCard from '../components/CollegeInfoCard';
 import Tabs from '../components/Tabs';
 const CollegeDetailed = () => {
   return (
