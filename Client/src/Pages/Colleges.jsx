@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import SearchLogo from '../assets/Others/Search-logo.webp'
 import { motion } from 'framer-motion'
 
@@ -11,6 +11,11 @@ const fadeUpVariant = {
 
 const Colleges = () => {
   const [Colleges, setColleges] = useState([])
+  const pathname = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   // Fetching colleges from the server
   useEffect(() => {

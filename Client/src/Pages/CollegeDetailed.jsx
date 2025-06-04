@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import medicaps from '../assets/CollegesImg/medicapsimage.jpg';
 import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png";
 import { FaCalendarAlt } from "react-icons/fa";
@@ -9,9 +10,30 @@ import { BsBookmarkStarFill } from "react-icons/bs";
 import { FaCheckCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
 import StudentSwiper from '../components/StudentSwiper';
-import Courses from '../components/Courses';
-import CollegeCard from '../components/CollegeInfoCard';
 import Tabs from '../components/Tabs';
+
+
+const InfoPod = ({ Icon, value }) => {
+  // Format the value if it's a number
+  const displayValue = typeof value === 'number' ? value.toFixed(1) : value;
+
+  return (
+    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d">
+      <span className="text-[#575CFF] text-[10px] sm:text-[12px] md:text-[16px]">
+        <Icon />
+      </span>
+      <span className="text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-nowrap">
+        {displayValue}
+      </span>
+    </div>
+  );
+};
+
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 60 },
+  visible: { opacity: 1, y: 0 },
+};
+
 const CollegeDetailed = () => {
   const [college, setCollege] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +98,13 @@ const CollegeDetailed = () => {
     return path.split('.').reduce((acc, part) => acc && acc[part], obj) || 'N/A';
   };
 
+  const infoPods = [
+    { Icon: FaLocationDot, key: 'location' },
+    { Icon: FaCalendarAlt, key: 'establishedYear', prefix: 'Est. ' },
+    { Icon: FaBuilding, key: 'type' },
+    { Icon: FaStar, key: 'rating.overall', suffix: '/5' }
+  ];
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -91,7 +120,7 @@ const CollegeDetailed = () => {
             style={{ backgroundImage: `url(${medicaps})` }}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/60">
-              <div className="container mx-auto h-full flex flex-col sm:flex-row items-center justify-center gap-8">
+              <div className="container mx-auto w-fit h-full flex flex-col sm:flex-row items-center justify-center gap-8">
                 <img
                   src={college.logo || MediLogo}
                   alt={college.name}
@@ -123,13 +152,8 @@ const CollegeDetailed = () => {
       </motion.header>
 
       {/* Tabs Section */}
-      <section className="container mx-auto px-2 sm:px-4 py-8">
+      <section className="w-full mx-auto px-1 sm:px-4 py-8">
         <Tabs college={college} />
-      </section>
-
-      {/* College Card Section */}
-      <section className="container mx-auto px-4 py-8">
-        <CollegeCard data={college} />
       </section>
     </div>
   );

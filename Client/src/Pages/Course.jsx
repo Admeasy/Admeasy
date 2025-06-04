@@ -114,21 +114,21 @@ const Course = () => {
         className='p-2 sm:p-3 mt-2 sm:mt-4 mx-auto flex justify-center rounded-lg sm:rounded-2xl flex-col shadow-3d w-4/5'>
         <div className='relative w-full aspect-[2/1] bg-center bg-cover rounded-lg sm:rounded-2xl overflow-hidden' style={{ backgroundImage: `url(${college.image || medicaps})` }}>
           <div className="absolute inset-0 bg-black/20"></div>
-          <div className="h-fit absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 !w-4/5 sm:!w-fit lg:w-fit flex flex-row items-center justify-center gap-2 sm:gap-6 p-2 sm:p-6 rounded-xl bg-white/60 backdrop-blur-xs shadow-md mx-auto">
+          <div className="!h-fit absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 !w-4/5 sm:!w-fit lg:w-fit flex flex-row items-center justify-center gap-2 sm:gap-6 p-2 sm:p-6 rounded-xl bg-white/60 backdrop-blur-xs shadow-md mx-auto">
             {/* Logo */}
             <img
               draggable="false"
               src={college.logo || MediLogo}
               alt="College Logo"
-              className="size-10 sm:size-16 md:size-24 lg:size-28 rounded-lg sm:rounded-2xl object-cover"
+              className="size-14 sm:size-16 md:size-24 lg:size-28 rounded-lg sm:rounded-2xl object-cover"
             />
 
             {/* Text Content */}
             <div className="w-fit !text-center max-[400px]:text-left sm:text-left">
-              <h1 className="!w-fit !mx-auto max-[400px]:!text-base !text-lg sm:!text-lg md:!text-xl lg:!text-2xl !font-admeasy-bold sm:!font-admeasy-extrabold text-tprimary !mb-1 sm:!mb-2 md:!mb-3">
+              <h1 className="!w-fit !mx-auto max-[400px]:!text-sm !text-lg sm:!text-lg md:!text-xl lg:!text-2xl !font-admeasy-bold sm:!font-admeasy-extrabold text-tprimary !mb-1 sm:!mb-2 md:!mb-3">
                 {course.title}
               </h1>
-              <h2 className="!w-fit !mx-auto max-[400px]:!text-sm !text-base md:!text-lg lg:!text-xl text-tsecondary font-admeasy">
+              <h2 className="!w-fit !mx-auto max-[400px]:!hidden !text-base md:!text-lg lg:!text-xl text-tsecondary font-admeasy">
                 {college.name}
               </h2>
             </div>
@@ -191,7 +191,38 @@ const Course = () => {
                   <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{course.feeStructure?.feePerSemester * 2}</td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2 * course.duration)?.toLocaleString()}</td>
                 </tr>
+                {course.feeStructure?.additionals && Object.entries(course.feeStructure.additionals).map(([key, value]) => {
+                  const isOneTime = key.toLowerCase().includes('one time');
+                  return (
+                    <tr key={key} className="hover:bg-gray-50 transition">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">{key}</td>
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+                        {isOneTime ? '-' : `₹${value}`}
+                      </td>
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+                        ₹{isOneTime ? value : ((value * course.duration).toLocaleString())}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
+              <tfoot className='bg-gray-300 text-gray-700 font-semibold'>
+                <tr>
+                  <td colSpan={2} className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">Total</td>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+                    ₹{(() => {
+                      const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
+                      const additionalsTotal = course.feeStructure?.additionals
+                        ? Object.entries(course.feeStructure.additionals).reduce((sum, [key, value]) => {
+                            const isOneTime = key.toLowerCase().includes('one time');
+                            return sum + (isOneTime ? value : value * course.duration);
+                          }, 0)
+                        : 0;
+                      return (tuitionTotal + additionalsTotal).toLocaleString();
+                    })()}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </Section>
@@ -213,15 +244,15 @@ const Course = () => {
                 {course.scholarships?.map((scholarship, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition">
                     <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.name}</td>
-                    <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.eligibility}</td>
+                    <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.eligibilityCriteria}</td>
                     <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.benefit}</td>
                     <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.howToApply}</td>
                   </tr>
                 )) || (
-                  <tr>
-                    <td colSpan="4" className="px-2 sm:px-6 py-4 text-center text-gray-500">No scholarship information available</td>
-                  </tr>
-                )}
+                    <tr>
+                      <td colSpan="4" className="px-2 sm:px-6 py-4 text-center text-gray-500">No scholarship information available</td>
+                    </tr>
+                  )}
               </tbody>
             </table>
           </div>

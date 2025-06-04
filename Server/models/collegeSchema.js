@@ -130,7 +130,29 @@ const CollegesSchema = new mongoose.Schema({
         of: Number,
         default: {}
       }
-    }
+    },
+    scholarships: [{
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      eligibilityCriteria: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      benefit: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      howToApply: {
+        type: String,
+        required: true,
+        trim: true
+      }
+    }]
   }],
   facilities: [{
     type: String,
@@ -161,27 +183,15 @@ const CollegesSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  scholarships: [{
-    title: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    eligibilityCriteria: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    amount: {
-      type: String,
-      required: true,
-      trim: true
-    }
-  }],
   gallery: {
     type: String,
     required: true,
     trim: true
+  },
+  moreInfo: {
+    type: Map,
+    of: String,
+    default: {}
   },
   whyChoose: [{
     type: String,

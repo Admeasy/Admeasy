@@ -1,19 +1,19 @@
 import { FaBuilding, FaEnvelope, FaPhone } from "react-icons/fa";
 
-export default function CollegeCard({ data }) {
+export default function CollegeInfoCard({ data }) {
   if (!data) return null;
 
   return (
-    <div className="bg-primary w-[80%] text-center mx-auto my-6 rounded-2xl shadow-3d px-6 py-4">
-      <div className="text-sm sm:text-base  text-tprimary space-y-2">
-        <h3 className="font-admeasy font-bold text-[22px] md:text-2xl ">More Info</h3>
+    <div className="bg-primary w-[80%] text-center mx-auto my-6 rounded-2xl shadow-3d px-3 sm:px-6 py-4">
+      <div className="text-base sm:text-xl text-tprimary space-y-2">
+        <h3 className="mb-5 font-admeasy font-bold text-xl md:text-2xl ">Contact {data?.name}</h3>
         <p>
           <span className="font-semibold">Website :</span>{" "}
           <a
-            href={data.website}
+            href={data?.website}
             className="text-thead2 hover:underline"
           >
-            {data.website || 'Not available'}
+            {data?.website || 'Not available'}
           </a>
         </p>
         <p>

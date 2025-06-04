@@ -3,6 +3,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
 import StudentSwiper from '../components/StudentSwiper';
+import Contact from '../components/CollegeContactCard'
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Institute from '../assets/Others/Institute.webp'
@@ -10,6 +11,7 @@ import Building from '../assets/Others/Building.webp'
 import BoyWithLaptop from '../assets/Others/BoyWithLaptop.webp'
 import Boy from '../assets/Others/BoyPointingSideways.webp'
 import Star from '../assets/Others/Star.webp'
+import { FaArrowRight } from 'react-icons/fa6';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -85,6 +87,7 @@ export default function Tabs({ college = {} }) {
     Courses: [],
     Gallery: [],
     Reviews: [],
+    Contact: [],
   });
 
   // Safely access nested package data with defaults
@@ -118,7 +121,7 @@ export default function Tabs({ college = {} }) {
     setIsGalleryLoading(true);
     setGalleryError(null);
     const files = [];
-    
+
     // For development, if the API isn't ready, use placeholder images
     const placeholderImages = [
       'https://placehold.co/600x400?text=Campus+View',
@@ -156,7 +159,7 @@ export default function Tabs({ college = {} }) {
   }, [college?._id]);
 
   return (
-    <section className="w-full flex justify-center items-center px-2 py-16">
+    <section className="w-full flex justify-center items-center px-1 sm:px-2 py-16">
       <TabGroup selectedIndex={selectedTab} onChange={setSelectedTab} className='w-full'>
         <motion.div
           variants={fadeUpVariant}
@@ -166,13 +169,13 @@ export default function Tabs({ college = {} }) {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className='w-full'
         >
-          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1">
+          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1">
             {Object.keys(categories).map((category) => (
               <Tab
                 key={category}
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[18px] font-medium leading-5',
+                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[18px] font-medium',
                     'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer',
                     selected
                       ? 'bg-white text-link shadow'
@@ -260,6 +263,30 @@ export default function Tabs({ college = {} }) {
                 </ul>
                 <img src={BoyWithLaptop} alt="Student with Laptop" className="w-1/2 hidden sm:block object-contain" />
               </div>
+            </motion.section>
+
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+                More Info About {college.name}
+              </h2>
+              <ul className="text-tprimary text-center text-md sm:text-lg">
+                {college?.moreInfo && Object.keys(college.moreInfo).length > 0 ? (
+                  Object.entries(college.moreInfo).map(([key, value], index) => (
+                    <li key={index} className="flex items-center gap-2 p-2">
+                      <FaArrowRight className='w-4 h-4 text-thead2' />
+                      <span className="text-thead2">{key}:</span> {value}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-center text-lg">No additional information available</li>
+                )}
+              </ul>
             </motion.section>
 
             <motion.section
@@ -400,6 +427,17 @@ export default function Tabs({ college = {} }) {
                   />
                 </div>
               </div>
+            </motion.section>
+          </TabPanel>
+
+          <TabPanel>
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}>
+              <Contact data={college} />
             </motion.section>
           </TabPanel>
         </TabPanels>

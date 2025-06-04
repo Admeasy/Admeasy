@@ -1,4 +1,14 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom'
+
+
 const TermsAndConditions = () => {
+  const pathname = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
   return (
     <section className="bg-white  p-8 rounded-2xl shadow-3d max-w-4xl mx-auto my-12 text-gray-800">
       <h1 className="text-3xl  my-6 font-bold text-center">

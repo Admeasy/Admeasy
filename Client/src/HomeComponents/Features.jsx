@@ -35,12 +35,12 @@ const features = [
     description: "Connect with students from your preferred college to gain real insights into campus life — from academics and faculty to fests and student culture..",
     Upcoming: true
   },
-  {
-    icon: <FaSearch className="w-8 h-8 text-indigo-500" />,
-    title: "Subscription-Based Model",
-    description: "No spam. No pressure. Just powerful tools to find your dream college — on your terms. Unlock premium features, exclusive insights, and a peaceful admission journey.",
-    Upcoming: true
-  },
+  // {
+  //   icon: <FaSearch className="w-8 h-8 text-indigo-500" />,
+  //   title: "Subscription-Based Model",
+  //   description: "No spam. No pressure. Just powerful tools to find your dream college — on your terms. Unlock premium features, exclusive insights, and a peaceful admission journey.",
+  //   Upcoming: true
+  // },
   {
     icon: <GiTakeMyMoney className="w-12 h-12 text-teal-500" />,
     title: "Sell Your Notes For Money",

@@ -54,10 +54,24 @@
                 "additionals": {
                     "Hostel (Non-AC)": 80000,
                     "Hostel (AC)": 95000,
-                    "Security Deposit": 5000,
+                    "Security Deposit (One Time)": 5000,
                     "Transport Fee": 15000
                 }
-            }
+            },
+            "scholarships": [
+                {
+                    "name": "Merit-based Scholarship for B.Tech",
+                    "eligibilityCriteria": "Awarded to students who secure a JEE Main percentile greater than 85. Eligibility is determined during the MP DTE Counseling process or via direct admission if applicable.",
+                    "benefit": "25% tuition waiver",
+                    "howToApply": "At the time of Admission"
+                },
+                {
+                    "name": "Government Scholarship",
+                    "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+                    "benefit": "As per government norms",
+                    "howToApply": "Apply on MP Govt. Scholarship Portal"
+                }
+            ]
         },
         {
             "title": "M.Tech in Computer Science and Engineering",
@@ -72,10 +86,24 @@
                 "additionals": {
                     "Hostel (Non-AC)": 80000,
                     "Hostel (AC)": 95000,
-                    "Security Deposit": 5000,
+                    "Security Deposit (One Time)": 5000,
                     "Transport Fee": 15000
                 }
-            }
+            },
+            "scholarships": [
+                {
+                    "name": "Government Scholarship",
+                    "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+                    "benefit": "As per government norms",
+                    "howToApply": "Apply on MP Govt. Scholarship Portal"
+                },
+                {
+                    "name": "GATE Scholarship for M.Tech",
+                    "eligibilityCriteria": "Students enrolled in M.Tech programs who qualify the GATE examination with a valid score above 45 are eligible for this scholarship. It is awarded under AICTE guidelines.",
+                    "benefit": "Monthly stipend as per AICTE norms",
+                    "howToApply": "At the time of Admission"
+                }
+            ]
         },
         {
             "title": "MBA",
@@ -90,10 +118,24 @@
                 "additionals": {
                     "Hostel (Non-AC)": 80000,
                     "Hostel (AC)": 95000,
-                    "Security Deposit": 5000,
+                    "Security Deposit (One Time)": 5000,
                     "Transport Fee": 15000
                 }
-            }
+            },
+            "scholarships": [
+                {
+                    "name": "Government Scholarship",
+                    "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+                    "benefit": "As per government norms",
+                    "howToApply": "Apply on MP Govt. Scholarship Portal"
+                },
+                {
+                    "name": "Merit-based Scholarship for MBA",
+                    "eligibilityCriteria": "Students who secure more than 75 percentile in the CMAT entrance exam are eligible for this scholarship. The scholarship is granted at the time of admission after document verification.",
+                    "benefit": "20% tuition waiver",
+                    "howToApply": "At the time of Admission"
+                }
+            ]
         }
     ],
     "facilities": [
@@ -119,29 +161,16 @@
         "Canopus Infosystem"
     ],
     "placementRate": "Approximately 90%",
-    "scholarships": [
-        {
-            "title": "Merit-based Scholarship for B.Tech",
-            "eligibilityCriteria": "Awarded to students who secure a JEE Main percentile greater than 85. Eligibility is determined during the MP DTE Counseling process or via direct admission if applicable.",
-            "amount": "25% tuition waiver"
-        },
-        {
-            "title": "Government Scholarship",
-            "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
-            "amount": "As per government norms"
-        },
-        {
-            "title": "GATE Scholarship for M.Tech",
-            "eligibilityCriteria": "Students enrolled in M.Tech programs who qualify the GATE examination with a valid score above 45 are eligible for this scholarship. It is awarded under AICTE guidelines.",
-            "amount": "Monthly stipend as per AICTE norms"
-        },
-        {
-            "title": "Merit-based Scholarship for MBA",
-            "eligibilityCriteria": "Students who secure more than 75 percentile in the CMAT entrance exam are eligible for this scholarship. The scholarship is granted at the time of admission after document verification.",
-            "amount": "20% tuition waiver"
-        }
-    ],
     "gallery": "https://indoreinstitute.com/gallery/",
+    "moreInfo": {
+        "Campus size": "100 acres",
+        "Number of students": "10,000",
+        "Number of faculty": "500",
+        "Number of staff": "200",
+        "Number of departments": "10",
+        "Number of programs": "10",
+        "Number of research centers": "5"
+    },
     "whyChoose": [
         "100% Placement Opportunities",
         "52 LPA Highest Package (B.Tech)",
