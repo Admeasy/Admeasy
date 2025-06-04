@@ -5,32 +5,13 @@ import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png";
 import { FaCalendarAlt } from "react-icons/fa";
 import { FaBriefcase, FaBuilding, FaLocationDot, FaStar } from "react-icons/fa6";
 import { HiMiniAcademicCap } from "react-icons/hi2";
+import { BsBookmarkStarFill } from "react-icons/bs";
+import { FaCheckCircle } from "react-icons/fa";
+import CustomButton from '../HomeComponents/3d-btn';
+import StudentSwiper from '../components/StudentSwiper';
+import Courses from '../components/Courses';
+import CollegeCard from '../components/CollegeInfoCard';
 import Tabs from '../components/Tabs';
-import CollegeCard from '../components/CollegeCard';
-import { motion } from 'framer-motion';
-
-const fadeUpVariant = {
-  hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0 },
-};
-
-// Info pod items configuration
-const infoPods = [
-  { Icon: FaLocationDot, key: 'location' },
-  { Icon: FaCalendarAlt, key: 'establishedYear', prefix: 'Est. ' },
-  { Icon: HiMiniAcademicCap, key: 'nirfRank', prefix: 'NIRF - ' },
-  { Icon: FaBuilding, key: 'type' },
-  { Icon: FaStar, key: 'rating.overall' },
-  { Icon: FaBriefcase, key: 'placementRate' }
-];
-
-const InfoPod = ({ Icon, value }) => (
-  <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-md transition-transform hover:scale-105">
-    <Icon className="text-thead1 text-xl" />
-    <span className="text-gray-700">{value}</span>
-  </div>
-);
-
 const CollegeDetailed = () => {
   const [college, setCollege] = useState(null);
   const [loading, setLoading] = useState(true);

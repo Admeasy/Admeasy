@@ -13,11 +13,9 @@
 .home-main{ 
   padding: 40px 12px;
 }
-}
 
-h1 {
+h1{
   font-family: 'Poppins Extrabold';
-  font-size: clamp(1.5rem, 5vw, 3rem);
 }
 
 #btn-college {
@@ -44,7 +42,7 @@ h1 {
 }
 
 #college-contain {
-  padding: 20px;
+  margin: 20px 0px;
     animation: float 8s ease-in-out infinite; 
 }
 
@@ -69,7 +67,7 @@ h1 {
 /* Global responsive styles */
 @media (max-width: 768px) {
   .bgshade {
-    padding: 20px;
+    padding: 0px 20px;
     border-radius: 20px;
   }
 
@@ -97,7 +95,7 @@ h1 {
   }
 
   .bgshade {
-    padding: 15px;
+    padding: 0px 15px;
     border-radius: 15px;
   }
 
@@ -146,16 +144,4 @@ img {
     max-width: 1280px;
   }
 }
-
-/* Responsive typography */
-h2 {
-  font-size: clamp(1.25rem, 4vw, 2.5rem);
-}
-
-h3 {
-  font-size: clamp(1rem, 3vw, 2rem);
-}
-
-p {
-  font-size: clamp(0.875rem, 2vw, 1rem);
 }

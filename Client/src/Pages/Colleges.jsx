@@ -54,30 +54,30 @@ const Colleges = () => {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="bg-primary rounded-2xl p-6 shadow-3d w-80 hover:scale-105 transition-transform duration-200 h-[420px] flex flex-col justify-between">
+                className="bg-primary rounded-2xl p-4 shadow-3d w-70 hover:scale-105 transition-transform duration-200 h-[420px] flex flex-col justify-between">
                 <img src={college.logo} alt={college.name} className="h-16 mx-auto" />
 
-                <div className="text-[#2C2E3E] text-lg font-bold mt-4 text-center">
+                <div className="text-tprimary text-lg font-bold mt-4 text-center">
                   {college.name}
                 </div>
 
-                <div className="text-[#5A5C6C] text-sm text-center">
+                <div className="text-tsecondary text-sm text-center">
                   {college.location}
                 </div>
 
-                <div className="text-[#FFB400] font-semibold text-sm text-center mt-1">
+                <div className="text-rating font-semibold text-sm text-center mt-1">
                   ⭐ {college.rating?.overall || 'N/A'}
                 </div>
 
-                <div className="text-sm text-[#5A5C6C] mt-4 space-y-1 overflow-hidden">
+                <div className="text-sm text-tsecondary mt-4 space-y-1 overflow-hidden">
                   <p>
-                    <span className="font-semibold text-[#2C2E3E]">Established:</span> {college.establishedYear}
+                    <span className="font-semibold text-tprimary">Established:</span> {college.establishedYear}
                   </p>
                   <p>
-                    <span className="font-semibold text-[#2C2E3E]">Type:</span> {college.type}
+                    <span className="font-semibold text-tprimary">Type:</span> {college.type}
                   </p>
                   <p>
-                    <span className="font-semibold line-clamp-3 text-[#2C2E3E]">Description:</span> {college.desc}
+                    <span className="font-semibold line-clamp-3 text-tprimary">Description:</span> {college.desc}
                   </p>
                 </div>
               </motion.div>
