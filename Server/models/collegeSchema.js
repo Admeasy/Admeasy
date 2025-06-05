@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const CollegesSchema = new mongoose.Schema({
+  _id: {
+    type: String,
+    required: true,
+    trim: true,
+    default: new mongoose.Types.ObjectId().toString()
+  },
   name: {
     type: String,
     required: true,

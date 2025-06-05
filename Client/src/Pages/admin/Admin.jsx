@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUser, FaLock } from 'react-icons/fa';
+import logo from '../../assets/Admeasy/LOGO.webp';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -10,12 +11,35 @@ const fadeUpVariant = {
 
 const Admin = () => {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
   });
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+
+  useEffect(() => {
+    // Verify admin token on component mount
+    const verifyAdmin = async () => {
+      try {
+        const response = await fetch('/api/admin/verify', {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('Verification failed:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    verifyAdmin();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,16 +47,15 @@ const Admin = () => {
       ...prev,
       [name]: value.trim()
     }));
-    setError(''); // Clear error when user types
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoginLoading(true);
     setError('');
 
     try {
-      console.log('Sending credentials:', credentials);
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
@@ -42,12 +65,10 @@ const Admin = () => {
         credentials: 'include'
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (response.ok && data.success) {
-        navigate('/admin/dashboard');
+        setIsAuthenticated(true);
       } else {
         throw new Error(data.message || 'Invalid credentials');
       }
@@ -55,9 +76,64 @@ const Admin = () => {
       console.error('Login error:', err);
       setError(err.message || 'Login failed');
     } finally {
-      setIsLoading(false);
+      setIsLoginLoading(false);
     }
   };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      setIsAuthenticated(false);
+      setCredentials({ username: '', password: '' });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return (
+      <motion.div
+        variants={fadeUpVariant}
+        initial="hidden"
+        animate="visible"
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="min-h-screen p-8">
+        <div className="max-w-9/10 mx-auto space-y-8">
+          <img src={logo} alt="LOGO" className='h-28 mx-auto' />
+          <button
+            onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white font-semibold absolute top-8 right-8 rounded-xl hover:bg-red-600 transition-colors">
+            Logout
+          </button>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Link to="/admin/colleges">
+            <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Colleges</h2>
+              <p className="text-gray-600">Add, edit, or remove college information</p>
+            </div>
+            </Link>
+            <Link to="/admin/users">
+            <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">User Management</h2>
+              <p className="text-gray-600">Manage user accounts and permissions</p>
+            </div>
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
@@ -111,10 +187,10 @@ const Admin = () => {
 
           <button
             type="submit"
-            disabled={isLoading}
-            className={`w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium shadow-sm hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+            disabled={isLoginLoading}
+            className={`w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium shadow-sm hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${isLoginLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
           >
-            {isLoading ? (
+            {isLoginLoading ? (
               <div className="flex items-center justify-center">
                 <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
                 Logging in...

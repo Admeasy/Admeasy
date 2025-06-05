@@ -10,8 +10,9 @@ import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import Course from './Pages/Course'
-import Admin from './Pages/Admin'
-import AdminDashboard from './components/AdminDashboard'
+import Admin from './Pages/admin/Admin'
+import AdminColleges from './Pages/admin/colleges'
+
 
 function App() {
   const location = useLocation();
@@ -30,7 +31,7 @@ function App() {
         <Route path='/Terms' element={<TermsAndConditions />}></Route>
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/admin' element={<Admin />}></Route>
-        <Route path='/admin/dashboard' element={<AdminDashboard />}></Route>
+        <Route path='/admin/colleges' element={<AdminColleges />}></Route>
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

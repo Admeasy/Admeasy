@@ -1,10 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const Minio = require('minio');
 const College = require('../models/collegeSchema');
-const data = require('../data.json')
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const BackblazeB2Client = require('../b2Client');
+const path = require('path');
+const fs = require('fs');
 
+// Configure multer for handling file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadDir = 'uploads';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir);
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
+        cb(null, uniqueFilename);
+    }
+});
+
+const upload = multer({ storage: storage });
 
 let conn = mongoose.connect(process.env.COLLEGES_MONGO_URI)
 
@@ -14,41 +33,80 @@ if (conn) {
     console.error('Failed to connect to MongoDB');
 }
 
-// const minioClient = new Minio.Client({
-//     endPoint: process.env.MINIO_ENDPOINT,
-//     port: parseInt(process.env.MINIO_PORT),
-//     useSSL: false,
-//     accessKey: process.env.MINIO_ACCESS_KEY,
-//     secretKey: process.env.MINIO_SECRET_KEY
-// });
+// Helper function to upload files to B2
+async function uploadToB2(files, collegeId) {
+    const b2Client = new BackblazeB2Client();
 
-// Test MinIO connection
-// minioClient.listBuckets()
-//     .then(() => {
-//         console.log('Connected to MinIO server');
-//     })
-//     .catch(err => {
-//         console.error('MinIO connection error:', err);
-//     });
+    for (const file of files) {
+        try {
+            const fileName = `${collegeId}/${file.filename}`;
+            await b2Client.uploadFile(file.path, fileName);
+            
+            // Clean up local file after upload
+            fs.unlinkSync(file.path);
+        } catch (error) {
+            console.error('Error uploading file to B2:', error);
+            throw error;
+        }
+    }
 
-const coll = new College(data);
-coll.save()
+    // Return only the folder URL
+    return `${process.env.B2_BUCKET_URL}/${collegeId}`;
+}
 
 //Route to create a new college
-router.post('/', async (req, res) => {
-    const newCollege = new College({
-        name: req.body.name,
-        logo: req.body.logo,
-        rating: req.body.rating,
-        location: req.body.location,
-        establishedYear: req.body.establishedYear,
-        type: req.body.type,
-        coursesOffered: req.body.coursesOffered,
-        website: req.body.website,
-        desc: req.body.description
-    });
+router.post('/', upload.array('gallery'), async (req, res) => {
+    try {
+        const collegeId = new mongoose.Types.ObjectId();
+        let galleryUrl = '';
 
-    await newCollege.save();
+        // Upload gallery images to B2 if files were uploaded
+        if (req.files && req.files.length > 0) {
+            galleryUrl = await uploadToB2(req.files, collegeId.toString());
+        }
+
+        // Parse nested objects from form data
+        const rating = JSON.parse(req.body.rating);
+        const contact = JSON.parse(req.body.contact);
+        const package = JSON.parse(req.body.package);
+        const courses = JSON.parse(req.body.courses);
+
+        // Create new college document
+        const newCollege = new College({
+            _id: collegeId,
+            name: req.body.name,
+            desc: req.body.desc,
+            logo: req.body.logo,
+            rating: rating,
+            location: req.body.location,
+            establishedYear: req.body.establishedYear,
+            type: req.body.type,
+            website: req.body.website,
+            contact: contact,
+            keywords: JSON.parse(req.body.keywords),
+            facilities: JSON.parse(req.body.facilities),
+            package: package,
+            recruiters: JSON.parse(req.body.recruiters),
+            placementRate: req.body.placementRate,
+            gallery: galleryUrl,
+            whyChoose: JSON.parse(req.body.whyChoose),
+            courses: courses
+        });
+
+        await newCollege.save();
+        res.status(201).json({ 
+            success: true, 
+            message: 'College created successfully',
+            collegeId: collegeId
+        });
+    } catch (error) {
+        console.error('Error creating college:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error creating college', 
+            error: error.message 
+        });
+    }
 });
 
 // Route to get all colleges
@@ -89,55 +147,13 @@ router.get('/:collegeId/courses/:courseId', async (req, res) => {
     }
 });
 
-// router.get('/gallery/:id', async (req, res) => {
-//     try {
-//         const id = req.params.id;
-//         const files = [];
-
-//         // First check if bucket exists
-//         const bucketExists = await minioClient.bucketExists('images').catch(err => {
-//             console.error('Error checking bucket:', err);
-//             return false;
-//         });
-
-//         if (!bucketExists) {
-//             return res.status(404).json({ message: 'Gallery not available', error: 'Storage bucket not found' });
-//         }
-
-//         // Use Promise to handle stream events
-//         await new Promise((resolve, reject) => {
-//             const stream = minioClient.listObjectsV2('images', `${id}/`, true);
-
-//             stream.on('data', obj => {
-//                 // Only push files, not directories
-//                 if (!obj.name.endsWith('/')) {
-//                     files.push(obj.name.replace(`${id}/`, ''));
-//                 }
-//             });
-
-//             stream.on('error', error => {
-//                 console.error('Stream error:', error);
-//                 reject(error);
-//             });
-
-//             stream.on('end', () => {
-//                 resolve();
-//             });
-//         });
-
-//         // If no files found, return appropriate message
-//         if (files.length === 0) {
-//             return res.json([]);
-//         }
-
-//         res.json(files);
-//     } catch (error) {
-//         console.error('Gallery fetch error:', error);
-//         res.status(500).json({
-//             message: 'Error fetching gallery',
-//             error: error.message || 'Internal server error'
-//         });
-//     }
-// });
+router.delete('/:id', async (req, res) => {
+    try {
+        await College.findByIdAndDelete(req.params.id);
+        res.json({ message: 'College deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting college', error: error.message });
+    }
+});
 
 module.exports = router;
