@@ -1,5 +1,5 @@
 import { FaTimes, FaPlus, FaCloudUploadAlt } from 'react-icons/fa'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const initialFormState = {
     name: '',
@@ -52,9 +52,25 @@ const initialFormState = {
     }]
 }
 
-const AddCollegeForm = ({ onClose, onSubmit }) => {
+const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const [formData, setFormData] = useState(initialFormState)
     const [dragActive, setDragActive] = useState(false)
+    const [existingGalleryUrls, setExistingGalleryUrls] = useState([])
+
+    useEffect(() => {
+        if (editData) {
+            // Handle gallery separately since we need to keep track of existing URLs
+            const { gallery, ...restData } = editData;
+            if (typeof gallery === 'string' && gallery) {
+                setExistingGalleryUrls([gallery]); // Store the gallery folder URL
+            }
+            
+            setFormData({
+                ...restData,
+                gallery: [] // Initialize with empty array for new uploads
+            });
+        }
+    }, [editData]);
 
     const handleFormChange = (e, section = null, subsection = null) => {
         const { name, value } = e.target;
@@ -277,7 +293,31 @@ const AddCollegeForm = ({ onClose, onSubmit }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formData);
+        
+        // Create FormData object for multipart/form-data submission
+        const submitData = new FormData();
+        
+        // Add all form fields
+        Object.keys(formData).forEach(key => {
+            if (key === 'gallery') {
+                // Add each gallery file
+                formData.gallery.forEach(file => {
+                    submitData.append('gallery', file);
+                });
+            } else if (typeof formData[key] === 'object') {
+                // Stringify nested objects
+                submitData.append(key, JSON.stringify(formData[key]));
+            } else {
+                submitData.append(key, formData[key]);
+            }
+        });
+
+        // If we're editing and have an existing gallery URL, pass it along
+        if (existingGalleryUrls.length > 0) {
+            submitData.append('existingGallery', existingGalleryUrls[0]);
+        }
+
+        onSubmit(submitData, editData?._id);
     }
 
     const renderSection = (title, children) => (
@@ -298,7 +338,9 @@ const AddCollegeForm = ({ onClose, onSubmit }) => {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-primary rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="w-fit h-fit m-0 p-0 mx-auto text-2xl text-center font-bold text-thead1">Add New College</h2>
+                    <h2 className="w-fit h-fit m-0 p-0 mx-auto text-2xl text-center font-bold text-thead1">
+                        {editData ? 'Edit College' : 'Add New College'}
+                    </h2>
                     <button 
                         onClick={onClose}
                         className="text-gray-500 hover:text-gray-700"
@@ -546,24 +588,40 @@ const AddCollegeForm = ({ onClose, onSubmit }) => {
                                 </p>
                             </div>
 
+                            {/* Display existing gallery folder URL if available */}
+                            {existingGalleryUrls.length > 0 && (
+                                <div className="mt-4">
+                                    <h4 className="text-sm font-medium text-thead1 mb-2">Existing Gallery</h4>
+                                    <div className="bg-white/5 p-3 rounded-lg">
+                                        <p className="text-sm text-gray-600 break-all">
+                                            {existingGalleryUrls[0]}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Display new images to be uploaded */}
                             {formData.gallery.length > 0 && (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {formData.gallery.map((file, index) => (
-                                        <div key={index} className="relative group">
-                                            <img
-                                                src={URL.createObjectURL(file)}
-                                                alt={`Gallery image ${index + 1}`}
-                                                className="w-full h-32 object-cover rounded-lg"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => removeGalleryImage(index)}
-                                                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <FaTimes size={12} />
-                                            </button>
-                                        </div>
-                                    ))}
+                                <div>
+                                    <h4 className="text-sm font-medium text-thead1 mb-2">New Images to Upload</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {formData.gallery.map((file, index) => (
+                                            <div key={index} className="relative group">
+                                                <img
+                                                    src={URL.createObjectURL(file)}
+                                                    alt={`Gallery image ${index + 1}`}
+                                                    className="w-full h-32 object-cover rounded-lg"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeGalleryImage(index)}
+                                                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <FaTimes size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -756,7 +814,7 @@ const AddCollegeForm = ({ onClose, onSubmit }) => {
                             type="submit"
                             className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                         >
-                            Submit
+                            {editData ? 'Save Changes' : 'Submit'}
                         </button>
                     </div>
                 </form>

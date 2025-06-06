@@ -1,9 +1,7 @@
 import { motion } from 'framer-motion';
 import SearchLogo from '../assets/Others/Search-logo.webp';
 import Girl from '../assets/Others/Girl.webp';
-import UpGirl from '../assets/Others/UpGirl.webp'
-
-
+import Hero from '../assets/Others/hero.webp'
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -17,89 +15,49 @@ const FrontHome = () => {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
+      className="w-full px-4 py-8"
     >
-      <div className="w-full flex justify-center items-center bg-primary shadow-3d">
-        {/* Main container with two columns */}
-        <div className="hidden md:flex flex-row w-full items-center">
-          
-          {/* Text content */}
-          <div className="w-1/2 flex flex-col justify-center text-center gap-6 px-6">
-            <h1 className="text-4xl lg:text-5xl xl:text-7xl font-bold text-tprimary leading-tight">
-              Find the <span className="text-orange-400">Best</span><br />
-              <span className="text-orange-400">College</span> in INDORE
-            </h1>
-            <h3 className="text-base lg:text-lg xl:text-2xl text-tsecondary">
-              Discover top-rated colleges near you and connect with alumni to make the right choice for your future.
-            </h3>
-
-            {/* Search Bar */}
-            <div className="relative flex items-center w-full mt-4">
-              <input
-                name="search"
-                className="pl-4 pr-14 bg-white rounded-3xl h-12 w-full text-sm lg:text-base placeholder:text-tsecondary placeholder:text-xs lg:placeholder:text-base shadow-inset-6"
-                type="text"
-                placeholder="Search Best B.Tech colleges near me..."
-              />
-              <button className="absolute right-4">
-                <img
-                  draggable="false"
-                  className="h-8 w-8"
-                  src={SearchLogo}
-                  alt="Search"
-                />
-              </button>
-            </div>
-          </div>
-
-          {/* Girl Image */}
-          <div className="w-1/2 flex justify-center items-end relative">
-            <img
-              src={Girl}
-              className="max-w-[80%] h-auto object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
-              alt="Girl"
-            />
-          </div>
-        </div>
-        {/* Tablet Div ends here */}
-
-{/* Mobile div starts here */}
-<div className='md:hidden px-8'>
-  <div className="w-full flex flex-col items-center text-center gap-3">
-          <h1 className="text-3xl sm:text-4xl mt-4 font-bold text-tprimary leading-snug">
+      <div className="flex flex-col md:flex-row items-center justify-center bg-primary w-full shadow-3d rounded-xl overflow-hidden ">
+        {/* Text Section */}
+        <div className="w-full md:w-1/2 flex flex-col text-center justify-center gap-4 sm:gap-6 xl:gap-8 p-6 px-0">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-admeasy-extrabold text-tprimary leading-snug">
             Find the <span className="text-orange-400">Best</span><br />
             <span className="text-orange-400">College</span> in INDORE
           </h1>
-          <h3 className="text-[12px] sm:text-base text-tsecondary max-w-md">
+          <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
             Discover top-rated colleges near you and connect with alumni to make the right choice for your future.
-          </h3>
-
-          {/* Search Bar */}
-          <div className="relative flex items-center w-full max-w-md mt-4">
+          </p>
+          <div className="relative w-9/10 sm:w-full max-w-lg mx-auto mt-4">
             <input
               name="search"
-              className="pl-4 pr-14 bg-white rounded-3xl h-11 w-full text-sm placeholder:text-xs sm:placeholder:text-sm text-gray-900 font-semibold font-admeasy shadow-inset-6"
               type="text"
               placeholder="Search Best B.Tech colleges near me..."
-            />
-            <button className="absolute right-4">
+              className="w-full h-12 sm:h-14 px-4  rounded-full bg-white text-sm sm:text-base placeholder:text-tsecondary placeholder:text-[12px] sm:placeholder:text-base shadow-inset-6 outline-none"
+              aria-label="Search for colleges"/>
+            <button
+              type="submit"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2"
+              aria-label="Search">
               <img
-                draggable="false"
-                className="h-7 w-7"
                 src={SearchLogo}
-                alt="Search"
-              />
+                alt="Search Icon"
+                draggable="false"
+                className="h-6 w-6 sm:h-8 sm:w-8"/>
             </button>
           </div>
         </div>
 
-        {/* Image Section */}
-        <div className="w-full flex justify-center">
+        {/* Girl Image Section */}
+        <div className="md:pt-13 w-full md:w-fit h-full relative flex justify-center md:justify-left md:mt-10">
           <img
-            src={UpGirl}
-            className="w-[80%] max-w-xs h-auto object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
-            alt="Girl"
+            src={Hero}
+            alt="College search illustration"
+            className="block md:hidden max-h-[280px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"/>
+          <img
+            src={Girl}
+            alt="College search illustration"
+            className="hidden md:block mt-5 lg:mt-0 max-h-[420px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
           />
-        </div>
         </div>
       </div>
     </motion.section>

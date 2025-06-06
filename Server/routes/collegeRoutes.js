@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const BackblazeB2Client = require('../b2Client');
 const path = require('path');
 const fs = require('fs');
+const data = require('../data.json');
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
@@ -25,7 +26,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-let conn = mongoose.connect(process.env.COLLEGES_MONGO_URI)
+let conn = mongoose.connect(process.env.MONGODB_URI)
 
 if (conn) {
     console.log('Connected to MongoDB');
@@ -144,6 +145,70 @@ router.get('/:collegeId/courses/:courseId', async (req, res) => {
         res.json(course);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching course', error: error.message });
+    }
+});
+
+// Route to update a college
+router.put('/:id', upload.array('gallery'), async (req, res) => {
+    try {
+        const collegeId = req.params.id;
+        let galleryUrl = req.body.existingGallery || '';
+
+        // Upload new gallery images to B2 if files were uploaded
+        if (req.files && req.files.length > 0) {
+            galleryUrl = await uploadToB2(req.files, collegeId);
+        }
+
+        // Parse nested objects from form data
+        const rating = JSON.parse(req.body.rating);
+        const contact = JSON.parse(req.body.contact);
+        const package = JSON.parse(req.body.package);
+        const courses = JSON.parse(req.body.courses);
+
+        // Update college document
+        const updatedCollege = await College.findByIdAndUpdate(
+            collegeId,
+            {
+                name: req.body.name,
+                desc: req.body.desc,
+                logo: req.body.logo,
+                rating: rating,
+                location: req.body.location,
+                establishedYear: req.body.establishedYear,
+                type: req.body.type,
+                website: req.body.website,
+                contact: contact,
+                keywords: JSON.parse(req.body.keywords),
+                facilities: JSON.parse(req.body.facilities),
+                package: package,
+                recruiters: JSON.parse(req.body.recruiters),
+                placementRate: req.body.placementRate,
+                gallery: galleryUrl || req.body.existingGallery, // Use new URL if uploaded, otherwise keep existing
+                whyChoose: JSON.parse(req.body.whyChoose),
+                courses: courses
+            },
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedCollege) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'College not found' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'College updated successfully',
+            college: updatedCollege
+        });
+    } catch (error) {
+        console.error('Error updating college:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error updating college', 
+            error: error.message 
+        });
     }
 });
 

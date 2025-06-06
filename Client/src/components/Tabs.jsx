@@ -81,6 +81,8 @@ export default function Tabs({ college = {} }) {
   const [gallery, setGallery] = useState([]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
   const [galleryError, setGalleryError] = useState(null);
+  const [recruitersWithLogos, setRecruitersWithLogos] = useState([]);
+  const [isLoadingLogos, setIsLoadingLogos] = useState(true);
 
   let [categories] = useState({
     Overview: [],
@@ -157,6 +159,42 @@ export default function Tabs({ college = {} }) {
         setIsGalleryLoading(false);
       });
   }, [college?._id]);
+
+  // Function to get company logo URL
+  const getCompanyLogo = async (companyName) => {
+    try {
+      const response = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(companyName)}`);
+      const data = await response.json();
+      return data[0]?.logo || null;
+    } catch (error) {
+      console.error(`Error fetching logo for ${companyName}:`, error);
+      return null;
+    }
+  };
+
+  // Effect to fetch company logos
+  useEffect(() => {
+    const fetchRecruitersLogos = async () => {
+      if (!college?.recruiters?.length) return;
+      
+      setIsLoadingLogos(true);
+      try {
+        const recruitersData = await Promise.all(
+          college.recruiters.map(async (name) => ({
+            name,
+            logo: await getCompanyLogo(name)
+          }))
+        );
+        setRecruitersWithLogos(recruitersData);
+      } catch (error) {
+        console.error('Error fetching recruiter logos:', error);
+      } finally {
+        setIsLoadingLogos(false);
+      }
+    };
+
+    fetchRecruitersLogos();
+  }, [college?.recruiters]);
 
   return (
     <section className="w-full flex justify-center items-center px-1 sm:px-2 py-16">
@@ -273,6 +311,52 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+                Recruiters
+              </h2>
+              {isLoadingLogos ? (
+                <div className="flex justify-center items-center h-40">
+                  <h4 className="text-lg text-tsecondary">Loading...</h4>
+                </div>
+              ) : recruitersWithLogos.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+                  {recruitersWithLogos.map((recruiter, index) => (
+                    <div
+                      key={index}
+                      className="flex flex-col items-center justify-center p-4 bg-primary rounded-xl shadow-3d-4 hover:shadow-lg transition-shadow duration-300"
+                    >
+                      {recruiter.logo ? (
+                        <img
+                          src={recruiter.logo}
+                          alt={`${recruiter.name} logo`}
+                          className="w-16 h-16 object-contain mb-2"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/64?text=' + encodeURIComponent(recruiter.name.charAt(0));
+                          }}
+                        />
+                      ) : (
+                        <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded-full mb-2 text-2xl font-bold text-gray-600">
+                          {recruiter.name.charAt(0)}
+                        </div>
+                      )}
+                      <p className="text-sm font-medium text-thead2 text-center line-clamp-2">
+                        {recruiter.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-lg text-tsecondary">No recruiters information available</p>
+              )}
+            </motion.section>
+
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
                 More Info About {college.name}
               </h2>
               <ul className="text-tprimary text-center text-md sm:text-lg">
@@ -330,7 +414,7 @@ export default function Tabs({ college = {} }) {
               <ul className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {Array.isArray(college?.courses) && college.courses.length > 0 ? (
                   college.courses.map((course, index) => (
-                    <li key={index} className='bg-primary p-4 text-lg sm:text-xl text-center text-tprimary rounded-2xl shadow-3d-4 cursor-pointer hover:scale-105 transition-transform duration-300'>
+                    <li key={index} className='bg-primary p-4 text-lg sm:text-xl text-center text-tprimary rounded-2xl shadow-3d cursor-pointer hover:scale-105 transition-transform duration-300'>
                       <Link to={`/colleges/${college._id}/courses/${course._id}`} className='block w-full h-full space-y-2'>
                         <h4 className='text-thead2 text-xl sm:text-2xl font-admeasy-bold'>{course?.title || 'Course Title'}</h4>
                         <p>{course?.introDesc || 'Course description not available'}</p>

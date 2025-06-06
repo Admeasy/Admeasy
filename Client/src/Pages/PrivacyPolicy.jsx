@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom'
-
+import React from 'react';
+import PrivacyPBtn from '../components/PrivacyPBtn';
 const PrivacyPolicy = () => {
 
   const pathname = useLocation();
@@ -26,7 +25,7 @@ const PrivacyPolicy = () => {
 
       {/* 1. Company Overview */}
       <section className="mb-8">
-        <h3 className="text-2xl font-bold mb-2">📌 1. Company Overview</h3>
+        <h3 id='Company-overview' className="text-2xl font-bold mb-2">📌 1. Company Overview</h3>
         <p>
           Admeasy is a student-driven educational startup based in Indore, India, operating under the motto
           <strong> "Made for Students, By Students"</strong>. We focus on enhancing the academic experience by providing
@@ -74,8 +73,8 @@ const PrivacyPolicy = () => {
       </section>
 
       {/* 5. Cookies */}
-      <section className="mb-8">
-        <h3 className="text-2xl font-admeasy-extrabold mb-3">🍪 5. Cookies & Tracking</h3>
+      <section id='Cookies' className="mb-8">
+        <h3  className="text-2xl font-admeasy-extrabold mb-3">🍪 5. Cookies & Tracking</h3>
         <p>
           Currently, we do not use cookies for tracking or advertising purposes. If this changes, we will update this
           policy and seek user consent.

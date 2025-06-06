@@ -50,9 +50,9 @@ const CollegeCard = () => {
       id='collegebg'
       className=" text-tprimary my-5">
       <div className="pt-4">
-        <div className="w-full mb-8 flex items-center justify-center gap-3">
+        <div className="w-full mb-8 px-2 sm:p-0 flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />
-          <h1 className="text-2xl md:text-4xl m-0 mt-1 p-0 font-semibold text-center">
+          <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-semibold text-center">
             Discover the Best Colleges Near You
           </h1>
         </div>
@@ -86,7 +86,7 @@ const CollegeCard = () => {
 
                   {/* Logo of College */}
                   <img
-                    src={college.image}
+                    src={college.logo}
                     alt={college.name}
                     draggable="false"
                     className="h-30 w-30 object-contain"

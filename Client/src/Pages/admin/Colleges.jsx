@@ -11,6 +11,7 @@ const Colleges = () => {
     const [error, setError] = useState(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
+    const [editingCollege, setEditingCollege] = useState(null)
 
     useEffect(() => {
         verifyAuth()
@@ -52,9 +53,20 @@ const Colleges = () => {
         }
     }
 
-    const handleEdit = (collegeId) => {
-        // TODO: Implement edit functionality
-        console.log('Edit college:', collegeId)
+    const handleEdit = async (collegeId) => {
+        try {
+            const response = await fetch(`/api/colleges/${collegeId}`, {
+                credentials: 'include'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to fetch college details');
+            }
+            const collegeData = await response.json();
+            setEditingCollege(collegeData);
+            setShowAddForm(true);
+        } catch (err) {
+            setError(err.message);
+        }
     }
 
     const handleDelete = async (collegeId) => {
@@ -76,29 +88,36 @@ const Colleges = () => {
     }
 
     const handleAddNew = () => {
-        setShowAddForm(true)
+        setEditingCollege(null);
+        setShowAddForm(true);
     }
 
-    const handleSubmitNewCollege = async (formData) => {
+    const handleSubmitCollege = async (formData, collegeId = null) => {
         try {
-            const response = await fetch('/api/colleges', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+            const url = collegeId ? `/api/colleges/${collegeId}` : '/api/colleges';
+            const method = collegeId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
                 credentials: 'include',
-                body: JSON.stringify(formData)
+                body: formData // FormData object will set the correct Content-Type
             });
 
             if (!response.ok) {
-                throw new Error('Failed to add college');
+                throw new Error(collegeId ? 'Failed to update college' : 'Failed to add college');
             }
 
             await fetchColleges();
             setShowAddForm(false);
+            setEditingCollege(null);
         } catch (err) {
             setError(err.message);
         }
+    }
+
+    const handleCloseForm = () => {
+        setShowAddForm(false);
+        setEditingCollege(null);
     }
 
     const filteredColleges = colleges.filter(college =>
@@ -126,66 +145,67 @@ const Colleges = () => {
                 Manage Colleges
             </h1>
 
-            {error ? (
-                <div className="text-red-500 text-center">{error}</div>
-            ) : (
-                <div className="max-w-6xl mx-auto">
-                    <button
-                        onClick={handleAddNew}
-                        className="mb-4 px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
-                    >
-                        <FaPlus className="mr-2" />
-                        Add New College
-                    </button>
-
-                    <div className="relative mb-6">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaSearch className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Search colleges..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="block w-full pl-10 pr-3 py-3 text-tprimary placeholder:text-tsecondary border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    <ul className="space-y-4">
-                        {filteredColleges.map((college) => (
-                            <li 
-                                key={college._id} 
-                                className="flex items-center justify-between p-6 bg-white rounded-xl shadow-md"
-                            >
-                                <span className="text-xl font-medium">{college.name}</span>
-                                <div className="space-x-3">
-                                    <button
-                                        onClick={() => handleEdit(college._id)}
-                                        className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                    >
-                                        <FaEdit className="inline mr-2" />
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(college._id)}
-                                        className="px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                    >
-                                        <FaTrash className="inline mr-2" />
-                                        Delete
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-
-                    {showAddForm && (
-                        <AddCollegeForm
-                            onClose={() => setShowAddForm(false)}
-                            onSubmit={handleSubmitNewCollege}
-                        />
-                    )}
-                </div>
+            {error && (
+                <div className="text-red-500 text-center mb-4">{error}</div>
             )}
+
+            <div className="max-w-6xl mx-auto">
+                <button
+                    onClick={handleAddNew}
+                    className="mb-4 px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+                >
+                    <FaPlus className="mr-2" />
+                    Add New College
+                </button>
+
+                <div className="relative mb-6">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaSearch className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search colleges..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="block w-full pl-10 pr-3 py-3 text-tprimary placeholder:text-tsecondary border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <ul className="space-y-4">
+                    {filteredColleges.map((college) => (
+                        <li 
+                            key={college._id} 
+                            className="flex items-center justify-between p-6 bg-white rounded-xl shadow-md"
+                        >
+                            <span className="text-xl font-medium">{college.name}</span>
+                            <div className="space-x-3">
+                                <button
+                                    onClick={() => handleEdit(college._id)}
+                                    className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                >
+                                    <FaEdit className="inline mr-2" />
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(college._id)}
+                                    className="px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                >
+                                    <FaTrash className="inline mr-2" />
+                                    Delete
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+
+                {showAddForm && (
+                    <AddCollegeForm
+                        onClose={handleCloseForm}
+                        onSubmit={handleSubmitCollege}
+                        editData={editingCollege}
+                    />
+                )}
+            </div>
         </div>
     )
 }
