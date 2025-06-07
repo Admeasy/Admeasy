@@ -45,22 +45,22 @@
   --shadow-inset-8: inset 8px 8px 16px #d1d9e6;
 }
 
-::-webkit-scrollbar {
+body::-webkit-scrollbar {
   width: 8px;
 }
 
 /* Track */
-::-webkit-scrollbar-track {
+body::-webkit-scrollbar-track {
   background: transparent;
 }
 /* Handle */
-::-webkit-scrollbar-thumb {
+body::-webkit-scrollbar-thumb {
   background: #d6d6d6;
   border-radius: 29px;
 }
 
 /* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
+body::-webkit-scrollbar-thumb:hover {
   background: #acacac;
 }
 

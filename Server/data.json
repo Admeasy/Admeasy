@@ -42,9 +42,9 @@
     ],
     "courses": [
         {
-            "title": "B.Tech in Computer Science and Engineering",
+            "title": "B.Tech. in Computer Science and Engineering",
             "introDesc": "A comprehensive 4-year program that builds strong foundations in computer science, programming, and software development.",
-            "desc": "The B.Tech in Computer Science and Engineering program is designed to create industry-ready software professionals. Students learn core computer science concepts, advanced programming languages, and modern software development practices.\n\nThe curriculum covers fundamental subjects like Data Structures, Algorithms, Database Management, and Operating Systems, along with emerging technologies like Artificial Intelligence, Machine Learning, and Cloud Computing. Through practical labs, projects, and industry internships, students gain hands-on experience in solving real-world problems.\n\nThe program emphasizes both theoretical knowledge and practical skills, preparing students for successful careers in software development, system design, and technology innovation. Regular workshops, coding competitions, and industry expert sessions enhance the learning experience.",
+            "desc": "The B.Tech. in Computer Science and Engineering program is designed to create industry-ready software professionals. Students learn core computer science concepts, advanced programming languages, and modern software development practices.\n\nThe curriculum covers fundamental subjects like Data Structures, Algorithms, Database Management, and Operating Systems, along with emerging technologies like Artificial Intelligence, Machine Learning, and Cloud Computing. Through practical labs, projects, and industry internships, students gain hands-on experience in solving real-world problems.\n\nThe program emphasizes both theoretical knowledge and practical skills, preparing students for successful careers in software development, system design, and technology innovation. Regular workshops, coding competitions, and industry expert sessions enhance the learning experience.",
             "duration": 4,
             "semesters": 8,
             "rating": 4.5,

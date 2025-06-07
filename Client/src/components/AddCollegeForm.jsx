@@ -1,6 +1,19 @@
 import { FaTimes, FaPlus, FaCloudUploadAlt } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 
+// Tag component for keywords
+const Tag = ({ text, onRemove }) => (
+    <span className="inline-flex items-center bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full mr-2 mb-2">
+        {text}
+        <button
+            onClick={onRemove}
+            className="ml-1 text-blue-600 hover:text-blue-800 focus:outline-none"
+        >
+            <FaTimes size={12} />
+        </button>
+    </span>
+);
+
 const initialFormState = {
     name: '',
     desc: '',
@@ -21,16 +34,16 @@ const initialFormState = {
         email: '',
         phone: ''
     },
-    keywords: [''],
-    facilities: [''],
+    keywords: [],
+    facilities: [],
+    whyChoose: [],
+    recruiters: [],
+    placementRate: '',
+    gallery: [],
     package: {
         average: '',
         highest: ''
     },
-    recruiters: [''],
-    placementRate: '',
-    gallery: [],
-    whyChoose: [''],
     courses: [{
         title: '',
         introDesc: '',
@@ -41,7 +54,7 @@ const initialFormState = {
         eligibility: '',
         feeStructure: {
             feePerSemester: '',
-            additionals: new Map()
+            additionals: []
         },
         scholarships: [{
             name: '',
@@ -56,21 +69,136 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const [formData, setFormData] = useState(initialFormState)
     const [dragActive, setDragActive] = useState(false)
     const [existingGalleryUrls, setExistingGalleryUrls] = useState([])
+    const [newKeyword, setNewKeyword] = useState('')
+    const [courseChangeTimer, setCourseChangeTimer] = useState(null)
+
+    // Function to generate keywords from college data
+    const generateKeywords = (data) => {
+        const keywords = new Set(); // Using Set to avoid duplicates
+
+        // Add location
+        if (data.location) {
+            keywords.add(data.location);
+            // Add state/city separately if location contains comma
+            const locationParts = data.location.split(',').map(part => part.trim());
+            locationParts.forEach(part => keywords.add(part));
+        }
+
+        // Add college type
+        if (data.type) {
+            keywords.add(data.type + ' College');
+            keywords.add(data.type + ' Institution');
+        }
+
+        // Add package related keywords
+        if (data.package.average) {
+            keywords.add(`${data.package.average} Average Package`);
+        }
+        if (data.package.highest) {
+            keywords.add(`${data.package.highest} Highest Package`);
+        }
+
+        // Add placement rate
+        if (data.placementRate) {
+            keywords.add(`${data.placementRate} Placement Rate`);
+        }
+
+        // Add course related keywords - only add complete course information
+        data.courses.forEach(course => {
+            if (course.title && course.title.trim()) {
+                // Only add course keywords if the title is properly set
+                keywords.add(course.title.trim());
+                keywords.add(course.title.trim() + ' Course');
+                
+                if (course.duration && course.duration.toString().trim()) {
+                    keywords.add(`${course.duration} Year ${course.title} Course`);
+                }
+                
+                // Add fee-related keywords only if they exist
+                if (course.feeStructure.feePerSemester) {
+                    keywords.add(`${course.title} - ${course.feeStructure.feePerSemester} per semester`);
+                }
+            }
+        });
+
+        // Add facilities
+        data.facilities.forEach(facility => {
+            if (facility.trim()) keywords.add(facility);
+        });
+
+        // Add recruiters
+        data.recruiters.forEach(recruiter => {
+            if (recruiter.trim()) {
+                keywords.add(recruiter);
+                keywords.add(recruiter + ' Recruitment');
+            }
+        });
+
+        // Add why choose reasons
+        data.whyChoose.forEach(reason => {
+            if (reason.trim()) keywords.add(reason);
+        });
+
+        // Convert Set back to array and filter out empty strings and incomplete entries
+        return Array.from(keywords)
+            .filter(keyword => keyword.trim() !== '' && !keyword.includes('undefined'));
+    };
 
     useEffect(() => {
         if (editData) {
             // Handle gallery separately since we need to keep track of existing URLs
             const { gallery, ...restData } = editData;
             if (typeof gallery === 'string' && gallery) {
-                setExistingGalleryUrls([gallery]); // Store the gallery folder URL
+                setExistingGalleryUrls([gallery]);
             }
             
             setFormData({
                 ...restData,
-                gallery: [] // Initialize with empty array for new uploads
+                gallery: []
             });
         }
     }, [editData]);
+
+    // Effect to update keywords when relevant data changes, with debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const autoKeywords = generateKeywords(formData);
+            setFormData(prev => ({
+                ...prev,
+                keywords: Array.from(new Set([...prev.keywords, ...autoKeywords]))
+            }));
+        }, 1000); // Wait for 1 second of no changes before updating keywords
+
+        return () => clearTimeout(timer);
+    }, [
+        formData.location,
+        formData.type,
+        formData.package.average,
+        formData.package.highest,
+        formData.placementRate,
+        formData.courses,
+        formData.facilities,
+        formData.recruiters,
+        formData.whyChoose
+    ]);
+
+    const handleKeywordAdd = (e) => {
+        e.preventDefault();
+        if (newKeyword.trim()) {
+            setFormData(prev => ({
+                ...prev,
+                keywords: [...new Set([...prev.keywords, newKeyword.trim()])]
+            }));
+            setNewKeyword('');
+        }
+    };
+
+    const handleKeywordRemove = (keywordToRemove) => {
+        setFormData(prev => ({
+            ...prev,
+            keywords: prev.keywords.filter(keyword => keyword !== keywordToRemove)
+        }));
+    };
 
     const handleFormChange = (e, section = null, subsection = null) => {
         const { name, value } = e.target;
@@ -121,6 +249,17 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                     }
                 }));
             }
+        } else if (['facilities', 'recruiters', 'whyChoose'].includes(name)) {
+            // Store the current input value
+            const items = value.endsWith(';') ? 
+                value.slice(0, -1).split(';').map(item => item.trim()).filter(item => item !== '') :
+                value.split(';').map(item => item.trim()).filter(item => item !== '');
+
+            setFormData(prev => ({
+                ...prev,
+                [`${name}Input`]: value,
+                [name]: items
+            }));
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -141,21 +280,42 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         });
     }
 
-    const handleCourseChange = (index, field, value, subfield = null) => {
+    // Debounced course change handler
+    const handleCourseChange = (courseIndex, field, value, subfield = null, additionalIndex = null) => {
+        // Clear any existing timer
+        if (courseChangeTimer) {
+            clearTimeout(courseChangeTimer);
+        }
+
+        // Make the immediate UI update
         setFormData(prev => {
             const newCourses = [...prev.courses];
             if (subfield) {
-                newCourses[index] = {
-                    ...newCourses[index],
-                    [field]: {
-                        ...newCourses[index][field],
-                        [subfield]: value
+                if (field === 'feeStructure' && subfield === 'additionals') {
+                    const additionals = [...newCourses[courseIndex].feeStructure.additionals];
+                    if (additionalIndex !== null) {
+                        // Ensure proper structure for additional fees
+                        if (typeof value === 'object') {
+                            additionals[additionalIndex] = {
+                                type: value.type,
+                                amount: parseFloat(value.amount) || 0
+                            };
+                        }
                     }
-                };
+                    newCourses[courseIndex].feeStructure.additionals = additionals;
+                } else {
+                    newCourses[courseIndex] = {
+                        ...newCourses[courseIndex],
+                        [field]: {
+                            ...newCourses[courseIndex][field],
+                            [subfield]: subfield === 'feePerSemester' ? parseFloat(value) || 0 : value
+                        }
+                    };
+                }
             } else {
-                newCourses[index] = {
-                    ...newCourses[index],
-                    [field]: value
+                newCourses[courseIndex] = {
+                    ...newCourses[courseIndex],
+                    [field]: field === 'rating' ? parseFloat(value) || 0 : value
                 };
             }
             return {
@@ -163,7 +323,20 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 courses: newCourses
             };
         });
-    }
+
+        // Set a new timer for keyword generation
+        const newTimer = setTimeout(() => {
+            setFormData(prev => {
+                const autoKeywords = generateKeywords(prev);
+                return {
+                    ...prev,
+                    keywords: Array.from(new Set([...prev.keywords, ...autoKeywords]))
+                };
+            });
+        }, 1500); // 1.5 seconds delay
+
+        setCourseChangeTimer(newTimer);
+    };
 
     const handleScholarshipChange = (courseIndex, scholarshipIndex, field, value) => {
         setFormData(prev => {
@@ -211,7 +384,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 eligibility: '',
                 feeStructure: {
                     feePerSemester: '',
-                    additionals: new Map()
+                    additionals: []
                 },
                 scholarships: [{
                     name: '',
@@ -251,6 +424,32 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
             const newCourses = [...prev.courses];
             newCourses[courseIndex].scholarships = newCourses[courseIndex].scholarships
                 .filter((_, i) => i !== scholarshipIndex);
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
+    const addAdditionalFee = (courseIndex) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            newCourses[courseIndex].feeStructure.additionals.push({
+                type: '',
+                amount: 0
+            });
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
+    const removeAdditionalFee = (courseIndex, additionalIndex) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            newCourses[courseIndex].feeStructure.additionals = 
+                newCourses[courseIndex].feeStructure.additionals.filter((_, i) => i !== additionalIndex);
             return {
                 ...prev,
                 courses: newCourses
@@ -486,36 +685,34 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                     ))}
 
                     {/* Arrays */}
-                    {['keywords', 'facilities', 'whyChoose', 'recruiters'].map((field, index) => (
+                    {['facilities', 'recruiters', 'whyChoose'].map((field) => (
                         renderSection(field.charAt(0).toUpperCase() + field.slice(1), (
-                            <div key={index}>
-                                <div className="flex justify-between items-center mb-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => addArrayField(field)}
-                                        className="text-blue-500 hover:text-blue-700"
-                                    >
-                                        <FaPlus className="inline mr-1" /> Add More
-                                    </button>
-                                </div>
-                                {formData[field].map((item, index) => (
-                                    <div key={index} className="flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            value={item}
-                                            onChange={(e) => handleArrayChange(e, field, index)}
-                                            className="flex-1 p-2 border rounded-lg bg-white"
-                                            required
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeArrayField(field, index)}
-                                            className="text-red-500 hover:text-red-700"
+                            <div key={field}>
+                                {renderField(`${field.charAt(0).toUpperCase() + field.slice(1)} (separate with semicolons)`,
+                                    <input
+                                        type="text"
+                                        name={field}
+                                        value={formData[`${field}Input`] !== undefined ? formData[`${field}Input`] : formData[field].join('; ')}
+                                        onChange={handleFormChange}
+                                        placeholder={`Enter ${field} (separate them with a semicolon)`}
+                                        className="w-full p-2 border rounded-lg bg-white"
+                                        required
+                                    />
+                                )}
+                                <p className="text-sm text-gray-400 mt-1">
+                                    Enter {field} separated by semicolons (;)
+                                </p>
+                                {/* Preview of current items */}
+                                <div className="mt-2">
+                                    {formData[field].map((item, index) => (
+                                        <span 
+                                            key={index}
+                                            className="inline-block bg-gray-100 text-gray-800 text-sm px-2 py-1 rounded mr-2 mb-2"
                                         >
-                                            <FaTimes />
-                                        </button>
-                                    </div>
-                                ))}
+                                            {item}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         ))
                     ))}
@@ -627,6 +824,39 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </div>
                     ))}
 
+                    {/* Keywords Section */}
+                    {renderSection("Keywords", (
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap">
+                                {formData.keywords.map((keyword, index) => (
+                                    <Tag
+                                        key={index}
+                                        text={keyword}
+                                        onRemove={() => handleKeywordRemove(keyword)}
+                                    />
+                                ))}
+                            </div>
+                            <form onSubmit={handleKeywordAdd} className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newKeyword}
+                                    onChange={(e) => setNewKeyword(e.target.value)}
+                                    placeholder="Add a custom keyword"
+                                    className="flex-1 p-2 border rounded-lg bg-white"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    Add
+                                </button>
+                            </form>
+                            <p className="text-sm text-gray-400">
+                                Keywords are automatically generated based on college information. You can also add custom keywords.
+                            </p>
+                        </div>
+                    ))}
+
                     {/* Courses */}
                     {renderSection("Courses", (
                         <div className="space-y-6">
@@ -730,6 +960,61 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                 required
                                             />
                                         )}
+
+                                        {/* Additional Fees */}
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <h6 className="font-medium text-thead1">Additional Fees</h6>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addAdditionalFee(courseIndex)}
+                                                    className="text-blue-500 hover:text-blue-700"
+                                                >
+                                                    <FaPlus className="inline mr-1" /> Add Fee
+                                                </button>
+                                            </div>
+                                            {course.feeStructure.additionals.map((additional, additionalIndex) => (
+                                                <div key={additionalIndex} className="flex gap-2 items-start">
+                                                    <div className="flex-1 space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            value={additional.type || ''}
+                                                            onChange={(e) => handleCourseChange(
+                                                                courseIndex,
+                                                                'feeStructure',
+                                                                { type: e.target.value, amount: additional.amount },
+                                                                'additionals',
+                                                                additionalIndex
+                                                            )}
+                                                            placeholder="Fee Type (e.g., Library Fee)"
+                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            required
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            value={additional.amount || ''}
+                                                            onChange={(e) => handleCourseChange(
+                                                                courseIndex,
+                                                                'feeStructure',
+                                                                { type: additional.type, amount: e.target.value },
+                                                                'additionals',
+                                                                additionalIndex
+                                                            )}
+                                                            placeholder="Amount"
+                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeAdditionalFee(courseIndex, additionalIndex)}
+                                                        className="text-red-500 hover:text-red-700 mt-2"
+                                                    >
+                                                        <FaTimes />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
 
                                     {/* Scholarships */}

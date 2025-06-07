@@ -2,50 +2,57 @@ require('dotenv').config();
 const axios = require('axios');
 const fs = require('fs');
 const crypto = require('crypto');
+const B2 = require('backblaze-b2');
+
+// Add debug logging for environment variables
+console.log('B2 Environment Variables:');
+console.log('B2_KEY_ID:', process.env.B2_KEY_ID);
+console.log('B2_BUCKET_ID:', process.env.B2_BUCKET_ID);
+console.log('B2_BUCKET_NAME:', process.env.B2_BUCKET_NAME);
+console.log('B2_DOWNLOAD_URL:', process.env.B2_DOWNLOAD_URL);
 
 class BackblazeB2Client {
     constructor() {
-        this.applicationKeyId = process.env.B2_APPLICATION_KEY_ID;
-        this.applicationKey = process.env.B2_APPLICATION_KEY;
+        // Log the values being used in constructor
+        console.log('Initializing B2 client with:');
+        console.log('- applicationKeyId:', process.env.B2_KEY_ID);
+        console.log('- bucketId:', process.env.B2_BUCKET_ID);
+        console.log('- bucketName:', process.env.B2_BUCKET_NAME);
+
+        this.b2 = new (require('backblaze-b2'))({
+            applicationKeyId: process.env.B2_KEY_ID,
+            applicationKey: process.env.B2_APP_KEY
+        });
         this.bucketId = process.env.B2_BUCKET_ID;
         this.bucketName = process.env.B2_BUCKET_NAME;
-        this.authToken = null;
-        this.apiUrl = null;
-        this.downloadUrl = null;
+        this.authorized = false;
     }
 
-    // Authenticate with B2
-    async authorize() {
-        try {
-            const credentials = `${this.applicationKeyId}:${this.applicationKey}`;
-            const base64Credentials = Buffer.from(credentials).toString('base64');
-
-            const response = await axios.get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
-                headers: { Authorization: `Basic ${base64Credentials}` }
-            });
-
-            this.authToken = response.data.authorizationToken;
-            this.apiUrl = response.data.apiUrl;
-            this.downloadUrl = response.data.downloadUrl;
-            return response.data;
-        } catch (error) {
-            console.error('Authorization failed:', error.message);
-            throw error;
+    async ensureAuthorized() {
+        if (!this.authorized) {
+            console.log('Attempting B2 authorization...');
+            try {
+                const authResponse = await this.b2.authorize();
+                this.authorized = true;
+                this.downloadUrl = authResponse.data.downloadUrl;
+                this.authToken = authResponse.data.authorizationToken;
+                console.log('B2 authorization successful');
+            } catch (error) {
+                console.error('B2 authorization failed:', error.message);
+                throw error;
+            }
         }
+        return {
+            downloadUrl: this.downloadUrl,
+            authToken: this.authToken
+        };
     }
 
-    // Get upload URL
     async getUploadUrl() {
-        try {
-            const response = await axios.post(`${this.apiUrl}/b2api/v2/b2_get_upload_url`, 
-                { bucketId: this.bucketId },
-                { headers: { Authorization: this.authToken } }
-            );
-            return response.data;
-        } catch (error) {
-            console.error('Failed to get upload URL:', error.message);
-            throw error;
-        }
+        await this.ensureAuthorized();
+        return this.b2.getUploadUrl({
+            bucketId: process.env.B2_BUCKET_ID
+        });
     }
 
     // Calculate SHA1 hash for file
@@ -58,34 +65,35 @@ class BackblazeB2Client {
 
     // Upload a file
     async uploadFile(filePath, fileName) {
-        try {
-            await this.authorize();
-            const uploadData = await this.getUploadUrl();
-            const fileBuffer = fs.readFileSync(filePath);
-            const sha1 = this.calculateSHA1(filePath);
+        const uploadUrlResponse = await this.getUploadUrl();
+        const fileData = fs.readFileSync(filePath);
+        
+        await this.b2.uploadFile({
+            uploadUrl: uploadUrlResponse.uploadUrl,
+            uploadAuthToken: uploadUrlResponse.authorizationToken,
+            fileName: fileName,
+            data: fileData
+        });
+    }
 
-            const response = await axios.post(uploadData.uploadUrl, fileBuffer, {
-                headers: {
-                    Authorization: uploadData.authorizationToken,
-                    'X-Bz-File-Name': fileName,
-                    'Content-Type': 'b2/x-auto',
-                    'Content-Length': fileBuffer.length,
-                    'X-Bz-Content-Sha1': sha1
-                }
-            });
-
-            console.log('File uploaded successfully:', response.data);
-            return response.data;
-        } catch (error) {
-            console.error('Upload failed:', error.message);
-            throw error;
-        }
+    async uploadBuffer(buffer, fileName) {
+        await this.ensureAuthorized();
+        const uploadUrlResponse = await this.getUploadUrl();
+        
+        await this.b2.uploadFile({
+            uploadUrl: uploadUrlResponse.uploadUrl,
+            uploadAuthToken: uploadUrlResponse.authorizationToken,
+            fileName: fileName,
+            data: buffer,
+            contentLength: buffer.length,
+            mime: 'image/jpeg' // You might want to make this dynamic based on file type
+        });
     }
 
     // Download a file
     async downloadFile(fileName, destinationPath) {
         try {
-            await this.authorize();
+            await this.ensureAuthorized();
             const downloadUrl = `${this.downloadUrl}/file/${this.bucketName}/${fileName}`;
             
             const response = await axios({
@@ -104,6 +112,46 @@ class BackblazeB2Client {
             });
         } catch (error) {
             console.error('Download failed:', error.message);
+            throw error;
+        }
+    }
+
+    async listFiles(prefix) {
+        const auth = await this.ensureAuthorized();
+        const response = await this.b2.listFileNames({
+            bucketId: process.env.B2_BUCKET_ID,
+            prefix: prefix,
+            maxFileCount: 1000
+        });
+        return response.data.files;
+    }
+
+    async getDownloadUrl(fileName) {
+        const auth = await this.ensureAuthorized();
+        try {
+            console.log('Getting download URL for:', fileName);
+            
+            // List files to get the exact file name (case sensitive)
+            const files = await this.listFiles(fileName);
+            const file = files.find(f => f.fileName === fileName);
+            
+            if (!file) {
+                throw new Error(`File not found: ${fileName}`);
+            }
+
+            console.log('File found:', file.fileName);
+
+            // Construct the download URL using the authorized download URL from B2
+            const downloadUrl = `${auth.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${encodeURIComponent(file.fileName)}`;
+            
+            console.log('Generated download URL:', downloadUrl);
+
+            return {
+                url: downloadUrl,
+                authToken: auth.authToken
+            };
+        } catch (error) {
+            console.error('Error generating download URL:', error);
             throw error;
         }
     }

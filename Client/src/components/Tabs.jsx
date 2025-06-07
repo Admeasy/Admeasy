@@ -81,6 +81,7 @@ export default function Tabs({ college = {} }) {
   const [gallery, setGallery] = useState([]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
   const [galleryError, setGalleryError] = useState(null);
+  const [lastGalleryFetch, setLastGalleryFetch] = useState(null);
   const [recruitersWithLogos, setRecruitersWithLogos] = useState([]);
   const [isLoadingLogos, setIsLoadingLogos] = useState(true);
 
@@ -98,66 +99,53 @@ export default function Tabs({ college = {} }) {
     average: safeGet(college, 'package.average', 'Not Available')
   };
 
-  const infoItems = [
-    { label: "Course Duration", value: "4 Years (2026 July - 2029 May) (8 Semesters)" },
-    { label: "Scholarship", value: "MUSAT – Application Open ", linkText: "apply now", link: "#" },
-    { label: "Fee Structure", value: "1,20,000 per annum" },
-    { label: "Highest Package", value: "18 Lakh rupees (2024)" },
-    { label: "Seats offered", value: "1020 (B.Tech CSE)" },
-    { label: "Recruiters", value: "78 (includes TCS, Infosys)" },
-    { label: "Median Package", value: "7.8 Lakh LPA" },
-    { label: "Accepted Exams", value: "MU SAT, JEE, CUET" },
-    { label: "Cut Off", value: "", linkText: "Click here", link: "#" },
-    { label: "Eligibility", value: "55% – 10+2" },
-  ];
-
-  const relatedCourses = [
-    "B.Tech in Civil Engineering",
-    "B.Tech in Computer Engineering",
-    "B.Tech in CS & Engineering (AI)",
-  ];
-
-  useEffect(() => {
+  // Function to fetch gallery images
+  const fetchGalleryImages = async () => {
     if (!college?._id) return;
 
     setIsGalleryLoading(true);
     setGalleryError(null);
-    const files = [];
 
-    // For development, if the API isn't ready, use placeholder images
-    const placeholderImages = [
-      'https://placehold.co/600x400?text=Campus+View',
-      'https://placehold.co/600x400?text=Library',
-      'https://placehold.co/600x400?text=Laboratory',
-      'https://placehold.co/600x400?text=Sports+Complex'
-    ];
-
-    // Try to fetch from API, fallback to placeholders if it fails
-    fetch(`/api/colleges/gallery/${college._id}`)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!data || data.length === 0) {
-          console.log('No gallery images found, using placeholders');
-          setGallery(placeholderImages);
-          return;
-        }
-        const baseURL = `http://localhost:9000/images/${college._id}/`;
-        files.push(...data);
-        setGallery(files.map(name => baseURL + name));
-      })
-      .catch(err => {
-        console.log('Gallery fetch error, using placeholders:', err);
-        setGallery(placeholderImages);
-        setGalleryError('Unable to load gallery images');
-      })
-      .finally(() => {
-        setIsGalleryLoading(false);
+    try {
+      console.log('Fetching gallery for college:', college._id);
+      const res = await fetch(`/api/colleges/gallery/${college._id}`);
+      console.log('Gallery fetch response:', res.status, res.statusText);
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
+      }
+      
+      const urls = await res.json();
+      console.log('Gallery URLs received:', urls);
+      
+      if (!urls || urls.length === 0) {
+        throw new Error('No gallery images found');
+      }
+      
+      // Log each URL we're about to use
+      urls.forEach((url, index) => {
+        console.log(`Gallery image ${index + 1} URL:`, url);
       });
+      
+      setGallery(urls);
+      setLastGalleryFetch(Date.now());
+    } catch (err) {
+      console.error('Gallery fetch error:', err);
+      setGalleryError(err.message || 'Failed to load gallery images');
+      setGallery([]);
+    } finally {
+      setIsGalleryLoading(false);
+    }
+  };
+
+  // Fetch gallery images initially and refresh every 45 minutes
+  useEffect(() => {
+    fetchGalleryImages();
+    
+    // Refresh URLs every 45 minutes (before the 1-hour expiration)
+    const refreshInterval = setInterval(fetchGalleryImages, 45 * 60 * 1000);
+    
+    return () => clearInterval(refreshInterval);
   }, [college?._id]);
 
   // Function to get company logo URL
@@ -207,7 +195,7 @@ export default function Tabs({ college = {} }) {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className='w-full'
         >
-          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1">
+          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1 overflow-x-auto">
             {Object.keys(categories).map((category) => (
               <Tab
                 key={category}
@@ -388,7 +376,7 @@ export default function Tabs({ college = {} }) {
                 <ul className="space-y-4 text-tsecondary text-sm">
                   {Array.isArray(college?.whyChoose) && college.whyChoose.length > 0 ? (
                     college.whyChoose.map((reason, index) => (
-                      <li key={index} className="flex items-center gap-2">
+                      <li key={index} className="flex items-center gap-2 text-xl">
                         <FaCheckCircle className="text-thead1 w-5 h-5" />
                         {reason}
                       </li>
@@ -449,18 +437,48 @@ export default function Tabs({ college = {} }) {
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {gallery.map((src, idx) => (
-                    <img
-                      key={idx}
-                      src={src}
-                      alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
-                      className='w-full h-64 object-cover rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
-                      onError={(e) => {
-                        e.target.src = 'fallback-image-url';
-                        e.target.alt = 'Image not available';
-                      }}
-                    />
-                  ))}
+                  {gallery.map((src, idx) => {
+                    console.log(`Rendering gallery image ${idx + 1}:`, src);
+                    return (
+                      <div key={idx} className="relative">
+                        <img
+                          src={src}
+                          alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
+                          className='w-full h-64 object-contain rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
+                          onLoad={(e) => {
+                            console.log(`Image ${idx + 1} loaded successfully:`, src);
+                            // Show the image explicitly
+                            e.target.style.display = 'block';
+                          }}
+                          onError={(e) => {
+                            console.error(`Image ${idx + 1} failed to load:`, src);
+                            e.target.style.display = 'none';
+                            const placeholder = e.target.nextSibling;
+                            if (placeholder) {
+                              placeholder.style.display = 'flex';
+                              console.log(`Showing placeholder for image ${idx + 1}`);
+                            }
+                            // Only try to refresh if it's been a while since the last attempt
+                            if (Date.now() - lastGalleryFetch > 10000) { // 30 seconds
+                              console.log('Attempting to refresh gallery...');
+                              fetchGalleryImages();
+                            }
+                          }}
+                        />
+                        <div 
+                          className="hidden w-full h-64 bg-gray-100 rounded-xl shadow-3d flex-col items-center justify-center text-gray-500 space-y-2"
+                        >
+                          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <p className="text-lg font-medium">Image not available</p>
+                          <p className="text-sm text-gray-400">Unable to load image</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </motion.section>

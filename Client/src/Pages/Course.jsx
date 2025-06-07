@@ -5,7 +5,7 @@ import { FaLocationDot } from "react-icons/fa6";
 import { FaClock } from "react-icons/fa";
 import { LuDock } from "react-icons/lu";
 import { FaStar } from "react-icons/fa";
-import Section from '../components/About-section'
+import Section from '../components/Section'
 import { motion } from 'framer-motion';
 import { useParams, useLocation } from 'react-router-dom';
 
@@ -191,7 +191,14 @@ const Course = () => {
                   <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{course.feeStructure?.feePerSemester * 2}</td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2 * course.duration)?.toLocaleString()}</td>
                 </tr>
-                {course.feeStructure?.additionals && Object.entries(course.feeStructure.additionals).map(([key, value]) => {
+                {course.feeStructure?.additionals && Object.entries(course.feeStructure.additionals)
+                  .filter(([key, value]) => 
+                    value && 
+                    value > 0 && 
+                    typeof key === 'string' && 
+                    isNaN(key)
+                  )
+                  .map(([key, value]) => {
                   const isOneTime = key.toLowerCase().includes('one time');
                   return (
                     <tr key={key} className="hover:bg-gray-50 transition">
@@ -213,10 +220,17 @@ const Course = () => {
                     ₹{(() => {
                       const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
                       const additionalsTotal = course.feeStructure?.additionals
-                        ? Object.entries(course.feeStructure.additionals).reduce((sum, [key, value]) => {
-                            const isOneTime = key.toLowerCase().includes('one time');
-                            return sum + (isOneTime ? value : value * course.duration);
-                          }, 0)
+                        ? Object.entries(course.feeStructure.additionals)
+                            .filter(([key, value]) => 
+                              value && 
+                              value > 0 && 
+                              typeof key === 'string' && 
+                              isNaN(key)
+                            )
+                            .reduce((sum, [key, value]) => {
+                              const isOneTime = key.toLowerCase().includes('one time');
+                              return sum + (isOneTime ? value : value * course.duration);
+                            }, 0)
                         : 0;
                       return (tuitionTotal + additionalsTotal).toLocaleString();
                     })()}

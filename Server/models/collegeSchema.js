@@ -131,11 +131,17 @@ const CollegesSchema = new mongoose.Schema({
         type: Number,
         required: true
       },
-      additionals: {
-        type: Map,
-        of: Number,
-        default: {}
-      }
+      additionals: [{
+        type: {
+          type: String,
+          required: true,
+          trim: true
+        },
+        amount: {
+          type: Number,
+          required: true
+        }
+      }]
     },
     scholarships: [{
       name: {
@@ -191,8 +197,18 @@ const CollegesSchema = new mongoose.Schema({
   },
   gallery: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+    validate: {
+      validator: function(v) {
+        // Allow empty string during initial validation
+        // but require a value before final save
+        if (this.isNew && !v) {
+          return true;
+        }
+        return v && v.trim().length > 0;
+      },
+      message: 'Gallery URL is required'
+    }
   },
   moreInfo: {
     type: Map,

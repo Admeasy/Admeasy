@@ -27,7 +27,7 @@ const FrontHome = () => {
           <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
             Discover top-rated colleges near you and connect with alumni to make the right choice for your future.
           </p>
-          <div className="relative w-9/10 sm:w-full max-w-lg mx-auto mt-4">
+          <div className="relative w-9/10 sm:w-full max-w-xl mx-auto mt-4">
             <input
               name="search"
               type="text"

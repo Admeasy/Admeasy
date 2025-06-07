@@ -5,11 +5,6 @@ import medicaps from '../assets/CollegesImg/medicapsimage.jpg';
 import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png";
 import { FaCalendarAlt } from "react-icons/fa";
 import { FaBriefcase, FaBuilding, FaLocationDot, FaStar } from "react-icons/fa6";
-import { HiMiniAcademicCap } from "react-icons/hi2";
-import { BsBookmarkStarFill } from "react-icons/bs";
-import { FaCheckCircle } from "react-icons/fa";
-import CustomButton from '../HomeComponents/3d-btn';
-import StudentSwiper from '../components/StudentSwiper';
 import Tabs from '../components/Tabs';
 
 
@@ -19,7 +14,7 @@ const InfoPod = ({ Icon, value }) => {
 
   return (
     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d">
-      <span className="text-[#575CFF] text-[10px] sm:text-[12px] md:text-[16px]">
+      <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]">
         <Icon />
       </span>
       <span className="text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-nowrap">
@@ -102,7 +97,8 @@ const CollegeDetailed = () => {
     { Icon: FaLocationDot, key: 'location' },
     { Icon: FaCalendarAlt, key: 'establishedYear', prefix: 'Est. ' },
     { Icon: FaBuilding, key: 'type' },
-    { Icon: FaStar, key: 'rating.overall', suffix: '/5' }
+    { Icon: FaStar, key: 'rating.overall', suffix: '/5' },
+    { Icon: FaBriefcase, key: 'placementRate', suffix: '' }
   ];
 
   return (
@@ -117,20 +113,17 @@ const CollegeDetailed = () => {
         <div className="w-full h-[60vh] relative">
           <div
             className="w-full h-full bg-cover bg-center transition-transform duration-300"
-            style={{ backgroundImage: `url(${medicaps})` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/60">
-              <div className="container mx-auto w-fit h-full flex flex-col sm:flex-row items-center justify-center gap-8">
-                <img
-                  src={college.logo || MediLogo}
-                  alt={college.name}
-                  className="w-25 h-25 sm:h-32 sm:w-32 object-contain bg-white rounded-2xl transition-transform duration-300 hover:scale-105"
-                  onError={(e) => {
-                    e.target.src = MediLogo;
-                  }}
-                />
-                <h1 className="w-fit mx-auto text-3xl sm:text-5xl text-center text-white font-bold">{college.name}</h1>
-              </div>
+            <div className="container mx-auto w-fit h-full flex flex-col sm:flex-row items-center justify-center gap-8">
+              <img
+                src={college.logo}
+                alt={college.name}
+                className="w-25 h-25 sm:h-32 sm:w-32 object-contain bg-white rounded-2xl transition-transform duration-300 hover:scale-105"
+                onError={(e) => {
+                  console.log('Error loading logo:', e);
+                }}
+              />
+              <h1 className="w-fit mx-auto text-3xl sm:text-5xl text-center text-tprimary font-bold">{college.name}</h1>
             </div>
           </div>
         </div>
