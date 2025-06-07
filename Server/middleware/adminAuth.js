@@ -3,18 +3,7 @@ require('dotenv').config();
 
 const adminAuth = async (req, res, next) => {
   try {
-    console.log('Request body:', req.body);
     const { username, password } = req.body;
-    
-    // Debug logging
-    console.log('Authentication attempt:');
-    console.log('1. Received username:', username);
-    console.log('2. Expected username:', process.env.ADMIN_USERNAME);
-    console.log('3. Username length:', username.length);
-    console.log('4. Expected username length:', process.env.ADMIN_USERNAME.length);
-    console.log('5. Username exact comparison:', JSON.stringify(username) === JSON.stringify(process.env.ADMIN_USERNAME));
-    console.log('6. Username character codes:', [...username].map(c => c.charCodeAt(0)));
-    console.log('7. Expected username character codes:', [...process.env.ADMIN_USERNAME].map(c => c.charCodeAt(0)));
 
     // Check if environment variables are set
     if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
@@ -33,12 +22,10 @@ const adminAuth = async (req, res, next) => {
     const isUsernameMatch = username === process.env.ADMIN_USERNAME;
     const isPasswordMatch = password === process.env.ADMIN_PASSWORD;
 
-    console.log('Credential validation:');
-    console.log('- Username match:', isUsernameMatch);
-    console.log('- Password match:', isPasswordMatch);
+    // Validate credentials
 
     if (isUsernameMatch && isPasswordMatch) {
-      console.log('Credentials matched, creating token...');
+      // Create authentication token
       
       // Create JWT token
       const token = jwt.sign(
@@ -46,8 +33,6 @@ const adminAuth = async (req, res, next) => {
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
       );
-
-      console.log('Token created successfully');
 
       // Set HTTP-only cookie
       res.cookie('adminToken', token, {
@@ -57,14 +42,14 @@ const adminAuth = async (req, res, next) => {
         maxAge: 3600000 // 1 hour
       });
 
-      console.log('Cookie set successfully');
+      // Authentication successful
       return res.json({ 
         success: true,
         message: 'Authentication successful'
       });
     }
 
-    console.log('Authentication failed - Invalid credentials');
+    // Authentication failed
     return res.status(401).json({ 
       success: false, 
       message: 'Invalid credentials',

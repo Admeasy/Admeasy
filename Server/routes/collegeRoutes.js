@@ -278,13 +278,8 @@ router.get('/image/:collegeId/:fileName', async (req, res) => {
         const { collegeId, fileName } = req.params;
         const b2Client = new BackblazeB2Client();
 
-        console.log('Proxying image request for:', decodeURIComponent(fileName));
-
         // Get download URL and auth token
         const downloadInfo = await b2Client.getDownloadUrl(decodeURIComponent(fileName));
-        
-        console.log('Generated download URL:', downloadInfo.url);
-        console.log('Using auth token:', downloadInfo.authToken);
 
         // Fetch the image with authorization
         const imageResponse = await fetch.default(downloadInfo.url, {

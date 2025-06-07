@@ -28,8 +28,7 @@ const Course = () => {
   }, []);
 
   useEffect(() => {
-    console.log('Current URL:', location.pathname);
-    console.log('Params:', { collegeId, courseId });
+    // Process URL parameters
 
     if (!collegeId || !courseId) {
       setError('Missing required parameters: collegeId or courseId');
@@ -40,26 +39,19 @@ const Course = () => {
     const fetchData = async () => {
       try {
         // Fetch college data
-        console.log('Fetching college data for ID:', collegeId);
         const collegeResponse = await fetch(`/api/colleges/${collegeId}`);
-        console.log('College response status:', collegeResponse.status);
         if (!collegeResponse.ok) {
           throw new Error(`Failed to fetch college data (${collegeResponse.status})`);
         }
         const collegeData = await collegeResponse.json();
-        console.log('College data received:', collegeData);
-        console.log('College rating:', collegeData.rating);
         setCollege(collegeData);
 
         // Fetch course data
-        console.log('Fetching course data for ID:', courseId);
         const courseResponse = await fetch(`/api/colleges/${collegeId}/courses/${courseId}`);
-        console.log('Course response status:', courseResponse.status);
         if (!courseResponse.ok) {
           throw new Error(`Failed to fetch course data (${courseResponse.status})`);
         }
         const courseData = await courseResponse.json();
-        console.log('Course data received:', courseData);
         setCourse(courseData);
 
       } catch (err) {

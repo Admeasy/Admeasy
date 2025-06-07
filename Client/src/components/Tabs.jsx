@@ -75,7 +75,7 @@ const RatingBar = ({ rating, label }) => {
 };
 
 export default function Tabs({ college = {} }) {
-  console.log('Tabs component rendering with college:', college); // Debug log
+  // Tabs component initialization
 
   const [selectedTab, setSelectedTab] = useState(0);
   const [gallery, setGallery] = useState([]);
@@ -107,25 +107,17 @@ export default function Tabs({ college = {} }) {
     setGalleryError(null);
 
     try {
-      console.log('Fetching gallery for college:', college._id);
       const res = await fetch(`/api/colleges/gallery/${college._id}`);
-      console.log('Gallery fetch response:', res.status, res.statusText);
       
       if (!res.ok) {
         throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
       }
       
       const urls = await res.json();
-      console.log('Gallery URLs received:', urls);
       
       if (!urls || urls.length === 0) {
         throw new Error('No gallery images found');
       }
-      
-      // Log each URL we're about to use
-      urls.forEach((url, index) => {
-        console.log(`Gallery image ${index + 1} URL:`, url);
-      });
       
       setGallery(urls);
       setLastGalleryFetch(Date.now());
@@ -438,7 +430,6 @@ export default function Tabs({ college = {} }) {
               ) : (
                 <div className="grid md:grid-cols-2 gap-4">
                   {gallery.map((src, idx) => {
-                    console.log(`Rendering gallery image ${idx + 1}:`, src);
                     return (
                       <div key={idx} className="relative">
                         <img
@@ -446,7 +437,6 @@ export default function Tabs({ college = {} }) {
                           alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
                           className='w-full h-64 object-contain rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
                           onLoad={(e) => {
-                            console.log(`Image ${idx + 1} loaded successfully:`, src);
                             // Show the image explicitly
                             e.target.style.display = 'block';
                           }}
@@ -456,11 +446,9 @@ export default function Tabs({ college = {} }) {
                             const placeholder = e.target.nextSibling;
                             if (placeholder) {
                               placeholder.style.display = 'flex';
-                              console.log(`Showing placeholder for image ${idx + 1}`);
                             }
                             // Only try to refresh if it's been a while since the last attempt
                             if (Date.now() - lastGalleryFetch > 10000) { // 30 seconds
-                              console.log('Attempting to refresh gallery...');
                               fetchGalleryImages();
                             }
                           }}

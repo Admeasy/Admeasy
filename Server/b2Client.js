@@ -4,20 +4,11 @@ const fs = require('fs');
 const crypto = require('crypto');
 const B2 = require('backblaze-b2');
 
-// Add debug logging for environment variables
-console.log('B2 Environment Variables:');
-console.log('B2_KEY_ID:', process.env.B2_KEY_ID);
-console.log('B2_BUCKET_ID:', process.env.B2_BUCKET_ID);
-console.log('B2_BUCKET_NAME:', process.env.B2_BUCKET_NAME);
-console.log('B2_DOWNLOAD_URL:', process.env.B2_DOWNLOAD_URL);
+// B2 Client initialization
 
 class BackblazeB2Client {
     constructor() {
-        // Log the values being used in constructor
-        console.log('Initializing B2 client with:');
-        console.log('- applicationKeyId:', process.env.B2_KEY_ID);
-        console.log('- bucketId:', process.env.B2_BUCKET_ID);
-        console.log('- bucketName:', process.env.B2_BUCKET_NAME);
+        // Initialize B2 client
 
         this.b2 = new (require('backblaze-b2'))({
             applicationKeyId: process.env.B2_KEY_ID,
@@ -30,13 +21,12 @@ class BackblazeB2Client {
 
     async ensureAuthorized() {
         if (!this.authorized) {
-            console.log('Attempting B2 authorization...');
+            // Attempt B2 authorization
             try {
                 const authResponse = await this.b2.authorize();
                 this.authorized = true;
                 this.downloadUrl = authResponse.data.downloadUrl;
                 this.authToken = authResponse.data.authorizationToken;
-                console.log('B2 authorization successful');
             } catch (error) {
                 console.error('B2 authorization failed:', error.message);
                 throw error;
@@ -129,7 +119,6 @@ class BackblazeB2Client {
     async getDownloadUrl(fileName) {
         const auth = await this.ensureAuthorized();
         try {
-            console.log('Getting download URL for:', fileName);
             
             // List files to get the exact file name (case sensitive)
             const files = await this.listFiles(fileName);
@@ -139,12 +128,8 @@ class BackblazeB2Client {
                 throw new Error(`File not found: ${fileName}`);
             }
 
-            console.log('File found:', file.fileName);
-
             // Construct the download URL using the authorized download URL from B2
             const downloadUrl = `${auth.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${encodeURIComponent(file.fileName)}`;
-            
-            console.log('Generated download URL:', downloadUrl);
 
             return {
                 url: downloadUrl,
