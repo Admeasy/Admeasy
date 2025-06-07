@@ -1,5 +1,5 @@
 import './App.css'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './Navbar/Navbar'
 import Home from './Pages/Home'
 import Footer from './Footer/Footer'
@@ -11,6 +11,7 @@ import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import CollegeCourse from './Pages/CollegeCourse'
 function App() {
+  let location = useLocation()
   return (
     <>
       <Navbar />
@@ -20,7 +21,7 @@ function App() {
         <Route path='/about' element={<About />} ></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/DetailedCollege' element={<CollegeDetailed/>}></Route>
-        <Route path='/Policies' element={<PrivacyPolicy/>}></Route>
+        <Route path='/Policies' element={<PrivacyPolicy key={location.key}/>}></Route>
         <Route path='/Terms' element={<TermsAndConditions/>}></Route>
          <Route path='/Course' element={<CollegeCourse/>}></Route>
       </Routes>

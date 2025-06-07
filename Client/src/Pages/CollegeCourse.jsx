@@ -41,27 +41,27 @@ const CollegeCourse = () => {
             alt='Medicaps Background'
           />
 
-      
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full px-4 sm:px-6 md:px-10">
-  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-white/30 backdrop-blur-md shadow-md max-w-4xl mx-auto">
-    
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full px-4 sm:px-6 md:px-10 z-10">
+  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-4 sm:gap-8 px-5 py-4 sm:px-6 sm:py-4 rounded-2xl bg-white/20 backdrop-blur-lg shadow-md mx-auto w-[85%] sm:w-[75%] md:w-[65%] max-w-4xl">
+
     {/* Logo */}
     <img
       draggable="false"
       src={MediLogo}
       alt="College Logo"
-      className="h-10 w-10 sm:h-16 sm:w-16 md:h-24 md:w-24 lg:h-28 lg:w-28 rounded-lg sm:rounded-2xl object-cover"
+      className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 rounded-xl object-cover shadow-md"
     />
 
     {/* Text Content */}
-    <div className="text-center sm:text-left">
-      <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-800 mb-1 sm:mb-3">
+    <div className="text-center sm:text-left flex flex-col justify-center gap-1">
+      <h1 className="text-lg sm:text-2xl md:text-3xl font-admeasy-extrabold text-gray-900 drop-shadow-md leading-tight">
         B.Tech In Computer Science
       </h1>
-      <h2 className="text-xs sm:text-sm md:text-lg lg:text-2xl text-gray-600">
+      <h2 className="text-sm sm:text-base md:text-lg font-admeasy font-semibold text-gray-800">
         Medicaps University
       </h2>
     </div>
+
   </div>
 </div>
         </div>

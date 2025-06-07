@@ -3,13 +3,30 @@ import '../App.css'
 import { motion } from 'framer-motion'
 import Section from '../components/About-section'
 import GroupPic from '../assets/CollegesImg/Medicap-Road.webp'
-
+import { useLocation } from 'react-router-dom'
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 }
 
 const About = () => {
+     const location = useLocation();
+useEffect(() => {
+
+    if (location.hash) {
+      // Wait for DOM to render
+      setTimeout(() => {
+        const sectionId = location.hash.replace('#', '');
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 0); // 0ms delay ensures DOM is ready
+    }
+  }, [location]);
+
+
+
   const [stroke, setStroke] = useState('2px white')
   const [fSize, setFSize] = useState('2rem')
   const [pt, setPt] = useState({ paddingTop: '5.5rem' })
@@ -70,7 +87,7 @@ const About = () => {
   return (
     <>
     
-    <div className="w-full min-h-screen bg-white">
+    <div className="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8 w-full min-h-screen bg-[#F2F4F8]">
       {/* Header Section */}
       <div className='w-full h-full'>
       <motion.header
@@ -86,7 +103,7 @@ const About = () => {
       </motion.header>
       </div>
       {/* Main Sections */}
-      <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-40 bg-white">
+      <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-40 bg-[#F2F4F8]">
         <Section>
           <h2 className="text-2xl md:text-4xl font-semibold">What is Admeasy?</h2>
           <p className="text-[12px] md:text-2xl text-gray-700 px-4">
@@ -97,6 +114,7 @@ const About = () => {
 
           </p>
         </Section>
+        <div  id='who-We-Are'>
         <Section>
           <h2 className="text-2xl md:text-4xl font-semibold">Who We Are?</h2>
           <p className="text-[12px] md:text-2xl text-gray-700 px-4">
@@ -105,6 +123,8 @@ It all started when our founder, <strong> Aadesh Panwar</strong>, completed scho
 That’s when the idea for Admeasy was born — a platform that connects students with the right colleges <strong> without compromising their privacy</strong>.
           </p>
         </Section>
+        </div>
+       <div id='Team'>
        <Section className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto text-center">
         <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
@@ -125,6 +145,7 @@ That’s when the idea for Admeasy was born — a platform that connects student
         </div>
       </div>
     </Section>
+    </div>
          <Section className="bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-1xl md:text-4xl font-bold tracking-tight text-gray-900 mb-6 flex items-center justify-center gap-2">

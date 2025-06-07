@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { FaLinkedin } from "react-icons/fa";
 import { IoLogoWhatsapp } from "react-icons/io";
 import logo from '../assets/Admeasy/LOGO.webp'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
   import { ToastContainer, toast } from 'react-toastify';
   import 'react-toastify/dist/ReactToastify.css';
 const Footer = () => {
@@ -26,6 +26,17 @@ const FormHandler = (e) => {
   notify();
   setMessage(""); // 3️⃣ Reset input after success
 };
+  const location = useLocation();
+  const navigate = useNavigate();
+
+const handleClick = (targetPath) => (e) => {
+    if (location.pathname === targetPath) {
+      // Already on the target page — scroll to top
+      e.preventDefault(); // Prevent re-navigation
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    // else: React Router <Link> will handle the route change
+  };
 
   return (
 <footer className="bg-white dark:bg-gray-900">
@@ -116,21 +127,21 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
 
           <ul className="mt-6 space-y-4 text-sm">
             <li>
-              <a href="#" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
+              <Link onClick={handleClick("/About")} to="/About" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
                 About
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a href="#" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
+              <Link to="/About#Team" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
                 Meet the Team
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a href="#" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
-                Accounts Review
-              </a>
+              <Link to="/About#who-We-Are" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
+              Who We Are?
+              </Link>
             </li>
           </ul>
         </div>
@@ -146,19 +157,24 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
             </li>
 
             <li>
-              <a href="#" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
+              <Link to="#FAQ" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
                 FAQs
-              </a>
+              </Link>
             </li>
-
+              <li>
+              <Link onClick={handleClick("/Course")} to="/Course" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
+                Courses
+              </Link>
+            </li>
+{/* 
             <li>
               <a href="#" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
                 Live Chat
               </a>
-            </li>
+            </li> */}
           </ul>
         </div>
-
+{/* 
         <div className="col-span-2 sm:col-span-1">
           <p className="font-medium text-gray-900 dark:text-white">Legal</p>
 
@@ -187,8 +203,8 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
               </a>
             </li>
           </ul>
-        </div>
-
+        </div> */}
+{/* 
         <div className="col-span-2 sm:col-span-1">
           <p className="font-medium text-gray-900 dark:text-white">Downloads</p>
 
@@ -205,7 +221,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
               </a>
             </li>
           </ul>
-        </div>
+        </div> */}
 
         <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
           <li>
@@ -293,18 +309,24 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
 
         <ul className="mt-8 flex flex-wrap justify-start gap-4 text-xs sm:mt-0 lg:justify-end">
           <li>
-            <Link to='/Terms' title='Terms & Conditions Of Admeasy'className="text-gray-500 transition hover:opacity-75 dark:text-gray-400">Terms & Conditions</Link>
+            <Link 
+             onClick={handleClick("/Terms")}
+            to={'/Terms'}
+            title='Terms & Conditions Of Admeasy'className="text-gray-500 transition hover:opacity-75 dark:text-gray-400">Terms & Conditions</Link>
           </li>
 
           <li>
-         <Link title='View Our Privacy & Policies' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400" to={'/Policies'} >Privacy & Policy</Link>
+         <Link title='View Our Privacy & Policies' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400" onClick={handleClick('/Policies')} to={'/Policies'} >Privacy & Policy</Link>
           </li>
 
           <li>
-            <a href="#" className="text-gray-500 transition hover:opacity-75 dark:text-gray-400">
-              Cookies
-            </a>
-          </li>
+  <Link 
+    to="/Policies#Cookies" 
+    className="text-gray-500 transition hover:opacity-75 dark:text-gray-400">
+    Cookies
+  </Link>
+</li>
+
         </ul>
       </div>
     </div>

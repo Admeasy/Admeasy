@@ -59,9 +59,9 @@ const fadeUpVariant = {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-    className="w-full px-4 py-10 bg-gray-50"
+    className="w-full px-4 py-10 bg-[#F2F4F8]"
     >
-    <section className="bg-white mt-10 py-12 px-6 md:px-16">
+    <section className="mt-10 py-12 px-6 md:px-16">
       <h2 className="text-3xl font-bold text-center mb-10 text-gray-800">✅ Our Features</h2>
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((feature, idx) => (

@@ -41,6 +41,7 @@ const Navbar = () => {
   );
 
   return (
+    <div className='mx-auto max-w-screen-xl sm:px-6 lg:px-8'>
     <nav className="w-full flex items-center justify-between px-5 py-3 2xl:py-4 bg-[#F2F4F8] sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
       {/* Logo */}
       <div className="flex-shrink-0 w-max">
@@ -72,6 +73,7 @@ const Navbar = () => {
         )}
       </AnimatePresence>
     </nav>
+    </div>
   );
 };
 
