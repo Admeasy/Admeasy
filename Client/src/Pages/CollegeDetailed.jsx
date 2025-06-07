@@ -110,9 +110,9 @@ const CollegeDetailed = () => {
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.9, ease: 'easeOut' }}>
-        <div className="w-full h-[60vh] relative">
+        <div className="w-full h-fit relative">
           <div
-            className="w-full h-full bg-cover bg-center transition-transform duration-300"
+            className="w-fit h-fit mx-auto py-10 sm:py-20 bg-cover bg-center transition-transform duration-300"
           >
             <div className="container mx-auto w-fit h-full flex flex-col sm:flex-row items-center justify-center gap-8">
               <img

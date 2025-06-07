@@ -231,7 +231,7 @@ export default function Tabs({ college = {} }) {
               </h2>
               <div className="w-full flex justify-evenly items-center">
                 <img src={Institute} alt="Institute" className="w-1/4 hidden sm:block object-contain" />
-                <p className="m-auto text-lg text-tprimary">
+                <p className="m-auto text-lg sm:text-xl text-tprimary">
                   {college?.desc || 'Description not available'}
                 </p>
               </div>
@@ -252,8 +252,8 @@ export default function Tabs({ college = {} }) {
                 <ul className='space-y-4 text-tprimary text-center text-md sm:text-lg'>
                   {Array.isArray(college?.facilities) && college.facilities.length > 0 ? (
                     college.facilities.map((facility, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <FaDotCircle className='w-4 h-4 text-thead2' />
+                      <li key={index} className="flex items-center text-lg sm:text-xl gap-2">
+                        <FaDotCircle className='min-w-4 min-h-4 text-thead2' />
                         {facility}
                       </li>
                     ))
@@ -369,15 +369,15 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] relative justify-evenly flex md:flex-row bg-primary rounded-2xl shadow-3d p-4 sm:p-8 md:space-x-6 space-y-6 md:space-y-0"
             >
-              <img src={Boy} alt="Student" className="w-1/2 md:w-1/3 h-1/2 lg:h-1/4 hidden sm:block object-contain" />
+              <img src={Boy} alt="Student" className="w-1/2 lg::w-1/3 h-1/2 lg:h-1/4 hidden sm:block object-contain" />
               {/* Left Section: Text Content */}
               <div className="bg-primary rounded-xl shadow-3d p-6 transition-shadow">
                 <h2 className="text-xl sm:text-2xl text-center font-admeasy-extrabold text-thead1 mb-4">Why Choose {college?.name || 'this College'}?</h2>
                 <ul className="space-y-4 text-tsecondary text-sm">
                   {Array.isArray(college?.whyChoose) && college.whyChoose.length > 0 ? (
                     college.whyChoose.map((reason, index) => (
-                      <li key={index} className="flex items-center gap-2 text-xl">
-                        <FaCheckCircle className="text-thead1 w-5 h-5" />
+                      <li key={index} className="flex items-center gap-2 text-lg sm:text-xl">
+                        <FaCheckCircle className="text-thead1 min-w-5 min-h-5" />
                         {reason}
                       </li>
                     ))
