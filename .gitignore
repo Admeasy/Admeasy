@@ -5,3 +5,5 @@ Server/node_modules/
 .vscode/
 
 Server/.env
+
+push.ps1

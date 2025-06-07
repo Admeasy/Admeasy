@@ -1,1 +1,0 @@
-git add .; git commit -m "Auto-Sync" --no-verify; git push origin ahsan
