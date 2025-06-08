@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaEdit, FaTrash, FaSearch, FaPlus } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
-import AddCollegeForm from '../../components/AddCollegeForm'
+import AddCollegeForm from '../components/AddCollegeForm'
 
 const Colleges = () => {
     const navigate = useNavigate()
@@ -12,6 +12,7 @@ const Colleges = () => {
     const [searchQuery, setSearchQuery] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingCollege, setEditingCollege] = useState(null)
+    const [deletingCollegeId, setDeletingCollegeId] = useState(null)
 
     useEffect(() => {
         verifyAuth()
@@ -70,19 +71,26 @@ const Colleges = () => {
     }
 
     const handleDelete = async (collegeId) => {
-        if (window.confirm('Are you sure you want to delete this college?')) {
+        if (window.confirm('Are you sure you want to delete this college? This will also delete all gallery images.')) {
+            setDeletingCollegeId(collegeId);
             try {
                 const response = await fetch(`/api/colleges/${collegeId}`, {
                     method: 'DELETE',
                     credentials: 'include'
-                })
+                });
+
                 if (!response.ok) {
-                    throw new Error('Failed to delete college')
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to delete college');
                 }
+
                 // Refresh the colleges list
-                fetchColleges()
+                await fetchColleges();
             } catch (err) {
-                setError(err.message)
+                console.error('Delete error:', err);
+                setError(err.message);
+            } finally {
+                setDeletingCollegeId(null);
             }
         }
     }
@@ -104,13 +112,15 @@ const Colleges = () => {
             });
 
             if (!response.ok) {
-                throw new Error(collegeId ? 'Failed to update college' : 'Failed to add college');
+                const errorData = await response.json();
+                throw new Error(errorData.message || (collegeId ? 'Failed to update college' : 'Failed to add college'));
             }
 
             await fetchColleges();
             setShowAddForm(false);
             setEditingCollege(null);
         } catch (err) {
+            console.error('Error submitting college:', err);
             setError(err.message);
         }
     }
@@ -188,10 +198,20 @@ const Colleges = () => {
                                 </button>
                                 <button
                                     onClick={() => handleDelete(college._id)}
-                                    className="px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    disabled={deletingCollegeId === college._id}
+                                    className={`px-6 py-2.5 ${deletingCollegeId === college._id ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'} text-white rounded-lg transition-colors`}
                                 >
-                                    <FaTrash className="inline mr-2" />
-                                    Delete
+                                    {deletingCollegeId === college._id ? (
+                                        <>
+                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaTrash className="inline mr-2" />
+                                            Delete
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </li>

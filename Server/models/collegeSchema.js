@@ -164,7 +164,7 @@ const CollegesSchema = new mongoose.Schema({
         required: true,
         trim: true
       }
-    }]
+    }, {_id: false}],
   }],
   facilities: [{
     type: String,
@@ -210,11 +210,18 @@ const CollegesSchema = new mongoose.Schema({
       message: 'Gallery URL is required'
     }
   },
-  moreInfo: {
-    type: Map,
-    of: String,
-    default: {}
-  },
+  moreInfo: [{
+    title: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    content: {
+      type: String,
+      required: true,
+      trim: true
+    }
+  }, {_id: false}],
   whyChoose: [{
     type: String,
     required: true,

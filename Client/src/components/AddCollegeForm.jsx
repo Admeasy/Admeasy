@@ -62,7 +62,8 @@ const initialFormState = {
             benefit: '',
             howToApply: ''
         }]
-    }]
+    }],
+    moreInfo: []
 }
 
 const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
@@ -268,18 +269,6 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         }
     }
 
-    const handleArrayChange = (e, field, index) => {
-        const { value } = e.target;
-        setFormData(prev => {
-            const newArray = [...prev[field]];
-            newArray[index] = value;
-            return {
-                ...prev,
-                [field]: newArray
-            };
-        });
-    }
-
     // Debounced course change handler
     const handleCourseChange = (courseIndex, field, value, subfield = null, additionalIndex = null) => {
         // Clear any existing timer
@@ -457,6 +446,34 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         });
     }
 
+    const addMoreInfo = () => {
+        setFormData(prev => ({
+            ...prev,
+            moreInfo: [...prev.moreInfo, { title: '', content: '' }]
+        }));
+    }
+
+    const removeMoreInfo = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            moreInfo: prev.moreInfo.filter((_, i) => i !== index)
+        }));
+    }
+
+    const handleMoreInfoChange = (index, field, value) => {
+        setFormData(prev => {
+            const newMoreInfo = [...prev.moreInfo];
+            newMoreInfo[index] = {
+                ...newMoreInfo[index],
+                [field]: value
+            };
+            return {
+                ...prev,
+                moreInfo: newMoreInfo
+            };
+        });
+    }
+
     const handleDrag = (e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -503,6 +520,10 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 formData.gallery.forEach(file => {
                     submitData.append('gallery', file);
                 });
+            } else if (key === 'moreInfo') {
+                // Ensure moreInfo is properly formatted
+                const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
+                submitData.append('moreInfo', JSON.stringify(validMoreInfo));
             } else if (typeof formData[key] === 'object') {
                 // Stringify nested objects
                 submitData.append(key, JSON.stringify(formData[key]));
@@ -1087,6 +1108,54 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </div>
                     ))}
 
+                    {/* More Information */}
+                    {renderSection("More Information", (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h5 className="font-medium text-thead1">Additional College Information</h5>
+                                <button
+                                    type="button"
+                                    onClick={addMoreInfo}
+                                    className="text-blue-500 hover:text-blue-700"
+                                >
+                                    <FaPlus className="inline mr-1" /> Add Info
+                                </button>
+                            </div>
+                            {formData.moreInfo.map((info, index) => (
+                                <div key={index} className="bg-white/5 p-3 rounded-lg space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <h6 className="font-medium text-thead1">Information {index + 1}</h6>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeMoreInfo(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <input
+                                            type="text"
+                                            value={info.title || ''}
+                                            onChange={(e) => handleMoreInfoChange(index, 'title', e.target.value)}
+                                            placeholder="Title (e.g., Admission Process, Campus Life)"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            required
+                                        />
+                                        <textarea
+                                            value={info.content || ''}
+                                            onChange={(e) => handleMoreInfoChange(index, 'content', e.target.value)}
+                                            placeholder="Content"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            rows="3"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+
                     <div className="flex justify-end space-x-3">
                         <button
                             type="button"
@@ -1108,4 +1177,4 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     )
 }
 
-export default AddCollegeForm 
+export default AddCollegeForm

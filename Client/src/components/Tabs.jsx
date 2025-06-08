@@ -135,7 +135,7 @@ export default function Tabs({ college = {} }) {
     fetchGalleryImages();
     
     // Refresh URLs every 45 minutes (before the 1-hour expiration)
-    const refreshInterval = setInterval(fetchGalleryImages, 45 * 60 * 1000);
+    const refreshInterval = setInterval(fetchGalleryImages, 2 * 60 * 1000);
     
     return () => clearInterval(refreshInterval);
   }, [college?._id]);
@@ -340,14 +340,16 @@ export default function Tabs({ college = {} }) {
                 More Info About {college.name}
               </h2>
               <ul className="text-tprimary text-center text-md sm:text-lg">
-                {college?.moreInfo && Object.keys(college.moreInfo).length > 0 ? (
-                  Object.entries(college.moreInfo).map(([key, value], index) => (
+                {Array.isArray(college?.moreInfo) && college.moreInfo
+                  .filter(info => info && info.title && info.content) // Filter out invalid entries
+                  .map((info, index) => (
                     <li key={index} className="flex items-center gap-2 p-2">
                       <FaArrowRight className='w-4 h-4 text-thead2' />
-                      <span className="text-thead2">{key}:</span> {value}
+                      <span className="text-thead2">{info.title}: </span> {info.content}
                     </li>
-                  ))
-                ) : (
+                  ))}
+                {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 || 
+                  !college.moreInfo.some(info => info && info.title && info.content)) && (
                   <li className="text-center text-lg">No additional information available</li>
                 )}
               </ul>
@@ -429,44 +431,38 @@ export default function Tabs({ college = {} }) {
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {gallery.map((src, idx) => {
-                    return (
-                      <div key={idx} className="relative">
-                        <img
-                          src={src}
-                          alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
-                          className='w-full h-64 object-contain rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
-                          onLoad={(e) => {
-                            // Show the image explicitly
-                            e.target.style.display = 'block';
-                          }}
-                          onError={(e) => {
-                            console.error(`Image ${idx + 1} failed to load:`, src);
-                            e.target.style.display = 'none';
-                            const placeholder = e.target.nextSibling;
-                            if (placeholder) {
-                              placeholder.style.display = 'flex';
-                            }
-                            // Only try to refresh if it's been a while since the last attempt
-                            if (Date.now() - lastGalleryFetch > 10000) { // 30 seconds
-                              fetchGalleryImages();
-                            }
-                          }}
-                        />
-                        <div 
-                          className="hidden w-full h-64 bg-gray-100 rounded-xl shadow-3d flex-col items-center justify-center text-gray-500 space-y-2"
-                        >
-                          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                          <p className="text-lg font-medium">Image not available</p>
-                          <p className="text-sm text-gray-400">Unable to load image</p>
+                  {gallery.map((url, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={url}
+                        alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
+                        className='w-full h-64 object-contain rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
+                        onError={(e) => {
+                          console.error(`Image ${idx + 1} failed to load:`, url);
+                          e.target.style.display = 'none';
+                          const placeholder = e.target.nextSibling;
+                          if (placeholder) {
+                            placeholder.style.display = 'flex';
+                          }
+                          // Only try to refresh if it's been a while since the last attempt
+                          if (Date.now() - lastGalleryFetch > 60 * 60 * 1000) { // 1 hour
+                            fetchGalleryImages();
+                          }
+                        }}
+                      />
+                      <div 
+                        className="hidden w-full h-64 bg-gray-100 rounded-xl shadow-3d flex-col items-center justify-center text-gray-500 space-y-2"
+                      >
+                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
                         </div>
+                        <p className="text-lg font-medium">Image not available</p>
+                        <p className="text-sm text-gray-400">Unable to load image</p>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </motion.section>

@@ -10,8 +10,8 @@ import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import Course from './Pages/Course'
-import Admin from './Pages/admin/Admin'
-import AdminColleges from './Pages/admin/colleges'
+import Admin from './Pages/Admin'
+import ManageColleges from './Pages/ManageColleges'
 
 
 function App() {
@@ -31,7 +31,7 @@ function App() {
         <Route path='/Terms' element={<TermsAndConditions />}></Route>
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/admin' element={<Admin />}></Route>
-        <Route path='/admin/colleges' element={<AdminColleges />}></Route>
+        <Route path='/admin/colleges' element={<ManageColleges />}></Route>
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

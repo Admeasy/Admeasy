@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import '../App.css'
 import { motion } from 'framer-motion'
 import Section from '../components/AboutSection'
-import GroupPic from '../assets/CollegesImg/Medicap-Road.webp'
+import { useLocation } from 'react-router-dom'
 
 
 const fadeUpVariant = {
@@ -11,6 +11,23 @@ const fadeUpVariant = {
 }
 
 const About = () => {
+     const location = useLocation();
+useEffect(() => {
+
+    if (location.hash) {
+      // Wait for DOM to render
+      setTimeout(() => {
+        const sectionId = location.hash.replace('#', '');
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 0); // 0ms delay ensures DOM is ready
+    }
+  }, [location]);
+
+
+
   const [stroke, setStroke] = useState('2px white')
   const [fSize, setFSize] = useState('2rem')
 
@@ -91,7 +108,7 @@ const About = () => {
           `}
             </style>
             <h1 className='h-about custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-tprimary tracking-wide lg:tracking-widest z-5 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
-            <img src={GroupPic} className='w-full md:w-8/10 lg:w-7/10 xl:w-6/10 m-auto relative z-10 rounded-4xl mt-16 sm:mt-0' />
+            <img className='w-full md:w-8/10 lg:w-7/10 xl:w-6/10 m-auto relative z-10 rounded-4xl mt-16 sm:mt-0' />
             <h1 className='custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1>
           </motion.header>
         </div>

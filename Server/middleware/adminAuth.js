@@ -52,11 +52,7 @@ const adminAuth = async (req, res, next) => {
     // Authentication failed
     return res.status(401).json({ 
       success: false, 
-      message: 'Invalid credentials',
-      debug: {
-        usernameMatch: isUsernameMatch,
-        passwordMatch: isPasswordMatch
-      }
+      message: 'Invalid credentials'
     });
 
   } catch (error) {
@@ -92,4 +88,4 @@ const verifyAdminToken = (req, res, next) => {
   }
 };
 
-module.exports = { adminAuth, verifyAdminToken }; 
+module.exports = { adminAuth, verifyAdminToken };

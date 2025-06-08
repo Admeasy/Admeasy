@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import medicaps from '../assets/CollegesImg/medicapsimage.jpg'
-import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png"
 import { FaLocationDot } from "react-icons/fa6";
 import { FaClock } from "react-icons/fa";
 import { LuDock } from "react-icons/lu";
@@ -96,7 +94,7 @@ const Course = () => {
   }
 
   return (
-    <div className='w-full min-h-screen'>
+    <main className='w-full min-h-screen'>
       <motion.header
         variants={fadeUpVariant}
         initial="hidden"
@@ -104,23 +102,22 @@ const Course = () => {
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className='p-2 sm:p-3 mt-2 sm:mt-4 mx-auto flex justify-center rounded-lg sm:rounded-2xl flex-col shadow-3d w-4/5'>
-        <div className='relative w-full aspect-[2/1] bg-center bg-cover rounded-lg sm:rounded-2xl overflow-hidden' style={{ backgroundImage: `url(${college.image || medicaps})` }}>
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="!h-fit absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 !w-4/5 sm:!w-fit lg:w-fit flex flex-row items-center justify-center gap-2 sm:gap-6 p-2 sm:p-6 rounded-xl bg-white/60 backdrop-blur-xs shadow-md mx-auto">
+        <div className='w-full h-fit mt-3 sm:mt-0 rounded-lg sm:rounded-2xl overflow-hidden'>
+          <div className="!h-fit !w-4/5 sm:!w-full mx-auto flex flex-row items-center justify-center gap-2 sm:gap-6 p-2 sm:p-6 rounded-xl bg-white/60 backdrop-blur-xs shadow-md">
             {/* Logo */}
             <img
               draggable="false"
-              src={college.logo || MediLogo}
+              src={college.logo}
               alt="College Logo"
               className="size-14 sm:size-16 md:size-24 lg:size-28 rounded-lg sm:rounded-2xl object-cover"
             />
 
             {/* Text Content */}
             <div className="w-fit !text-center max-[400px]:text-left sm:text-left">
-              <h1 className="!w-fit !mx-auto max-[400px]:!text-sm !text-lg sm:!text-lg md:!text-xl lg:!text-2xl !font-admeasy-bold sm:!font-admeasy-extrabold text-tprimary !mb-1 sm:!mb-2 md:!mb-3">
+              <h1 className="!w-fit !mx-auto max-[400px]:!text-sm !text-xl md:!text-2xl lg:!text-3xl !font-admeasy-bold sm:!font-admeasy-extrabold text-tprimary !mb-1 sm:!mb-2 md:!mb-3">
                 {course.title}
               </h1>
-              <h2 className="!w-fit !mx-auto max-[400px]:!hidden !text-base md:!text-lg lg:!text-xl text-tsecondary font-admeasy">
+              <h2 className="!w-fit !mx-auto !text-base md:!text-xl lg:!text-2xl text-tsecondary font-admeasy">
                 {college.name}
               </h2>
             </div>
@@ -264,7 +261,7 @@ const Course = () => {
           </div>
         </Section>
       </main>
-    </div>
+    </main>
   )
 }
 

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import medicaps from '../assets/CollegesImg/medicapsimage.jpg';
-import MediLogo from "../assets/CollegesImg/MediCapsUniversityLogo.png";
 import { FaCalendarAlt } from "react-icons/fa";
 import { FaBriefcase, FaBuilding, FaLocationDot, FaStar } from "react-icons/fa6";
 import Tabs from '../components/Tabs';
@@ -145,9 +143,9 @@ const CollegeDetailed = () => {
       </motion.header>
 
       {/* Tabs Section */}
-      <section className="w-full mx-auto px-1 sm:px-4 py-8">
+      <main className="w-full mx-auto px-1 sm:px-4 py-8">
         <Tabs college={college} />
-      </section>
+      </main>
     </div>
   );
 };

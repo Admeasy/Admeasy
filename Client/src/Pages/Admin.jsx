@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUser, FaLock } from 'react-icons/fa';
-import logo from '../../assets/Admeasy/LOGO.webp';
+import logo from '../assets/Admeasy/LOGO.webp';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
