@@ -1,13 +1,25 @@
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import SearchLogo from '../assets/Others/Search-logo.webp';
 import Girl from '../assets/Others/Girl.webp';
 import Hero from '../assets/Others/hero.webp'
+
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 };
 
 const FrontHome = () => {
+  const navigate = useNavigate();
+  
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const searchQuery = e.target.search.value.trim();
+    if (searchQuery) {
+      navigate(`/colleges?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   return (
     <motion.section
       variants={fadeUpVariant}
@@ -27,7 +39,7 @@ const FrontHome = () => {
           <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
             Discover top-rated colleges near you and connect with alumni to make the right choice for your future.
           </p>
-          <div className="relative w-9/10 sm:w-full max-w-xl mx-auto mt-4">
+          <form onSubmit={handleSearch} className="relative w-9/10 sm:w-full max-w-xl mx-auto mt-4">
             <input
               name="search"
               type="text"
@@ -44,7 +56,7 @@ const FrontHome = () => {
                 draggable="false"
                 className="h-6 w-6 sm:h-8 sm:w-8"/>
             </button>
-          </div>
+          </form>
         </div>
 
         {/* Girl Image Section */}

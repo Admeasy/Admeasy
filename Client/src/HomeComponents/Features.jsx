@@ -63,28 +63,7 @@ export default function Features() {
       transition={{ duration: 0.7, ease: 'easeOut' }}
       className="w-full px-4 py-10 bg-bg"
     >
-    <section className="mt-10 py-12 px-6 md:px-16">
-      <h2 className="text-3xl font-bold text-center mb-10 text-gray-800">✅ Our Features</h2>
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map((feature, idx) => (
-          <div
-            key={idx}
-            className="bg-gray-100 rounded-2xl relative shadow-3d hover:shadow-md transition-all p-6 flex flex-col items-start">
-                <div className="relative w-full">
-                    {feature.Upcoming && (
-<span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[10px] px-2 py-[3px] rounded-md uppercase font-semibold  tracking-wider shadow-sm ring-1 ring-red-300 animate-pulse">
-  Soon!
-</span>
-  )}
-            <div className="mb-4">{feature.icon}</div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">{feature.title}</h3>
-            
-            <p className="text-gray-600 text-sm">{feature.description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+
       <section className="mt-10 py-12 px-6 md:px-16">
         <h2 className="text-3xl font-bold text-center mb-10 text-gray-800">✅ Our Features</h2>
         <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">

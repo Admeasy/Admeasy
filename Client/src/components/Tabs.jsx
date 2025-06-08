@@ -363,7 +363,7 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] relative justify-evenly flex md:flex-row bg-primary rounded-2xl shadow-3d p-4 sm:p-8 md:space-x-6 space-y-6 md:space-y-0"
             >
-              <img src={Boy} alt="Student" className="w-1/2 lg::w-1/3 h-1/2 lg:h-1/4 hidden sm:block object-contain" />
+              <img src={Boy} alt="Student" className="w-1/2 lg:w-1/3 h-1/2 lg:h-1/4 hidden sm:block object-contain" />
               {/* Left Section: Text Content */}
               <div className="bg-primary rounded-xl shadow-3d p-6 transition-shadow">
                 <h2 className="text-xl sm:text-2xl text-center font-admeasy-extrabold text-thead1 mb-4">Why Choose {college?.name || 'this College'}?</h2>

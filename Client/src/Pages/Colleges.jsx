@@ -3,54 +3,106 @@ import { Link, useLocation } from 'react-router-dom'
 import SearchLogo from '../assets/Others/Search-logo.webp'
 import { motion } from 'framer-motion'
 
-
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 }
 
 const Colleges = () => {
-  const [Colleges, setColleges] = useState([])
-  const pathname = useLocation();
+  const [colleges, setColleges] = useState([])
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialSearchQuery = searchParams.get('search') || '';
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [location]);
+
+  // Helper function to safely convert any value to string
+  const safeToString = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value).toLowerCase();
+  };
+
+  // Helper function to check if any search term matches any field
+  const matchesSearchTerms = (college, searchTerms) => {
+    // Safely extract course information
+    const courseInfo = (college.courses || []).map(course => [
+      course?.title,
+      course?.duration
+    ]).flat();
+
+    // Create array of searchable fields
+    const fieldsToSearch = [
+      college.name,
+      college.location,
+      college.type,
+      college.desc,
+      college.establishedYear,
+      ...courseInfo,
+      ...(college.keywords || [])
+    ]
+    .filter(Boolean) // Remove null/undefined values
+    .map(safeToString); // Convert all values to lowercase strings
+
+    // Check if all search terms match at least one field
+    return searchTerms.every(term =>
+      fieldsToSearch.some(field => field.includes(term))
+    );
+  };
 
   // Fetching colleges from the server
   useEffect(() => {
     async function fetchColleges() {
-      fetch('/api/colleges').then(response => response.json()).then(data => {
-        setColleges(data)
-      }).catch(error => console.error('Error fetching colleges:', error))
+      try {
+        const response = await fetch('/api/colleges');
+        const data = await response.json();
+        
+        // If there's a search query, filter the results
+        if (searchQuery) {
+          // Split the search query into terms and remove empty strings
+          const searchTerms = String(searchQuery)
+            .toLowerCase()
+            .split(/[\s,]+/)
+            .filter(term => term.length > 0);
+          
+          const filteredColleges = data.filter(college => 
+            matchesSearchTerms(college, searchTerms)
+          );
+          setColleges(filteredColleges);
+        } else {
+          setColleges(data);
+        }
+      } catch (error) {
+        console.error('Error fetching colleges:', error);
+      }
     }
-    fetchColleges()
-  }, [])
+    fetchColleges();
+  }, [searchQuery]);
 
   const handleSearch = (e) => {
-    const searchQuery = e.target.value.toLowerCase();
-    if (searchQuery) {
-      const filteredColleges = Colleges.filter(college =>
-        college.name.toLowerCase().includes(searchQuery) || college.location.toLowerCase().includes(searchQuery) || college.type.toLowerCase().includes(searchQuery) || college.coursesOffered?.join(' ').toLowerCase().includes(searchQuery) || college.keywords?.join(' ').toLowerCase().includes(searchQuery)
-      );
-      setColleges(filteredColleges);
-    } else {
-      // If search query is empty, reset to original list
-      fetch('/api/colleges').then(response => response.json()).then(data => {
-        setColleges(data);
-      }).catch(error => console.error('Error fetching colleges:', error));
-    }
+    const query = e.target.value;
+    setSearchQuery(query);
   }
 
   return (
     <>
       <div className="w-full m-0 my-4 p-4 flex items-center justify-center">
-        <input name='search' className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' type="text" placeholder='Search Best B.Tech colleges near me...' onChange={handleSearch} />
-        <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'><img draggable="false" src={SearchLogo} /></button>
+        <input 
+          name='search' 
+          value={searchQuery}
+          onChange={handleSearch}
+          className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' 
+          type="text" 
+          placeholder='Search Best B.Tech colleges near me...' 
+        />
+        <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'>
+          <img draggable="false" src={SearchLogo} alt="Search" />
+        </button>
       </div>
       <div className='w-full p-3 flex justify-evenly flex-wrap gap-10'>
-        {Colleges.map(
-          // Function Here Bro!
+        {colleges.map(
           (college) => (
             <Link to={`/colleges/${college._id}`} key={college._id}>
               <motion.div
@@ -87,7 +139,6 @@ const Colleges = () => {
                 </div>
               </motion.div>
             </Link>
-
           ))}
       </div>
     </>

@@ -67,13 +67,13 @@ const CollegeCard = () => {
                   <div className="  w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-3 flex">
                     <div className='w-18 md:w-25 m-0 md:mr-2'>
                       <img src={college.logo} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
-                      <p className="text-yellow-500 text-[10px] m-1">⭐ {formatRating(college?.rating)}</p>
+                      <p className="text-yellow-500 text-lg font-semibold m-1">⭐ {formatRating(college?.rating)}</p>
                     </div>
                     <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12 justify-center">
-                      <h2 className="text-[18px] font-bold">
+                      <h2 className="text-2xl font-bold">
                         {college.name}
                       </h2>
-                      <p className="text-[12px] md:text-sm text-tsecondary">{college.location}</p>
+                      <p className="text-xl md:text-sm text-tsecondary">{college.location}</p>
                       {/* <p className="text-sm text-gray-700 line-clamp-3">cd
             {college.description}
           </p> */}
