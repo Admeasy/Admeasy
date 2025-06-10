@@ -65,7 +65,7 @@ export default function Features() {
     >
 
       <section className="mt-10 py-12 px-6 md:px-16">
-        <h2 className="text-3xl font-bold text-center mb-10 text-gray-800">✅ Our Features</h2>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-admeasy-extrabold text-center mb-10 text-gray-800">✅ Our Features</h2>
         <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, idx) => (
             <div

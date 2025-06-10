@@ -2,18 +2,23 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
-  const location = useLocation()
+  const pathname = useLocation();
+ const location = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   useEffect(() => {
-
     if (location.hash) {
-      // DOM Cooking
-      const id = location.hash
-      const element = document.querySelector(id)
-      element?.scrollIntoView()
-
+      const id = location.hash.replace("#", "");
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" }); // Optional: smooth scroll
+        }
+      }, 0);
     }
-  }, [location])
+  }, [location]);
   return (
     <div className="w-full p-7 text-[20px] font-admeasy text-gray-800 max-w-5xl mx-auto">
       <section className="bg-white  p-8 rounded-2xl shadow-3d max-w-4xl mx-auto my-12 text-gray-800">

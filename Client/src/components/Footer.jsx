@@ -316,7 +316,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
               </li>
 
               <li>
-                <Link title='View Our Privacy & Policies' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400" onClick={handleClick('/Policies')} to={'/Policies'} >Privacy & Policy</Link>
+                <Link title='View Our Privacy & Policies' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400" onClick={handleClick("/Policies")} to={'/Policies'} >Privacy & Policy</Link>
               </li>
 
               <li>
