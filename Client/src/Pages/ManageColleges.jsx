@@ -15,6 +15,9 @@ const Colleges = () => {
     const [editingCollege, setEditingCollege] = useState(null)
     const [deletingCollegeId, setDeletingCollegeId] = useState(null)
 
+    const showError = (error) => {toast.error(error); return ""};
+    const showSuccess = (message) => toast.success(message);
+
     useEffect(() => {
         verifyAuth()
     }, [])
@@ -120,6 +123,7 @@ const Colleges = () => {
             await fetchColleges();
             setShowAddForm(false);
             setEditingCollege(null);
+            showSuccess(collegeId ? 'College updated successfully' : 'College added successfully');
         } catch (err) {
             console.error('Error submitting college:', err);
             setError(err.message);
@@ -156,8 +160,10 @@ const Colleges = () => {
                 Manage Colleges
             </h1>
 
+            <ToastContainer className='hidden'/>
+
             {error && (
-                <div className="text-red-500 text-center mb-4">{error}</div>
+                showError(error)
             )}
 
             <div className="max-w-6xl mx-auto">
