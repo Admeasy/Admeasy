@@ -61,7 +61,7 @@ export default function Features() {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-full px-4 py-10 bg-bg"
+      className="w-full px-4 py-10"
     >
 
       <section className="mt-10 py-12 px-6 md:px-16">

@@ -112,7 +112,7 @@ const Colleges = () => {
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
                 className="bg-primary rounded-2xl p-4 shadow-3d w-70 hover:scale-105 transition-transform duration-200 h-[420px] flex flex-col justify-between">
-                <img src={college.logo} alt={college.name} className="h-16 mx-auto" />
+                <img src={college.logo} alt={college.name} className="h-10 mx-auto" />
 
                 <div className="text-tprimary text-lg font-bold mt-4 text-center">
                   {college.name}
@@ -134,7 +134,7 @@ const Colleges = () => {
                     <span className="font-semibold text-tprimary">Type:</span> {college.type}
                   </p>
                   <p>
-                    <span className="font-semibold line-clamp-3 text-tprimary">Description:</span> {college.desc}
+                    <span className="font-semibold line-clamp-3 text-tprimary">Description:</span> {college.desc.split(' ').slice(0, 20).join(' ')}...
                   </p>
                 </div>
               </motion.div>

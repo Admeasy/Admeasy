@@ -69,10 +69,10 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
   const nextRef = useRef(null);
 
   return (
-    <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
-  <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex justify-center items-center gap-2">
-  {SwiperHeading} <RiMessage2Fill className="w-7 h-7 text-[#080711]" />
-</h2>
+    <div className="relative mt-15 p-6 rounded-2xl shadow-md w-[90%] mx-auto">
+      <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex justify-center items-center gap-2">
+        {SwiperHeading} <RiMessage2Fill className="w-7 h-7 text-[#080711]" />
+      </h2>
 
       {/* Custom Arrow Buttons */}
       <div
@@ -87,64 +87,64 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
       >
         <CustomButton> <IoIosArrowForward /> </CustomButton>
       </div>
-<Swiper
-  modules={[Navigation]}
-  spaceBetween={20}
-  slidesPerView={3}
-  loop={true}
-  onBeforeInit={(swiper) => {
-    swiper.params.navigation.prevEl = prevRef.current;
-    swiper.params.navigation.nextEl = nextRef.current;
-  }}
-  breakpoints={{
-    0: { slidesPerView: 1 },
-    640: { slidesPerView: 2 },
-    1024: { slidesPerView: 3 },
-  }}
-  className="pb-6"
->
-  {students.map((student, index) => {
-    const collegeLogo = collegeLogoMap[student.college] || "/logos/default-logo.png";
-    return (
-   <SwiperSlide key={index}>
-  <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
-    
-    {/* Image with College Logo Overlay */}
-    <div className="">
-      <img
-        src={student.img}
-        alt={student.name}
-        className="w-24 h-24 rounded-full object-cover shadow-md"
-        onError={(e) => {
-          e.target.src = fallbackImage;
+      <Swiper
+        modules={[Navigation]}
+        spaceBetween={20}
+        slidesPerView={3}
+        loop={true}
+        onBeforeInit={(swiper) => {
+          swiper.params.navigation.prevEl = prevRef.current;
+          swiper.params.navigation.nextEl = nextRef.current;
         }}
-      />
-      <img
-        src={collegeLogo}
-        alt="College Logo"
-        className="w-10 h-10 md:w-14 md:h-14 absolute top-0 left-3 rounded-full border-2 border-white shadow-md bg-white"
-      />
-    </div>
+        breakpoints={{
+          0: { slidesPerView: 1 },
+          640: { slidesPerView: 2 },
+          1024: { slidesPerView: 3 },
+        }}
+        className="pb-6"
+      >
+        {students.map((student, index) => {
+          const collegeLogo = collegeLogoMap[student.college] || "/logos/default-logo.png";
+          return (
+            <SwiperSlide key={index}>
+              <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
 
-    {/* Text Content */}
-    <div className="mt-4 text-center">
-      {/* Student Name */}
-      <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+                {/* Image with College Logo Overlay */}
+                <div className="">
+                  <img
+                    src={student.img}
+                    alt={student.name}
+                    className="w-24 h-24 rounded-full object-cover shadow-md"
+                    onError={(e) => {
+                      e.target.src = fallbackImage;
+                    }}
+                  />
+                  <img
+                    src={collegeLogo}
+                    alt="College Logo"
+                    className="w-10 h-10 md:w-14 md:h-14 absolute top-0 left-3 rounded-full border-2 border-white shadow-md bg-white"
+                  />
+                </div>
 
-      {/* Highlighted College Name */}
-      <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
+                {/* Text Content */}
+                <div className="mt-4 text-center">
+                  {/* Student Name */}
+                  <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
 
-      {/* Course Badge */}
-      <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
-        {student.course}
-      </span>
-    </div>
-  </div>
-</SwiperSlide>
+                  {/* Highlighted College Name */}
+                  <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
 
-    );
-  })}
-</Swiper>
+                  {/* Course Badge */}
+                  <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                    {student.course}
+                  </span>
+                </div>
+              </div>
+            </SwiperSlide>
+
+          );
+        })}
+      </Swiper>
 
 
       <div className="flex justify-center mt-4">

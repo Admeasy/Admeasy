@@ -21,10 +21,10 @@ const Home = () => {
   return (
     <main>
       <FrontHome />
-      <Features />
-      <StudentSwiper/>
-      <FAQ />
       <CollegeCard />
+      <StudentSwiper/>
+      <Features />
+      <FAQ />
     </main>
 
   )

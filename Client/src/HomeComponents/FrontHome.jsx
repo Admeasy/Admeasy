@@ -29,7 +29,7 @@ const FrontHome = () => {
       transition={{ duration: 0.7, ease: 'easeOut' }}
       className="w-full px-4 py-8"
     >
-      <div className="flex flex-col md:flex-row items-center justify-center bg-primary w-full shadow-3d rounded-xl overflow-hidden ">
+      <div className="flex flex-col md:flex-row items-center justify-center bg-primary w-[95%] mx-auto shadow-3d rounded-xl overflow-hidden ">
         {/* Text Section */}
         <div className="w-full md:w-1/2 flex flex-col text-center justify-center gap-4 sm:gap-6 xl:gap-8 p-6 px-0">
           <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-admeasy-extrabold text-tprimary leading-snug">
