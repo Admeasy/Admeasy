@@ -1,8 +1,9 @@
-import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaEdit, FaTrash, FaSearch, FaPlus } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import AddCollegeForm from '../components/AddCollegeForm'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Colleges = () => {
     const navigate = useNavigate()
