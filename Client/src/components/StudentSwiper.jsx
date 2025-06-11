@@ -1,6 +1,7 @@
 // StudentSwiper.jsx
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
+import { Link } from "react-router-dom";
 import { useRef } from "react";
 import CustomButton from "../HomeComponents/3d-btn";
 import "swiper/css";
@@ -107,39 +108,41 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
           const collegeLogo = collegeLogoMap[student.college] || "/logos/default-logo.png";
           return (
             <SwiperSlide key={index}>
-              <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
+              <Link to={'https://wa.me/+919243299145'}>
+                <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
 
-                {/* Image with College Logo Overlay */}
-                <div className="">
-                  <img
-                    src={student.img}
-                    alt={student.name}
-                    className="w-24 h-24 rounded-full object-cover shadow-md"
-                    onError={(e) => {
-                      e.target.src = fallbackImage;
-                    }}
-                  />
-                  <img
-                    src={collegeLogo}
-                    alt="College Logo"
-                    className="w-10 h-10 md:w-14 md:h-14 absolute top-0 left-3 rounded-full border-2 border-white shadow-md bg-white"
-                  />
+                  {/* Image with College Logo Overlay */}
+                  <div className="">
+                    <img
+                      src={student.img}
+                      alt={student.name}
+                      className="w-24 h-24 rounded-full object-cover shadow-md"
+                      onError={(e) => {
+                        e.target.src = fallbackImage;
+                      }}
+                    />
+                    <img
+                      src={collegeLogo}
+                      alt="College Logo"
+                      className="w-10 h-10 md:w-14 md:h-14 absolute top-0 left-3 rounded-full border-2 border-white shadow-md bg-white"
+                    />
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="mt-4 text-center">
+                    {/* Student Name */}
+                    <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+
+                    {/* Highlighted College Name */}
+                    <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
+
+                    {/* Course Badge */}
+                    <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                      {student.course}
+                    </span>
+                  </div>
                 </div>
-
-                {/* Text Content */}
-                <div className="mt-4 text-center">
-                  {/* Student Name */}
-                  <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
-
-                  {/* Highlighted College Name */}
-                  <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
-
-                  {/* Course Badge */}
-                  <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
-                    {student.course}
-                  </span>
-                </div>
-              </div>
+              </Link>
             </SwiperSlide>
 
           );
