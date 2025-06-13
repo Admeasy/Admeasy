@@ -16,6 +16,7 @@ const collegeLogoMap = {
   "SGITS": "https://upload.wikimedia.org/wikipedia/en/4/4b/SGSITS_Indore.png",
   "IIT Indore": "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/IITI_Logo.svg/250px-IITI_Logo.svg.png",
   "IIM Indore": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/IIM_Indore_Logo.svg/150px-IIM_Indore_Logo.svg.png",
+  "IIST":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScea8JfcJLacmRtR2Ah0pQBwDHYcWKOCVsVw&s",
 };
 
 const students = [
@@ -56,11 +57,17 @@ const students = [
     img: fallbackImage,
   },
   {
-    name: "Prem Pratik",
-    college: "IIT Indore",
-    course: "B.Tech in Space Science and Engineering",
-    img: fallbackImage,
+    name:"Vikram Singh",
+    college:"IIST",
+    Course:" B.tech CSE",
+    img:fallbackImage,
   },
+  {
+    name:"Vinay Yadav",
+    college:"IIST",
+    course:"B.tech CSE",
+    img:fallbackImage,
+  }
 ];
 
 
@@ -104,7 +111,7 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
   className="pb-6"
 >
   {students.map((student, index) => {
-    const collegeLogo = collegeLogoMap[student.college] || "/logos/default-logo.png";
+    const collegeLogo = collegeLogoMap[student.college] || {fallbackImage};
     return (
    <SwiperSlide key={index}>
   <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
@@ -117,13 +124,14 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
         className="w-24 h-24 rounded-full object-cover shadow-md"
         onError={(e) => {
           e.target.src = fallbackImage;
-        }}
-      />
+        }} />
+      <div className="">
       <img
-        src={collegeLogo}
-        alt="College Logo"
-        className="w-10 h-10 md:w-14 md:h-14 absolute top-0 left-3 rounded-full border-2 border-white shadow-md bg-white"
-      />
+      draggable="false"
+  src={collegeLogo}
+  alt="College Logo"
+  className="absolute top-3 left-3 w-10 h-10 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10"/>
+</div>
     </div>
 
     {/* Text Content */}
@@ -145,7 +153,6 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
     );
   })}
 </Swiper>
-
 
       <div className="flex justify-center mt-4">
         <CustomButton>

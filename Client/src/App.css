@@ -1,6 +1,11 @@
 .bg {
   width: 100%;
 }
+/* Ensure images are responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
 
 .bgcollegeshade {
   height: 100%;
@@ -107,13 +112,6 @@ h1{
     font-size: 14px;
   }
 }
-
-/* Ensure images are responsive */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
 /* Better container responsiveness */
 .container {
   width: 100%;
