@@ -82,9 +82,9 @@ const Colleges = () => {
   }, [searchQuery]);
 
   const handleSearch = (e) => {
-    const query = e.target.value;
+const query = e.target.value;
     setSearchQuery(query);
-  }
+    }
 
   return (
     <>
@@ -111,8 +111,8 @@ const Colleges = () => {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="bg-primary rounded-2xl p-4 shadow-3d w-70 hover:scale-105 transition-transform duration-200 h-[420px] flex flex-col justify-between">
-                <img src={college.logo} alt={college.name} className="h-10 mx-auto" />
+                className="bg-primary rounded-2xl p-4 shadow-3d w-70 hover:scale-105 transition-transform duration-200 h-[500px] flex flex-col justify-between">
+                <img src={college.logo} alt={college.name} className="h-16 mx-auto" />
 
                 <div className="text-tprimary text-lg font-bold mt-4 text-center">
                   {college.name}

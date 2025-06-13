@@ -51,7 +51,9 @@ const initialFormState = {
         duration: '',
         semesters: '',
         rating: 0,
-        eligibility: '',
+        eligibility: [{
+            criteria: ''
+        }],
         feeStructure: {
             feePerSemester: '',
             additionals: []
@@ -370,7 +372,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 duration: '',
                 semesters: '',
                 rating: 0,
-                eligibility: '',
+                eligibility: [],
                 feeStructure: {
                     feePerSemester: '',
                     additionals: []
@@ -553,6 +555,46 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
             {element}
         </div>
     )
+
+    const addEligibilityCriteria = (courseIndex) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            if (!Array.isArray(newCourses[courseIndex].eligibility)) {
+                newCourses[courseIndex].eligibility = [];
+            }
+            newCourses[courseIndex].eligibility.push('');
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
+    const removeEligibilityCriteria = (courseIndex, criteriaIndex) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            newCourses[courseIndex].eligibility = newCourses[courseIndex].eligibility
+                .filter((_, i) => i !== criteriaIndex);
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
+    const handleEligibilityChange = (courseIndex, criteriaIndex, value) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            if (!Array.isArray(newCourses[courseIndex].eligibility)) {
+                newCourses[courseIndex].eligibility = [];
+            }
+            newCourses[courseIndex].eligibility[criteriaIndex] = value;
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -857,7 +899,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     />
                                 ))}
                             </div>
-                            <form onSubmit={handleKeywordAdd} className="flex gap-2">
+                            <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={newKeyword}
@@ -866,12 +908,13 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     className="flex-1 p-2 border rounded-lg bg-white"
                                 />
                                 <button
-                                    type="submit"
+                                    type="button"
+                                    onClick={handleKeywordAdd}
                                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                                 >
                                     Add
                                 </button>
-                            </form>
+                            </div>
                             <p className="text-sm text-gray-400">
                                 Keywords are automatically generated based on college information. You can also add custom keywords.
                             </p>
@@ -960,13 +1003,39 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         />
                                     )}
                                     {renderField("Eligibility",
-                                        <textarea
-                                            value={course.eligibility}
-                                            onChange={(e) => handleCourseChange(courseIndex, 'eligibility', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
-                                            rows="2"
-                                            required
-                                        />
+                                        <div className="bg-white/5 p-3 rounded-lg space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <h5 className="font-medium text-thead1">Eligibility Criteria</h5>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addEligibilityCriteria(courseIndex)}
+                                                    className="text-blue-500 hover:text-blue-700"
+                                                >
+                                                    <FaPlus className="inline mr-1" /> Add Criteria
+                                                </button>
+                                            </div>
+                                            {Array.isArray(course.eligibility) && course.eligibility.map((criteria, criteriaIndex) => (
+                                                <div key={criteriaIndex} className="flex gap-2 items-start">
+                                                    <div className="flex-1">
+                                                        <input
+                                                            type="text"
+                                                            value={criteria}
+                                                            onChange={(e) => handleEligibilityChange(courseIndex, criteriaIndex, e.target.value)}
+                                                            placeholder="Enter eligibility criteria"
+                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeEligibilityCriteria(courseIndex, criteriaIndex)}
+                                                        className="text-red-500 hover:text-red-700 mt-2"
+                                                    >
+                                                        <FaTimes />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
 
                                     {/* Fee Structure */}

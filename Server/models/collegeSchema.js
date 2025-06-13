@@ -122,10 +122,10 @@ const CollegesSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    eligibility: {
+    eligibility: [{
       type: String,
       required: true
-    },
+    }],
     feeStructure: {
       feePerSemester: {
         type: Number,
@@ -141,7 +141,7 @@ const CollegesSchema = new mongoose.Schema({
           type: Number,
           required: true
         }
-      }]
+      }, {_id: false}]
     },
     scholarships: [{
       name: {
@@ -165,7 +165,7 @@ const CollegesSchema = new mongoose.Schema({
         trim: true
       }
     }, {_id: false}],
-  }],
+  }, {_id: false}],
   facilities: [{
     type: String,
     required: true,

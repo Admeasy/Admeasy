@@ -109,8 +109,8 @@ const Admin = () => {
         animate="visible"
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="min-h-screen p-8">
-        <div className="max-w-9/10 mx-auto space-y-8">
-          <img src={logo} alt="LOGO" className='h-28 mx-auto' />
+        <div className="max-w-4/5 mx-auto space-y-8">
+          <img src={logo} alt="LOGO" className='h-10 mx-auto' />
           <button
             onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white font-semibold absolute top-8 right-8 rounded-xl hover:bg-red-600 transition-colors">
             Logout

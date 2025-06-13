@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FaLocationDot } from "react-icons/fa6";
+import { FaCircleDot, FaLocationDot } from "react-icons/fa6";
 import { FaClock } from "react-icons/fa";
 import { LuDock } from "react-icons/lu";
 import { FaStar } from "react-icons/fa";
@@ -162,6 +162,19 @@ const Course = () => {
           </p>
         </Section>
 
+        {/* Eligibility */}
+        <Section>
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Eligibility</h2>
+          <ul className="space-y-3 text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
+            {course.eligibility.map((eligibility, index) => (
+              <li key={index} className="flex gap-3 items-sart md:items-center text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
+                <FaCircleDot className='text-thead2 min-w-3 min-h-3 md:min-w-4 md:min-h-4 mt-1 md:mt-0' />
+                <h6 className='m-0 p-0'>{eligibility}</h6>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
         {/* Fee Structure */}
         <Section>
           <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Fee Structure</h2>
@@ -177,30 +190,32 @@ const Course = () => {
               <tbody className="text-gray-800 bg-white">
                 <tr className="hover:bg-gray-50 transition">
                   <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">Tuition Fee</td>
-                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{course.feeStructure?.feePerSemester * 2}</td>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2)?.toLocaleString()}</td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2 * course.duration)?.toLocaleString()}</td>
                 </tr>
-                {course.feeStructure?.additionals && Object.entries(course.feeStructure.additionals)
-                  .filter(([key, value]) => 
-                    value && 
-                    value > 0 && 
-                    typeof key === 'string' && 
-                    isNaN(key)
-                  )
-                  .map(([key, value]) => {
-                  const isOneTime = key.toLowerCase().includes('one time');
-                  return (
-                    <tr key={key} className="hover:bg-gray-50 transition">
-                      <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">{key}</td>
-                      <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
-                        {isOneTime ? '-' : `₹${value}`}
-                      </td>
-                      <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
-                        ₹{isOneTime ? value : ((value * course.duration).toLocaleString())}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {course.feeStructure?.additionals && course.feeStructure.additionals.length > 0 ? (
+                  course.feeStructure.additionals.map((feeObj, index) => {
+                    const title = feeObj.title || Object.values(feeObj)[0];
+                    const amount = feeObj.amount || Object.values(feeObj)[1];
+                    
+                    // Convert value to number and handle invalid cases
+                    const feeValue = parseFloat(amount);
+                    if (!feeValue || isNaN(feeValue)) return null;
+
+                    const isOneTime = title.toLowerCase().includes('one time');
+                    return (
+                      <tr key={index} className="hover:bg-gray-50 transition">
+                        <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">{title}</td>
+                        <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+                          {isOneTime ? '-' : `₹${feeValue.toLocaleString()}`}
+                        </td>
+                        <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+                          ₹{isOneTime ? feeValue.toLocaleString() : (feeValue * course.duration).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (' ')}
               </tbody>
               <tfoot className='bg-gray-300 text-gray-700 font-semibold'>
                 <tr>
@@ -209,17 +224,15 @@ const Course = () => {
                     ₹{(() => {
                       const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
                       const additionalsTotal = course.feeStructure?.additionals
-                        ? Object.entries(course.feeStructure.additionals)
-                            .filter(([key, value]) => 
-                              value && 
-                              value > 0 && 
-                              typeof key === 'string' && 
-                              isNaN(key)
-                            )
-                            .reduce((sum, [key, value]) => {
-                              const isOneTime = key.toLowerCase().includes('one time');
-                              return sum + (isOneTime ? value : value * course.duration);
-                            }, 0)
+                        ? course.feeStructure.additionals.reduce((sum, feeObj) => {
+                            const amount = feeObj.amount || Object.values(feeObj)[1];
+                            const feeValue = parseFloat(amount);
+                            if (!feeValue || isNaN(feeValue)) return sum;
+                            
+                            const title = feeObj.title || Object.values(feeObj)[0];
+                            const isOneTime = title.toLowerCase().includes('one time');
+                            return sum + (isOneTime ? feeValue : feeValue * course.duration);
+                          }, 0)
                         : 0;
                       return (tuitionTotal + additionalsTotal).toLocaleString();
                     })()}

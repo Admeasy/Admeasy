@@ -9,7 +9,7 @@ const ExploreBtn = ({text='Explore',isSticky = true,linkbtn = '/colleges'}) => {
   return (
     <StyledWrapper>
       <div className={`btn-container ${positionClass} flex justify-center`}>
-        <button className="cursor-pointer btn-content bg-cta hover:bg-cta-hover">
+        <Link to={linkbtn} className="cursor-pointer btn-content bg-cta hover:bg-cta-hover">
           <span className="btn-title text-[12px] md:text-[18px]">{text}</span>
           <span className="icon-arrow">
             <svg width="33px" height="21px" viewBox="0 0 66 43" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
@@ -20,7 +20,7 @@ const ExploreBtn = ({text='Explore',isSticky = true,linkbtn = '/colleges'}) => {
               </g>
             </svg>
           </span> 
-        </button>
+        </Link>
       </div>
     </StyledWrapper>
   );

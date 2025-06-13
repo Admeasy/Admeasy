@@ -244,9 +244,9 @@ export default function Tabs({ college = {} }) {
                 <ul className='space-y-4 text-tprimary text-center text-md sm:text-lg'>
                   {Array.isArray(college?.facilities) && college.facilities.length > 0 ? (
                     college.facilities.map((facility, index) => (
-                      <li key={index} className="flex items-center text-lg sm:text-xl gap-2">
-                        <FaDotCircle className='min-w-4 min-h-4 text-thead2' />
-                        {facility}
+                      <li key={index} className="flex items-start md:items-center text-lg sm:text-xl gap-2">
+                        <FaDotCircle className='min-w-4 min-h-4 mt-2 md:mt-1 text-thead2' />
+                        <h6 className='m-0 p-0 text-start'>{facility}</h6>
                       </li>
                     ))
                   ) : (
@@ -343,7 +343,7 @@ export default function Tabs({ college = {} }) {
                 {Array.isArray(college?.moreInfo) && college.moreInfo
                   .filter(info => info && info.title && info.content) // Filter out invalid entries
                   .map((info, index) => (
-                    <li key={index} className="flex items-center gap-2 p-2">
+                    <li key={index} className="flex items-start md:items-center gap-2 p-2">
                       <FaArrowRight className='w-4 h-4 text-thead2' />
                       <span className="text-thead2">{info.title}: </span> {info.content}
                     </li>
@@ -370,8 +370,8 @@ export default function Tabs({ college = {} }) {
                 <ul className="space-y-4 text-tsecondary text-sm">
                   {Array.isArray(college?.whyChoose) && college.whyChoose.length > 0 ? (
                     college.whyChoose.map((reason, index) => (
-                      <li key={index} className="flex items-center gap-2 text-lg sm:text-xl">
-                        <FaCheckCircle className="text-thead1 min-w-5 min-h-5" />
+                      <li key={index} className="flex items-start md:items-center gap-2 text-lg sm:text-xl">
+                        <FaCheckCircle className="text-thead1 min-w-5 min-h-5 mt-2 md:mt-1" />
                         {reason}
                       </li>
                     ))
