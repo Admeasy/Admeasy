@@ -154,11 +154,6 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
   })}
 </Swiper>
 
-      <div className="flex justify-center mt-4">
-        <CustomButton>
-          View More <span className="text-lg">→</span>
-        </CustomButton>
-      </div>
     </div>
   );
 }
