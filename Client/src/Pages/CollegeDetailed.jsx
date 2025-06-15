@@ -11,13 +11,13 @@ const InfoPod = ({ Icon, value }) => {
   const displayValue = typeof value === 'number' ? value.toFixed(1) : value;
 
   return (
-    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-3d">
+    <div className="flex items-center gap-2 mb-3 bg-white px-3 py-1.5 rounded-full shadow-3d">
       <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]">
         <Icon />
       </span>
-      <span className="text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-nowrap">
+      <p className="text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-wrap">
         {displayValue}
-      </span>
+      </p>
     </div>
   );
 };

@@ -43,13 +43,23 @@ const Colleges = () => {
       ...courseInfo,
       ...(college.keywords || [])
     ]
-    .filter(Boolean) // Remove null/undefined values
-    .map(safeToString); // Convert all values to lowercase strings
+      .filter(Boolean) // Remove null/undefined values
+      .map(safeToString); // Convert all values to lowercase strings
 
     // Check if all search terms match at least one field
     return searchTerms.every(term =>
       fieldsToSearch.some(field => field.includes(term))
     );
+  };
+
+  // Helper function to shuffle array
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   };
 
   // Fetching colleges from the server
@@ -58,7 +68,7 @@ const Colleges = () => {
       try {
         const response = await fetch('/api/colleges');
         const data = await response.json();
-        
+
         // If there's a search query, filter the results
         if (searchQuery) {
           // Split the search query into terms and remove empty strings
@@ -66,13 +76,13 @@ const Colleges = () => {
             .toLowerCase()
             .split(/[\s,]+/)
             .filter(term => term.length > 0);
-          
-          const filteredColleges = data.filter(college => 
+
+          const filteredColleges = data.filter(college =>
             matchesSearchTerms(college, searchTerms)
           );
           setColleges(filteredColleges);
         } else {
-          setColleges(data);
+          setColleges(shuffleArray(data));
         }
       } catch (error) {
         console.error('Error fetching colleges:', error);
@@ -82,20 +92,20 @@ const Colleges = () => {
   }, [searchQuery]);
 
   const handleSearch = (e) => {
-const query = e.target.value;
+    const query = e.target.value;
     setSearchQuery(query);
-    }
+  }
 
   return (
     <>
       <div className="w-full m-0 my-4 p-4 flex items-center justify-center">
-        <input 
-          name='search' 
+        <input
+          name='search'
           value={searchQuery}
           onChange={handleSearch}
-          className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' 
-          type="text" 
-          placeholder='Search Best B.Tech colleges near me...' 
+          className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]'
+          type="text"
+          placeholder='Search Best B.Tech colleges near me...'
         />
         <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'>
           <img draggable="false" src={SearchLogo} alt="Search" />

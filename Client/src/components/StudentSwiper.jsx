@@ -12,7 +12,7 @@ import { RiMessage2Fill } from "react-icons/ri";
 const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 const collegeLogoMap = {
   "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
-  "Sri Aurobindo Institute of Pharmacy": "https://www.saip.ac.in/hubfs/Untitled%20design%20(58).png.webp",
+  "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
   "Sri Aurobindo Institute of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
   "SGITS": "https://upload.wikimedia.org/wikipedia/en/4/4b/SGSITS_Indore.png",
   "IIT Indore": "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/IITI_Logo.svg/250px-IITI_Logo.svg.png",
@@ -60,7 +60,7 @@ const students = [
   {
     name: "Vikram Singh",
     college: "IIST",
-    Course: " B.tech CSE",
+    course: " B.tech CSE",
     img: fallbackImage,
   },
   {
@@ -95,7 +95,6 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
       >
         <CustomButton><IoIosArrowForward /></CustomButton>
       </div>
-
       <Swiper
         modules={[Navigation]}
         spaceBetween={20}
@@ -113,52 +112,50 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
         className="pb-6"
       >
         {students.map((student, index) => {
-          const collegeLogo = collegeLogoMap[student.college] || fallbackImage;
+          const collegeLogo = collegeLogoMap[student.college] || { fallbackImage };
           return (
             <SwiperSlide key={index}>
-              <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
-                {/* Image with College Logo Overlay */}
-                <img
-                  draggable="false"
-                  src={collegeLogo}
-                  alt="College Logo"
-                  className="absolute top-3 left-3 w-10 h-10 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10"
-                />
-                <div className="relative">
-                  <img
-                    src={student.img}
-                    alt={student.name}
-                    className="w-24 h-24 rounded-full object-cover shadow-md"
-                    onError={(e) => {
-                      e.target.src = fallbackImage;
-                    }}
-                  />
+              <a href="https://wa.me/+919243299145" target="_blank" rel="noopener noreferrer">
+                <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
+
+                  {/* Image with College Logo Overlay */}
+                  <div className="">
+                    <img
+                      src={student.img}
+                      alt={student.name}
+                      className="w-24 h-24 rounded-full object-cover shadow-md"
+                      onError={(e) => {
+                        e.target.src = fallbackImage;
+                      }} />
+                    <div className="">
+                      <img
+                        draggable="false"
+                        src={collegeLogo}
+                        alt="College Logo"
+                        className="absolute top-3 left-3 w-10 h-10 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
+                    </div>
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="mt-4 text-center">
+                    {/* Student Name */}
+                    <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+
+                    {/* Highlighted College Name */}
+                    <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
+
+                    {/* Course Badge */}
+                    <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                      {student.course}
+                    </span>
+                  </div>
                 </div>
-
-                {/* Text Content */}
-                <div className="mt-4 text-center">
-                  {/* Student Name */}
-                  <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
-
-                  {/* Highlighted College Name */}
-                  <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
-
-                  {/* Course Badge */}
-                  <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
-                    {student.course}
-                  </span>
-                </div>
-              </div>
+              </a>
             </SwiperSlide>
           );
         })}
       </Swiper>
 
-      <div className="flex justify-center mt-4">
-        <CustomButton>
-          View More <span className="text-lg">→</span>
-        </CustomButton>
-      </div>
     </div>
   );
 }
