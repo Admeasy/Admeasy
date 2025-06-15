@@ -87,8 +87,7 @@ const PrivacyPolicy = () => {
         <section id='Cookies' className="mb-8">
           <h3 className="text-2xl font-admeasy-extrabold mb-3">🍪 5. Cookies & Tracking</h3>
           <p>
-            Currently, we do not use cookies for tracking or advertising purposes. If this changes, we will update this
-            policy and seek user consent.
+           We don’t use cookies to track you around the internet or show you weird ads later. That’s not how we roll. The only cookies involved here come from Google Analytics – just so we can understand how people use our site and make it better for everyone. Nothing personal, nothing shady. Just simple, anonymous insights. That’s it. ✌️
           </p>
         </section>
 
