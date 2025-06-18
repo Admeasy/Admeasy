@@ -67,6 +67,12 @@ const students = [
     college:"IIST",
     course:"B.tech CSE",
     img:fallbackImage,
+  },
+    {
+    name:"Atiharsh Bhatt",
+    college:"Civil Engineering",
+    course:"IIT Indore",
+    img:fallbackImage,
   }
 ];
 
