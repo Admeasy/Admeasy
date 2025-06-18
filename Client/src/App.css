@@ -1,21 +1,11 @@
 .bg {
   width: 100%;
 }
-
-#collegebg {
-  height: max-content;
-  width: 100%;
+/* Ensure images are responsive */
+img {
+  max-width: 100%;
+  height: auto;
 }
-/* @media(min-width:768px){
-  #collegebg{
-    height: 35rem;
-  }
-}
-@media(min-width:1020px){
-  #collegebg{
-    height: 25rem;
-  }
-} */
 
 .bgcollegeshade {
   height: 100%;
@@ -28,14 +18,13 @@
 .home-main{ 
   padding: 40px 12px;
 }
-}
 
-h1 {
+h1{
   font-family: 'Poppins Extrabold';
 }
 
 #btn-college {
-  box-shadow: 3px 4px 18px 1px #FF6B00;
+  box-shadow: 3px 4px 18px 1px var(--color-cta);
 }
 
 .bgshade {
@@ -58,7 +47,7 @@ h1 {
 }
 
 #college-contain {
-  padding: 20px;
+  margin: 20px 0px;
     animation: float 8s ease-in-out infinite; 
 }
 
@@ -75,6 +64,82 @@ h1 {
   padding: 20px;
 }
 .nav-links .active{
-  color: #0057A0;
-  border-bottom: 3px solid #0057A0;
+  color: var(--color-link);
+  padding-bottom: 0.25rem;
+  border-bottom: 3px solid var(--color-link);
+}
+
+/* Global responsive styles */
+@media (max-width: 768px) {
+  .bgshade {
+    padding: 0px 20px;
+    border-radius: 20px;
+  }
+
+  #college-contain {
+    padding: 15px;
+    width: 100% !important;
+  }
+
+  .college-Card-Container {
+    margin-top: 1rem;
+  }
+
+  .c-card {
+    padding: 15px;
+  }
+
+  .Cards-container {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-main {
+    padding: 20px 10px;
+  }
+
+  .bgshade {
+    padding: 0px 15px;
+    border-radius: 15px;
+  }
+
+  #college-contain {
+    padding: 10px;
+  }
+
+  .college-search input {
+    font-size: 14px;
+  }
+}
+/* Better container responsiveness */
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
 }

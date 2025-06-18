@@ -1,0 +1,181 @@
+{
+    "name": "Indore Institute of Science and Technology",
+    "desc": "Indore Institute of Science & Technology (IIST), established in 2003, is among the top engineering colleges in Indore, Madhya Pradesh. Affiliated with Rajiv Gandhi Proudyogiki Vishwavidyalaya (RGPV) and Devi Ahilya Vishwavidyalaya (DAVV), IIST offers undergraduate and postgraduate programs in engineering, management, and pharmacy. The institute emphasizes holistic development, innovation, and industry-aligned education.",
+    "logo": "https://encrypted-tbn0.gstatic.com/logos?q=tbn:ANd9GcRs8ay_F5au6ntDzcVriY10QKliYWcOTfsU3Q&s",
+    "rating": {
+        "overall": 4.2,
+        "educationalQuality": 4.5,
+        "faculty": 4.3,
+        "infrastructure": 4.4,
+        "placements": 4.6,
+        "facilities": 4.7
+    },
+    "location": "Indore, Madhya Pradesh",
+    "establishedYear": 2003,
+    "type": "Private",
+    "coursesOffered": [
+        "B.Tech in Computer Science and Engineering",
+        "B.Tech in Information Technology",
+        "B.Tech in Electronics and Communication Engineering",
+        "B.Tech in Mechanical Engineering",
+        "B.Tech in Civil Engineering",
+        "B.Tech in Chemical Engineering",
+        "M.Tech in Computer Science and Engineering",
+        "M.Tech in Machine Design",
+        "M.Tech in Digital Communication",
+        "MBA",
+        "BBA",
+        "B.Com (Hons.)",
+        "B.Sc (Computer Science, Maths, Statistics)"
+    ],
+    "website": "https://iist.indoreinstitute.com",
+    "contact": {
+        "email": "info@indoreinstitute.com",
+        "phone": "+91-731-4010555"
+    },
+    "keywords": [
+        "IIST",
+        "Indore Institute of Science and Technology",
+        "Engineering College Indore",
+        "Top Engineering Colleges in Madhya Pradesh",
+        "Private Engineering College"
+    ],
+    "courses": [
+        {
+            "title": "B.Tech. in Computer Science and Engineering",
+            "introDesc": "A comprehensive 4-year program that builds strong foundations in computer science, programming, and software development.",
+            "desc": "The B.Tech. in Computer Science and Engineering program is designed to create industry-ready software professionals. Students learn core computer science concepts, advanced programming languages, and modern software development practices.\n\nThe curriculum covers fundamental subjects like Data Structures, Algorithms, Database Management, and Operating Systems, along with emerging technologies like Artificial Intelligence, Machine Learning, and Cloud Computing. Through practical labs, projects, and industry internships, students gain hands-on experience in solving real-world problems.\n\nThe program emphasizes both theoretical knowledge and practical skills, preparing students for successful careers in software development, system design, and technology innovation. Regular workshops, coding competitions, and industry expert sessions enhance the learning experience.",
+            "duration": 4,
+            "semesters": 8,
+            "rating": 4.5,
+            "eligibility": "10+2 with Physics, Chemistry, and Mathematics",
+            "feeStructure": {
+                "feePerSemester": 52500,
+                "additionals": {
+                    "Hostel (Non-AC)": 80000,
+                    "Hostel (AC)": 95000,
+                    "Security Deposit (One Time)": 5000,
+                    "Transport Fee": 15000
+                }
+            },
+            "scholarships": [
+                {
+                    "name": "Merit-based Scholarship for B.Tech",
+                    "eligibilityCriteria": "Awarded to students who secure a JEE Main percentile greater than 85. Eligibility is determined during the MP DTE Counseling process or via direct admission if applicable.",
+                    "benefit": "25% tuition waiver",
+                    "howToApply": "At the time of Admission"
+                },
+                {
+                    "name": "Government Scholarship",
+                    "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+                    "benefit": "As per government norms",
+                    "howToApply": "Apply on MP Govt. Scholarship Portal"
+                }
+            ]
+        },
+        {
+            "title": "M.Tech in Computer Science and Engineering",
+            "introDesc": "An advanced 2-year program focusing on specialized computer science domains and research methodologies.",
+            "desc": "The M.Tech in Computer Science and Engineering is an advanced postgraduate program that deepens understanding of computer science concepts and research methodologies. This program is ideal for those looking to specialize in cutting-edge technology domains.\n\nStudents engage in advanced coursework covering areas like Distributed Systems, Advanced Algorithms, Network Security, and Software Architecture. The program includes a significant research component, allowing students to work on innovative projects and publish research papers.\n\nWith a focus on both theoretical knowledge and practical applications, the program prepares students for leadership roles in technology, research positions, and doctoral studies. Regular seminars, research workshops, and industry collaborations provide exposure to the latest technological developments.",
+            "duration": 2,
+            "semesters": 4,
+            "rating": 4.5,
+            "eligibility": "B.Tech in Computer Science and Engineering",
+            "feeStructure": {
+                "feePerSemester": 37500,
+                "additionals": {
+                    "Hostel (Non-AC)": 80000,
+                    "Hostel (AC)": 95000,
+                    "Security Deposit (One Time)": 5000,
+                    "Transport Fee": 15000
+                }
+            },
+            "scholarships": [
+                {
+                    "name": "Government Scholarship",
+                    "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+                    "benefit": "As per government norms",
+                    "howToApply": "Apply on MP Govt. Scholarship Portal"
+                },
+                {
+                    "name": "GATE Scholarship for M.Tech",
+                    "eligibilityCriteria": "Students enrolled in M.Tech programs who qualify the GATE examination with a valid score above 45 are eligible for this scholarship. It is awarded under AICTE guidelines.",
+                    "benefit": "Monthly stipend as per AICTE norms",
+                    "howToApply": "At the time of Admission"
+                }
+            ]
+        },
+        {
+            "title": "MBA",
+            "introDesc": "A dynamic 2-year program that develops business leadership skills and management expertise.",
+            "desc": "The Master of Business Administration program is designed to create future business leaders with strong analytical and decision-making capabilities. This comprehensive program covers all major aspects of business management and organizational leadership.\n\nThe curriculum includes core management subjects like Finance, Marketing, Human Resources, and Operations, along with specialized electives in emerging business domains. Students gain practical exposure through case studies, business simulations, and industry projects.\n\nThe program emphasizes developing leadership qualities, strategic thinking, and entrepreneurial skills. Regular industry interactions, management workshops, and business competitions provide students with real-world business insights and networking opportunities.",
+            "duration": 2,
+            "semesters": 4,
+            "rating": 4.5,
+            "eligibility": "B.Com (Hons.) or B.A. (Economics, Business Studies, or Commerce)",
+            "feeStructure": {
+                "feePerSemester": 42000,
+                "additionals": {
+                    "Hostel (Non-AC)": 80000,
+                    "Hostel (AC)": 95000,
+                    "Security Deposit (One Time)": 5000,
+                    "Transport Fee": 15000
+                }
+            },
+            "scholarships": [
+                {
+                    "name": "Government Scholarship",
+                    "eligibilityCriteria": "Applicable for students belonging to reserved categories or economically weaker sections, eligible as per the norms of the Madhya Pradesh Government. Application is done via the MP Scholarship Portal, and candidates must submit valid income and category certificates.",
+                    "benefit": "As per government norms",
+                    "howToApply": "Apply on MP Govt. Scholarship Portal"
+                },
+                {
+                    "name": "Merit-based Scholarship for MBA",
+                    "eligibilityCriteria": "Students who secure more than 75 percentile in the CMAT entrance exam are eligible for this scholarship. The scholarship is granted at the time of admission after document verification.",
+                    "benefit": "20% tuition waiver",
+                    "howToApply": "At the time of Admission"
+                }
+            ]
+        }
+    ],
+    "facilities": [
+        "Hostel Facilities",
+        "Sports Facilities",
+        "Canteen",
+        "Library",
+        "Computer Lab"
+    ],
+    "package": {
+        "average": "₹4.23 LPA",
+        "highest": "₹28 LPA"
+    },
+    "recruiters": [
+        "Amazon",
+        "Wipro",
+        "Tech Mahindra",
+        "Zensar Technologies",
+        "Optimus Information Inc.",
+        "Infosys",
+        "TCS",
+        "Capgemini",
+        "Canopus Infosystem"
+    ],
+    "placementRate": "Approximately 90%",
+    "gallery": "https://indoreinstitute.com/gallery/",
+    "moreInfo": {
+        "Campus size": "100 acres",
+        "Number of students": "10,000",
+        "Number of faculty": "500",
+        "Number of staff": "200",
+        "Number of departments": "10",
+        "Number of programs": "10",
+        "Number of research centers": "5"
+    },
+    "whyChoose": [
+        "100% Placement Opportunities",
+        "52 LPA Highest Package (B.Tech)",
+        "Premium and Best Facilities",
+        "Collaborations with Top Companies",
+        "Excellent Infrastructure and Labs"
+    ]
+}

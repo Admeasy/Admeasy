@@ -1,3 +1,9 @@
 Client/node_modules/
 
+Server/node_modules/
+
 .vscode/
+
+Server/.env
+
+push.ps1

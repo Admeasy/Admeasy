@@ -14,21 +14,7 @@ const CustomButton = ({ children }) => {
     <button
       type="button"
       role="button"
-      className="
-        inline-flex items-center justify-center
-        px-4
-        h-12
-        rounded-[13px]
-        bg-[#fcfcfd]
-        text-[#36395a]
-        text-[18px]
-        font-normal
-        cursor-pointer
-        select-none
-        whitespace-nowrap
-        transition-transform transition-shadow duration-150
-        outline-none
-        "
+      className="inline-flex items-center justify-center px-4 h-12 rounded-[13px] bg-[#fcfcfd] text-[#36395a] text-[18px] font-normal cursor-pointer select-none whitespace-nowrap transition-transform duration-150 outline-none"
       style={{
         boxShadow: baseShadow,
       }}
