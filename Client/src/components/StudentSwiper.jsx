@@ -1,6 +1,7 @@
 // StudentSwiper.jsx
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
+import { IoLogoWhatsapp } from "react-icons/io";
 import { useRef } from "react";
 import CustomButton from "../HomeComponents/3d-btn";
 import "swiper/css";
@@ -17,10 +18,26 @@ const collegeLogoMap = {
   "IIT Indore": "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/IITI_Logo.svg/250px-IITI_Logo.svg.png",
   "IIM Indore": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/IIM_Indore_Logo.svg/150px-IIM_Indore_Logo.svg.png",
   "IIST":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScea8JfcJLacmRtR2Ah0pQBwDHYcWKOCVsVw&s",
+  "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
+  "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png"
 };
 
 const students = [
   {
+    name: "Gaurav Yadav",
+    college: "Ramanujan College",
+    course: "B.com Hons.",
+    img: fallbackImage,
+  
+  },
+    {
+    name: "Ritesh Kumar",
+    college: "Shaheed Bhagat Singh College",
+    course: "B.com prog.",
+    img: fallbackImage,
+  
+  },
+  {  
     name: "Utkarsh Mishra",
     college: "Medicaps",
     course: "B.Tech CSE 4th Year",
@@ -70,21 +87,21 @@ const students = [
   },
     {
     name:"Atiharsh Bhatt",
-    college:"Civil Engineering",
-    course:"IIT Indore",
+    college:"IIT Indore",
+    course:"Civil Engineering",
     img:fallbackImage,
   }
 ];
 
 
-export default function StudentSwiper({ SwiperHeading = "Talk To Students", college }) {
+export default function StudentSwiper({ SwiperHeading = `No Right Mentor Yet? WhatsApp for One!`, college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
 
   return (
     <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
   <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex justify-center items-center gap-2">
-  {SwiperHeading} <RiMessage2Fill className="w-7 h-7 text-[#080711]" />
+  {SwiperHeading} <IoLogoWhatsapp className="text-teal-900 md:text-5xl" />
 </h2>
 
       {/* Custom Arrow Buttons */}
@@ -142,7 +159,7 @@ export default function StudentSwiper({ SwiperHeading = "Talk To Students", coll
       draggable="false"
   src={collegeLogo}
   alt="College Logo"
-  className="absolute top-3 left-3 w-10 h-10 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10"/>
+  className="absolute top-3 left-3 w-17 h-17 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10"/>
 </div>
 </a>
     </div>
