@@ -1,8 +1,9 @@
 // StudentSwiper.jsx
 import { Swiper, SwiperSlide } from "swiper/react";
+import useWindowSize from "./useWindowSize";
 import { Navigation } from "swiper/modules";
 import { IoLogoWhatsapp } from "react-icons/io";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import CustomButton from "../HomeComponents/3d-btn";
 import "swiper/css";
 import { IoIosArrowForward } from "react-icons/io";
@@ -21,13 +22,13 @@ const collegeLogoMap = {
   "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
   "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png"
 };
-
 const students = [
   {
     name: "Gaurav Yadav",
     college: "Ramanujan College",
     course: "B.com Hons.",
     img: fallbackImage,
+    showMobile:true,
   
   },
     {
@@ -35,6 +36,7 @@ const students = [
     college: "Shaheed Bhagat Singh College",
     course: "B.com prog.",
     img: fallbackImage,
+    showMobile:true,
   
   },
   {  
@@ -42,54 +44,63 @@ const students = [
     college: "Medicaps",
     course: "B.Tech CSE 4th Year",
     img: fallbackImage,
+    showMobile:true,
   },
   {
     name: "Sagar",
     college: "Sri Aurobindo Institute of Pharmacy",
     course: "Diploma in Pharmacy",
     img: fallbackImage,
+    showMobile:true,
   },
   {
     name: "Sheetal Pandey",
     college: "Sri Aurobindo Institute of Management & Studies",
     course: "BBA Plain",
     img: fallbackImage,
+    showMobile:false,
   },
   {
     name: "Tanushka Jha",
     college: "SGSITS",
     course: "BE in Electronics & Instrumentation Engineering",
     img: fallbackImage,
+    showMobile:false,
   },
   {
     name: "Avdhoot Kasture",
     college: "IIT Indore",
     course: "B.Tech in Metallurgical Engg. and Material Sciences",
     img: fallbackImage,
+    showMobile:false,
   },
   {
     name: "Shiva Manoj",
     college: "IIM Indore",
     course: "IPM",
     img: fallbackImage,
+    showMobile:false,
   },
   {
     name:"Vikram Singh",
     college:"IIST",
     course:" B.tech CSE",
     img:fallbackImage,
+    showMobile:false,
   },
   {
     name:"Vinay Yadav",
     college:"IIST",
     course:"B.tech CSE",
     img:fallbackImage,
+    showMobile:false,
   },
     {
     name:"Atiharsh Bhatt",
     college:"IIT Indore",
     course:"Civil Engineering",
     img:fallbackImage,
+    showMobile:false,
   }
 ];
 
@@ -97,7 +108,11 @@ const students = [
 export default function StudentSwiper({ SwiperHeading = `No Right Mentor Yet? WhatsApp for One!`, college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
+const size = useWindowSize();
+  const isMobile = size.width && size.width < 768;
 
+  const visibleStudents = students.filter((student) =>
+    isMobile ? student.showMobile : true);
   return (
     <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
   <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex justify-center items-center gap-2">
@@ -133,11 +148,11 @@ export default function StudentSwiper({ SwiperHeading = `No Right Mentor Yet? Wh
   }}
   className="pb-6"
 >
-  {students.map((student, index) => {
+  {visibleStudents.map((student, index) => {
     const collegeLogo = collegeLogoMap[student.college] || {fallbackImage};
     return (
    <SwiperSlide key={index}>
-  <div className="relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
+  <div className="mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
     
     {/* Image with College Logo Overlay */}
     <div className="">
