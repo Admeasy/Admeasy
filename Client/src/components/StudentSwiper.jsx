@@ -150,6 +150,8 @@ const size = useWindowSize();
 >
   {visibleStudents.map((student, index) => {
     const collegeLogo = collegeLogoMap[student.college] || {fallbackImage};
+    const Wmessage = `Hey there! I’d love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`
+    const encodedWmessage = encodeURIComponent(Wmessage)
     return (
    <SwiperSlide key={index}>
   <div className="mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
@@ -157,7 +159,7 @@ const size = useWindowSize();
     {/* Image with College Logo Overlay */}
     <div className="">
        <a
-              href="https://wa.me/+919243299145"
+              href={`https://wa.me/919243299145?text=${encodedWmessage}`}
               target="_blank"
               rel="noopener noreferrer"
               className="max-w-fit flex items-center gap-3 font-semibold"
