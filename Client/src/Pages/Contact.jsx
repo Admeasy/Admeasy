@@ -10,6 +10,7 @@ const fadeUpVariant = {
 
 const Contact = () => {
   return (
+    <>
     <motion.section
       variants={fadeUpVariant}
       initial="hidden"
@@ -80,7 +81,10 @@ const Contact = () => {
           </li>
         </ul>
       </div>
+       
     </motion.section>
+   
+    </>
   )
 }
 

@@ -48,9 +48,9 @@ const CollegeCard = () => {
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
-      className=" text-tprimary my-5">
+      className="text-tprimary my-10">
       <div className="pt-4">
-        <div className="w-full mb-8 px-2 sm:p-0 flex items-center justify-center gap-0 sm:gap-3">
+        <div className="w-full mb-8 p-0 flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />
           <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-semibold text-center">
             Discover the Best Colleges Near You

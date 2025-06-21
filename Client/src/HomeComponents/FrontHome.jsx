@@ -37,7 +37,7 @@ const FrontHome = () => {
             <span className="text-orange-400">College</span> in INDORE
           </h1>
           <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
-            Discover top-rated colleges near you and connect with alumni to make the right choice for your future.
+            Discover top-rated colleges near you and connect with UGs/Alumnis to make the right choice for your future.
           </p>
           <form onSubmit={handleSearch} className="relative w-9/10 sm:w-full max-w-xl mx-auto mt-4">
             <input
