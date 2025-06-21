@@ -114,9 +114,9 @@ const size = useWindowSize();
   const visibleStudents = students.filter((student) =>
     isMobile ? student.showMobile : true);
   return (
-    <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[90%] mx-auto">
-  <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex justify-center items-center gap-2">
-  {SwiperHeading} <IoLogoWhatsapp className="text-teal-900 md:text-5xl" />
+    <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[100%] mx-auto">
+  <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex">
+  {SwiperHeading}<IoLogoWhatsapp className="text-teal-900 text-5xl md:text-5xl" />
 </h2>
 
       {/* Custom Arrow Buttons */}

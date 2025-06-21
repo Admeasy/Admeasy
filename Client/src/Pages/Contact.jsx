@@ -83,22 +83,7 @@ const Contact = () => {
       </div>
        
     </motion.section>
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
-      <h2 className="text-2xl md:text-4xl font-bold text-center mb-3 text-gray-800">
-        🎓 Student Honest Review!
-      </h2>
-      
-      <div className="w-full p-6 max-w-[280px] aspect-[9/16] rounded-2xl overflow-hidden shadow-3d border border-gray-200">
-        <iframe
-          className="w-[230px] h-full rounded-2xl"
-          src="https://www.youtube.com/embed/43iXBgwjk3k?controls=1&modestbranding=1&rel=0&showinfo=0"
-          title="Medicaps University | B.Tech CSE | Student Review"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
-    </div>
+   
     </>
   )
 }
