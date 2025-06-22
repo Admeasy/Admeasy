@@ -169,7 +169,7 @@ const altWmessage = 'Hey there! I want to connect with a UG student to gain some
 const encodedAltWmessage = encodeURIComponent(altWmessage)
 
 
-export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis`, college }) {
+export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumni Of DU,DAVV and many more...`, college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
   const size = useWindowSize();
