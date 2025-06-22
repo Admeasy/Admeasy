@@ -1,17 +1,23 @@
-// StudentSwiper.jsx
 import { Swiper, SwiperSlide } from "swiper/react";
 import useWindowSize from "./useWindowSize";
 import { Navigation } from "swiper/modules";
-import { IoLogoWhatsapp } from "react-icons/io";
-import { useRef, useState } from "react";
+import Boy from "../assets/Others/Student.webp"
+import WA from "../assets/Icons/wa2.webp"
+import { useRef } from "react";
 import CustomButton from "../HomeComponents/3d-btn";
 import "swiper/css";
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
-import { RiMessage2Fill } from "react-icons/ri";
-const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-const collegeLogoMap = {
+import { motion } from "framer-motion";
+
+
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 60 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";const collegeLogoMap = {
   "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
   "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
   "Sri Aurobindo Institute of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
@@ -79,7 +85,7 @@ const students = [
     img: fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"Sri Aurobindo University",
+    university:"Sri Aurobindo Uni.",
   },
   {
     name: "Avdhoot Kasture",
@@ -156,112 +162,142 @@ const students = [
 ];
 
 
-export default function StudentSwiper({ SwiperHeading = `No Right Mentor Yet? WhatsApp for One!`, college }) {
+
+const altWmessage = 'Hey there! I want to connect with a UG student to gain some real insights and perspective!'
+
+const encodedAltWmessage = encodeURIComponent(altWmessage)
+
+
+export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis`, college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
-const size = useWindowSize();
+  const size = useWindowSize();
   const isMobile = size.width && size.width < 768;
 
   const visibleStudents = students.filter((student) =>
     isMobile ? student.showMobile : true);
   return (
-    <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[100%] mx-auto">
-  <h2 className="text-center justify-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex">
-  {SwiperHeading}<IoLogoWhatsapp className="text-teal-900 text-5xl md:text-5xl" />
-</h2>
+    <motion.section
+      variants={fadeUpVariant}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
+      className="my-5 relative bg-bg p-6 rounded-2xl shadow-md w-[90%] mx-auto">
+      <h2 className="w-fit mx-auto text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-tprimary mb-4 flex justify-evenly items-center">
+        <img src={Boy} alt="WhatsApp" className="w-14 mr-0 sm:mr-4" />
+        {SwiperHeading}
+      </h2>
 
       {/* Custom Arrow Buttons */}
       <div
         ref={prevRef}
-        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold">
+        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
+      >
         <CustomButton><IoIosArrowBack /></CustomButton>
       </div>
       <div
         ref={nextRef}
-        className="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
+        className="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
       >
-        <CustomButton> <IoIosArrowForward /> </CustomButton>
+        <CustomButton><IoIosArrowForward /></CustomButton>
       </div>
-<Swiper
-  modules={[Navigation]}
-  spaceBetween={20}
-  slidesPerView={3}
-  loop={true}
-  onBeforeInit={(swiper) => {
-    swiper.params.navigation.prevEl = prevRef.current;
-    swiper.params.navigation.nextEl = nextRef.current;
-  }}
-  breakpoints={{
-    0: { slidesPerView: 1 },
-    640: { slidesPerView: 2 },
-    1024: { slidesPerView: 3 },
-  }}
-  className="pb-6"
->
-  {visibleStudents.map((student, index) => {
-    const collegeLogo = collegeLogoMap[student.college] || {fallbackImage};
-    const Wmessage = `Hey there! I’d love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`
-    const encodedWmessage = encodeURIComponent(Wmessage)
-    return (
-   <SwiperSlide key={index}>
-  <div className="mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
-    
-    
-    <div className="">
-      {/* WP Link */}
-       <a
-              href={`https://wa.me/919243299145?text=${encodedWmessage}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="max-w-fit flex items-center gap-3 font-semibold"
-            >
-              {/* Student Image */}
-      <img
-        src={student.img}
-        alt={student.name}
-        className="w-24 h-24 rounded-full object-cover shadow-md"
-        onError={(e) => {
-          e.target.src = fallbackImage;
-        }} />
-        {/* Image with College Logo Overlay */}
-      <div className="">
-      <img
-      draggable="false"
-  src={collegeLogo}
-  alt="College Logo"
-  className="absolute top-3 left-3 w-17 h-17 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10"/>
-</div>
+      <Swiper
+        modules={[Navigation]}
+        spaceBetween={20}
+        slidesPerView={3}
+        loop={true}
+        onBeforeInit={(swiper) => {
+          swiper.params.navigation.prevEl = prevRef.current;
+          swiper.params.navigation.nextEl = nextRef.current;
+        }}
+        breakpoints={{
+          0: { slidesPerView: 1 },
+          640: { slidesPerView: 2 },
+          1024: { slidesPerView: 3 },
+        }}
+        className="pb-2"
+      >
+        {visibleStudents.map((student, index) => {
+          const collegeLogo = collegeLogoMap[student.college] || { fallbackImage };
+          const Wmessage = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`
+          const encodedWmessage = encodeURIComponent(Wmessage)
+          return (
+
+            <SwiperSlide key={index}>
+              <a
+                href={`https://wa.me/919243299145?text=${encodedWmessage}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
+                <div className="">
+
+                  {/* Image with College Logo Overlay */}
+                  <div>
+
+                    <img
+                      src={student.img}
+                      alt={student.name}
+                      className="w-24 h-24 m-0 mx-auto rounded-full object-cover shadow-md"
+                      onError={(e) => {
+                        e.target.src = fallbackImage;
+                      }} />
+                    <div className="">
+                      <img
+                        draggable="false"
+                        src={collegeLogo}
+                        alt="College Logo"
+                        className="absolute top-3 left-3 size-12 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
+                    </div>
+                    
 {/* University Show */}
 {student.showUniversity ?
 <div className="">
-                  <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-xs px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
+                  <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[12px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
                    {student.university}
                   </span>
      </div>
                  :""}
-</a>
-    </div>
 
-    {/* Text Content */}
-    <div className="mt-4 text-center">
-      {/* Student Name */}
-      <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
 
-      {/* Highlighted College Name */}
-      <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
 
-      {/* Course Badge */}
-      <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
-        {student.course}
-      </span>
-    </div>
-  </div>
-</SwiperSlide>
 
-    );
-  })}
-</Swiper>
+                  </div>
 
-    </div>
+                  {/* Text Content */}
+                  <div className="mt-4 text-center">
+                    {/* Student Name */}
+                    <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+
+                    {/* Highlighted College Name */}
+                    <p className="text-sm font-medium text-[#39365c] mt-1">{student.college}</p>
+
+                    {/* Course Badge */}
+                    <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                      {student.course}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </SwiperSlide>
+
+          );
+        })}
+        <a href={`https://wa.me/919243299145/?text=${encodedAltWmessage}`} target="_blank" rel="noopener noreferrer" className="mt-4 flex justify-center items-center gap-2">
+          {isMobile ? (
+            <h3 className="text-tprimary text-center text-lg font-admeasy-bold">
+              No Right Mentor Yet? WhatsApp Us for One!
+            </h3>
+          ) : (
+            <h3 className="text-tprimary text-center text-xl font-admeasy-bold">
+              Can’t find a relatable UG student to guide you?
+              WhatsApp us — we’ll connect you with one
+            </h3>
+          )}
+          <img src={WA} className="size-10" />
+        </a>
+      </Swiper>
+
+    </motion.section >
   );
 }
