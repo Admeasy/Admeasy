@@ -41,6 +41,7 @@ const CollegeCard = () => {
   }, []);
 
   return (
+    
     <motion.section
       variants={fadeUpVariant}
       initial="hidden"
@@ -49,6 +50,14 @@ const CollegeCard = () => {
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
       className=" text-tprimary my-5">
+        <amp-ad width="100vw" height="320"
+     type="adsense"
+     data-ad-client="ca-pub-7704358624083535"
+     data-ad-slot="5535443803"
+     data-auto-format="rspv"
+     data-full-width="">
+  <div overflow=""></div>
+</amp-ad>
       <div className="pt-4">
         <div className="w-full mb-8 px-2 sm:p-0 flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />

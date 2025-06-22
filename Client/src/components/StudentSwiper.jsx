@@ -20,7 +20,9 @@ const collegeLogoMap = {
   "IIM Indore": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/IIM_Indore_Logo.svg/150px-IIM_Indore_Logo.svg.png",
   "IIST":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScea8JfcJLacmRtR2Ah0pQBwDHYcWKOCVsVw&s",
   "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
-  "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png"
+  "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
+  "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
+  "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg"
 };
 const students = [
   {
@@ -29,6 +31,8 @@ const students = [
     course: "B.com Hons.",
     img: fallbackImage,
     showMobile:true,
+    showUniversity:true,
+    university:"Delhi University",
   
   },
     {
@@ -37,6 +41,8 @@ const students = [
     course: "B.com prog.",
     img: fallbackImage,
     showMobile:true,
+    showUniversity:true,
+    university:"Delhi University",
   
   },
   {  
@@ -45,6 +51,8 @@ const students = [
     course: "B.Tech CSE 4th Year",
     img: fallbackImage,
     showMobile:true,
+    showUniversity:true,
+    university:"Medicaps",
   },
   {
     name: "Sagar",
@@ -52,6 +60,8 @@ const students = [
     course: "Diploma in Pharmacy",
     img: fallbackImage,
     showMobile:true,
+    showUniversity:true,
+    university:"Sri Aurobindo Uni.",
   },
   {
     name: "Sheetal Pandey",
@@ -59,6 +69,8 @@ const students = [
     course: "BBA Plain",
     img: fallbackImage,
     showMobile:false,
+    showUniversity:true,
+    university:"Sri Aurobindo Uni.",
   },
   {
     name: "Tanushka Jha",
@@ -66,6 +78,8 @@ const students = [
     course: "BE in Electronics & Instrumentation Engineering",
     img: fallbackImage,
     showMobile:false,
+    showUniversity:true,
+    university:"Sri Aurobindo University",
   },
   {
     name: "Avdhoot Kasture",
@@ -73,6 +87,8 @@ const students = [
     course: "B.Tech in Metallurgical Engg. and Material Sciences",
     img: fallbackImage,
     showMobile:false,
+    showUniversity:false,
+    university:"",
   },
   {
     name: "Shiva Manoj",
@@ -80,6 +96,8 @@ const students = [
     course: "IPM",
     img: fallbackImage,
     showMobile:false,
+    showUniversity:false,
+    university:"",
   },
   {
     name:"Vikram Singh",
@@ -87,6 +105,8 @@ const students = [
     course:" B.tech CSE",
     img:fallbackImage,
     showMobile:false,
+    showUniversity:true,
+    university:"Aff.DAVV",
   },
   {
     name:"Vinay Yadav",
@@ -94,6 +114,8 @@ const students = [
     course:"B.tech CSE",
     img:fallbackImage,
     showMobile:false,
+    showUniversity:true,
+    university:"Aff.DAVV",
   },
     {
     name:"Atiharsh Bhatt",
@@ -101,7 +123,36 @@ const students = [
     course:"Civil Engineering",
     img:fallbackImage,
     showMobile:false,
-  }
+    showUniversity:false,
+    university:"",
+   
+  }, {
+    name:"Prakash Gupta",
+    college:"Sage University",
+    course:"B.Tech",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+  },
+   {
+    name:"Mohit Parmar",
+    college:"Sage University",
+    course:"B.Tech",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+  },
+     {
+    name:"Rajnish",
+    college:"IIPS, DAVV",
+    course:"B.Tech IT",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+  },
 ];
 
 
@@ -115,15 +166,14 @@ const size = useWindowSize();
     isMobile ? student.showMobile : true);
   return (
     <div className="relative bg-[#F2F4F9] p-6 rounded-2xl shadow-md w-[100%] mx-auto">
-  <h2 className="text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex">
+  <h2 className="text-center justify-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-[#080522] mb-4 flex">
   {SwiperHeading}<IoLogoWhatsapp className="text-teal-900 text-5xl md:text-5xl" />
 </h2>
 
       {/* Custom Arrow Buttons */}
       <div
         ref={prevRef}
-        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
-      >
+        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[#5A4BFF] hover:text-[#3F37C9] cursor-pointer text-2xl font-bold">
         <CustomButton><IoIosArrowBack /></CustomButton>
       </div>
       <div
@@ -156,14 +206,16 @@ const size = useWindowSize();
    <SwiperSlide key={index}>
   <div className="mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out">
     
-    {/* Image with College Logo Overlay */}
+    
     <div className="">
+      {/* WP Link */}
        <a
               href={`https://wa.me/919243299145?text=${encodedWmessage}`}
               target="_blank"
               rel="noopener noreferrer"
               className="max-w-fit flex items-center gap-3 font-semibold"
             >
+              {/* Student Image */}
       <img
         src={student.img}
         alt={student.name}
@@ -171,6 +223,7 @@ const size = useWindowSize();
         onError={(e) => {
           e.target.src = fallbackImage;
         }} />
+        {/* Image with College Logo Overlay */}
       <div className="">
       <img
       draggable="false"
@@ -178,6 +231,14 @@ const size = useWindowSize();
   alt="College Logo"
   className="absolute top-3 left-3 w-17 h-17 md:w-14 md:h-14 lg:w-20 lg:h-20 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10"/>
 </div>
+{/* University Show */}
+{student.showUniversity ?
+<div className="">
+                  <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-xs px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
+                   {student.university}
+                  </span>
+     </div>
+                 :""}
 </a>
     </div>
 
