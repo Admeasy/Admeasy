@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { FaLinkedin } from "react-icons/fa";
 import { IoLogoWhatsapp } from "react-icons/io";
-import logo from '../assets/Admeasy/LOGO.webp'
+import logo from '../assets/Admeasy/LOGO.png'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

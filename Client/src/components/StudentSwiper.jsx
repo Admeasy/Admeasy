@@ -28,6 +28,7 @@ const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-prof
   "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
   "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
   "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
+  "DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
   "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg"
 };
 const students = [
@@ -84,7 +85,7 @@ const students = [
     course: "BE in Electronics & Instrumentation Engineering",
     img: fallbackImage,
     showMobile:false,
-    showUniversity:true,
+    showUniversity:false,
     university:"Sri Aurobindo Uni.",
   },
   {
@@ -143,12 +144,12 @@ const students = [
   },
    {
     name:"Mohit Parmar",
-    college:"Sage University",
-    course:"B.Tech",
+    college:"DAVV",
+    course:"",
     img:fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"DAVV",
   },
      {
     name:"Rajnish",
@@ -156,8 +157,8 @@ const students = [
     course:"B.Tech IT",
     img:fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"DAVV",
   },
 ];
 
