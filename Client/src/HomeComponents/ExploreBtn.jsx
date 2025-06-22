@@ -1,15 +1,20 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
 
-const ExploreBtn = ({ text = 'Explore', isSticky = true, linkbtn = '/colleges' }) => {
-
+const ExploreBtn = ({ text = 'Explore', isSticky = true, linkbtn }) => {
+  const navigate = useNavigate();
   const positionClass = isSticky ? 'absolute bottom-0 right-0' : 'static';
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    navigate(linkbtn);
+  };
 
   return (
     <StyledWrapper>
       <div className={`btn-container ${positionClass} flex justify-center`}>
-        <span className="cursor-pointer btn-content bg-cta hover:bg-cta-hover">
+        <button type="button" onClick={handleClick} className="cursor-pointer btn-content bg-cta hover:bg-cta-hover">
           <span className="btn-title text-[12px] md:text-[18px]">{text}</span>
           <span className="icon-arrow">
             <svg width="33px" height="21px" viewBox="0 0 66 43" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
@@ -20,7 +25,7 @@ const ExploreBtn = ({ text = 'Explore', isSticky = true, linkbtn = '/colleges' }
               </g>
             </svg>
           </span>
-        </span>
+        </button>
       </div>
     </StyledWrapper>
   );

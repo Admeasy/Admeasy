@@ -41,6 +41,7 @@ const CollegeCard = () => {
   }, []);
 
   return (
+
     <motion.section
       variants={fadeUpVariant}
       initial="hidden"
@@ -48,11 +49,19 @@ const CollegeCard = () => {
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
-      className="text-tprimary my-10">
+      className=" text-tprimary my-5">
+      <amp-ad width="100vw" height="320"
+        type="adsense"
+        data-ad-client="ca-pub-7704358624083535"
+        data-ad-slot="5535443803"
+        data-auto-format="rspv"
+        data-full-width="">
+        <div overflow=""></div>
+      </amp-ad>
       <div className="pt-4">
         <div className="w-full mb-8 p-0 flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />
-          <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-semibold text-center">
+          <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-extrabold text-center">
             Discover the Best Colleges Near You
           </h1>
         </div>
@@ -124,7 +133,7 @@ const CollegeCard = () => {
         </div>
         <div className='text-center'>
           {/* <a href="/colleges">View More</a> */}
-          <ExploreBtn text='View More' isSticky={false} />
+          <ExploreBtn text='View More' linkbtn='/colleges' isSticky={false} />
         </div>
 
       </div>

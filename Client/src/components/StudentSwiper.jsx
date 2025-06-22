@@ -17,8 +17,7 @@ const fadeUpVariant = {
   visible: { opacity: 1, y: 0 },
 }
 
-const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-const collegeLogoMap = {
+const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";const collegeLogoMap = {
   "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
   "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
   "Sri Aurobindo Institute of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
@@ -27,7 +26,9 @@ const collegeLogoMap = {
   "IIM Indore": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/IIM_Indore_Logo.svg/150px-IIM_Indore_Logo.svg.png",
   "IIST": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScea8JfcJLacmRtR2Ah0pQBwDHYcWKOCVsVw&s",
   "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
-  "Shaheed Bhagat Singh College": "https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png"
+  "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
+  "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
+  "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg"
 };
 const students = [
   {
@@ -35,88 +36,139 @@ const students = [
     college: "Ramanujan College",
     course: "B.Com Hons.",
     img: fallbackImage,
-    showMobile: true,
-
+    showMobile:true,
+    showUniversity:true,
+    university:"Delhi University",
+  
   },
   {
     name: "Ritesh Kumar",
     college: "Shaheed Bhagat Singh College",
     course: "B.Com Prog.",
     img: fallbackImage,
-    showMobile: true,
-
+    showMobile:true,
+    showUniversity:true,
+    university:"Delhi University",
+  
   },
   {
     name: "Utkarsh Mishra",
     college: "Medicaps",
     course: "B.Tech CSE 4th Year",
     img: fallbackImage,
-    showMobile: true,
+    showMobile:true,
+    showUniversity:true,
+    university:"Medicaps",
   },
   {
     name: "Sagar",
     college: "Sri Aurobindo Institute of Pharmacy",
     course: "D.Pharma.",
     img: fallbackImage,
-    showMobile: true,
+    showMobile:true,
+    showUniversity:true,
+    university:"Sri Aurobindo Uni.",
   },
   {
     name: "Sheetal Pandey",
     college: "Sri Aurobindo Institute of Management & Studies",
     course: "BBA",
     img: fallbackImage,
-    showMobile: false,
+    showMobile:false,
+    showUniversity:true,
+    university:"Sri Aurobindo Uni.",
   },
   {
     name: "Tanushka Jha",
     college: "SGSITS",
     course: "BE in Electronics & Instrumentation Engineering",
     img: fallbackImage,
-    showMobile: false,
+    showMobile:false,
+    showUniversity:true,
+    university:"Sri Aurobindo Uni.",
   },
   {
     name: "Avdhoot Kasture",
     college: "IIT Indore",
     course: "B.Tech in Metallurgical Engg. and Material Sciences",
     img: fallbackImage,
-    showMobile: false,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
   },
   {
     name: "Shiva Manoj",
     college: "IIM Indore",
     course: "IPM",
     img: fallbackImage,
-    showMobile: false,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
   },
   {
-    name: "Vikram Singh",
-    college: "IIST",
-    course: "B.Tech CSE",
-    img: fallbackImage,
-    showMobile: false,
+    name:"Vikram Singh",
+    college:"IIST",
+    course:" B.tech CSE",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
   },
   {
-    name: "Vinay Yadav",
-    college: "IIST",
-    course: "B.Tech CSE",
-    img: fallbackImage,
-    showMobile: false,
+    name:"Vinay Yadav",
+    college:"IIST",
+    course:"B.tech CSE",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
   },
-  {
-    name: "Atiharsh Bhatt",
-    college: "IIT Indore",
-    course: "B.Tech. Civil Engineering",
-    img: fallbackImage,
-    showMobile: false,
-  }
+    {
+    name:"Atiharsh Bhatt",
+    college:"IIT Indore",
+    course:"Civil Engineering",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+   
+  }, {
+    name:"Prakash Gupta",
+    college:"Sage University",
+    course:"B.Tech",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+  },
+   {
+    name:"Mohit Parmar",
+    college:"Sage University",
+    course:"B.Tech",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+  },
+     {
+    name:"Rajnish",
+    college:"IIPS, DAVV",
+    course:"B.Tech IT",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:false,
+    university:"",
+  },
 ];
+
+
 
 const altWmessage = 'Hey there! I want to connect with a UG student to gain some real insights and perspective!'
 
 const encodedAltWmessage = encodeURIComponent(altWmessage)
 
 
-export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis`, college }) {
+export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis of DU, DAVV and many more...`, college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
   const size = useWindowSize();
@@ -197,6 +249,19 @@ export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis`, c
                         alt="College Logo"
                         className="absolute top-3 left-3 size-12 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
                     </div>
+                    
+{/* University Show */}
+{student.showUniversity ?
+<div className="">
+                  <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[12px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
+                   {student.university}
+                  </span>
+     </div>
+                 :""}
+
+
+
+
                   </div>
 
                   {/* Text Content */}
