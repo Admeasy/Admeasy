@@ -28,6 +28,7 @@ const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-prof
   "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
   "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
   "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
+  "DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
   "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg"
 };
 const students = [
@@ -84,7 +85,7 @@ const students = [
     course: "BE in Electronics & Instrumentation Engineering",
     img: fallbackImage,
     showMobile:false,
-    showUniversity:true,
+    showUniversity:false,
     university:"Sri Aurobindo Uni.",
   },
   {
@@ -112,7 +113,7 @@ const students = [
     img:fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"DAVV",
+    university:"DAVV Aff.",
   },
   {
     name:"Vinay Yadav",
@@ -121,7 +122,7 @@ const students = [
     img:fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"DAVV",
+    university:"DAVV Aff.",
   },
     {
     name:"Atiharsh Bhatt",
@@ -143,12 +144,12 @@ const students = [
   },
    {
     name:"Mohit Parmar",
-    college:"Sage University",
-    course:"B.Tech",
+    college:"DAVV",
+    course:"",
     img:fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"DAVV Aff.",
   },
      {
     name:"Rajnish",
@@ -156,8 +157,8 @@ const students = [
     course:"B.Tech IT",
     img:fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"DAVV Aff.",
   },
 ];
 
@@ -168,7 +169,7 @@ const altWmessage = 'Hey there! I want to connect with a UG student to gain some
 const encodedAltWmessage = encodeURIComponent(altWmessage)
 
 
-export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis of DU, DAVV and many more...`, college }) {
+export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis`, college }) {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
   const size = useWindowSize();
@@ -283,7 +284,7 @@ export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumnis of 
 
           );
         })}
-        <a href={`https://wa.me/919243299145/?text=${encodedAltWmessage}`} target="_blank" rel="noopener noreferrer" className="mt-4 flex justify-center items-center gap-2">
+        <a href={`https://wa.me/919243299145/?text=${encodedAltWmessage}`} target="_blank" rel="noopener noreferrer" className="w-fit h-fit mx-auto mt-4 flex justify-center items-center gap-2">
           {isMobile ? (
             <h3 className="text-tprimary text-center text-lg font-admeasy-bold">
               No Right Mentor Yet? WhatsApp Us for One!
