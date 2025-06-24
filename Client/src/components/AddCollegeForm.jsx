@@ -65,7 +65,8 @@ const initialFormState = {
             howToApply: ''
         }]
     }],
-    moreInfo: []
+    moreInfo: [],
+    students: []
 }
 
 const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
@@ -509,6 +510,34 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         }))
     }
 
+    const addStudent = () => {
+        setFormData(prev => ({
+            ...prev,
+            students: [...prev.students, { name: '', course: '', summary: '' }]
+        }));
+    };
+
+    const removeStudent = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            students: prev.students.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleStudentChange = (index, field, value) => {
+        setFormData(prev => {
+            const newStudents = [...prev.students];
+            newStudents[index] = {
+                ...newStudents[index],
+                [field]: value
+            };
+            return {
+                ...prev,
+                students: newStudents
+            };
+        });
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         
@@ -526,6 +555,8 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 // Ensure moreInfo is properly formatted
                 const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
                 submitData.append('moreInfo', JSON.stringify(validMoreInfo));
+            } else if (key === 'students') {
+                submitData.append('students', JSON.stringify(formData.students));
             } else if (typeof formData[key] === 'object') {
                 // Stringify nested objects
                 submitData.append(key, JSON.stringify(formData[key]));
@@ -1217,6 +1248,62 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             placeholder="Content"
                                             className="w-full p-2 border rounded-lg bg-white"
                                             rows="3"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+
+                    {/* UG Students Section */}
+                    {renderSection("UG Students", (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h5 className="font-medium text-thead1">Undergraduate Students</h5>
+                                <button
+                                    type="button"
+                                    onClick={addStudent}
+                                    className="text-blue-500 hover:text-blue-700"
+                                >
+                                    <FaPlus className="inline mr-1" /> Add Student
+                                </button>
+                            </div>
+                            {formData.students.map((student, index) => (
+                                <div key={index} className="bg-white/5 p-3 rounded-lg space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <h6 className="font-medium text-thead1">Student {index + 1}</h6>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeStudent(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <input
+                                            type="text"
+                                            value={student.name}
+                                            onChange={e => handleStudentChange(index, 'name', e.target.value)}
+                                            placeholder="Name"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            required
+                                        />
+                                        <input
+                                            type="text"
+                                            value={student.course}
+                                            onChange={e => handleStudentChange(index, 'course', e.target.value)}
+                                            placeholder="Course"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            required
+                                        />
+                                        <textarea
+                                            value={student.summary}
+                                            onChange={e => handleStudentChange(index, 'summary', e.target.value)}
+                                            placeholder="Summary"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            rows="2"
                                             required
                                         />
                                     </div>

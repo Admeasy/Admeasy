@@ -13,6 +13,7 @@ import Boy from '../assets/Others/BoyPointingSideways.webp'
 import Star from '../assets/Others/Star.webp'
 import { FaArrowRight } from 'react-icons/fa6';
 
+
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
@@ -327,6 +328,20 @@ export default function Tabs({ college = {} }) {
               ) : (
                 <p className="text-lg text-tsecondary">No recruiters information available</p>
               )}
+            </motion.section>
+
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+            >
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+                Talk to UGs/Alumnis
+              </h2>
+              <StudentSwiper/>
             </motion.section>
 
             <motion.section

@@ -210,6 +210,23 @@ const CollegesSchema = new mongoose.Schema({
       message: 'Gallery URL is required'
     }
   },
+  students: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    course: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    summary: {
+      type: String,
+      required: true,
+      trim: true
+    }
+  }],
   moreInfo: [{
     title: {
       type: String,

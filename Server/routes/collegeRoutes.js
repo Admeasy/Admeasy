@@ -14,8 +14,8 @@ const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit per file
-        files: 30 // maximum 10 files
+        fileSize: 20 * 1024 * 1024, // 20MB limit per file
+        files: 30 // maximum 30 files
     }
 });
 
@@ -99,6 +99,7 @@ router.post('/', upload.array('gallery'), async (req, res) => {
             const contact = JSON.parse(req.body.contact);
             const package = JSON.parse(req.body.package);
             const courses = JSON.parse(req.body.courses);
+            const students = req.body.students ? JSON.parse(req.body.students) : [];
 
             // Create and save college document with gallery URL
             newCollege = new College({
@@ -119,7 +120,8 @@ router.post('/', upload.array('gallery'), async (req, res) => {
                 placementRate: req.body.placementRate,
                 gallery: galleryUrl,
                 whyChoose: JSON.parse(req.body.whyChoose),
-                courses: courses
+                courses: courses,
+                students: students
             });
 
             await newCollege.save();
@@ -167,6 +169,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+//Route to get a specific course
 router.get('/:collegeId/courses/:courseId', async (req, res) => {
     try {
         const college = await College.findById(req.params.collegeId);
@@ -209,6 +212,7 @@ router.put('/:id', upload.array('gallery'), async (req, res) => {
         const package = JSON.parse(req.body.package);
         const courses = JSON.parse(req.body.courses);
         const moreInfo = JSON.parse(req.body.moreInfo || '[]');
+        const students = req.body.students ? JSON.parse(req.body.students) : [];
 
         const updateData = {
             name: req.body.name,
@@ -228,7 +232,8 @@ router.put('/:id', upload.array('gallery'), async (req, res) => {
             gallery: galleryUrl,
             whyChoose: JSON.parse(req.body.whyChoose),
             courses: courses,
-            moreInfo: moreInfo
+            moreInfo: moreInfo,
+            students: students
         };
 
         // Update college document
@@ -326,20 +331,6 @@ router.get('/gallery/:id', async (req, res) => {
     } catch (error) {
         console.error('Error in gallery route:', error);
         res.status(500).json({ message: 'Error processing request', error: error.message });
-    }
-});
-
-// Add new route to proxy image requests
-router.get('/b2/signed-url/:collegeId/:fileName', async (req, res) => {
-    const prefix = `${req.params.collegeId}/`;
-    const b2 = new BackblazeB2Client();
-
-    try {
-        const result = await b2.getDownloadAuthorization(prefix); // valid for 3 hours
-        res.json(result);
-    } catch (error) {
-        console.error('Error in signed-url route:', error);
-        res.status(500).json({ message: 'Error generating signed URL', error: error.message });
     }
 });
 
