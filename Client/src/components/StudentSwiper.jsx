@@ -10,14 +10,16 @@ import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 import { motion } from "framer-motion";
-
-
+import RohitBanoth from "../assets/UGS/RohitBanoth.jpg"
+import AkshayPratap from "../assets/UGS/AkshayPratap.jpg"
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 }
 
-const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";const collegeLogoMap = {
+const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+// UG'S Images
+const collegeLogoMap = {
   "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
   "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
   "Sri Aurobindo Institute of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
@@ -29,7 +31,8 @@ const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-prof
   "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
   "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
   "DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
-  "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg"
+  "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg",
+  "Institute of Home Economics,DU":"https://upload.wikimedia.org/wikipedia/en/f/f9/Institute_of_Home_Economics.jpg"
 };
 const students = [
   {
@@ -85,8 +88,8 @@ const students = [
     course: "BE in Electronics & Instrumentation Engineering",
     img: fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"Sri Aurobindo Uni.",
+    showUniversity:true,
+    university:"SGSITS",
   },
   {
     name: "Avdhoot Kasture",
@@ -94,17 +97,8 @@ const students = [
     course: "B.Tech in Metallurgical Engg. and Material Sciences",
     img: fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
-  },
-  {
-    name: "Shiva Manoj",
-    college: "IIM Indore",
-    course: "IPM",
-    img: fallbackImage,
-    showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"IIT Indore",
   },
   {
     name:"Vikram Singh",
@@ -113,7 +107,7 @@ const students = [
     img:fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"Aff.DAVV",
+    university:"RGVP Aff.",
   },
   {
     name:"Vinay Yadav",
@@ -122,7 +116,7 @@ const students = [
     img:fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"Aff.DAVV",
+    university:"RGVP Aff.",
   },
     {
     name:"Atiharsh Bhatt",
@@ -130,8 +124,8 @@ const students = [
     course:"Civil Engineering",
     img:fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"IIT Indore",
    
   }, {
     name:"Prakash Gupta",
@@ -139,12 +133,12 @@ const students = [
     course:"B.Tech",
     img:fallbackImage,
     showMobile:false,
-    showUniversity:false,
-    university:"",
+    showUniversity:true,
+    university:"Sage University",
   },
    {
     name:"Mohit Parmar",
-    college:"DAVV",
+    college:"IIPS, DAVV",
     course:"",
     img:fallbackImage,
     showMobile:false,
@@ -159,6 +153,42 @@ const students = [
     showMobile:false,
     showUniversity:true,
     university:"DAVV",
+  },
+      {
+    name:"Rohith Banoth",
+    college:"IIT Indore",
+    course:"B Tech Civil Engineering",
+    img:RohitBanoth,
+    showMobile:false,
+    showUniversity:true,
+    university:"IIT Indore",
+  },
+  {
+    name:"Faizah Naqvi",
+    college:"Institute of Home Economics,DU",
+    course:"Journalism ",
+    img:fallbackImage,
+    showMobile:true,
+    showUniversity:true,
+    university:"Delhi University",
+  },
+  {
+    name:"Akshay Pratap Singh Gour",
+    college:"Medicaps",
+    course:"Journalism ",
+    img:AkshayPratap,
+    showMobile:false,
+    showUniversity:true,
+    university:"Medicaps University",
+  },
+    {
+    name:"Garvit Mathur",
+    college:"IIT Indore",
+    course:"Chemical Engineering",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"IIT Indore",
   },
 ];
 
@@ -236,13 +266,16 @@ export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumni Of D
                   {/* Image with College Logo Overlay */}
                   <div>
 
-                    <img
-                      src={student.img}
-                      alt={student.name}
-                      className="w-24 h-24 m-0 mx-auto rounded-full object-cover shadow-md"
-                      onError={(e) => {
-                        e.target.src = fallbackImage;
-                      }} />
+                    <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden shadow-md bg-gray-100">
+                        <img
+                          src={student.img}
+                          alt={student.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = fallbackImage;
+                          }} />
+                      </div>
+
                     <div className="">
                       <img
                         draggable="false"
