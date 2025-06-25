@@ -12,6 +12,11 @@ import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import RohitBanoth from "../assets/UGS/RohitBanoth.jpg"
 import AkshayPratap from "../assets/UGS/AkshayPratap.jpg"
+import Faizah from '../assets/UGS/Faizah.png'
+import Rajnish from "../assets/UGS/Rajnish.jpg"
+import Tanushka from "../assets/UGS/TanushkaJha.jpg"
+import Mohit from "../assets/UGS/MohitPramar.jpg"
+import Gaurav from "../assets/UGS/Gaurav.jpg"
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -22,7 +27,7 @@ const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-prof
 const collegeLogoMap = {
   "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
   "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
-  "Sri Aurobindo Institute of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
+  "Sri Aurobindo Inst. of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
   "SGSITS": "https://upload.wikimedia.org/wikipedia/en/4/4b/SGSITS_Indore.png",
   "IIT Indore": "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/IITI_Logo.svg/250px-IITI_Logo.svg.png",
   "IIM Indore": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/IIM_Indore_Logo.svg/150px-IIM_Indore_Logo.svg.png",
@@ -39,7 +44,7 @@ const students = [
     name: "Gaurav Yadav",
     college: "Ramanujan College",
     course: "B.com Hons.",
-    img: fallbackImage,
+    img: Gaurav,
     showMobile:true,
     showUniversity:true,
     university:"Delhi University",
@@ -71,34 +76,25 @@ const students = [
     img: fallbackImage,
     showMobile:true,
     showUniversity:true,
-    university:"Sri Aurobindo Uni.",
+    university:"RGVP affiliated",
   },
   {
     name: "Sheetal Pandey",
-    college: "Sri Aurobindo Institute of Management & Studies",
+    college: "Sri Aurobindo Inst. of Management & Studies",
     course: "BBA Plain",
     img: fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"Sri Aurobindo Uni.",
+    university:"RGVP aff.",
   },
   {
     name: "Tanushka Jha",
     college: "SGSITS",
     course: "BE in Electronics & Instrumentation Engineering",
-    img: fallbackImage,
+    img: Tanushka,
     showMobile:false,
     showUniversity:true,
     university:"SGSITS",
-  },
-  {
-    name: "Avdhoot Kasture",
-    college: "IIT Indore",
-    course: "B.Tech in Metallurgical Engg. and Material Sciences",
-    img: fallbackImage,
-    showMobile:false,
-    showUniversity:true,
-    university:"IIT Indore",
   },
   {
     name:"Vikram Singh",
@@ -140,7 +136,7 @@ const students = [
     name:"Mohit Parmar",
     college:"IIPS, DAVV",
     course:"",
-    img:fallbackImage,
+    img:Mohit,
     showMobile:false,
     showUniversity:true,
     university:"DAVV",
@@ -149,7 +145,7 @@ const students = [
     name:"Rajnish",
     college:"IIPS, DAVV",
     course:"B.Tech IT",
-    img:fallbackImage,
+    img:Rajnish,
     showMobile:false,
     showUniversity:true,
     university:"DAVV",
@@ -167,15 +163,15 @@ const students = [
     name:"Faizah Naqvi",
     college:"Institute of Home Economics,DU",
     course:"Journalism ",
-    img:fallbackImage,
+    img:Faizah,
     showMobile:true,
     showUniversity:true,
     university:"Delhi University",
   },
   {
-    name:"Akshay Pratap Singh Gour",
+    name:"Akshay Pratap Singh",
     college:"Medicaps",
-    course:"Journalism ",
+    course:"B.Tech",
     img:AkshayPratap,
     showMobile:false,
     showUniversity:true,
