@@ -17,6 +17,8 @@ import Rajnish from "../assets/UGS/Rajnish.jpg"
 import Tanushka from "../assets/UGS/TanushkaJha.jpg"
 import Mohit from "../assets/UGS/MohitPramar.jpg"
 import Gaurav from "../assets/UGS/Gaurav.jpg"
+import Naman from "../assets/UGS/Naman.jpg"
+import JaiPatidar from "../assets/UGS/JaiPatidar.jpg"
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -36,6 +38,9 @@ const collegeLogoMap = {
   "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
   "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
   "DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
+  "Institute of Engineering & Technology, DAVV":"https://pbs.twimg.com/profile_images/982502564385112065/ZrD_2xsk_400x400.jpg",
+  "School of Commerce, DAVV":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQq41FVazhd2xx1AMvErhM_nU8wr_7CQriIpoaXGZUTL-7nJDRRLB3Pa1qV7n4sdNwF7v4&usqp=CAU",
+  "SATHM,DAVV":"https://pbs.twimg.com/profile_images/982502564385112065/ZrD_2xsk_400x400.jpg",
   "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg",
   "Institute of Home Economics,DU":"https://upload.wikimedia.org/wikipedia/en/f/f9/Institute_of_Home_Economics.jpg"
 };
@@ -186,6 +191,78 @@ const students = [
     showUniversity:true,
     university:"IIT Indore",
   },
+      {
+    name:"Ishu Singh",
+    college:"Institute of Engineering & Technology, DAVV",
+    course:"B.Tech Civil",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"Inst. of Engineering & Technology",
+  },
+      {
+    name:"Naman Vishwakarma",
+    college:"IIST",
+    course:"B.Tech ECE",
+    img:Naman,
+    showMobile:false,
+    showUniversity:true,
+    university:"IIST",
+  },
+        {
+    name:"Tanvi Pillai",
+    college:"SATHM,DAVV",
+    course:"B.Com hons.",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
+       {
+    name:"Md Amaan",
+    college:"SATHM,DAVV",
+    course:"BBA Aviation Management",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
+         {
+    name:"Jai Patidar",
+    college:"School of Commerce, DAVV",
+    course:"BBA+MBA Integrated",
+    img:JaiPatidar,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
+           {
+    name:"Priyansh",
+    college:"IIST",
+    course:"B.Tech ECE",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"RGVP AFF.",
+  },
+   {
+    name:"Anshul Badole",
+    college:"Sage University",
+    course:"B PHARMA",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"Sage University",
+  },
+     {
+    name:"Vedika Sisodiya",
+    college:"School of Commerce, DAVV",
+    course:"B.Com in Accounting & Finanace",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
 ];
 
 
@@ -201,8 +278,6 @@ export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumni Of D
   const size = useWindowSize();
   const isMobile = size.width && size.width < 768;
 
-  const visibleStudents = students.filter((student) =>
-    isMobile ? student.showMobile : true);
   return (
     <motion.section
       variants={fadeUpVariant}
@@ -245,7 +320,7 @@ export default function StudentSwiper({ SwiperHeading = `Talk to UGs/Alumni Of D
         }}
         className="pb-2"
       >
-        {visibleStudents.map((student, index) => {
+        {students.map((student, index) => {
           const collegeLogo = collegeLogoMap[student.college] || { fallbackImage };
           const Wmessage = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`
           const encodedWmessage = encodeURIComponent(Wmessage)

@@ -21,8 +21,8 @@ const Home = () => {
   return (
     <main>
       <FrontHome />
-      <CollegeCard />
       <StudentSwiper/>
+      <CollegeCard />
       <Features />
       <FAQ />
     </main>
