@@ -6,7 +6,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
 const Footer = () => {
   const notify = () => toast("Message Sent Buddy😎!");
   const toastErr = () => toast.error("Message cannot be empty, bro😅!");
@@ -223,10 +222,13 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
           </ul>
         </div> */}
 
+
+{/* Social/proffesional Links In foooter */}
             <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
+              {/* Instagram */}
               <li>
                 <a
-                  href="#"
+                  href="https://www.instagram.com/admeasy.in?igsh=Z295cmpjdXk2cmhh"
                   rel="noreferrer"
                   target="_blank"
                   className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
@@ -242,10 +244,10 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   </svg>
                 </a>
               </li>
-
+{/* Twitter (Yeah I'll call it twitter(MuskMelon😏)) */}
               <li>
                 <a
-                  href="#"
+                  href="https://x.com/admeasy_in?s=08"
                   rel="noreferrer"
                   target="_blank"
                   className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
@@ -259,10 +261,10 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   </svg>
                 </a>
               </li>
-
+{/* Github */}
               <li>
                 <a
-                  href="#"
+                  href="https://github.com/Admeasy"
                   rel="noreferrer"
                   target="_blank"
                   className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
@@ -276,6 +278,17 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                       clipRule="evenodd"
                     />
                   </svg>
+                </a>
+              </li>
+              {/* LInkedIN */}
+                 <li>
+                <a
+                  href="https://www.linkedin.com/company/admeasy-in/"
+                  rel="noreferrer"
+                  target="_blank"
+                  className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
+                >
+                  <FaLinkedin className='size-6'/>
                 </a>
               </li>
             </ul>

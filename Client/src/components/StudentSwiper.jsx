@@ -19,6 +19,9 @@ import Mohit from "../assets/UGS/MohitPramar.jpg"
 import Gaurav from "../assets/UGS/Gaurav.jpg"
 import Naman from "../assets/UGS/Naman.jpg"
 import JaiPatidar from "../assets/UGS/JaiPatidar.jpg"
+import SJMCLogo from "../assets/Others/SJMCLogo.jpeg"
+import GravitMathur from"../assets/UGS/GarvitMathur.jpg"
+import SnehaSoni from "../assets/UGS/SnehaSoni.jpg"
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -37,12 +40,14 @@ const collegeLogoMap = {
   "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
   "Shaheed Bhagat Singh College":"https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
   "IIPS, DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
-  "DAVV":"https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
+  "DAVV":"https://pbs.twimg.com/profile_images/982502564385112065/ZrD_2xsk_400x400.jpg",
   "Institute of Engineering & Technology, DAVV":"https://pbs.twimg.com/profile_images/982502564385112065/ZrD_2xsk_400x400.jpg",
-  "School of Commerce, DAVV":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQq41FVazhd2xx1AMvErhM_nU8wr_7CQriIpoaXGZUTL-7nJDRRLB3Pa1qV7n4sdNwF7v4&usqp=CAU",
+  "School of Commerce, DAVV":"https://pbs.twimg.com/profile_images/982502564385112065/ZrD_2xsk_400x400.jpg",
   "SATHM,DAVV":"https://pbs.twimg.com/profile_images/982502564385112065/ZrD_2xsk_400x400.jpg",
   "Sage University":"https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg",
-  "Institute of Home Economics,DU":"https://upload.wikimedia.org/wikipedia/en/f/f9/Institute_of_Home_Economics.jpg"
+  "Institute of Home Economics,DU":"https://upload.wikimedia.org/wikipedia/en/f/f9/Institute_of_Home_Economics.jpg",
+  "SJMC,DAVV":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDIZBqrCoYp7RKNvEr-VgyOx6zNp7w50ngRdDbrfVklhaYYFMPn2hHLLfnTHQ9Pg9dCs8&usqp=CAU",
+  "Bherulal Patidar Gov. College":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiS-uBQlNJ_i7kjG-9r5osfYH8lxPgX5jJjA&s"
 };
 const students = [
   {
@@ -128,14 +133,6 @@ const students = [
     showUniversity:true,
     university:"IIT Indore",
    
-  }, {
-    name:"Prakash Gupta",
-    college:"Sage University",
-    course:"B.Tech",
-    img:fallbackImage,
-    showMobile:false,
-    showUniversity:true,
-    university:"Sage University",
   },
    {
     name:"Mohit Parmar",
@@ -186,7 +183,7 @@ const students = [
     name:"Garvit Mathur",
     college:"IIT Indore",
     course:"Chemical Engineering",
-    img:fallbackImage,
+    img:GravitMathur,
     showMobile:false,
     showUniversity:true,
     university:"IIT Indore",
@@ -198,7 +195,7 @@ const students = [
     img:fallbackImage,
     showMobile:false,
     showUniversity:true,
-    university:"Inst. of Engineering & Technology",
+    university:"DAVV",
   },
       {
     name:"Naman Vishwakarma",
@@ -227,9 +224,9 @@ const students = [
     showUniversity:true,
     university:"DAVV",
   },
-         {
+      {
     name:"Jai Patidar",
-    college:"School of Commerce, DAVV",
+    college:"DAVV",
     course:"BBA+MBA Integrated",
     img:JaiPatidar,
     showMobile:false,
@@ -256,9 +253,36 @@ const students = [
   },
      {
     name:"Vedika Sisodiya",
-    college:"School of Commerce, DAVV",
+    college:"DAVV",
     course:"B.Com in Accounting & Finanace",
     img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
+    {
+    name:"Paridhi Dutt",
+    college:"Bherulal Patidar Gov. College",
+    course:"BSc Biotech",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
+    {
+    name:"Parth Tiwari",
+    college:"School of Commerce, DAVV",
+    course:"BBA (Foreign Trade)",
+    img:fallbackImage,
+    showMobile:false,
+    showUniversity:true,
+    university:"DAVV",
+  },
+      {
+    name:"Sneha Soni",
+    college:"SJMC,DAVV",
+    course:"BA Journalism & Mass Communication",
+    img:SnehaSoni,
     showMobile:false,
     showUniversity:true,
     university:"DAVV",
