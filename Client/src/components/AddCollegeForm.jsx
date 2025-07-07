@@ -513,7 +513,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const addStudent = () => {
         setFormData(prev => ({
             ...prev,
-            students: [...prev.students, { name: '', course: '', summary: '' }]
+            students: [...prev.students, { name: '', course: '', summary: '', image: null }]
         }));
     };
 
@@ -538,6 +538,46 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         });
     };
 
+    // Student image drag and drop handlers
+    const handleStudentImageDrag = (e, index) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === 'dragenter' || e.type === 'dragover') {
+            setFormData(prev => {
+                const newStudents = [...prev.students];
+                newStudents[index].dragActive = true;
+                return { ...prev, students: newStudents };
+            });
+        } else if (e.type === 'dragleave') {
+            setFormData(prev => {
+                const newStudents = [...prev.students];
+                newStudents[index].dragActive = false;
+                return { ...prev, students: newStudents };
+            });
+        }
+    };
+
+    const handleStudentImageDrop = (e, index) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+        const file = files && files[0] && files[0].type.startsWith('image/') ? files[0] : null;
+        setFormData(prev => {
+            const newStudents = [...prev.students];
+            newStudents[index].image = file;
+            newStudents[index].dragActive = false;
+            return { ...prev, students: newStudents };
+        });
+    };
+
+    const removeStudentImage = (index) => {
+        setFormData(prev => {
+            const newStudents = [...prev.students];
+            newStudents[index].image = null;
+            return { ...prev, students: newStudents };
+        });
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         
@@ -556,7 +596,14 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
                 submitData.append('moreInfo', JSON.stringify(validMoreInfo));
             } else if (key === 'students') {
-                submitData.append('students', JSON.stringify(formData.students));
+                // Separate student images and data
+                const studentsData = formData.students.map(({ image, ...rest }) => rest);
+                submitData.append('students', JSON.stringify(studentsData));
+                formData.students.forEach((student, idx) => {
+                    if (student.image) {
+                        submitData.append(`studentImage_${idx}`, student.image);
+                    }
+                });
             } else if (typeof formData[key] === 'object') {
                 // Stringify nested objects
                 submitData.append(key, JSON.stringify(formData[key]));
@@ -1282,6 +1329,44 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         </button>
                                     </div>
                                     <div className="flex-1 space-y-2">
+                                        <div
+                                            className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors mt-2 ${student.dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'} hover:border-blue-500 hover:bg-blue-50`}
+                                            onDragEnter={e => handleStudentImageDrag(e, index)}
+                                            onDragLeave={e => handleStudentImageDrag(e, index)}
+                                            onDragOver={e => handleStudentImageDrag(e, index)}
+                                            onDrop={e => handleStudentImageDrop(e, index)}
+                                            onClick={() => document.getElementById(`student-image-input-${index}`).click()}
+                                        >
+                                            <input
+                                                type="file"
+                                                id={`student-image-input-${index}`}
+                                                accept="image/*"
+                                                onChange={e => handleStudentImageDrop(e, index)}
+                                                className="hidden"
+                                            />
+                                            {student.image ? (
+                                                <div className="w-1/4 relative mx-auto">
+                                                    <img
+                                                        src={student.image}
+                                                        alt={`Student ${index + 1}`}
+                                                        className="w-full h-24 object-cover rounded-lg"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={e => { e.stopPropagation(); removeStudentImage(index); }}
+                                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"
+                                                    >
+                                                        <FaTimes size={12} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <FaCloudUploadAlt className="mx-auto text-3xl mb-2 text-gray-400" />
+                                                    <p className="text-gray-600">Drag and drop an image here or click to select a file</p>
+                                                    <p className="text-sm text-gray-400 mt-1">Only one image per student</p>
+                                                </>
+                                            )}
+                                        </div>
                                         <input
                                             type="text"
                                             value={student.name}

@@ -73,7 +73,7 @@ const CollegeCard = () => {
 
               <Link key={index} to={`/colleges/${college._id}`}>
                 <div className=' hidden md:flex '>
-                  <div className="w-max h-65 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-3 flex">
+                  <div className="w-max h-65 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadowtransform duration-300 p-2 md:p-1 lg:p-3 flex hover:scale-105">
                     <div className='w-18 md:w-25 m-0 md:mr-2'>
                       <img src={college.logo} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
                       <p className="text-yellow-500 text-xl font-semibold m-1">⭐ {formatRating(college?.rating)}</p>

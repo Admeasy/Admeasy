@@ -1,10 +1,10 @@
 import { Swiper, SwiperSlide } from "swiper/react";
-import useWindowSize from "./useWindowSize";
+import useWindowSize from "../components/useWindowSize";
 import { Navigation } from "swiper/modules";
 import Boy from "../assets/Others/Student.webp"
 import WA from "../assets/Icons/wa2.webp"
 import { useRef } from "react";
-import CustomButton from "../HomeComponents/3d-btn";
+import CustomButton from "./3d-btn";
 import "swiper/css";
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";

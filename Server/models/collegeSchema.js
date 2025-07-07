@@ -225,6 +225,11 @@ const CollegesSchema = new mongoose.Schema({
       type: String,
       required: true,
       trim: true
+    },
+    image: {
+      type: String,
+      rquired: true,
+      trim: true
     }
   }],
   moreInfo: [{

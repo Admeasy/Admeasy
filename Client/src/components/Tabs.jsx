@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
-import StudentSwiper from '../components/StudentSwiper';
+import StudentSwiper from '../components/Swiper';
 import Contact from '../components/CollegeContactCard'
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -52,7 +52,7 @@ const RatingBar = ({ rating, label }) => {
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex justify-between items-center">
-        <span className="text-thead1 text-lg">{label}</span>
+        <h4 className="text-thead1 text-lg font-semibold">{label}</h4>
         <span className={`font-medium ${ratingValue >= 4.5 ? 'text-green-600' :
           ratingValue >= 4.0 ? 'text-teal-600' :
             ratingValue >= 3.5 ? 'text-blue-600' :
@@ -115,6 +115,7 @@ export default function Tabs({ college = {} }) {
       }
       
       const urls = await res.json();
+      console.log(urls);
       
       if (!urls || urls.length === 0) {
         throw new Error('No gallery images found');
@@ -194,7 +195,7 @@ export default function Tabs({ college = {} }) {
                 key={category}
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[18px] font-medium',
+                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[20px] font-medium',
                     'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer',
                     selected
                       ? 'bg-white text-link shadow'
@@ -219,7 +220,7 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 About {college?.name || 'College'}
               </h2>
               <div className="w-full flex justify-evenly items-center">
@@ -238,7 +239,7 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Facilities
               </h2>
               <div className="w-full flex sm:justify-evenly items-center">
@@ -265,7 +266,7 @@ export default function Tabs({ college = {} }) {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Placements
               </h2>
               <div className="w-full flex items-center justify-evenly">
@@ -291,7 +292,7 @@ export default function Tabs({ college = {} }) {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Recruiters
               </h2>
               {isLoadingLogos ? (
@@ -338,10 +339,10 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Talk to UGs/Alumnis
               </h2>
-              <StudentSwiper/>
+              <StudentSwiper college={college}/>
             </motion.section>
 
             <motion.section
@@ -351,16 +352,19 @@ export default function Tabs({ college = {} }) {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 More Info About {college.name}
               </h2>
               <ul className="text-tprimary text-center text-md sm:text-lg">
                 {Array.isArray(college?.moreInfo) && college.moreInfo
                   .filter(info => info && info.title && info.content) // Filter out invalid entries
                   .map((info, index) => (
-                    <li key={index} className="flex items-start md:items-center gap-2 p-2">
-                      <FaArrowRight className='w-4 h-4 text-thead2' />
-                      <span className="text-thead2">{info.title}: </span> {info.content}
+                    <li key={index} className="flex items-start gap-2 p-2">
+                      <FaArrowRight className='min-w-4 min-h-4 mt-1.5 text-thead2' />
+                      <span className="flex flex-col sm:flex-row">
+                        <span className="text-thead2 text-left font-semibold whitespace-nowrap">{info.title}: </span>
+                        <span className="text-tprimary">{info.content}</span>
+                      </span>
                     </li>
                   ))}
                 {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 || 
@@ -491,13 +495,13 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="flex flex-col gap-12 mx-auto mt-10 w-[80%] bg-primary rounded-2xl shadow-3d p-6 space-y-6">
+              className="flex flex-col gap-8 mx-auto mt-10 w-[80%] bg-primary rounded-2xl shadow-3d p-8 space-y-6">
               <h1 className="m-0 p-0 text-2xl sm:text-3xl text-center text-thead1 font-admeasy-extrabold">
                 Rating
               </h1>
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="w-full md:w-1/3 flex flex-col items-center justify-center p-3 sm:p-6 bg-white/50 rounded-xl">
-                  <h4 className="mb-2 text-thead1 text-lg">Overall Rating</h4>
+                  <h4 className="mb-2 text-thead1 text-lg font-semibold">Overall Rating</h4>
                   <div className="text-8xl flex items-center justify-evenly">
                     <h1 className="m-0 p-0 text-thead1 font-admeasy-extrabold">
                       {typeof college?.rating?.overall === 'number' ? college.rating.overall.toFixed(1) : 'N/A'}
