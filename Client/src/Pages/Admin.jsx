@@ -118,16 +118,16 @@ const Admin = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link to="/admin/colleges">
-            <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
-              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Colleges</h2>
-              <p className="text-gray-600">Add, edit, or remove college information</p>
-            </div>
+              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Colleges</h2>
+                <p className="text-gray-600">Add, edit, or remove college information</p>
+              </div>
             </Link>
-            <Link to="/admin/users">
-            <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
-              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">User Management</h2>
-              <p className="text-gray-600">Manage user accounts and permissions</p>
-            </div>
+            <Link to="/admin/students">
+              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage UGs/Alumnis</h2>
+                <p className="text-gray-600">Add, edit, delete UGs/Alumnis</p>
+              </div>
             </Link>
           </div>
         </div>

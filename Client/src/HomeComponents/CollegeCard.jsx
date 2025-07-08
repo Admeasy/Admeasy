@@ -28,8 +28,7 @@ const CollegeCard = () => {
         const data = await response.json();
 
         // Select 4 random colleges from the fetched data
-        const shuffled = [...data].sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 4);
+        const selected = [...data].sort(() => 0.5 - Math.random()).slice(0, 4);
         setColleges(selected);
 
       } catch (error) {

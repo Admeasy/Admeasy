@@ -121,33 +121,6 @@ router.post('/', upload.any(), async (req, res) => {
         const contact = JSON.parse(req.body.contact);
         const packageObj = JSON.parse(req.body.package);
         const courses = JSON.parse(req.body.courses);
-        let students = req.body.students ? JSON.parse(req.body.students) : [];
-        // Handle student images
-        for (let i = 0; i < students.length; i++) {
-            let student = students[i];
-            // Generate student id
-            let studentId = uuidv4();
-            student.id = studentId;
-            // Find file for this student
-            const file = req.files.find(f => f.fieldname === `studentImage_${i}`);
-            console.log(`Processing student ${i}: ${student.name}`);
-            console.log(`Looking for file with fieldname: studentImage_${i}`);
-            console.log(`Available files:`, req.files.map(f => ({ fieldname: f.fieldname, originalname: f.originalname, size: f.size })));
-            
-            if (file) {
-                try {
-                    const imageUrl = await uploadSingleToB2(file, collegeId.toString(), studentId);
-                    student.image = imageUrl;
-                } catch (uploadError) {
-                    console.error(`Failed to upload student image for student ${i}:`, uploadError);
-                    student.image = '';
-                    // Don't throw error here, continue with other students
-                }
-            } else {
-                console.log(`No file found for student ${i}`);
-                student.image = '';
-            }
-        }
         // Create and save college document with gallery URL
         newCollege = new College({
             _id: collegeId,
@@ -168,7 +141,7 @@ router.post('/', upload.any(), async (req, res) => {
             gallery: galleryUrl,
             whyChoose: JSON.parse(req.body.whyChoose),
             courses: courses,
-            students: students
+            students: JSON.parse(req.body.students)
         });
         await newCollege.save();
         res.status(201).json({
@@ -213,6 +186,9 @@ router.put('/:id', upload.any(), async (req, res) => {
     try {
         const collegeId = req.params.id;
         let galleryUrl = req.body.existingGallery;
+        // Debug log incoming data
+        console.log('PUT /colleges/:id req.body:', req.body);
+        console.log('PUT /colleges/:id req.files:', req.files);
         // Separate gallery and student images
         const galleryFiles = req.files.filter(f => f.fieldname === 'gallery');
         // Handle gallery upload if new files are present
@@ -226,34 +202,64 @@ router.put('/:id', upload.any(), async (req, res) => {
         if (!galleryUrl) {
             throw new Error('Gallery URL is required');
         }
-        // Parse nested objects from form data
-        const rating = JSON.parse(req.body.rating);
-        const contact = JSON.parse(req.body.contact);
-        const packageObj = JSON.parse(req.body.package);
-        const courses = JSON.parse(req.body.courses);
-        const moreInfo = JSON.parse(req.body.moreInfo || '[]');
-        let students = req.body.students ? JSON.parse(req.body.students) : [];
-        // Handle student images
-        for (let i = 0; i < students.length; i++) {
-            let student = students[i];
-            let studentId = student._id || uuidv4();
-            student.id = studentId;
-            const file = req.files.find(f => f.fieldname === `studentImage_${i}`);
-            
-            if (file) {
-                try {
-                    const imageUrl = await uploadSingleToB2(file, collegeId, studentId);
-                    student.image = imageUrl;
-                } catch (uploadError) {
-                    console.error(`Failed to upload student image for student ${i}:`, uploadError);
-                    // Keep existing image if upload fails
-                    if (!student.image) {
-                        student.image = '';
-                    }
-                }
-            } else {
-                console.log(`No file found for student ${i}, keeping existing image: ${student.image || 'none'}`);
-                // Keep existing image if no new file is provided
+        // Parse nested objects from form data with robust error handling
+        let rating, contact, packageObj, courses, moreInfo, keywords, facilities, recruiters, whyChoose, students;
+        try {
+            rating = JSON.parse(req.body.rating || '{}');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for rating', error: e.message });
+        }
+        try {
+            contact = JSON.parse(req.body.contact || '{}');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for contact', error: e.message });
+        }
+        try {
+            packageObj = JSON.parse(req.body.package || '{}');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for package', error: e.message });
+        }
+        try {
+            courses = JSON.parse(req.body.courses || '[]');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for courses', error: e.message });
+        }
+        try {
+            moreInfo = JSON.parse(req.body.moreInfo || '[]');
+        } catch (e) {
+            moreInfo = [];
+        }
+        try {
+            keywords = JSON.parse(req.body.keywords || '[]');
+        } catch (e) {
+            keywords = [];
+        }
+        try {
+            facilities = JSON.parse(req.body.facilities || '[]');
+        } catch (e) {
+            facilities = [];
+        }
+        try {
+            recruiters = JSON.parse(req.body.recruiters || '[]');
+        } catch (e) {
+            recruiters = [];
+        }
+        try {
+            whyChoose = JSON.parse(req.body.whyChoose || '[]');
+        } catch (e) {
+            whyChoose = [];
+        }
+        // students can be string or array
+        try {
+            students = typeof req.body.students === 'string' ? JSON.parse(req.body.students) : req.body.students || [];
+        } catch (e) {
+            students = [];
+        }
+        // Validate required fields
+        const requiredFields = ['name', 'desc', 'logo', 'location', 'establishedYear', 'type', 'website', 'placementRate'];
+        for (const field of requiredFields) {
+            if (!req.body[field]) {
+                return res.status(400).json({ success: false, message: `Missing required field: ${field}` });
             }
         }
         const updateData = {
@@ -266,13 +272,13 @@ router.put('/:id', upload.any(), async (req, res) => {
             type: req.body.type,
             website: req.body.website,
             contact: contact,
-            keywords: JSON.parse(req.body.keywords),
-            facilities: JSON.parse(req.body.facilities),
+            keywords: keywords,
+            facilities: facilities,
             package: packageObj,
-            recruiters: JSON.parse(req.body.recruiters),
+            recruiters: recruiters,
             placementRate: req.body.placementRate,
             gallery: galleryUrl,
-            whyChoose: JSON.parse(req.body.whyChoose),
+            whyChoose: whyChoose,
             courses: courses,
             moreInfo: moreInfo,
             students: students
@@ -330,6 +336,18 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Error in delete route:', error);
         res.status(500).json({ message: 'Error deleting college', error: error.message });
+    }
+});
+
+//Route to get random students for homepgae
+router.get('/students', async (req, res) => {
+    try {
+        const colleges = await College.find();
+        const randomColleges = colleges.sort(() => Math.random() - 0.5).slice(0, 4);
+        console.log(randomColleges);
+        res.json(randomColleges);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching random students', error: error.message });
     }
 });
 

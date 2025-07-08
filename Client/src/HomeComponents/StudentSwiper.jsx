@@ -18,6 +18,7 @@ const fadeUpVariant = {
 }
 
 const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
 const collegeLogoMap = {
   "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
   "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
@@ -50,60 +51,46 @@ export default function StudentSwiper() {
   const nextRef = useRef(null);
   const size = useWindowSize();
   const isMobile = size.width && size.width < 768;
-
+  const studentImages = import.meta.glob('../assets/Students/*', { eager: true, query: '?url', import: 'default' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    async function fetchCollegesAndStudentImages() {
-      setLoading(true);
-      setError(null);
+    async function getStudents() {
       try {
-        const res = await fetch('/api/colleges');
-        if (!res.ok) throw new Error('Failed to fetch colleges');
+        setLoading(true);
+        const res = await fetch('/api/colleges/');
         const colleges = await res.json();
-        if (!Array.isArray(colleges) || colleges.length === 0) throw new Error('No colleges found');
-        // Randomly select 4 colleges
-        const selectedColleges = shuffleArray(colleges).slice(0, 4);
+    
+        // Flatten all students, attaching college info
         let allStudents = [];
-        // For each college, fetch student images
-        for (const college of selectedColleges) {
-          let studentImgs = [];
-          try {
-            const imgRes = await fetch(`/api/colleges/${college._id}/students/`);
-            if (imgRes.ok) {
-              studentImgs = await imgRes.json();
-            }
-          } catch (e) {
-            // Ignore image fetch errors, fallback to default
+        colleges.forEach(college => {
+          if (college.students && college.students.length > 0) {
+            college.students.forEach(student => {
+              allStudents.push({
+                ...student,
+                collegeName: college.name,
+                collegeLogo: college.logo || '',
+              });
+            });
           }
-          if (Array.isArray(college.students)) {
-            allStudents = allStudents.concat(
-              college.students.map(student => {
-                // Try to find image url for this student
-                const imgObj = studentImgs.find(s => s.student === student._id);
-                return {
-                  ...student,
-                  img: imgObj?.url || student.img || student.image || fallbackImage,
-                  collegeName: college.name,
-                  collegeLogo: college.logo || collegeLogoMap[college.name] || fallbackImage,
-                  collegeId: college._id,
-                  university: student.university,
-                };
-              })
-            );
-          }
-        }
-        setStudents(allStudents);
-      } catch (err) {
-        setError(err.message || 'Unknown error');
-      } finally {
+        });
+    
+        // Shuffle and pick 10 students
+        const shuffled = shuffleArray(allStudents).slice(0, 10);
+    
+        setStudents(shuffled);
         setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        setError(error);
+        console.log(error);
       }
     }
-    fetchCollegesAndStudentImages();
-  }, []);
+
+    getStudents()
+  }, [])
 
   return (
     <motion.section
@@ -118,7 +105,7 @@ export default function StudentSwiper() {
         Talk to UGs/Alumnis
       </h2>
       {loading && <div className="w-full flex justify-center items-center py-10"><span className="text-2xl">Loading students...</span></div>}
-      {error && <div className="w-full flex justify-center items-center py-10 text-red-500"><span className="text-2xl">{error}</span></div>}
+      {error && <div className="w-full flex justify-center items-center py-10 text-red-500"><span className="text-2xl">{'An error occurred'}</span></div>}
       {!loading && !students.length && <div className="w-full flex justify-center items-center py-10"><span className="text-2xl">No students found</span></div>}
       {/* Custom Arrow Buttons */}
       <div
@@ -163,8 +150,7 @@ export default function StudentSwiper() {
                   {/* Image with College Logo Overlay */}
                   <div>
                     <img
-                      src={student.img || student.image || fallbackImage}
-                      alt={student.name}
+                      src={studentImages[`../assets/Students/${student.image}`] || fallbackImage}
                       className="w-24 h-24 m-0 mx-auto rounded-full object-cover shadow-md"
                       onError={(e) => {
                         e.target.src = fallbackImage;

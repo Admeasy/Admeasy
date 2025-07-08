@@ -115,7 +115,6 @@ export default function Tabs({ college = {} }) {
       }
       
       const urls = await res.json();
-      console.log(urls);
       
       if (!urls || urls.length === 0) {
         throw new Error('No gallery images found');

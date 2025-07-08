@@ -43,9 +43,7 @@ const Colleges = () => {
 
     const fetchColleges = async () => {
         try {
-            const response = await fetch('/api/colleges', {
-                credentials: 'include'
-            })
+            const response = await fetch('/api/colleges')
             if (!response.ok) {
                 throw new Error('Failed to fetch colleges')
             }
