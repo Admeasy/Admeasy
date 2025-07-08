@@ -1,4 +1,6 @@
 import './App.css'
+import { ToastContainer, toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './Pages/Home'
@@ -21,6 +23,7 @@ function App() {
   return (
     <>
       {!isAdminRoute && <Navbar />}
+             <ToastContainer />
       <Routes>
         <Route path='/' element={<Home />}></Route>
         <Route path='/contact' element={<Contact />}></Route>

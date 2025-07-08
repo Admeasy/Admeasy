@@ -9,7 +9,9 @@ import 'react-toastify/dist/ReactToastify.css'
 
 
 const Footer = () => {
+  // Define Position
   const notify = () => toast("Message Sent Buddy😎!");
+  // Define Position
   const toastErr = () => toast.error("Message cannot be empty, bro😅!");
   const [message, setMessage] = useState(""); // 1️⃣ Fix typo
 
@@ -62,7 +64,7 @@ const Footer = () => {
 
             <div className="col-span-2 lg:col-span-3 lg:flex lg:items-end">
               <form onSubmit={FormHandler} className="w-full">
-
+             
                 <div
                   className="border border-gray-100 p-2 sm:flex sm:items-center sm:gap-4 dark:border-gray-800"
                 >
@@ -78,11 +80,11 @@ const Footer = () => {
                   />
                   <button type='submit' className="cursor-pointer transition-all bg-blue-500 text-white px-6 py-2 rounded-lg
 border-blue-600 w-full mt-5 sm:mt-0 sm:w-max
-border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px]
+border-b-[4px] hover:brightness-110 hover:-translate-zy-[1px] hover:border-b-[6px]
 active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                     Send
                   </button>
-                  <ToastContainer />
+                  
                 </div>
               </form>
             </div>
@@ -219,7 +221,10 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
           </ul>
         </div> */}
 
+
+{/* Social/proffesional Links In foooter */}
             <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
+              {/* Instagram */}
               <li>
                 <a
                   href="#"
@@ -243,10 +248,10 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   <IoLogoLinkedin className='size-6'/>
                 </a>
               </li>
-
+{/* Twitter (Yeah I'll call it twitter(MuskMelon😏)) */}
               <li>
                 <a
-                  href="#"
+                  href="https://x.com/admeasy_in?s=08"
                   rel="noreferrer"
                   target="_blank"
                   aria-label='X/Twitter'
@@ -255,7 +260,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   <FaXTwitter className="size-6" />
                 </a>
               </li>
-
+{/* Github */}
               <li>
                 <a
                   href="#"
@@ -274,7 +279,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
         <div className="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800">
           <div className="sm:flex sm:justify-between">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              &copy; 2025. Campii Addmission solution LLP. All rights reserved.
+              &copy; 2025. Admeasy Admission Solutions Private Limited. All Rights Reserved.
             </p>
 
             <ul className="mt-8 flex flex-wrap justify-start gap-4 text-xs sm:mt-0 lg:justify-end">

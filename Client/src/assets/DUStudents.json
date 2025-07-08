@@ -1,0 +1,34 @@
+[
+    {
+        "image": "",
+        "name": "Ritesh Kumar",
+        "course": "B.com prog.",
+        "college": "Shaheed Bhagat Singh College",
+        "collegeLogo": "https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
+        "university": "Delhi University"
+    },
+    {
+        "image": "",
+        "name": "Sneha Arora",
+        "course": "BA in Philosophy",
+        "college": "Indraprastha College For Women",
+        "collegeLogo": "https://ipcollege-du.samarth.ac.in/uploads/uims/8de41cbd87b11be8b371f9066fc3b4fd114807ce8cf50547791ce8e9d1e366b11_1719477627_63882554_logo.png",
+        "university": "Delhi University"
+    },
+    {
+        "image": "Faizah.png",
+        "name": "Faizah Naqvi",
+        "course": "Journalism ",
+        "college": "Institute of Home Economics, DU",
+        "collegeLogo": "https://upload.wikimedia.org/wikipedia/en/f/f9/Institute_of_Home_Economics.jpg",
+        "university": "Delhi University"
+    },
+    {
+        "image": "Gaurav.jpg",
+        "name": "Gaurav Yadav",
+        "course": "B.com Hons.",
+        "college": "Ramanujan College",
+        "collegeLogo": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
+        "university": "Delhi University"
+    }
+]
