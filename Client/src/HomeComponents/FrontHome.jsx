@@ -34,7 +34,7 @@ const FrontHome = () => {
         <div className="w-full md:w-1/2 flex flex-col text-center justify-center gap-4 sm:gap-6 xl:gap-8 p-6 px-0">
           <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-admeasy-extrabold text-tprimary leading-snug">
             Find the <span className="text-orange-400">Best</span><br />
-            <span className="text-orange-400">College</span> in INDORE
+            <span className="text-orange-400">College</span> in INDORE & DELHI
           </h1>
           <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
             Discover top-rated colleges near you and connect with UGs/alumni to make the right choice for your future.

@@ -7,7 +7,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Footer = () => {
+  // Define Position
   const notify = () => toast("Message Sent Buddy😎!");
+  // Define Position
   const toastErr = () => toast.error("Message cannot be empty, bro😅!");
   const [message, setMessage] = useState(""); // 1️⃣ Fix typo
 
@@ -60,7 +62,7 @@ const Footer = () => {
 
             <div className="col-span-2 lg:col-span-3 lg:flex lg:items-end">
               <form onSubmit={FormHandler} className="w-full">
-
+             
                 <div
                   className="border border-gray-100 p-2 sm:flex sm:items-center sm:gap-4 dark:border-gray-800"
                 >
@@ -80,7 +82,7 @@ border-b-[4px] hover:brightness-110 hover:-translate-zy-[1px] hover:border-b-[6p
 active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                     Send
                   </button>
-                  <ToastContainer />
+                  
                 </div>
               </form>
             </div>
@@ -298,7 +300,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
         <div className="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800">
           <div className="sm:flex sm:justify-between">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              &copy; 2025. Campii Addmission solution LLP. All rights reserved.
+              &copy; 2025. Admeasy Admission Solutions Private Limited. All Rights Reserved.
             </p>
 
             <ul className="mt-8 flex flex-wrap justify-start gap-4 text-xs sm:mt-0 lg:justify-end">

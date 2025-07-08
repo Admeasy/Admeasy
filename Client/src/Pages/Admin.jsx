@@ -125,8 +125,8 @@ const Admin = () => {
             </Link>
             <Link to="/admin/users">
             <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
-              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">User Management</h2>
-              <p className="text-gray-600">Manage user accounts and permissions</p>
+              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">UG's Management</h2>
+              <p className="text-gray-600">Manage UG's accounts and permissions</p>
             </div>
             </Link>
           </div>
