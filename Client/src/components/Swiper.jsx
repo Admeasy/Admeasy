@@ -66,6 +66,18 @@ export default function StudentSwiper({ college }) {
         setShowModal(false)
     }
 
+    function getStudentImageUrl(imageName) {
+        if (imageName) {
+            // Find the first key in studentImages that includes the imageName
+            const entry = Object.entries(studentImages).find(([key]) =>
+                key.includes(imageName)
+            );
+            return entry ? entry[1] : fallbackImage;
+        } else {
+            return fallbackImage
+        }
+    }
+
     useEffect(() => {
         setStudents(college.students);
     }, [college])
@@ -146,7 +158,7 @@ export default function StudentSwiper({ college }) {
                                     <div>
 
                                         <img
-                                            src={studentImages[`../assets/UGs/${student.image}`] || fallbackImage}
+                                            src={getStudentImageUrl(student.image)}
                                             className="w-24 h-24 m-0 mx-auto rounded-full object-cover shadow-md" onError={(e) => { e.target.src = fallbackImage }} />
                                     </div>
 

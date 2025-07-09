@@ -75,6 +75,18 @@ export default function StudentSwiper() {
     setShowModal(false)
   }
 
+  function getStudentImageUrl(imageName) {
+    if (imageName) {
+      // Find the first key in studentImages that includes the imageName
+      const entry = Object.entries(studentImages).find(([key]) =>
+        key.includes(imageName)
+      );
+      return entry ? entry[1] : fallbackImage;
+    } else {
+      return fallbackImage
+    }
+  }
+
   useEffect(() => {
     async function getStudents() {
       try {
@@ -105,7 +117,6 @@ export default function StudentSwiper() {
 
         setStudents(shuffled);
         setLoading(false);
-        setNavReady(true)
       } catch (error) {
         setLoading(false);
         setError(error);
@@ -176,7 +187,7 @@ export default function StudentSwiper() {
             const Wmessage = `Hey there! I'd love to connect with ${student.name} from ${student.collegeName} to gain some real insights and perspective!`;
             const encodedWmessage = encodeURIComponent(Wmessage);
             return (
-              <SwiperSlide key={index} className="h-full">
+              <SwiperSlide key={index} className="h-60">
                 <button
                   className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
                   onClick={() => {
@@ -189,8 +200,8 @@ export default function StudentSwiper() {
                     {/* Image with College Logo Overlay */}
                     <div>
                       <img
-                        src={studentImages[`../assets/UGs/${student.image}`] || fallbackImage}
-                        className="size-24 m-0 mx-auto rounded-full object-cover shadow-md"
+                        src={getStudentImageUrl(student.image)}
+                        className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
                         onError={(e) => {
                           e.target.src = fallbackImage;
                         }} />
@@ -210,13 +221,13 @@ export default function StudentSwiper() {
                       ) : null}
                     </div>
                     {/* Text Content */}
-                    <div className="mt-4 text-center flex flex-col space-y-1">
+                    <div className="mt-4 text-center flex flex-col space-y-1.5">
                       {/* Student Name */}
                       <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
                       {/* Highlighted College Name */}
                       <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
                       {/* Course Badge */}
-                      <span className="w-fit mx-auto inline-block px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                      <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
                         {student.course}
                       </span>
                     </div>
