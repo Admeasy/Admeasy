@@ -109,17 +109,17 @@ export default function Tabs({ college = {} }) {
 
     try {
       const res = await fetch(`/api/colleges/gallery/${college._id}`);
-      
+
       if (!res.ok) {
         throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
       }
-      
+
       const urls = await res.json();
-      
+
       if (!urls || urls.length === 0) {
         throw new Error('No gallery images found');
       }
-      
+
       setGallery(urls);
       setLastGalleryFetch(Date.now());
     } catch (err) {
@@ -134,10 +134,10 @@ export default function Tabs({ college = {} }) {
   // Fetch gallery images initially and refresh every 45 minutes
   useEffect(() => {
     fetchGalleryImages();
-    
+
     // Refresh URLs every 45 minutes (before the 1-hour expiration)
     const refreshInterval = setInterval(fetchGalleryImages, 2 * 60 * 1000);
-    
+
     return () => clearInterval(refreshInterval);
   }, [college?._id]);
 
@@ -157,7 +157,7 @@ export default function Tabs({ college = {} }) {
   useEffect(() => {
     const fetchRecruitersLogos = async () => {
       if (!college?.recruiters?.length) return;
-      
+
       setIsLoadingLogos(true);
       try {
         const recruitersData = await Promise.all(
@@ -228,6 +228,20 @@ export default function Tabs({ college = {} }) {
                   {college?.desc || 'Description not available'}
                 </p>
               </div>
+            </motion.section>
+
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+            >
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
+                Video Review
+              </h2>
+              {college?.vidReview ? <iframe height='550' src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='mx-auto aspect-[9/16] rounded-xl'></iframe> : <h4 className=''>No Video Review available</h4>}
             </motion.section>
 
             <motion.section
@@ -341,7 +355,7 @@ export default function Tabs({ college = {} }) {
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Talk to UGs/Alumnis
               </h2>
-              <StudentSwiper college={college}/>
+              <StudentSwiper college={college} />
             </motion.section>
 
             <motion.section
@@ -366,10 +380,10 @@ export default function Tabs({ college = {} }) {
                       </span>
                     </li>
                   ))}
-                {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 || 
+                {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 ||
                   !college.moreInfo.some(info => info && info.title && info.content)) && (
-                  <li className="text-center text-lg">No additional information available</li>
-                )}
+                    <li className="text-center text-lg">No additional information available</li>
+                  )}
               </ul>
             </motion.section>
 
@@ -468,7 +482,7 @@ export default function Tabs({ college = {} }) {
                           }
                         }}
                       />
-                      <div 
+                      <div
                         className="hidden w-full h-64 bg-gray-100 rounded-xl shadow-3d flex-col items-center justify-center text-gray-500 space-y-2"
                       >
                         <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">

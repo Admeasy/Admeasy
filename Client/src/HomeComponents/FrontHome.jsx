@@ -27,7 +27,7 @@ const FrontHome = () => {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-full px-4 py-8"
+      className="w-full mx-auto px-4 py-8"
     >
       <div className="flex flex-col md:flex-row items-center justify-center bg-primary w-[95%] mx-auto shadow-3d rounded-xl overflow-hidden ">
         {/* Text Section */}

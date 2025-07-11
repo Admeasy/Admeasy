@@ -66,7 +66,8 @@ const initialFormState = {
         }]
     }],
     moreInfo: [],
-    students: []
+    students: [],
+    videoReview: ''
 }
 
 const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
@@ -75,6 +76,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const [existingGalleryUrls, setExistingGalleryUrls] = useState([])
     const [newKeyword, setNewKeyword] = useState('')
     const [courseChangeTimer, setCourseChangeTimer] = useState(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Function to generate keywords from college data
     const generateKeywords = (data) => {
@@ -538,39 +540,58 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            // Create FormData object for multipart/form-data submission
+            const submitData = new FormData();
 
-        // Create FormData object for multipart/form-data submission
-        const submitData = new FormData();
+            // Add all form fields
+            Object.keys(formData).forEach(key => {
+                if (key === 'gallery') {
+                    // Add each gallery file
+                    formData.gallery.forEach(file => {
+                        submitData.append('gallery', file);
+                    });
+                } else if (key === 'moreInfo') {
+                    // Ensure moreInfo is properly formatted
+                    const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
+                    submitData.append('moreInfo', JSON.stringify(validMoreInfo));
+                } else if (key === 'students') {
+                    submitData.append('students', JSON.stringify(formData.students));
+                } else if (key === 'videoReview') {
+                    // Extract code between 'embed/' and '?si' if present
+                    let videoCode = '';
+                    const url = formData.videoReview || '';
+                    if (url.includes('youtu.be/')) {
+                        videoCode = url.split('youtu.be/')[1].split('?')[0];
+                    } else if (url.includes('watch/')) {
+                        videoCode = url.split('watch/')[1].split('?')[0];
+                    } else if (url.includes('shorts/')) {
+                        videoCode = url.split('shorts/')[1].split('?')[0];
+                    } else if (url.includes('embed/')) {
+                        videoCode = url.split('embd/')[1].split('?')[0];
+                    }
+                    console.log(videoCode);
+                    submitData.append('vidReview', videoCode);
+                } else if (typeof formData[key] === 'object') {
+                    // Stringify nested objects
+                    submitData.append(key, JSON.stringify(formData[key]));
+                } else {
+                    submitData.append(key, formData[key]);
+                }
+            });
 
-        // Add all form fields
-        Object.keys(formData).forEach(key => {
-            if (key === 'gallery') {
-                // Add each gallery file
-                formData.gallery.forEach(file => {
-                    submitData.append('gallery', file);
-                });
-            } else if (key === 'moreInfo') {
-                // Ensure moreInfo is properly formatted
-                const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
-                submitData.append('moreInfo', JSON.stringify(validMoreInfo));
-            } else if (key === 'students') {
-                submitData.append('students', JSON.stringify(formData.students));
-            } else if (typeof formData[key] === 'object') {
-                // Stringify nested objects
-                submitData.append(key, JSON.stringify(formData[key]));
-            } else {
-                submitData.append(key, formData[key]);
+            // If we're editing and have an existing gallery URL, pass it along
+            if (existingGalleryUrls.length > 0) {
+                submitData.append('existingGallery', existingGalleryUrls[0]);
             }
-        });
 
-        // If we're editing and have an existing gallery URL, pass it along
-        if (existingGalleryUrls.length > 0) {
-            submitData.append('existingGallery', existingGalleryUrls[0]);
+            await Promise.resolve(onSubmit(submitData, editData?._id));
+        } finally {
+            setIsSubmitting(false);
         }
-
-        onSubmit(submitData, editData?._id);
     }
 
     const renderSection = (title, children) => (
@@ -750,6 +771,22 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                 </div>
                             ))}
                         </div>
+                    ))}
+
+                    {/* Video Review */}
+                    {renderSection("Video Review", (
+                        <>
+                            {renderField("Video Review Link",
+                                <input
+                                    type="text"
+                                    name="videoReview"
+                                    value={formData.videoReview || ''}
+                                    onChange={handleFormChange}
+                                    className="w-full p-2 border rounded-lg bg-white"
+                                    placeholder="Paste YouTube or video link here"
+                                />
+                            )}
+                        </>
                     ))}
 
                     {/* Contact Information */}
@@ -1329,9 +1366,10 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            className={isSubmitting ? 'px-6 py-2.5 bg-gray-600 text-white rounded-lg transition-colors' : 'px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors'}
+                            disabled={isSubmitting}
                         >
-                            {editData ? 'Save Changes' : 'Submit'}
+                            {isSubmitting ? 'Submitting...' : 'Save'}
                         </button>
                     </div>
                 </form>

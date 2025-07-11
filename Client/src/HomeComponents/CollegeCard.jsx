@@ -16,13 +16,15 @@ const fadeUpVariant = {
   visible: { opacity: 1, y: 0 },
 }
 
-const CollegeCard = () => {
+export default function CollegeCard() {
   // State to hold the list of colleges
   const [Colleges, setColleges] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
 
   // Fetching colleges from the server
   useEffect(() => {
     async function fetchColleges() {
+      setIsLoading(true)
       try {
         const response = await fetch('/api/colleges');
         const data = await response.json();
@@ -30,8 +32,9 @@ const CollegeCard = () => {
         // Select 4 random colleges from the fetched data
         const selected = [...data].sort(() => 0.5 - Math.random()).slice(0, 4);
         setColleges(selected);
-
+        setIsLoading(false);
       } catch (error) {
+        setIsLoading(false);
         console.error('Error fetching colleges:', error);
       }
     }
@@ -66,7 +69,7 @@ const CollegeCard = () => {
         </div>
 
         <div className="flex my-4 flex-wrap justify-around p-0 md:p-2 md:m-2">
-          {Colleges.map(
+          {isLoading ? (<h3 className='mb-5 text-lg md:text-2xl text-tsecondary text-center font-semibold'>Loading Colleges...</h3>) : Colleges.map(
             // Function here
             (college, index) => (
 
@@ -140,5 +143,3 @@ const CollegeCard = () => {
 
   )
 }
-
-export default CollegeCard

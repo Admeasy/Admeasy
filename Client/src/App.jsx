@@ -35,6 +35,7 @@ function App() {
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
+        <Route path='/admin/mentors' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

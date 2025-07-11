@@ -232,6 +232,10 @@ const CollegesSchema = new mongoose.Schema({
       trim: true
     }
   }],
+  vidReview: {
+    type: String,
+    trim: true
+  },
   moreInfo: [{
     title: {
       type: String,

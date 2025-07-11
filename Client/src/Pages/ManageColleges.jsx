@@ -133,9 +133,11 @@ const Colleges = () => {
         setEditingCollege(null);
     }
 
-    const filteredColleges = colleges.filter(college =>
-        college.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredColleges = colleges
+        .filter(college =>
+            college.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     if (isLoading) {
         return (

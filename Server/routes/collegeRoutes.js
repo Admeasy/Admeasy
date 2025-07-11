@@ -141,7 +141,8 @@ router.post('/', upload.any(), async (req, res) => {
             gallery: galleryUrl,
             whyChoose: JSON.parse(req.body.whyChoose),
             courses: courses,
-            students: JSON.parse(req.body.students)
+            students: JSON.parse(req.body.students),
+            vidReview: req.body.vidReview
         });
         await newCollege.save();
         res.status(201).json({
@@ -281,7 +282,8 @@ router.put('/:id', upload.any(), async (req, res) => {
             whyChoose: whyChoose,
             courses: courses,
             moreInfo: moreInfo,
-            students: students
+            students: students,
+            vidReview: req.body.vidReview
         };
         const updatedCollege = await College.findByIdAndUpdate(
             collegeId,
