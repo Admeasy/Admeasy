@@ -119,7 +119,8 @@ const PrivacyPolicy = () => {
           <p>
             📬 Contact us with any concerns at: <strong>support@admeasy.in</strong>
           </p>
-          <p>🏢 Campii Admission Solutions LLP</p>
+          {/* Company Name*/}
+          <p>🏢 Admeasy Admission Solutions Private Limited.</p>
         </div>
       </section>
     </div>
