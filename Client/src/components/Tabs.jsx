@@ -236,12 +236,12 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 px-3 space-y-6"
             >
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Video Review
               </h2>
-              {college?.vidReview ? <iframe height='550' src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='mx-auto aspect-[9/16] rounded-xl'></iframe> : <h4 className=''>No Video Review available</h4>}
+              {college?.vidReview ? <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe> : <h4 className=''>No Video Review available</h4>}
             </motion.section>
 
             <motion.section
@@ -372,12 +372,12 @@ export default function Tabs({ college = {} }) {
                 {Array.isArray(college?.moreInfo) && college.moreInfo
                   .filter(info => info && info.title && info.content) // Filter out invalid entries
                   .map((info, index) => (
-                    <li key={index} className="flex items-start gap-2 p-2">
+                    <li key={index} className="w-full flex items-start gap-2 p-2">
                       <FaArrowRight className='min-w-4 min-h-4 mt-1.5 text-thead2' />
-                      <span className="flex flex-col sm:flex-row">
-                        <span className="text-thead2 text-left font-semibold whitespace-nowrap">{info.title}: </span>
-                        <span className="text-tprimary">{info.content}</span>
-                      </span>
+                      <h3 className="w-full flex flex-col sm:flex-row">
+                        <span className="text-thead2 text-left font-semibold">{info.title}:</span><br/>
+                        <span className="w-full text-tprimary">{info.content}</span>
+                      </h3>
                     </li>
                   ))}
                 {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 ||
