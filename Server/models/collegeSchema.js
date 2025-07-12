@@ -22,6 +22,10 @@ const CollegesSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  affiliation: {
+    type: String,
+    trim: true
+  },
   rating: {
     overall: {
       type: Number,
@@ -221,14 +225,8 @@ const CollegesSchema = new mongoose.Schema({
       required: true,
       trim: true
     },
-    summary: {
-      type: String,
-      required: true,
-      trim: true
-    },
     image: {
       type: String,
-      rquired: true,
       trim: true
     }
   }],

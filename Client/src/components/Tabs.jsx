@@ -241,7 +241,22 @@ export default function Tabs({ college = {} }) {
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Video Review
               </h2>
-              {college?.vidReview ? <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe> : <h4 className=''>No Video Review available</h4>}
+              {college?.vidReview ? 
+              (college?.vidReview.includes('shorts/') ? 
+              <iframe src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}?rel=0&showinfo=0&modestbranding=1`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" showinfo='0' referrerpolicy="strict-origin-when-cross-origin" allowFullScreen className='max-[380px]:w-full max-[380px]:h-120 w-fit h-135 mx-auto aspect-auto rounded-xl'></iframe> : 
+              <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe>) : 
+              <h4 className=''>No Video Review available</h4>}
+              {/* {college?.vidReview &&
+                college?.vidReview.includes('shorts/') ? <embed src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}`}
+                  type="video/mp4"
+                  width="100%" height="100%"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowfullscreen className='w-1/2 h-550'></embed> : <embed src={`https://www.youtube.com/embed/${college?.vidReview}`} wmode="transparent"
+                  type="video/mp4"
+                  width="100%" height="100%"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowfullscreen className='w-full aspect-video'></embed>
+              } */}
             </motion.section>
 
             <motion.section
@@ -375,7 +390,7 @@ export default function Tabs({ college = {} }) {
                     <li key={index} className="w-full flex items-start gap-2 p-2">
                       <FaArrowRight className='min-w-4 min-h-4 mt-1.5 text-thead2' />
                       <h3 className="w-full flex flex-col sm:flex-row">
-                        <span className="text-thead2 text-left font-semibold">{info.title}:</span><br/>
+                        <span className="text-thead2 text-left font-semibold">{info.title}:</span><br />
                         <span className="w-full text-tprimary">{info.content}</span>
                       </h3>
                     </li>

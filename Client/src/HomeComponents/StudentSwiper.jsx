@@ -11,7 +11,6 @@ import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import StudentInfoModel from "../components/StudentInfoModel";
-import DUStudents from '../assets/DUStudents.json'
 
 
 const fadeUpVariant = {
@@ -20,22 +19,6 @@ const fadeUpVariant = {
 }
 
 const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-
-const collegeLogoMap = {
-  "Medicaps": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSSonOCk8kowuJudbSorlssnFY-PHFDMZ1NjA&s",
-  "Sri Aurobindo Institute of Pharmacy": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt-cRd6s4RCPALLINBHWMEC1_dvFCB7SSLkw&s",
-  "Sri Aurobindo Institute of Management & Studies": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwsm_PitGWwCEjKSCfDnC9gH9hld4Iu8k-Cw&s",
-  "SGSITS": "https://upload.wikimedia.org/wikipedia/en/4/4b/SGSITS_Indore.png",
-  "IIT Indore": "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/IITI_Logo.svg/250px-IITI_Logo.svg.png",
-  "IIM Indore": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/IIM_Indore_Logo.svg/150px-IIM_Indore_Logo.svg.png",
-  "IIST": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScea8JfcJLacmRtR2Ah0pQBwDHYcWKOCVsVw&s",
-  "Ramanujan College": "https://ramanujancollege.ac.in/media/images/Logo_RCDU_8oecNot.original.png",
-  "Shaheed Bhagat Singh College": "https://sbsc.in/wp-content/uploads/elementor/thumbs/cropped-cropped-40-INCH-X-40-INCH-FILAM-copy-2-qreld0squn1ptm38sxaqh22111vo110lip7ujxyya0.png",
-  "IIPS, DAVV": "https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
-  "DAVV": "https://media.licdn.com/dms/image/v2/C4E0BAQHPCA7Yx1le7A/company-logo_200_200/company-logo_200_200/0/1630629646361/iips_davv_logo?e=2147483647&v=beta&t=xljAoXK27ElUMXqiaPyBAZwcwb55EenqpPQ7TrM9vL8",
-  "Sage University": "https://cdn.universitykart.com//Content/upload/admin/gjmrzjqu.jr1.jpg"
-};
-
 const altWmessage = 'Hey there! I am unable to find a relatable UG student to guide me! Can you please connect me with one?'
 const encodedAltWmessage = encodeURIComponent(altWmessage)
 
@@ -96,26 +79,39 @@ export default function StudentSwiper() {
 
         // Flatten all students, attaching college info
         let allStudents = [];
+        let dustudents = []
         colleges.forEach(college => {
           if (college.students && college.students.length > 0) {
             college.students.forEach(student => {
-              allStudents.push({
-                ...student,
-                college: college.name,
-                collegeLogo: college.logo || '',
-              });
+              if (college.affiliation === 'Delhi University' || college.name.includes('Delhi University') || college.name.includes('DU')) {
+                dustudents.push({
+                  ...student,
+                  college: college.name,
+                  collegeLogo: college.logo || '',
+                  university: college.affiliation || 'Delhi University'
+                })
+              } else {
+                allStudents.push({
+                  ...student,
+                  college: college.name,
+                  collegeLogo: college.logo || '',
+                  university: college.affiliation
+                });
+              }
             });
           }
         });
 
-        // Shuffle and pick 10 students
-        const shuffled = shuffleArray(allStudents).slice(0, 10);
+        // Shuffle and pick 5 students
+        let shuffledAllStudents = shuffleArray(allStudents).slice(0, 5);
+        const shuffledDUStudents = shuffleArray(dustudents);
 
-        DUStudents.forEach(student => {
-          shuffled.unshift(student);
+        // Add DU students to the beginning of shuffled array
+        shuffledDUStudents.forEach(student => {
+          shuffledAllStudents.unshift(student);
         })
 
-        setStudents(shuffled);
+        setStudents(shuffledAllStudents);
         setLoading(false);
       } catch (error) {
         setLoading(false);
@@ -137,9 +133,7 @@ export default function StudentSwiper() {
         redirect={redirect}
         onClose={cancelHandler}
         onX={onXclick}
-        setShowModal={setShowModal}
-
-      />
+        setShowModal={setShowModal} />
       <motion.section
         variants={fadeUpVariant}
         initial="hidden"

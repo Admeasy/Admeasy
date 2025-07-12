@@ -18,6 +18,7 @@ const initialFormState = {
     name: '',
     desc: '',
     logo: '',
+    affiliation: '',
     rating: {
         overall: 0,
         educationalQuality: 0,
@@ -68,6 +69,39 @@ const initialFormState = {
     moreInfo: [],
     students: [],
     videoReview: ''
+}
+
+// Helper function to extract video code from YouTube URLs
+const extractVideoCode = (url) => {
+    if (!url) return '';
+
+    // Handle different YouTube URL formats
+    if (url.includes('youtu.be/')) {
+        return url.split('youtu.be/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/watch?v=')) {
+        return url.split('watch?v=')[1].split('&')[0];
+    } else if (url.includes('youtube.com/shorts/')) {
+        return url.split('youtube.com/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/embed/')) {
+        return url.split('embed/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/v/')) {
+        return url.split('v/')[1].split('?')[0];
+    } else if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
+        // If it's already just a video code
+        return url;
+    }
+
+    return '';
+};
+
+// Helper function to validate YouTube URL
+const isValidYouTubeUrl = (url) => {
+    if (!url) return true; // Allow empty URLs
+    const videoCode = extractVideoCode(url);
+    if (videoCode.includes('shorts/')) {
+        return true;
+    }
+    return videoCode.length === 11; // YouTube video codes are 11 characters
 }
 
 const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
@@ -153,13 +187,21 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     useEffect(() => {
         if (editData) {
             // Handle gallery separately since we need to keep track of existing URLs
-            const { gallery, ...restData } = editData;
+            const { gallery, vidReview, ...restData } = editData;
             if (typeof gallery === 'string' && gallery) {
                 setExistingGalleryUrls([gallery]);
             }
 
+            // Convert vidReview (video code) back to a full YouTube URL for editing
+            let videoReviewUrl = '';
+            if (vidReview) {
+                // Reconstruct the YouTube URL from the video code
+                videoReviewUrl = `https://www.youtube.com/watch?v=${vidReview}`;
+            }
+
             setFormData({
                 ...restData,
+                videoReview: videoReviewUrl,
                 gallery: []
             });
         }
@@ -515,7 +557,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const addStudent = () => {
         setFormData(prev => ({
             ...prev,
-            students: [...prev.students, { name: '', course: '', summary: '', image: null }]
+            students: [...prev.students, { name: '', course: '', image: null }]
         }));
     };
 
@@ -561,20 +603,14 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 } else if (key === 'students') {
                     submitData.append('students', JSON.stringify(formData.students));
                 } else if (key === 'videoReview') {
-                    // Extract code between 'embed/' and '?si' if present
-                    let videoCode = '';
-                    const url = formData.videoReview || '';
-                    if (url.includes('youtu.be/')) {
-                        videoCode = url.split('youtu.be/')[1].split('?')[0];
-                    } else if (url.includes('watch/')) {
-                        videoCode = url.split('watch/')[1].split('?')[0];
-                    } else if (url.includes('shorts/')) {
-                        videoCode = url.split('shorts/')[1].split('?')[0];
-                    } else if (url.includes('embed/')) {
-                        videoCode = url.split('embd/')[1].split('?')[0];
-                    }
-                    console.log(videoCode);
+                    // Extract video code from various YouTube URL formats
+                    const videoCode = extractVideoCode(formData.videoReview || '');
+                    console.log('Extracted video code:', videoCode);
                     submitData.append('vidReview', videoCode);
+                } else if (key === 'affiliation') {
+                    // Handle affiliation based on college type
+                    const affiliationValue = formData.type === 'Public' ? '' : formData.affiliation;
+                    submitData.append('affiliation', affiliationValue);
                 } else if (typeof formData[key] === 'object') {
                     // Stringify nested objects
                     submitData.append(key, JSON.stringify(formData[key]));
@@ -687,6 +723,29 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     required
                                 />
                             )}
+                            {renderField("Affiliation",
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        name="affiliation"
+                                        value={formData.type === 'Public' ? '' : formData.affiliation}
+                                        onChange={handleFormChange}
+                                        className={`w-full p-2 border rounded-lg ${
+                                            formData.type === 'Public' 
+                                                ? 'bg-gray-200 text-gray-500' 
+                                                : 'bg-white'
+                                        }`}
+                                        placeholder={formData.type === 'Public' ? 'Not applicable for Public colleges' : 'e.g., AICTE, UGC, State University'}
+                                        disabled={formData.type === 'Public'}
+                                        required={formData.type !== 'Public'}
+                                    />
+                                    {formData.type === 'Public' && (
+                                        <p className="text-sm text-gray-500">
+                                            Affiliation is not required for Public colleges
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                             {renderField("Description",
                                 <textarea
                                     name="desc"
@@ -777,14 +836,29 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                     {renderSection("Video Review", (
                         <>
                             {renderField("Video Review Link",
-                                <input
-                                    type="text"
-                                    name="videoReview"
-                                    value={formData.videoReview || ''}
-                                    onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
-                                    placeholder="Paste YouTube or video link here"
-                                />
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        name="videoReview"
+                                        value={formData.videoReview || ''}
+                                        onChange={handleFormChange}
+                                        className={`w-full p-2 border rounded-lg bg-white ${formData.videoReview && !isValidYouTubeUrl(formData.videoReview)
+                                            ? 'border-red-500'
+                                            : 'border-gray-300'
+                                            }`}
+                                        placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
+                                    />
+                                    {formData.videoReview && !isValidYouTubeUrl(formData.videoReview) && (
+                                        <p className="text-sm text-red-500">
+                                            Please enter a valid YouTube URL
+                                        </p>
+                                    )}
+                                    {formData.videoReview && isValidYouTubeUrl(formData.videoReview) && (
+                                        <p className="text-sm text-green-600">
+                                            ✓ Valid YouTube URL detected
+                                        </p>
+                                    )}
+                                </div>
                             )}
                         </>
                     ))}
@@ -1342,14 +1416,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             className="w-full p-2 border rounded-lg bg-white"
                                             required
                                         />
-                                        <textarea
-                                            value={student.summary}
-                                            onChange={e => handleStudentChange(index, 'summary', e.target.value)}
-                                            placeholder="Summary"
-                                            className="w-full p-2 border rounded-lg bg-white"
-                                            rows="2"
-                                            required
-                                        />
+
                                     </div>
                                 </div>
                             ))}

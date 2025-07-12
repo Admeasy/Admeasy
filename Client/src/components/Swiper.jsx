@@ -143,7 +143,6 @@ export default function StudentSwiper({ college }) {
                     {students.map((student, index) => {
                         const Wmessage = `Hey there! I'd love to connect with ${student.name} from ${college.name} who is pursuing ${student.course} to gain some real insights and perspective!`
                         const encodedWmessage = encodeURIComponent(Wmessage)
-                        console.log(student.image)
                         return (
 
                             <SwiperSlide key={index}>

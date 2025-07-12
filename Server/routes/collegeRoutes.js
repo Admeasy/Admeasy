@@ -121,12 +121,19 @@ router.post('/', upload.any(), async (req, res) => {
         const contact = JSON.parse(req.body.contact);
         const packageObj = JSON.parse(req.body.package);
         const courses = JSON.parse(req.body.courses);
+        
+        // Validate affiliation based on college type
+        if (req.body.type === 'Private' && !req.body.affiliation) {
+            return res.status(400).json({ success: false, message: 'Affiliation is required for Private colleges' });
+        }
+        
         // Create and save college document with gallery URL
         newCollege = new College({
             _id: collegeId,
             name: req.body.name,
             desc: req.body.desc,
             logo: req.body.logo,
+            affiliation: req.body.affiliation || '',
             rating: rating,
             location: req.body.location,
             establishedYear: req.body.establishedYear,
@@ -187,9 +194,6 @@ router.put('/:id', upload.any(), async (req, res) => {
     try {
         const collegeId = req.params.id;
         let galleryUrl = req.body.existingGallery;
-        // Debug log incoming data
-        console.log('PUT /colleges/:id req.body:', req.body);
-        console.log('PUT /colleges/:id req.files:', req.files);
         // Separate gallery and student images
         const galleryFiles = req.files.filter(f => f.fieldname === 'gallery');
         // Handle gallery upload if new files are present
@@ -263,10 +267,16 @@ router.put('/:id', upload.any(), async (req, res) => {
                 return res.status(400).json({ success: false, message: `Missing required field: ${field}` });
             }
         }
+        
+        // Validate affiliation based on college type
+        if (req.body.type === 'Private' && !req.body.affiliation) {
+            return res.status(400).json({ success: false, message: 'Affiliation is required for Private colleges' });
+        }
         const updateData = {
             name: req.body.name,
             desc: req.body.desc,
             logo: req.body.logo,
+            affiliation: req.body.affiliation || '',
             rating: rating,
             location: req.body.location,
             establishedYear: req.body.establishedYear,
