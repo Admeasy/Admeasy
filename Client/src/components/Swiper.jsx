@@ -48,9 +48,6 @@ export default function StudentSwiper({ college }) {
     const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
     const size = useWindowSize();
     const isMobile = size.width && size.width < 768;
-    const [name, setName] = useState("");
-    const [stream, setStream] = useState("");
-    const [percentage, setPercentage] = useState("");
     const [redirect, setRedirect] = useState(null);
     const [showModal, setShowModal] = useState(false);
 
@@ -94,15 +91,11 @@ export default function StudentSwiper({ college }) {
     return (
         <>
             <StudentInfoModel
-                name={name}
-                stream={stream}
-                percentage={percentage}
                 isOpen={showModal}
                 redirect={redirect}
                 onClose={cancelHandler}
                 onX={onXclick}
                 setShowModal={setShowModal}
-
             />
             <motion.section
                 variants={fadeUpVariant}
@@ -141,15 +134,13 @@ export default function StudentSwiper({ college }) {
                     className="pb-2"
                 >
                     {students.map((student, index) => {
-                        const Wmessage = `Hey there! I'd love to connect with ${student.name} from ${college.name} who is pursuing ${student.course} to gain some real insights and perspective!`
-                        const encodedWmessage = encodeURIComponent(Wmessage)
                         return (
 
                             <SwiperSlide key={index}>
                                 <button
                                     className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
                                     onClick={() => {
-                                        const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
+                                        const message = `Hey there! I'd love to connect with ${student.name} from ${college.name} to gain some real insights and perspective about ${student.course}!`;
                                         setRedirect(message);
                                         setShowModal(true);
                                     }}>

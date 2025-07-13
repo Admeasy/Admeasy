@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
-import StudentSwiper from '../components/Swiper';
+import StudentInfoModel from './StudentInfoModel';
 import Contact from '../components/CollegeContactCard'
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -22,6 +22,8 @@ const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 }
+
+const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 // Helper function to safely access nested objects
 const safeGet = (obj, path, defaultValue = '') => {
@@ -85,12 +87,17 @@ export default function Tabs({ college = {} }) {
   const [lastGalleryFetch, setLastGalleryFetch] = useState(null);
   const [recruitersWithLogos, setRecruitersWithLogos] = useState([]);
   const [isLoadingLogos, setIsLoadingLogos] = useState(true);
+  const [redirect, setRedirect] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [mentors, setMentors] = useState([]);
+  const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
 
   let [categories] = useState({
     Overview: [],
     Courses: [],
+    Mentors: [],
     Gallery: [],
-    Reviews: [],
+    Rating: [],
     Contact: [],
   });
 
@@ -99,6 +106,30 @@ export default function Tabs({ college = {} }) {
     highest: safeGet(college, 'package.highest', 'Not Available'),
     average: safeGet(college, 'package.average', 'Not Available')
   };
+
+  //  Form Cancel Handler Function
+  const cancelHandler = () => {
+    setShowModal(false);
+
+    setTimeout(() => {
+      window.open(`https://wa.me/919243299145?text=${redirect}`, "_blank");
+    }, 10); // give enough time for user to notice the toast
+  }
+  const onXclick = () => {
+    setShowModal(false)
+  }
+
+  function getStudentImageUrl(imageName) {
+    if (imageName) {
+      // Find the first key in studentImages that includes the imageName
+      const entry = Object.entries(studentImages).find(([key]) =>
+        key.includes(imageName)
+      );
+      return entry ? entry[1] : fallbackImage;
+    } else {
+      return fallbackImage
+    }
+  }
 
   // Function to fetch gallery images
   const fetchGalleryImages = async () => {
@@ -131,15 +162,25 @@ export default function Tabs({ college = {} }) {
     }
   };
 
-  // Fetch gallery images initially and refresh every 45 minutes
   useEffect(() => {
-    fetchGalleryImages();
+    const students = college.students;
+    setMentors(students);
+  }, [])
 
-    // Refresh URLs every 45 minutes (before the 1-hour expiration)
-    const refreshInterval = setInterval(fetchGalleryImages, 2 * 60 * 1000);
+  // Fetch gallery images only when Gallery tab is selected
+  useEffect(() => {
+    if (selectedTab === 3) { // Gallery tab index is 3
+      fetchGalleryImages();
+    }
+  }, [selectedTab, college?._id]);
 
+  // Refresh gallery URLs every 59 minutes when Gallery tab is active
+  useEffect(() => {
+    if (selectedTab !== 3) return; // Only run when Gallery tab is active
+
+    const refreshInterval = setInterval(fetchGalleryImages, 59 * 60 * 1000);
     return () => clearInterval(refreshInterval);
-  }, [college?._id]);
+  }, [selectedTab, college?._id]);
 
   // Function to get company logo URL
   const getCompanyLogo = async (companyName) => {
@@ -241,11 +282,11 @@ export default function Tabs({ college = {} }) {
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Video Review
               </h2>
-              {college?.vidReview ? 
-              (college?.vidReview.includes('shorts/') ? 
-              <iframe src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}?rel=0&showinfo=0&modestbranding=1`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" showinfo='0' referrerpolicy="strict-origin-when-cross-origin" allowFullScreen className='max-[380px]:w-full max-[380px]:h-120 w-fit h-135 mx-auto aspect-auto rounded-xl'></iframe> : 
-              <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe>) : 
-              <h4 className=''>No Video Review available</h4>}
+              {college?.vidReview ?
+                (college?.vidReview.includes('shorts/') ?
+                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}?rel=0&showinfo=0&modestbranding=1`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" showinfo='0' referrerpolicy="strict-origin-when-cross-origin" allowFullScreen className='max-[380px]:w-full max-[380px]:h-120 w-fit h-135 mx-auto aspect-auto rounded-xl'></iframe> :
+                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe>) :
+                <h4 className=''>No Video Review available</h4>}
               {/* {college?.vidReview &&
                 college?.vidReview.includes('shorts/') ? <embed src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}`}
                   type="video/mp4"
@@ -365,20 +406,6 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
-            >
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
-                Talk to UGs/Alumnis
-              </h2>
-              <StudentSwiper college={college} />
-            </motion.section>
-
-            <motion.section
-              variants={fadeUpVariant}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 More Info About {college.name}
@@ -454,6 +481,63 @@ export default function Tabs({ college = {} }) {
                   <li className='text-center text-lg col-span-full'>No courses found</li>
                 )}
               </ul>
+            </motion.section>
+          </TabPanel>
+
+          <TabPanel>
+            {/* Mentors */}
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+            >
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
+                Talk to UGs/Alumnis
+              </h2>
+              <div className="w-full p-3 flex justify-evenly flex-wrap gap-10">
+                {mentors && mentors.length > 0 ? (mentors.map((student) => (
+                  <motion.button
+                    variants={fadeUpVariant}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.25 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    key={student._id}
+                    className="w-60 cursor-pointer mt-4 relative flex flex-col items-center bg-primary rounded-xl shadow-3d p-6 transform hover:scale-105 transition-transform duration-300 ease-in-out border-none"
+                    onClick={() => {
+                      const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
+                      setRedirect(message);
+                      setShowModal(true);
+                    }}
+                  >
+                    <div className="flex flex-col space-y-1">
+                      {/* Image with College Logo Overlay */}
+                      <div>
+                        <img
+                          src={getStudentImageUrl(student.image)}
+                          className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                          onError={(e) => {
+                            e.target.src = fallbackImage;
+                          }} />
+                      </div>
+                      {/* Text Content */}
+                      <div className="mt-4 text-center flex flex-col space-y-1.5">
+                        {/* Student Name */}
+                        <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+                        {/* Highlighted College Name */}
+                        <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
+                        {/* Course Badge */}
+                        <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                          {student.course}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.button>
+                ))) : (<h4 className='text-xl text-center'>No Mentors found...</h4>)}
+              </div>
             </motion.section>
           </TabPanel>
 
@@ -575,6 +659,15 @@ export default function Tabs({ college = {} }) {
           </TabPanel>
         </TabPanels>
       </TabGroup>
+      
+      {/* StudentInfoModel - rendered at root level for proper positioning */}
+      <StudentInfoModel
+        isOpen={showModal}
+        redirect={redirect}
+        onClose={cancelHandler}
+        onX={onXclick}
+        setShowModal={setShowModal}
+      />
     </section>
   );
 }

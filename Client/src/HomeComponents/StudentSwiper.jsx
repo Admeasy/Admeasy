@@ -2,7 +2,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import useWindowSize from "../components/useWindowSize";
 import { Navigation } from "swiper/modules";
 import Boy from "../assets/Others/Student.webp"
-import WA from "../assets/Icons/wa2.webp"
+// import WA from "../assets/Icons/wa2.webp"
 import { useRef, useEffect, useState } from "react";
 import CustomButton from "./3d-btn";
 import "swiper/css";
@@ -11,6 +11,7 @@ import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import StudentInfoModel from "../components/StudentInfoModel";
+import { Link } from 'react-router-dom'
 
 
 const fadeUpVariant = {
@@ -126,9 +127,6 @@ export default function StudentSwiper() {
   return (
     <>
       <StudentInfoModel
-        name={name}
-        stream={stream}
-        percentage={percentage}
         isOpen={showModal}
         redirect={redirect}
         onClose={cancelHandler}
@@ -175,62 +173,65 @@ export default function StudentSwiper() {
             640: { slidesPerView: 2 },
             1024: { slidesPerView: 3 },
           }}
-          className="pb-2 "
+          className="pb-1"
         >
-          {students.map((student, index) => {
-            const Wmessage = `Hey there! I'd love to connect with ${student.name} from ${student.collegeName} to gain some real insights and perspective!`;
-            const encodedWmessage = encodeURIComponent(Wmessage);
-            return (
-              <SwiperSlide key={index} className="h-60">
-                <button
-                  className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
-                  onClick={() => {
-                    const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
-                    setRedirect(message);
-                    setShowModal(true);
-                  }}
-                >
-                  <div className="flex flex-col space-y-1">
-                    {/* Image with College Logo Overlay */}
-                    <div>
+          {students.map((student, index) => (
+            <SwiperSlide key={index} className="h-60">
+              <button
+                className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
+                onClick={() => {
+                  const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
+                  setRedirect(message);
+                  setShowModal(true);
+                }}
+              >
+                <div className="flex flex-col space-y-1">
+                  {/* Image with College Logo Overlay */}
+                  <div>
+                    <img
+                      src={getStudentImageUrl(student.image)}
+                      className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                      onError={(e) => {
+                        e.target.src = fallbackImage;
+                      }} />
+                    <div className="">
                       <img
-                        src={getStudentImageUrl(student.image)}
-                        className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
-                        onError={(e) => {
-                          e.target.src = fallbackImage;
-                        }} />
+                        draggable="false"
+                        src={student.collegeLogo}
+                        alt="College Logo"
+                        className="absolute top-3 left-3 size-12 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
+                    </div>
+                    {student.university ? (
                       <div className="">
-                        <img
-                          draggable="false"
-                          src={student.collegeLogo}
-                          alt="College Logo"
-                          className="absolute top-3 left-3 size-12 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
+                        <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[12px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
+                          {student.university}
+                        </span>
                       </div>
-                      {student.university ? (
-                        <div className="">
-                          <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[12px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
-                            {student.university}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                    {/* Text Content */}
-                    <div className="mt-4 text-center flex flex-col space-y-1.5">
-                      {/* Student Name */}
-                      <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
-                      {/* Highlighted College Name */}
-                      <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
-                      {/* Course Badge */}
-                      <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
-                        {student.course}
-                      </span>
-                    </div>
+                    ) : null}
                   </div>
-                </button>
-              </SwiperSlide>
-            );
-          })}
-          <a href={`https://wa.me/919243299145/?text=${encodedAltWmessage}`} target="_blank" rel="noopener noreferrer" className="w-fit h-fit mx-auto mt-4 flex justify-center items-center gap-2">
+                  {/* Text Content */}
+                  <div className="mt-4 text-center flex flex-col space-y-1.5">
+                    {/* Student Name */}
+                    <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+                    {/* Highlighted College Name */}
+                    <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
+                    {/* Course Badge */}
+                    <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                      {student.course}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </SwiperSlide>
+          ))}
+          <div className="w-fit h-fit mt-5 mb-1.5 mx-auto">
+            <Link to='/mentors'>
+              <CustomButton>
+                View All
+              </CustomButton>
+            </Link>
+          </div>
+          {/* <a href={`https://wa.me/919243299145/?text=${encodedAltWmessage}`} target="_blank" rel="noopener noreferrer" className="w-fit h-fit mx-auto mt-4 flex justify-center items-center gap-2">
             {isMobile ? (
               <h3 className="text-tprimary text-center text-lg font-admeasy-bold">
                 No Right Mentor Yet? WhatsApp Us for One!
@@ -242,7 +243,7 @@ export default function StudentSwiper() {
               </h3>
             )}
             <img src={WA} className="size-10" />
-          </a>
+          </a> */}
         </Swiper>
       </motion.section >
     </>

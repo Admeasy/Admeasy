@@ -9,7 +9,7 @@ const fadeUpVariant = {
 }
 
 const Colleges = () => {
-  const [colleges, setColleges] = useState([])
+  const [colleges, setColleges] = useState([]);
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialSearchQuery = searchParams.get('search') || '';
