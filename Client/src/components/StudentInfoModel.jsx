@@ -47,7 +47,7 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
   return (
     <div className="fixed inset-0 w-screen h-screen z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4">
       {/* Form Container */}
-      <div className="relative shadow-3d py-6 px-6 md:px-8 bg-primary rounded-2xl border-gray-300 w-full max-w-md mx-auto overflow-y-auto max-h-[90vh]">
+      <div className="relative py-6 px-6 md:px-8 bg-primary rounded-2xl border-gray-300 w-full max-w-md mx-auto overflow-y-auto max-h-[90vh]">
         {/* Close Button */}
         <button
           onClick={onX}
@@ -65,7 +65,7 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
             <label className="block text-sm font-medium text-gray-700">Name*</label>
             <input
               type="text"
-              placeholder="e.g. Nitish"
+              placeholder="e.g. John Doe"
               onChange={(e) => setName(e.target.value)}
               value={name}
               className="mt-2  w-full h-10 px-3 text-sm text-gray-600 border placeholder:font-admeasy-bold border-gray-300 rounded focus:outline-none focus:ring-2 placeholder:text-[12px] focus:ring-indigo-700"
@@ -86,7 +86,7 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
 
           {/* Percentage */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">12th Percentage*</label>
+            <label className="block text-sm font-medium text-gray-700">11th/12th Percentage*</label>
             <input
               type="text"
               placeholder="e.g. 80%"
