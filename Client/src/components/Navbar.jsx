@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import logo from '../assets/Admeasy/LOGO.webp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
+// import Pic from '../assets/UGs/FaizahNaqvi.webp'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,6 +58,10 @@ const Navbar = () => {
       {/* Desktop Links */}
       <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide">
         {navLinks}
+        {/* <img src={Pic} className='size-15 rounded-full hover:border-2' /> */}
+        <Link to='/login' className="w-45 text-xl py-2 px-3 text-center text-white hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl">
+          Log In / Sign Up
+        </Link>
       </div>
 
       {/* Mobile Hamburger */}
