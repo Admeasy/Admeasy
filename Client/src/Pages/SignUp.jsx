@@ -45,14 +45,25 @@ const SignUp = () => {
         }
         setError('');
         setIsSubmitting(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsSubmitting(false);
-            setEmail('');
-            setPassword('');
-            // Optionally navigate to login after success
-            // navigate('/login');
-        }, 1200);
+        try {
+            const res = await fetch('/api/users/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setEmail('');
+                setPassword('');
+                navigate('/me');
+            } else {
+                setError(data.message || 'Registration failed');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+        }
+        setIsSubmitting(false);
     };
 
     return (

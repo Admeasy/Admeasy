@@ -17,6 +17,7 @@ import Admin from './Pages/Admin'
 import ManageColleges from './Pages/ManageColleges'
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
+import Profile from './Pages/EditProfile'
 
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/signup' element={<SignUp />}></Route>
         <Route path='/login' element={<LogIn />}></Route>
+        <Route path='/me' element={<Profile />}></Route>
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
         <Route path='/admin/mentors' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>

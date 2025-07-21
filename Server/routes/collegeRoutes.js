@@ -19,13 +19,7 @@ const upload = multer({
     }
 });
 
-let conn = mongoose.connect(process.env.MONGODB_COLLEGES_URI)
-
-if (conn) {
-    console.log('Connected to MongoDB');
-} else {
-    console.error('Failed to connect to MongoDB');
-}
+let conn = mongoose.connect(process.env.MONGODB_COLLEGES_URI);
 
 // Helper function to upload files to B2 directly from memory
 async function uploadToB2(files, collegeId) {

@@ -6,11 +6,11 @@ const adminAuth = async (req, res, next) => {
     const { username, password } = req.body;
 
     // Check if environment variables are set
-    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
+    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_ADMIN_SECRET) {
       console.error('Missing environment variables:');
       console.error('- ADMIN_USERNAME:', !!process.env.ADMIN_USERNAME);
       console.error('- ADMIN_PASSWORD:', !!process.env.ADMIN_PASSWORD);
-      console.error('- JWT_SECRET:', !!process.env.JWT_SECRET);
+      console.error('- JWT_ADMIN_SECRET:', !!process.env.JWT_ADMIN_SECRET);
 
       return res.status(500).json({
         success: false,
@@ -30,7 +30,7 @@ const adminAuth = async (req, res, next) => {
       // Create JWT token
       const token = jwt.sign(
         { username, role: 'admin' },
-        process.env.JWT_SECRET,
+        process.env.JWT_ADMIN_SECRET,
         { expiresIn: '1h' }
       );
 
@@ -77,7 +77,7 @@ const verifyAdminToken = (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
     req.admin = decoded;
     next();
   } catch (error) {

@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
+const UsersRoutes = require('./routes/userRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(cookieParser());
 
 // API Routes
 app.use('/api/colleges', CollegesRoutes);
+app.use('/api/users', UsersRoutes);
 app.use('/api/admin', AdminRoutes);
 
 // Serve static files from the dist directory
