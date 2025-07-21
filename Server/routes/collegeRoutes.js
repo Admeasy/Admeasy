@@ -19,7 +19,7 @@ const upload = multer({
     }
 });
 
-let conn = mongoose.connect(process.env.MONGODB_URI)
+let conn = mongoose.connect(process.env.MONGODB_COLLEGES_URI)
 
 if (conn) {
     console.log('Connected to MongoDB');

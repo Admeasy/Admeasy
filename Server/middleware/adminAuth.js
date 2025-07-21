@@ -11,7 +11,7 @@ const adminAuth = async (req, res, next) => {
       console.error('- ADMIN_USERNAME:', !!process.env.ADMIN_USERNAME);
       console.error('- ADMIN_PASSWORD:', !!process.env.ADMIN_PASSWORD);
       console.error('- JWT_SECRET:', !!process.env.JWT_SECRET);
-      
+
       return res.status(500).json({
         success: false,
         message: 'Server configuration error - Missing environment variables'
@@ -26,7 +26,7 @@ const adminAuth = async (req, res, next) => {
 
     if (isUsernameMatch && isPasswordMatch) {
       // Create authentication token
-      
+
       // Create JWT token
       const token = jwt.sign(
         { username, role: 'admin' },
@@ -43,22 +43,22 @@ const adminAuth = async (req, res, next) => {
       });
 
       // Authentication successful
-      return res.json({ 
+      return res.json({
         success: true,
         message: 'Authentication successful'
       });
     }
 
     // Authentication failed
-    return res.status(401).json({ 
-      success: false, 
+    return res.status(401).json({
+      success: false,
       message: 'Invalid credentials'
     });
 
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Internal server error',
       error: error.message
     });
@@ -69,11 +69,11 @@ const adminAuth = async (req, res, next) => {
 const verifyAdminToken = (req, res, next) => {
   try {
     const token = req.cookies.adminToken;
-    
+
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'No token provided' 
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
       });
     }
 
@@ -81,9 +81,9 @@ const verifyAdminToken = (req, res, next) => {
     req.admin = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Invalid token' 
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token'
     });
   }
 };

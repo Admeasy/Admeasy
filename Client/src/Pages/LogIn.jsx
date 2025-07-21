@@ -104,7 +104,7 @@ const LogIn = () => {
                 </div>
                 <button
                     type="submit"
-                    className="bg-blue-600 text-white rounded-lg py-2 text-xl font-admeasy-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                    className="bg-blue-600 text-white rounded-lg py-2 text-xl font-admeasy-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-600"
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? 'Logging In...' : 'Log In'}
@@ -116,7 +116,7 @@ const LogIn = () => {
             </div>
             <div className="mt-6 text-center">
                 <span className="text-gray-700">Want to guide students? </span>
-                <Link to="/login" className="text-blue-600 hover:underline font-admeasy-semibold">Become a Mentor now</Link>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSeK9OSftbLbTUpYCJjs7Y9CPKVilVTvz7i-D0KZApmdVCnEqw/viewform?usp=dialog" target='_blank' className="text-blue-600 hover:underline font-admeasy-semibold">Become a Mentor now</a>
             </div>
         </motion.section>
     )

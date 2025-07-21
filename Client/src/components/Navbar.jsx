@@ -59,7 +59,7 @@ const Navbar = () => {
       <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide">
         {navLinks}
         {/* <img src={Pic} className='size-15 rounded-full hover:border-2' /> */}
-        <Link to='/login' className="w-45 text-xl py-2 px-3 text-center text-white hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl">
+        <Link to='/login' className="w-45 flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-103 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200">
           Log In / Sign Up
         </Link>
       </div>
