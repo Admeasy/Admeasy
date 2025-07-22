@@ -1,6 +1,13 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Bounce, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import { useUser } from '../context/UserContext'
+
+const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 const EditProfile = () => {
+  const { user, setUser } = useUser();
   const [profilePic, setProfilePic] = useState(null);
   const [preview, setPreview] = useState(null);
   const [form, setForm] = useState({
@@ -9,6 +16,23 @@ const EditProfile = () => {
     college: '',
     course: ''
   });
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        name: user.name || '',
+        email: user.email || '',
+        college: user.college || '',
+        course: user.course || ''
+      });
+      setPreview(user.imageUrl || user.image || fallbackProfilePic);
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -21,42 +45,105 @@ const EditProfile = () => {
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result);
       reader.readAsDataURL(file);
-    } else {
-      setPreview(null);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Submit logic here
+    const formData = new FormData();
+    formData.append('name', form.name);
+    formData.append('college', form.college);
+    formData.append('course', form.course);
+    if (profilePic) {
+      formData.append('image', profilePic);
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/users/me', {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updatedUser = data.user || {};
+        setForm({
+          name: updatedUser.name || '',
+          email: updatedUser.email || '',
+          college: updatedUser.college || '',
+          course: updatedUser.course || ''
+        });
+        setPreview(updatedUser.image || fallbackProfilePic);
+        setProfilePic(null);
+        setUser(updatedUser); // Update context
+        toast.success('Profile updated successfully');
+      } else {
+        toast.error('Failed to update profile');
+      }
+    } catch (err) {
+      toast.error('Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
-    // Cancel logic here (e.g., reset form or navigate away)
+    navigate('/');
   };
 
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/users/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        setUser(null);
+        navigate('/');
+        toast.success('Logged out successfully');
+      }
+    } catch (err) {
+      console.error('Logout failed:', err);
+      toast.error('Failed to logout');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <main style={{ maxWidth: 400, margin: '2rem auto', padding: '2rem', boxShadow: '0 2px 8px #eee', borderRadius: 8 }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>My Profile</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <label htmlFor="profile-pic" style={{ cursor: 'pointer' }}>
+    <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
+      <button
+        onClick={handleLogout}
+        className="absolute top-4 right-4 px-3 py-1 rounded-md bg-red-500 text-white font-semibold hover:bg-red-700 transition cursor-pointer"
+      >
+        Logout
+      </button>
+      <h2 className="text-2xl font-bold text-center mb-8">My Profile</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div className="flex flex-col items-center">
+          <label htmlFor="profile-pic" className="cursor-pointer group">
             <img
-              src={preview || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}
+              src={preview || fallbackProfilePic}
               alt="Profile Preview"
-              style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }}
+              className="w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 group-hover:border-blue-400 transition"
             />
           </label>
           <input
             id="profile-pic"
             type="file"
             accept="image/*"
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={handlePicChange}
           />
-          <span style={{ fontSize: 12, color: '#888' }}>Click image to change</span>
+          <span className="text-xs text-gray-500">Click image to change</span>
         </div>
-        <label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
           Name
           <input
             type="text"
@@ -64,20 +151,20 @@ const EditProfile = () => {
             value={form.name}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', marginTop: 4 }}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
           Email
           <input
             type="email"
             name="email"
             value={form.email}
             disabled
-            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', marginTop: 4, background: '#f5f5f5' }}
+            className="w-full px-3 py-2 rounded-md border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
           College Name
           <input
             type="text"
@@ -85,10 +172,10 @@ const EditProfile = () => {
             value={form.college}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', marginTop: 4 }}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>
-        <label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
           Course Name
           <input
             type="text"
@@ -96,12 +183,12 @@ const EditProfile = () => {
             value={form.course}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', marginTop: 4 }}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
-          <button type="submit" style={{ padding: '0.6rem 1.5rem', borderRadius: 4, border: 'none', background: '#007bff', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Submit</button>
-          <button type="button" onClick={handleCancel} style={{ padding: '0.6rem 1.5rem', borderRadius: 4, border: '1px solid #ccc', background: '#fff', color: '#333', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+        <div className="flex gap-4 justify-center mt-4">
+          <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer">Submit</button>
+          <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 transition cursor-pointer">Cancel</button>
         </div>
       </form>
     </main>

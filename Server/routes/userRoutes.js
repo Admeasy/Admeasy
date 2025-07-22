@@ -1,20 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const User = require('../models/userSchema');
-const  { authenticateJWT } = require('../middleware/userAuth')
+const authenticateJWT = require('../middleware/userAuth')
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const BackblazeB2Client = require('../b2Client');
+const b2 = new BackblazeB2Client();
 const path = require('path');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-
-let conn = mongoose.connect(process.env.MONGODB_USERS_URI);
-
-conn ? console.log('Connected to Users database') : console.log('An error occurred...');
+// UPDATE CURRENT USER (protected)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 // Helper: generate JWT
 function generateAccessToken(user) {
@@ -42,7 +41,7 @@ router.get('/', async (req, res) => {
 router.post('/signup', async (req, res) => {
     try {
         const { name, image, course, college, phone, email, password } = req.body;
-        if (!name || !email || !password) {
+        if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
         }
         const existing = await User.findOne({ email });
@@ -51,7 +50,25 @@ router.post('/signup', async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({ name, image, course, college, phone, email, password: hashedPassword });
+        
+        // Log in the user by setting cookies
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+        user.refreshToken = refreshToken;
         await user.save();
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+        });
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
+        });
+
         res.status(201).json({ success: true, message: 'User registered successfully' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -81,13 +98,13 @@ router.post('/login', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 15 * 60 * 1000 // 15 min
+            maxAge: 12 * 60 * 60 * 1000 // 12 hours
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
         });
         res.json({ success: true, message: 'Logged in successfully' });
     } catch (err) {
@@ -110,6 +127,7 @@ router.post('/logout', async (req, res) => {
         res.clearCookie('refreshToken');
         res.json({ success: true, message: 'Logged out' });
     } catch (err) {
+        console.log(err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -149,3 +167,52 @@ router.get('/me', authenticateJWT, async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+router.put('/me', authenticateJWT, upload.single('image'), async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const { name, college, course } = req.body;
+        if (name) user.name = name;
+        if (college) user.college = college;
+        if (course) user.course = course;
+
+        // Handle image upload if file provided
+        if (req.file) {
+            const ext = path.extname(req.file.originalname).toLowerCase();
+            const fileName = `users/${user._id}.${ext}`;
+            const uploadResult = await b2.uploadBuffer(req.file.buffer, fileName);
+            // Construct public URL
+            const imageUrl = `${process.env.B2_BUCKET_URL.replace(/\/$/, '')}/file/${process.env.B2_BUCKET_NAME}/${fileName}`;
+            user.image = imageUrl;
+        }
+
+        await user.save();
+        const updatedUser = await User.findById(user._id).select('-password -refreshToken');
+        res.json({ success: true, user: updatedUser });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+router.get('/me/pic', authenticateJWT, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const files = await b2.listFiles(`users/${user._id}`);
+        if (!files || files.length === 0) {
+            // No image uploaded yet
+            return res.json(null); // or send a default image URL if you want
+        }
+        const fileName = files[0].fileName;
+        const auth = await b2.getDownloadAuthorization(fileName);
+        res.json(auth.url);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+module.exports = router;

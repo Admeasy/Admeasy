@@ -19,8 +19,6 @@ const upload = multer({
     }
 });
 
-let conn = mongoose.connect(process.env.MONGODB_COLLEGES_URI);
-
 // Helper function to upload files to B2 directly from memory
 async function uploadToB2(files, collegeId) {
     const b2Client = new BackblazeB2Client();

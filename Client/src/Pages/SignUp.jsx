@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../assets/Admeasy/LOGO.webp'
 import googleIcon from '../assets/Icons/google.svg'
 import { motion } from 'framer-motion'
+import { useUser } from '../context/UserContext';
 
 
 const fadeUpVariant = {
@@ -16,6 +17,7 @@ const SignUp = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { setUser } = useUser();
 
     const validateEmail = (email) => {
         return /^\S+@\S+\.\S+$/.test(email);
@@ -54,6 +56,14 @@ const SignUp = () => {
             });
             const data = await res.json();
             if (res.ok) {
+                // Fetch user after signup and set context
+                try {
+                  const userRes = await fetch('/api/users/me', { credentials: 'include' });
+                  if (userRes.ok) {
+                    const userData = await userRes.json();
+                    setUser(userData.user || null);
+                  }
+                } catch (err) { /* ignore */ }
                 setEmail('');
                 setPassword('');
                 navigate('/me');

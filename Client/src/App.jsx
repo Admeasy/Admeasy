@@ -1,5 +1,5 @@
 import './App.css'
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
@@ -18,11 +18,44 @@ import ManageColleges from './Pages/ManageColleges'
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
+import { useEffect } from 'react';
+import { useUser } from './context/UserContext';
 
 
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const { user, setUser } = useUser();
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch('/api/users/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          let user = data.user;
+          // Fetch authorized image URL if user has an image
+          if (user && user.image) {
+            try {
+              const imgRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+              if (imgRes.ok) {
+                const imgUrl = await imgRes.json();
+                user = { ...user, imageUrl: imgUrl };
+              }
+            } catch {
+              user = { ...user, imageUrl: null };
+            }
+          }
+          setUser(user);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
+    }
+    fetchUser();
+  }, [setUser]);
 
   return (
     <>

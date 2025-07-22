@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
+const { Users } = require('../db');
 
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
         trim: true
     },
     image: {
@@ -34,4 +34,4 @@ const userSchema = new mongoose.Schema({
     }
 })
 
-module.exports = mongoose.model('Users', userSchema);
+module.exports = Users.model('Users', userSchema);

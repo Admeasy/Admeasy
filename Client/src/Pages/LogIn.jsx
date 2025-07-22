@@ -57,6 +57,7 @@ const LogIn = () => {
                 setEmail('');
                 setPassword('');
                 navigate('/');
+                window.location.reload(); // Force reload to update context/UI
             } else {
                 setError(data.message || 'Login failed');
             }

@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import logo from '../assets/Admeasy/LOGO.webp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
+import { useUser } from '../context/UserContext';
 // import Pic from '../assets/UGs/FaizahNaqvi.webp'
 
+const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
 const Navbar = () => {
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = (
@@ -59,9 +63,20 @@ const Navbar = () => {
       <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide">
         {navLinks}
         {/* <img src={Pic} className='size-15 rounded-full hover:border-2' /> */}
-        <Link to='/login' className="w-45 flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-103 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200">
-          Log In / Sign Up
-        </Link>
+        {user ? (
+          <Link to="/me" className="flex items-center">
+            <img
+              src={user.imageUrl || fallbackProfilePic}
+              alt="Profile"
+              className="size-12 rounded-full object-cover border-2 border-link hover:shadow-lg transition-all duration-200"
+              style={{ width: 48, height: 48 }}
+            />
+          </Link>
+        ) : (
+          <Link to='/login' className="w-45 flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-103 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200">
+            Log In / Sign Up
+          </Link>
+        )}
       </div>
 
       {/* Mobile Hamburger */}

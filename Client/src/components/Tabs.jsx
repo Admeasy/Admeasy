@@ -508,7 +508,7 @@ export default function Tabs({ college = {} }) {
                     key={student._id}
                     className="w-60 cursor-pointer mt-4 relative flex flex-col items-center bg-primary rounded-xl shadow-3d p-6 transform hover:scale-105 transition-transform duration-300 ease-in-out border-none"
                     onClick={() => {
-                      const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
+                      const message = `Hey there! I'd love to connect with ${student.name} from ${college?.name} to gain some real insights and perspective about ${student.course}!`;
                       setRedirect(message);
                       setShowModal(true);
                     }}

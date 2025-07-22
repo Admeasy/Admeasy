@@ -13,29 +13,6 @@ import StudentInfoModel from "./StudentInfoModel";
 
 const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
-const duStudents = [
-    {
-        name: "Gaurav Yadav",
-        college: "Ramanujan College",
-        course: "B.Com Hons.",
-        img: fallbackImage,
-        showMobile: true,
-        showUniversity: true,
-        university: "Delhi University",
-
-    },
-    {
-        name: "Ritesh Kumar",
-        college: "Shaheed Bhagat Singh College",
-        course: "B.Com Prog.",
-        img: fallbackImage,
-        showMobile: true,
-        showUniversity: true,
-        university: "Delhi University",
-
-    },
-]
-
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 60 },
     visible: { opacity: 1, y: 0 },
@@ -44,6 +21,7 @@ const fadeUpVariant = {
 export default function StudentSwiper({ college }) {
     const prevRef = useRef(null);
     const nextRef = useRef(null);
+    const collegeName = college.name;
     const [students, setStudents] = useState([])
     const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
     const size = useWindowSize();
@@ -140,8 +118,13 @@ export default function StudentSwiper({ college }) {
                                 <button
                                     className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
                                     onClick={() => {
-                                        const message = `Hey there! I'd love to connect with ${student.name} from ${college.name} to gain some real insights and perspective about ${student.course}!`;
-                                        setRedirect(message);
+                                        console.log(college?.name);
+                                        try {
+                                            const message = `Hey there! I'd love to connect with ${student.name} from ${college?.name} to gain some real insights and perspective about ${student.course}!`;
+                                            setRedirect(message);
+                                        } catch (err) {
+                                            console.log(err);
+                                        }
                                         setShowModal(true);
                                     }}>
                                     {/* Image */}
