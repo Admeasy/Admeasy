@@ -1,8 +1,9 @@
-import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaEdit, FaTrash, FaSearch, FaPlus } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import AddCollegeForm from '../components/AddCollegeForm'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Colleges = () => {
     const navigate = useNavigate()
@@ -13,6 +14,9 @@ const Colleges = () => {
     const [showAddForm, setShowAddForm] = useState(false)
     const [editingCollege, setEditingCollege] = useState(null)
     const [deletingCollegeId, setDeletingCollegeId] = useState(null)
+
+    const showError = (error) => {toast.error(error); return ""};
+    const showSuccess = (message) => toast.success(message);
 
     useEffect(() => {
         verifyAuth()
@@ -39,9 +43,7 @@ const Colleges = () => {
 
     const fetchColleges = async () => {
         try {
-            const response = await fetch('/api/colleges', {
-                credentials: 'include'
-            })
+            const response = await fetch('/api/colleges')
             if (!response.ok) {
                 throw new Error('Failed to fetch colleges')
             }
@@ -119,6 +121,7 @@ const Colleges = () => {
             await fetchColleges();
             setShowAddForm(false);
             setEditingCollege(null);
+            showSuccess(collegeId ? 'College updated successfully' : 'College added successfully');
         } catch (err) {
             console.error('Error submitting college:', err);
             setError(err.message);
@@ -130,9 +133,11 @@ const Colleges = () => {
         setEditingCollege(null);
     }
 
-    const filteredColleges = colleges.filter(college =>
-        college.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredColleges = colleges
+        .filter(college =>
+            college.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
     if (isLoading) {
         return (
@@ -155,8 +160,10 @@ const Colleges = () => {
                 Manage Colleges
             </h1>
 
+            <ToastContainer className='hidden'/>
+
             {error && (
-                <div className="text-red-500 text-center mb-4">{error}</div>
+                showError(error)
             )}
 
             <div className="max-w-6xl mx-auto">

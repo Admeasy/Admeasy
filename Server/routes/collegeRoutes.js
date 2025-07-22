@@ -14,8 +14,8 @@ const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit per file
-        files: 30 // maximum 10 files
+        fileSize: 20 * 1024 * 1024, // 20MB limit per file
+        files: 30 // maximum 30 files
     }
 });
 
@@ -63,6 +63,8 @@ async function uploadToB2(files, collegeId) {
         // Generate the final URL
         const finalUrl = `${baseUrl}/${collegeId}`;
 
+        console.log('Successfully uploaded files to B2');
+
         // Return only the folder URL
         return finalUrl;
     } catch (error) {
@@ -72,70 +74,90 @@ async function uploadToB2(files, collegeId) {
     }
 }
 
+// Helper function to upload a single file buffer to B2 at a custom path
+async function uploadSingleToB2(file, collegeId, studentId) {
+    const b2Client = new BackblazeB2Client();
+    if (!process.env.B2_BUCKET_URL) {
+        throw new Error('B2_BUCKET_URL environment variable is not set');
+    }
+    
+    try {
+        let baseUrl = process.env.B2_BUCKET_URL;
+        if (baseUrl.startsWith('@')) baseUrl = baseUrl.substring(1);
+        baseUrl = baseUrl.replace(/\/+$/, '');
+        
+        const ext = path.extname(file.originalname);
+        const fileName = `${collegeId}/students/${studentId}${ext}`;
+        
+        const result = await b2Client.uploadBuffer(file.buffer, fileName);
+        console.log(`Student image uploaded successfully: ${fileName}`);
+        
+        return `${studentId}${ext}`;
+    } catch (error) {
+        throw new Error(`Failed to upload student image: ${error.message}`);
+    }
+}
+
 //Route to create a new college
-router.post('/', upload.array('gallery'), async (req, res) => {
+router.post('/', upload.any(), async (req, res) => {
     let newCollege = null;
     let galleryUrl = '';
-
     try {
         const collegeId = new mongoose.Types.ObjectId();
-
-        // Handle file upload first if files are present
-        if (req.files && req.files.length > 0) {
+        // Separate gallery and student images
+        const galleryFiles = req.files.filter(f => f.fieldname === 'gallery');
+        // Handle gallery upload
+        if (galleryFiles && galleryFiles.length > 0) {
             try {
-                galleryUrl = await uploadToB2(req.files, collegeId.toString());
+                galleryUrl = await uploadToB2(galleryFiles, collegeId.toString());
             } catch (uploadError) {
-                console.error('Detailed upload error:', uploadError);
-                console.error('Upload error stack:', uploadError.stack);
                 throw new Error(`File upload failed: ${uploadError.message}`);
             }
         } else {
             throw new Error('Gallery images are required');
         }
-
         // Parse nested objects from form data
-        try {
-            const rating = JSON.parse(req.body.rating);
-            const contact = JSON.parse(req.body.contact);
-            const package = JSON.parse(req.body.package);
-            const courses = JSON.parse(req.body.courses);
-
-            // Create and save college document with gallery URL
-            newCollege = new College({
-                _id: collegeId,
-                name: req.body.name,
-                desc: req.body.desc,
-                logo: req.body.logo,
-                rating: rating,
-                location: req.body.location,
-                establishedYear: req.body.establishedYear,
-                type: req.body.type,
-                website: req.body.website,
-                contact: contact,
-                keywords: JSON.parse(req.body.keywords),
-                facilities: JSON.parse(req.body.facilities),
-                package: package,
-                recruiters: JSON.parse(req.body.recruiters),
-                placementRate: req.body.placementRate,
-                gallery: galleryUrl,
-                whyChoose: JSON.parse(req.body.whyChoose),
-                courses: courses
-            });
-
-            await newCollege.save();
-
-            res.status(201).json({
-                success: true,
-                message: 'College created successfully',
-                collegeId: collegeId
-            });
-        } catch (parseError) {
-            console.error('Error parsing form data:', parseError);
-            throw new Error(`Invalid form data: ${parseError.message}`);
+        const rating = JSON.parse(req.body.rating);
+        const contact = JSON.parse(req.body.contact);
+        const packageObj = JSON.parse(req.body.package);
+        const courses = JSON.parse(req.body.courses);
+        
+        // Validate affiliation based on college type
+        if (req.body.type === 'Private' && !req.body.affiliation) {
+            return res.status(400).json({ success: false, message: 'Affiliation is required for Private colleges' });
         }
+        
+        // Create and save college document with gallery URL
+        newCollege = new College({
+            _id: collegeId,
+            name: req.body.name,
+            desc: req.body.desc,
+            logo: req.body.logo,
+            affiliation: req.body.affiliation || '',
+            rating: rating,
+            location: req.body.location,
+            establishedYear: req.body.establishedYear,
+            type: req.body.type,
+            website: req.body.website,
+            contact: contact,
+            keywords: JSON.parse(req.body.keywords),
+            facilities: JSON.parse(req.body.facilities),
+            package: packageObj,
+            recruiters: JSON.parse(req.body.recruiters),
+            placementRate: req.body.placementRate,
+            gallery: galleryUrl,
+            whyChoose: JSON.parse(req.body.whyChoose),
+            courses: courses,
+            students: JSON.parse(req.body.students),
+            vidReview: req.body.vidReview
+        });
+        await newCollege.save();
+        res.status(201).json({
+            success: true,
+            message: 'College created successfully',
+            collegeId: collegeId
+        });
     } catch (error) {
-        console.error('Final error in college creation:', error);
-        console.error('Error stack trace:', error.stack);
         res.status(500).json({
             success: false,
             message: error.message,
@@ -167,94 +189,132 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.get('/:collegeId/courses/:courseId', async (req, res) => {
-    try {
-        const college = await College.findById(req.params.collegeId);
-        if (!college) {
-            return res.status(404).json({ message: 'College not found' });
-        }
-        const course = college.courses.find(course => course._id.toString() === req.params.courseId);
-        if (!course) {
-            return res.status(404).json({ message: 'Course not found' });
-        }
-        res.json(course);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching course', error: error.message });
-    }
-});
-
 // Route to update a college
-router.put('/:id', upload.array('gallery'), async (req, res) => {
+router.put('/:id', upload.any(), async (req, res) => {
     try {
         const collegeId = req.params.id;
         let galleryUrl = req.body.existingGallery;
-
-        // Handle file upload if new files are present
-        if (req.files && req.files.length > 0) {
+        // Separate gallery and student images
+        const galleryFiles = req.files.filter(f => f.fieldname === 'gallery');
+        // Handle gallery upload if new files are present
+        if (galleryFiles && galleryFiles.length > 0) {
             try {
-                galleryUrl = await uploadToB2(req.files, collegeId);
+                galleryUrl = await uploadToB2(galleryFiles, collegeId);
             } catch (uploadError) {
                 throw new Error(`File upload failed: ${uploadError.message}`);
             }
         }
-
-        // Ensure we have either new files or existing gallery URL
         if (!galleryUrl) {
             throw new Error('Gallery URL is required');
         }
-
-        // Parse nested objects from form data
-        const rating = JSON.parse(req.body.rating);
-        const contact = JSON.parse(req.body.contact);
-        const package = JSON.parse(req.body.package);
-        const courses = JSON.parse(req.body.courses);
-        const moreInfo = JSON.parse(req.body.moreInfo || '[]');
-
+        // Parse nested objects from form data with robust error handling
+        let rating, contact, packageObj, courses, moreInfo, keywords, facilities, recruiters, whyChoose, students;
+        try {
+            rating = JSON.parse(req.body.rating || '{}');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for rating', error: e.message });
+        }
+        try {
+            contact = JSON.parse(req.body.contact || '{}');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for contact', error: e.message });
+        }
+        try {
+            packageObj = JSON.parse(req.body.package || '{}');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for package', error: e.message });
+        }
+        try {
+            courses = JSON.parse(req.body.courses || '[]');
+        } catch (e) {
+            return res.status(400).json({ success: false, message: 'Invalid JSON for courses', error: e.message });
+        }
+        try {
+            moreInfo = JSON.parse(req.body.moreInfo || '[]');
+        } catch (e) {
+            moreInfo = [];
+        }
+        try {
+            keywords = JSON.parse(req.body.keywords || '[]');
+        } catch (e) {
+            keywords = [];
+        }
+        try {
+            facilities = JSON.parse(req.body.facilities || '[]');
+        } catch (e) {
+            facilities = [];
+        }
+        try {
+            recruiters = JSON.parse(req.body.recruiters || '[]');
+        } catch (e) {
+            recruiters = [];
+        }
+        try {
+            whyChoose = JSON.parse(req.body.whyChoose || '[]');
+        } catch (e) {
+            whyChoose = [];
+        }
+        // students can be string or array
+        try {
+            students = typeof req.body.students === 'string' ? JSON.parse(req.body.students) : req.body.students || [];
+        } catch (e) {
+            students = [];
+        }
+        // Validate required fields
+        const requiredFields = ['name', 'desc', 'logo', 'location', 'establishedYear', 'type', 'website', 'placementRate'];
+        for (const field of requiredFields) {
+            if (!req.body[field]) {
+                return res.status(400).json({ success: false, message: `Missing required field: ${field}` });
+            }
+        }
+        
+        // Validate affiliation based on college type
+        if (req.body.type === 'Private' && !req.body.affiliation) {
+            return res.status(400).json({ success: false, message: 'Affiliation is required for Private colleges' });
+        }
         const updateData = {
             name: req.body.name,
             desc: req.body.desc,
             logo: req.body.logo,
+            affiliation: req.body.affiliation || '',
             rating: rating,
             location: req.body.location,
             establishedYear: req.body.establishedYear,
             type: req.body.type,
             website: req.body.website,
             contact: contact,
-            keywords: JSON.parse(req.body.keywords),
-            facilities: JSON.parse(req.body.facilities),
-            package: package,
-            recruiters: JSON.parse(req.body.recruiters),
+            keywords: keywords,
+            facilities: facilities,
+            package: packageObj,
+            recruiters: recruiters,
             placementRate: req.body.placementRate,
             gallery: galleryUrl,
-            whyChoose: JSON.parse(req.body.whyChoose),
+            whyChoose: whyChoose,
             courses: courses,
-            moreInfo: moreInfo
+            moreInfo: moreInfo,
+            students: students,
+            vidReview: req.body.vidReview
         };
-
-        // Update college document
         const updatedCollege = await College.findByIdAndUpdate(
             collegeId,
             updateData,
             {
-                new: true, // Return the updated document
-                runValidators: true // Run validators on update
+                new: true,
+                runValidators: true
             }
         );
-
         if (!updatedCollege) {
             return res.status(404).json({
                 success: false,
                 message: 'College not found'
             });
         }
-
         res.json({
             success: true,
             message: 'College updated successfully',
             college: updatedCollege
         });
     } catch (error) {
-        console.error('Error updating college:', error);
         res.status(500).json({
             success: false,
             message: 'Error updating college',
@@ -288,6 +348,35 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Error in delete route:', error);
         res.status(500).json({ message: 'Error deleting college', error: error.message });
+    }
+});
+
+//Route to get random students for homepgae
+router.get('/students', async (req, res) => {
+    try {
+        const colleges = await College.find();
+        const randomColleges = colleges.sort(() => Math.random() - 0.5).slice(0, 4);
+        console.log(randomColleges);
+        res.json(randomColleges);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching random students', error: error.message });
+    }
+});
+
+//Route to get a specific course
+router.get('/:collegeId/courses/:courseId', async (req, res) => {
+    try {
+        const college = await College.findById(req.params.collegeId);
+        if (!college) {
+            return res.status(404).json({ message: 'College not found' });
+        }
+        const course = college.courses.find(course => course._id.toString() === req.params.courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.json(course);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching course', error: error.message });
     }
 });
 
@@ -329,17 +418,50 @@ router.get('/gallery/:id', async (req, res) => {
     }
 });
 
-// Add new route to proxy image requests
-router.get('/b2/signed-url/:collegeId/:fileName', async (req, res) => {
-    const prefix = `${req.params.collegeId}/`;
-    const b2 = new BackblazeB2Client();
-
+// Route to list all student images for a college
+router.get('/:collegeId/students', async (req, res) => {
     try {
-        const result = await b2.getDownloadAuthorization(prefix); // valid for 3 hours
-        res.json(result);
+        const collegeId = req.params.collegeId;
+        const college = await College.findById(collegeId);
+
+        if (!college) {
+            return res.status(404).json({ message: 'College not found' });
+        }
+
+        // Initialize B2 client
+        const b2Client = new BackblazeB2Client();
+
+        try {
+            // List all files in the students folder
+            const files = await b2Client.listFiles(`${collegeId}/students`);
+            
+            // Get authorized URLs for each file
+            const studentImages = await Promise.all(files.map(async (file) => {
+                const auth = await b2Client.getDownloadAuthorization(file.fileName);
+                return {
+                    student: path.parse(file.fileName).name,
+                    url: auth.url
+                };
+            }));
+
+            res.json(studentImages);
+        } catch (b2Error) {
+            console.error('Error accessing B2 for student images:', b2Error);
+            res.status(500).json({ 
+                message: 'Error fetching student images', 
+                error: b2Error.message,
+                students: college.students.map(student => ({
+                    id: student.id,
+                    name: student.name,
+                    course: student.course,
+                    imageField: student.image,
+                    hasImage: !!student.image
+                }))
+            });
+        }
     } catch (error) {
-        console.error('Error in signed-url route:', error);
-        res.status(500).json({ message: 'Error generating signed URL', error: error.message });
+        console.error('Error in student images route:', error);
+        res.status(500).json({ message: 'Error processing request', error: error.message });
     }
 });
 

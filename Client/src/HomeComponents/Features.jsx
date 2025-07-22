@@ -46,7 +46,7 @@ export default function Features() {
   return (
     <section className="mt-10 py-12 px-6 md:px-16">
       <h2 className="text-2xl sm:text-3xl md:text-4xl font-admeasy-extrabold text-center mb-10 text-gray-800">
-        ✔️ Our Features
+        ✅ Our Features
       </h2>
 
       {/* Mobile Layout */}

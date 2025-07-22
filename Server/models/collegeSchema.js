@@ -22,6 +22,10 @@ const CollegesSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  affiliation: {
+    type: String,
+    trim: true
+  },
   rating: {
     overall: {
       type: Number,
@@ -122,10 +126,10 @@ const CollegesSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    eligibility: {
+    eligibility: [{
       type: String,
       required: true
-    },
+    }],
     feeStructure: {
       feePerSemester: {
         type: Number,
@@ -141,7 +145,7 @@ const CollegesSchema = new mongoose.Schema({
           type: Number,
           required: true
         }
-      }]
+      }, {_id: false}]
     },
     scholarships: [{
       name: {
@@ -165,7 +169,7 @@ const CollegesSchema = new mongoose.Schema({
         trim: true
       }
     }, {_id: false}],
-  }],
+  }, {_id: false}],
   facilities: [{
     type: String,
     required: true,
@@ -209,6 +213,26 @@ const CollegesSchema = new mongoose.Schema({
       },
       message: 'Gallery URL is required'
     }
+  },
+  students: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    course: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    image: {
+      type: String,
+      trim: true
+    }
+  }],
+  vidReview: {
+    type: String,
+    trim: true
   },
   moreInfo: [{
     title: {

@@ -15,7 +15,7 @@ const InfoPod = ({ Icon, value }) => {
       <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]">
         <Icon />
       </span>
-      <p className="text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-nowrap">
+      <p className="text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-wrap">
         {displayValue}
       </p>
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
@@ -119,8 +119,7 @@ const PrivacyPolicy = () => {
           <p>
             📬 Contact us with any concerns at: <strong>support@admeasy.in</strong>
           </p>
-          {/* Company Name*/}
-          <p>🏢 Admeasy Admission Solutions Private Limited.</p>
+          <p>🏢 Campii Admission Solutions LLP</p>
         </div>
       </section>
     </div>

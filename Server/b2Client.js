@@ -4,6 +4,7 @@ const fs = require('fs');
 const qs = require('querystring');
 const crypto = require('crypto');
 const B2 = require('backblaze-b2');
+const path = require('path');
 
 
 class BackblazeB2Client {
@@ -84,7 +85,29 @@ class BackblazeB2Client {
     }
 
     async uploadBuffer(buffer, fileName) {
+        console.log(`Starting upload for file: ${fileName}`);
+        console.log(`Buffer size: ${buffer.length} bytes`);
+        
         const uploadUrlResponse = await this.getUploadUrl();
+        console.log(`Got upload URL: ${uploadUrlResponse.uploadUrl}`);
+
+        // Detect MIME type based on file extension
+        const ext = path.extname(fileName).toLowerCase();
+        let mimeType = 'application/octet-stream';
+        
+        if (ext === '.jpg' || ext === '.jpeg') {
+            mimeType = 'image/jpeg';
+        } else if (ext === '.png') {
+            mimeType = 'image/png';
+        } else if (ext === '.gif') {
+            mimeType = 'image/gif';
+        } else if (ext === '.webp') {
+            mimeType = 'image/webp';
+        } else if (ext === '.svg') {
+            mimeType = 'image/svg+xml';
+        }
+        
+        console.log(`Detected MIME type: ${mimeType}`);
 
         try {
             const result = await this.b2.uploadFile({
@@ -93,10 +116,13 @@ class BackblazeB2Client {
                 fileName: fileName,
                 data: buffer,
                 contentLength: buffer.length,
-                mime: 'application/octet-stream'
+                mime: mimeType
             });
+            console.log(`Upload successful for ${fileName}:`, result.data);
             return result;
         } catch (error) {
+            console.error(`Upload failed for ${fileName}:`, error);
+            console.error(`Error details:`, error.response?.data || error.message);
             throw new Error(`Error uploading buffer as file '${fileName}': ${error.message}`);
         }
     }

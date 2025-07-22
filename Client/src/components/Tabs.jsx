@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
-import StudentSwiper from '../components/StudentSwiper';
+import StudentInfoModel from './StudentInfoModel';
 import Contact from '../components/CollegeContactCard'
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -13,6 +13,7 @@ import Boy from '../assets/Others/BoyPointingSideways.webp'
 import Star from '../assets/Others/Star.webp'
 import { FaArrowRight } from 'react-icons/fa6';
 
+
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
@@ -21,6 +22,8 @@ const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 }
+
+const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 // Helper function to safely access nested objects
 const safeGet = (obj, path, defaultValue = '') => {
@@ -51,7 +54,7 @@ const RatingBar = ({ rating, label }) => {
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex justify-between items-center">
-        <span className="text-thead1 text-lg">{label}</span>
+        <h4 className="text-thead1 text-lg font-semibold">{label}</h4>
         <span className={`font-medium ${ratingValue >= 4.5 ? 'text-green-600' :
           ratingValue >= 4.0 ? 'text-teal-600' :
             ratingValue >= 3.5 ? 'text-blue-600' :
@@ -84,12 +87,17 @@ export default function Tabs({ college = {} }) {
   const [lastGalleryFetch, setLastGalleryFetch] = useState(null);
   const [recruitersWithLogos, setRecruitersWithLogos] = useState([]);
   const [isLoadingLogos, setIsLoadingLogos] = useState(true);
+  const [redirect, setRedirect] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [mentors, setMentors] = useState([]);
+  const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
 
   let [categories] = useState({
     Overview: [],
     Courses: [],
+    Mentors: [],
     Gallery: [],
-    Reviews: [],
+    Rating: [],
     Contact: [],
   });
 
@@ -98,6 +106,30 @@ export default function Tabs({ college = {} }) {
     highest: safeGet(college, 'package.highest', 'Not Available'),
     average: safeGet(college, 'package.average', 'Not Available')
   };
+
+  //  Form Cancel Handler Function
+  const cancelHandler = () => {
+    setShowModal(false);
+
+    setTimeout(() => {
+      window.open(`https://wa.me/919243299145?text=${redirect}`, "_blank");
+    }, 10); // give enough time for user to notice the toast
+  }
+  const onXclick = () => {
+    setShowModal(false)
+  }
+
+  function getStudentImageUrl(imageName) {
+    if (imageName) {
+      // Find the first key in studentImages that includes the imageName
+      const entry = Object.entries(studentImages).find(([key]) =>
+        key.includes(imageName)
+      );
+      return entry ? entry[1] : fallbackImage;
+    } else {
+      return fallbackImage
+    }
+  }
 
   // Function to fetch gallery images
   const fetchGalleryImages = async () => {
@@ -108,17 +140,17 @@ export default function Tabs({ college = {} }) {
 
     try {
       const res = await fetch(`/api/colleges/gallery/${college._id}`);
-      
+
       if (!res.ok) {
         throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
       }
-      
+
       const urls = await res.json();
-      
+
       if (!urls || urls.length === 0) {
         throw new Error('No gallery images found');
       }
-      
+
       setGallery(urls);
       setLastGalleryFetch(Date.now());
     } catch (err) {
@@ -130,15 +162,25 @@ export default function Tabs({ college = {} }) {
     }
   };
 
-  // Fetch gallery images initially and refresh every 45 minutes
   useEffect(() => {
-    fetchGalleryImages();
-    
-    // Refresh URLs every 45 minutes (before the 1-hour expiration)
-    const refreshInterval = setInterval(fetchGalleryImages, 2 * 60 * 1000);
-    
+    const students = college.students;
+    setMentors(students);
+  }, [])
+
+  // Fetch gallery images only when Gallery tab is selected
+  useEffect(() => {
+    if (selectedTab === 3) { // Gallery tab index is 3
+      fetchGalleryImages();
+    }
+  }, [selectedTab, college?._id]);
+
+  // Refresh gallery URLs every 59 minutes when Gallery tab is active
+  useEffect(() => {
+    if (selectedTab !== 3) return; // Only run when Gallery tab is active
+
+    const refreshInterval = setInterval(fetchGalleryImages, 59 * 60 * 1000);
     return () => clearInterval(refreshInterval);
-  }, [college?._id]);
+  }, [selectedTab, college?._id]);
 
   // Function to get company logo URL
   const getCompanyLogo = async (companyName) => {
@@ -156,7 +198,7 @@ export default function Tabs({ college = {} }) {
   useEffect(() => {
     const fetchRecruitersLogos = async () => {
       if (!college?.recruiters?.length) return;
-      
+
       setIsLoadingLogos(true);
       try {
         const recruitersData = await Promise.all(
@@ -193,7 +235,7 @@ export default function Tabs({ college = {} }) {
                 key={category}
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[18px] font-medium',
+                    'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[20px] font-medium',
                     'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer',
                     selected
                       ? 'bg-white text-link shadow'
@@ -218,7 +260,7 @@ export default function Tabs({ college = {} }) {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 About {college?.name || 'College'}
               </h2>
               <div className="w-full flex justify-evenly items-center">
@@ -235,18 +277,47 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 px-3 space-y-6"
+            >
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
+                Video Review
+              </h2>
+              {college?.vidReview ?
+                (college?.vidReview.includes('shorts/') ?
+                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}?rel=0&showinfo=0&modestbranding=1`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" showinfo='0' referrerpolicy="strict-origin-when-cross-origin" allowFullScreen className='max-[380px]:w-full max-[380px]:h-120 w-fit h-135 mx-auto aspect-auto rounded-xl'></iframe> :
+                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerpolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe>) :
+                <h4 className=''>No Video Review available</h4>}
+              {/* {college?.vidReview &&
+                college?.vidReview.includes('shorts/') ? <embed src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}`}
+                  type="video/mp4"
+                  width="100%" height="100%"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowfullscreen className='w-1/2 h-550'></embed> : <embed src={`https://www.youtube.com/embed/${college?.vidReview}`} wmode="transparent"
+                  type="video/mp4"
+                  width="100%" height="100%"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowfullscreen className='w-full aspect-video'></embed>
+              } */}
+            </motion.section>
+
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
             >
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Facilities
               </h2>
               <div className="w-full flex sm:justify-evenly items-center">
                 <ul className='space-y-4 text-tprimary text-center text-md sm:text-lg'>
                   {Array.isArray(college?.facilities) && college.facilities.length > 0 ? (
                     college.facilities.map((facility, index) => (
-                      <li key={index} className="flex items-center text-lg sm:text-xl gap-2">
-                        <FaDotCircle className='min-w-4 min-h-4 text-thead2' />
-                        {facility}
+                      <li key={index} className="flex items-start md:items-center text-lg sm:text-xl gap-2">
+                        <FaDotCircle className='min-w-4 min-h-4 mt-2 md:mt-1 text-thead2' />
+                        <h6 className='m-0 p-0 text-start'>{facility}</h6>
                       </li>
                     ))
                   ) : (
@@ -264,7 +335,7 @@ export default function Tabs({ college = {} }) {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Placements
               </h2>
               <div className="w-full flex items-center justify-evenly">
@@ -290,7 +361,7 @@ export default function Tabs({ college = {} }) {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Recruiters
               </h2>
               {isLoadingLogos ? (
@@ -336,22 +407,25 @@ export default function Tabs({ college = {} }) {
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6">
-              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-2xl text-thead1">
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 More Info About {college.name}
               </h2>
               <ul className="text-tprimary text-center text-md sm:text-lg">
                 {Array.isArray(college?.moreInfo) && college.moreInfo
                   .filter(info => info && info.title && info.content) // Filter out invalid entries
                   .map((info, index) => (
-                    <li key={index} className="flex items-center gap-2 p-2">
-                      <FaArrowRight className='w-4 h-4 text-thead2' />
-                      <span className="text-thead2">{info.title}: </span> {info.content}
+                    <li key={index} className="w-full flex items-start gap-2 p-2">
+                      <FaArrowRight className='min-w-4 min-h-4 mt-1.5 text-thead2' />
+                      <h3 className="w-full flex flex-col sm:flex-row">
+                        <span className="text-thead2 text-left font-semibold">{info.title}:</span><br />
+                        <span className="w-full text-tprimary">{info.content}</span>
+                      </h3>
                     </li>
                   ))}
-                {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 || 
+                {(!Array.isArray(college?.moreInfo) || college.moreInfo.length === 0 ||
                   !college.moreInfo.some(info => info && info.title && info.content)) && (
-                  <li className="text-center text-lg">No additional information available</li>
-                )}
+                    <li className="text-center text-lg">No additional information available</li>
+                  )}
               </ul>
             </motion.section>
 
@@ -370,8 +444,8 @@ export default function Tabs({ college = {} }) {
                 <ul className="space-y-4 text-tsecondary text-sm">
                   {Array.isArray(college?.whyChoose) && college.whyChoose.length > 0 ? (
                     college.whyChoose.map((reason, index) => (
-                      <li key={index} className="flex items-center gap-2 text-lg sm:text-xl">
-                        <FaCheckCircle className="text-thead1 min-w-5 min-h-5" />
+                      <li key={index} className="flex items-start md:items-center gap-2 text-lg sm:text-xl">
+                        <FaCheckCircle className="text-thead1 min-w-5 min-h-5 mt-2 md:mt-1" />
                         {reason}
                       </li>
                     ))
@@ -407,6 +481,63 @@ export default function Tabs({ college = {} }) {
                   <li className='text-center text-lg col-span-full'>No courses found</li>
                 )}
               </ul>
+            </motion.section>
+          </TabPanel>
+
+          <TabPanel>
+            {/* Mentors */}
+            <motion.section
+              variants={fadeUpVariant}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mt-20 mx-auto w-[90%] md:w-[80%] text-center bg-primary rounded-2xl shadow-3d p-6 space-y-6"
+            >
+              <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
+                Talk to UGs/Alumnis
+              </h2>
+              <div className="w-full p-3 flex justify-evenly flex-wrap gap-10">
+                {mentors && mentors.length > 0 ? (mentors.map((student) => (
+                  <motion.button
+                    variants={fadeUpVariant}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.25 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    key={student._id}
+                    className="w-60 cursor-pointer mt-4 relative flex flex-col items-center bg-primary rounded-xl shadow-3d p-6 transform hover:scale-105 transition-transform duration-300 ease-in-out border-none"
+                    onClick={() => {
+                      const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
+                      setRedirect(message);
+                      setShowModal(true);
+                    }}
+                  >
+                    <div className="flex flex-col space-y-1">
+                      {/* Image with College Logo Overlay */}
+                      <div>
+                        <img
+                          src={getStudentImageUrl(student.image)}
+                          className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                          onError={(e) => {
+                            e.target.src = fallbackImage;
+                          }} />
+                      </div>
+                      {/* Text Content */}
+                      <div className="mt-4 text-center flex flex-col space-y-1.5">
+                        {/* Student Name */}
+                        <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+                        {/* Highlighted College Name */}
+                        <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
+                        {/* Course Badge */}
+                        <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
+                          {student.course}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.button>
+                ))) : (<h4 className='text-xl text-center'>No Mentors found...</h4>)}
+              </div>
             </motion.section>
           </TabPanel>
 
@@ -450,7 +581,7 @@ export default function Tabs({ college = {} }) {
                           }
                         }}
                       />
-                      <div 
+                      <div
                         className="hidden w-full h-64 bg-gray-100 rounded-xl shadow-3d flex-col items-center justify-center text-gray-500 space-y-2"
                       >
                         <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
@@ -476,13 +607,13 @@ export default function Tabs({ college = {} }) {
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="flex flex-col gap-12 mx-auto mt-10 w-[80%] bg-primary rounded-2xl shadow-3d p-6 space-y-6">
+              className="flex flex-col gap-8 mx-auto mt-10 w-[80%] bg-primary rounded-2xl shadow-3d p-8 space-y-6">
               <h1 className="m-0 p-0 text-2xl sm:text-3xl text-center text-thead1 font-admeasy-extrabold">
                 Rating
               </h1>
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="w-full md:w-1/3 flex flex-col items-center justify-center p-3 sm:p-6 bg-white/50 rounded-xl">
-                  <h4 className="mb-2 text-thead1 text-lg">Overall Rating</h4>
+                  <h4 className="mb-2 text-thead1 text-lg font-semibold">Overall Rating</h4>
                   <div className="text-8xl flex items-center justify-evenly">
                     <h1 className="m-0 p-0 text-thead1 font-admeasy-extrabold">
                       {typeof college?.rating?.overall === 'number' ? college.rating.overall.toFixed(1) : 'N/A'}
@@ -528,6 +659,15 @@ export default function Tabs({ college = {} }) {
           </TabPanel>
         </TabPanels>
       </TabGroup>
+      
+      {/* StudentInfoModel - rendered at root level for proper positioning */}
+      <StudentInfoModel
+        isOpen={showModal}
+        redirect={redirect}
+        onClose={cancelHandler}
+        onX={onXclick}
+        setShowModal={setShowModal}
+      />
     </section>
   );
 }

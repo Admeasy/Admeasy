@@ -117,11 +117,10 @@ useEffect(() => {
           <Section>
             <h2 className="text-2xl md:text-4xl font-semibold">What is Admeasy?</h2>
             <p className="text-[12px] md:text-2xl text-gray-700 px-4">
-              Admeasy is a student-driven educational startup based in Indore, India, operating under the motto
+              <strong>Admeasy</strong> is a student-driven educational startup based in Indore, India, operating under the motto
               <strong> "Made for Students, By Students".</strong> We focus on enhancing the academic experience by providing
               tailored solutions and resources for students. With a small, dedicated team, we aim to bridge gaps in the
               higher education sector through innovation and student-centric services.
-
             </p>
           </Section>
           <Section>

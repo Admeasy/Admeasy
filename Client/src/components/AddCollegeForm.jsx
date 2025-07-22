@@ -18,6 +18,7 @@ const initialFormState = {
     name: '',
     desc: '',
     logo: '',
+    affiliation: '',
     rating: {
         overall: 0,
         educationalQuality: 0,
@@ -51,7 +52,9 @@ const initialFormState = {
         duration: '',
         semesters: '',
         rating: 0,
-        eligibility: '',
+        eligibility: [{
+            criteria: ''
+        }],
         feeStructure: {
             feePerSemester: '',
             additionals: []
@@ -63,7 +66,42 @@ const initialFormState = {
             howToApply: ''
         }]
     }],
-    moreInfo: []
+    moreInfo: [],
+    students: [],
+    videoReview: ''
+}
+
+// Helper function to extract video code from YouTube URLs
+const extractVideoCode = (url) => {
+    if (!url) return '';
+
+    // Handle different YouTube URL formats
+    if (url.includes('youtu.be/')) {
+        return url.split('youtu.be/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/watch?v=')) {
+        return url.split('watch?v=')[1].split('&')[0];
+    } else if (url.includes('youtube.com/shorts/')) {
+        return url.split('youtube.com/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/embed/')) {
+        return url.split('embed/')[1].split('?')[0];
+    } else if (url.includes('youtube.com/v/')) {
+        return url.split('v/')[1].split('?')[0];
+    } else if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
+        // If it's already just a video code
+        return url;
+    }
+
+    return '';
+};
+
+// Helper function to validate YouTube URL
+const isValidYouTubeUrl = (url) => {
+    if (!url) return true; // Allow empty URLs
+    const videoCode = extractVideoCode(url);
+    if (videoCode.includes('shorts/')) {
+        return true;
+    }
+    return videoCode.length === 11; // YouTube video codes are 11 characters
 }
 
 const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
@@ -72,6 +110,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const [existingGalleryUrls, setExistingGalleryUrls] = useState([])
     const [newKeyword, setNewKeyword] = useState('')
     const [courseChangeTimer, setCourseChangeTimer] = useState(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Function to generate keywords from college data
     const generateKeywords = (data) => {
@@ -110,11 +149,11 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 // Only add course keywords if the title is properly set
                 keywords.add(course.title.trim());
                 keywords.add(course.title.trim() + ' Course');
-                
+
                 if (course.duration && course.duration.toString().trim()) {
                     keywords.add(`${course.duration} Year ${course.title} Course`);
                 }
-                
+
                 // Add fee-related keywords only if they exist
                 if (course.feeStructure.feePerSemester) {
                     keywords.add(`${course.title} - ${course.feeStructure.feePerSemester} per semester`);
@@ -148,13 +187,21 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     useEffect(() => {
         if (editData) {
             // Handle gallery separately since we need to keep track of existing URLs
-            const { gallery, ...restData } = editData;
+            const { gallery, vidReview, ...restData } = editData;
             if (typeof gallery === 'string' && gallery) {
                 setExistingGalleryUrls([gallery]);
             }
-            
+
+            // Convert vidReview (video code) back to a full YouTube URL for editing
+            let videoReviewUrl = '';
+            if (vidReview) {
+                // Reconstruct the YouTube URL from the video code
+                videoReviewUrl = `https://www.youtube.com/watch?v=${vidReview}`;
+            }
+
             setFormData({
                 ...restData,
+                videoReview: videoReviewUrl,
                 gallery: []
             });
         }
@@ -203,7 +250,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
 
     const handleFormChange = (e, section = null, subsection = null) => {
         const { name, value } = e.target;
-        
+
         if (section) {
             if (subsection) {
                 setFormData(prev => ({
@@ -220,11 +267,11 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         ...prev.rating,
                         [name]: parseFloat(value) || 0
                     };
-                    
+
                     const ratingKeys = ['educationalQuality', 'faculty', 'infrastructure', 'placements', 'facilities'];
                     const sum = ratingKeys.reduce((acc, key) => acc + (parseFloat(newRatings[key]) || 0), 0);
                     const average = (sum / ratingKeys.length).toFixed(1);
-                    
+
                     return {
                         ...prev,
                         rating: {
@@ -252,7 +299,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
             }
         } else if (['facilities', 'recruiters', 'whyChoose'].includes(name)) {
             // Store the current input value
-            const items = value.endsWith(';') ? 
+            const items = value.endsWith(';') ?
                 value.slice(0, -1).split(';').map(item => item.trim()).filter(item => item !== '') :
                 value.split(';').map(item => item.trim()).filter(item => item !== '');
 
@@ -370,7 +417,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 duration: '',
                 semesters: '',
                 rating: 0,
-                eligibility: '',
+                eligibility: [],
                 feeStructure: {
                     feePerSemester: '',
                     additionals: []
@@ -437,7 +484,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     const removeAdditionalFee = (courseIndex, additionalIndex) => {
         setFormData(prev => {
             const newCourses = [...prev.courses];
-            newCourses[courseIndex].feeStructure.additionals = 
+            newCourses[courseIndex].feeStructure.additionals =
                 newCourses[courseIndex].feeStructure.additionals.filter((_, i) => i !== additionalIndex);
             return {
                 ...prev,
@@ -490,7 +537,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         setDragActive(false)
 
         const files = e.dataTransfer ? e.dataTransfer.files : e.target.files
-        const validFiles = Array.from(files).filter(file => 
+        const validFiles = Array.from(files).filter(file =>
             file.type.startsWith('image/')
         )
 
@@ -507,37 +554,80 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         }))
     }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        
-        // Create FormData object for multipart/form-data submission
-        const submitData = new FormData();
-        
-        // Add all form fields
-        Object.keys(formData).forEach(key => {
-            if (key === 'gallery') {
-                // Add each gallery file
-                formData.gallery.forEach(file => {
-                    submitData.append('gallery', file);
-                });
-            } else if (key === 'moreInfo') {
-                // Ensure moreInfo is properly formatted
-                const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
-                submitData.append('moreInfo', JSON.stringify(validMoreInfo));
-            } else if (typeof formData[key] === 'object') {
-                // Stringify nested objects
-                submitData.append(key, JSON.stringify(formData[key]));
-            } else {
-                submitData.append(key, formData[key]);
-            }
+    const addStudent = () => {
+        setFormData(prev => ({
+            ...prev,
+            students: [...prev.students, { name: '', course: '', image: null }]
+        }));
+    };
+
+    const removeStudent = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            students: prev.students.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleStudentChange = (index, field, value) => {
+        setFormData(prev => {
+            const newStudents = [...prev.students];
+            newStudents[index] = {
+                ...newStudents[index],
+                [field]: value
+            };
+            return {
+                ...prev,
+                students: newStudents
+            };
         });
+    };
 
-        // If we're editing and have an existing gallery URL, pass it along
-        if (existingGalleryUrls.length > 0) {
-            submitData.append('existingGallery', existingGalleryUrls[0]);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            // Create FormData object for multipart/form-data submission
+            const submitData = new FormData();
+
+            // Add all form fields
+            Object.keys(formData).forEach(key => {
+                if (key === 'gallery') {
+                    // Add each gallery file
+                    formData.gallery.forEach(file => {
+                        submitData.append('gallery', file);
+                    });
+                } else if (key === 'moreInfo') {
+                    // Ensure moreInfo is properly formatted
+                    const validMoreInfo = formData.moreInfo.filter(info => info.title && info.content);
+                    submitData.append('moreInfo', JSON.stringify(validMoreInfo));
+                } else if (key === 'students') {
+                    submitData.append('students', JSON.stringify(formData.students));
+                } else if (key === 'videoReview') {
+                    // Extract video code from various YouTube URL formats
+                    const videoCode = extractVideoCode(formData.videoReview || '');
+                    console.log('Extracted video code:', videoCode);
+                    submitData.append('vidReview', videoCode);
+                } else if (key === 'affiliation') {
+                    // Handle affiliation based on college type
+                    const affiliationValue = formData.type === 'Public' ? '' : formData.affiliation;
+                    submitData.append('affiliation', affiliationValue);
+                } else if (typeof formData[key] === 'object') {
+                    // Stringify nested objects
+                    submitData.append(key, JSON.stringify(formData[key]));
+                } else {
+                    submitData.append(key, formData[key]);
+                }
+            });
+
+            // If we're editing and have an existing gallery URL, pass it along
+            if (existingGalleryUrls.length > 0) {
+                submitData.append('existingGallery', existingGalleryUrls[0]);
+            }
+
+            await Promise.resolve(onSubmit(submitData, editData?._id));
+        } finally {
+            setIsSubmitting(false);
         }
-
-        onSubmit(submitData, editData?._id);
     }
 
     const renderSection = (title, children) => (
@@ -554,6 +644,46 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
         </div>
     )
 
+    const addEligibilityCriteria = (courseIndex) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            if (!Array.isArray(newCourses[courseIndex].eligibility)) {
+                newCourses[courseIndex].eligibility = [];
+            }
+            newCourses[courseIndex].eligibility.push('');
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
+    const removeEligibilityCriteria = (courseIndex, criteriaIndex) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            newCourses[courseIndex].eligibility = newCourses[courseIndex].eligibility
+                .filter((_, i) => i !== criteriaIndex);
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
+    const handleEligibilityChange = (courseIndex, criteriaIndex, value) => {
+        setFormData(prev => {
+            const newCourses = [...prev.courses];
+            if (!Array.isArray(newCourses[courseIndex].eligibility)) {
+                newCourses[courseIndex].eligibility = [];
+            }
+            newCourses[courseIndex].eligibility[criteriaIndex] = value;
+            return {
+                ...prev,
+                courses: newCourses
+            };
+        });
+    }
+
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-primary rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -561,7 +691,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                     <h2 className="w-fit h-fit m-0 p-0 mx-auto text-2xl text-center font-bold text-thead1">
                         {editData ? 'Edit College' : 'Add New College'}
                     </h2>
-                    <button 
+                    <button
                         onClick={onClose}
                         className="text-gray-500 hover:text-gray-700"
                     >
@@ -573,7 +703,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                     {/* Institution Details */}
                     {renderSection("Institution Details", (
                         <>
-                            {renderField("College Name", 
+                            {renderField("College Name",
                                 <input
                                     type="text"
                                     name="name"
@@ -592,6 +722,29 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     className="w-full p-2 border rounded-lg bg-white"
                                     required
                                 />
+                            )}
+                            {renderField("Affiliation",
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        name="affiliation"
+                                        value={formData.type === 'Public' ? '' : formData.affiliation}
+                                        onChange={handleFormChange}
+                                        className={`w-full p-2 border rounded-lg ${
+                                            formData.type === 'Public' 
+                                                ? 'bg-gray-200 text-gray-500' 
+                                                : 'bg-white'
+                                        }`}
+                                        placeholder={formData.type === 'Public' ? 'Not applicable for Public colleges' : 'e.g., AICTE, UGC, State University'}
+                                        disabled={formData.type === 'Public'}
+                                        required={formData.type !== 'Public'}
+                                    />
+                                    {formData.type === 'Public' && (
+                                        <p className="text-sm text-gray-500">
+                                            Affiliation is not required for Public colleges
+                                        </p>
+                                    )}
+                                </div>
                             )}
                             {renderField("Description",
                                 <textarea
@@ -679,6 +832,37 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </div>
                     ))}
 
+                    {/* Video Review */}
+                    {renderSection("Video Review", (
+                        <>
+                            {renderField("Video Review Link",
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        name="videoReview"
+                                        value={formData.videoReview || ''}
+                                        onChange={handleFormChange}
+                                        className={`w-full p-2 border rounded-lg bg-white ${formData.videoReview && !isValidYouTubeUrl(formData.videoReview)
+                                            ? 'border-red-500'
+                                            : 'border-gray-300'
+                                            }`}
+                                        placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=VIDEO_ID)"
+                                    />
+                                    {formData.videoReview && !isValidYouTubeUrl(formData.videoReview) && (
+                                        <p className="text-sm text-red-500">
+                                            Please enter a valid YouTube URL
+                                        </p>
+                                    )}
+                                    {formData.videoReview && isValidYouTubeUrl(formData.videoReview) && (
+                                        <p className="text-sm text-green-600">
+                                            ✓ Valid YouTube URL detected
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    ))}
+
                     {/* Contact Information */}
                     {renderSection("Contact Information", (
                         <>
@@ -726,7 +910,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                 {/* Preview of current items */}
                                 <div className="mt-2">
                                     {formData[field].map((item, index) => (
-                                        <span 
+                                        <span
                                             key={index}
                                             className="inline-block bg-gray-100 text-gray-800 text-sm px-2 py-1 rounded mr-2 mb-2"
                                         >
@@ -779,7 +963,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                     {/* Gallery */}
                     {renderSection("Gallery", (
                         <div className="space-y-4">
-                            <div 
+                            <div
                                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
                                     ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
                                     hover:border-blue-500 hover:bg-blue-50`}
@@ -857,7 +1041,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     />
                                 ))}
                             </div>
-                            <form onSubmit={handleKeywordAdd} className="flex gap-2">
+                            <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={newKeyword}
@@ -866,12 +1050,13 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     className="flex-1 p-2 border rounded-lg bg-white"
                                 />
                                 <button
-                                    type="submit"
+                                    type="button"
+                                    onClick={handleKeywordAdd}
                                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                                 >
                                     Add
                                 </button>
-                            </form>
+                            </div>
                             <p className="text-sm text-gray-400">
                                 Keywords are automatically generated based on college information. You can also add custom keywords.
                             </p>
@@ -960,13 +1145,39 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         />
                                     )}
                                     {renderField("Eligibility",
-                                        <textarea
-                                            value={course.eligibility}
-                                            onChange={(e) => handleCourseChange(courseIndex, 'eligibility', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
-                                            rows="2"
-                                            required
-                                        />
+                                        <div className="bg-white/5 p-3 rounded-lg space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <h5 className="font-medium text-thead1">Eligibility Criteria</h5>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addEligibilityCriteria(courseIndex)}
+                                                    className="text-blue-500 hover:text-blue-700"
+                                                >
+                                                    <FaPlus className="inline mr-1" /> Add Criteria
+                                                </button>
+                                            </div>
+                                            {Array.isArray(course.eligibility) && course.eligibility.map((criteria, criteriaIndex) => (
+                                                <div key={criteriaIndex} className="flex gap-2 items-start">
+                                                    <div className="flex-1">
+                                                        <input
+                                                            type="text"
+                                                            value={criteria}
+                                                            onChange={(e) => handleEligibilityChange(courseIndex, criteriaIndex, e.target.value)}
+                                                            placeholder="Enter eligibility criteria"
+                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeEligibilityCriteria(courseIndex, criteriaIndex)}
+                                                        className="text-red-500 hover:text-red-700 mt-2"
+                                                    >
+                                                        <FaTimes />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
 
                                     {/* Fee Structure */}
@@ -1156,6 +1367,62 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </div>
                     ))}
 
+                    {/* UG Students Section */}
+                    {renderSection("UG Students", (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h5 className="font-medium text-thead1">Undergraduate Students</h5>
+                                <button
+                                    type="button"
+                                    onClick={addStudent}
+                                    className="text-blue-500 hover:text-blue-700"
+                                >
+                                    <FaPlus className="inline mr-1" /> Add Student
+                                </button>
+                            </div>
+                            {formData.students.map((student, index) => (
+                                <div key={index} className="bg-white/5 p-3 rounded-lg space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <h6 className="font-medium text-thead1">Student {index + 1}</h6>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeStudent(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <input
+                                            type="text"
+                                            value={student.image}
+                                            onChange={e => handleStudentChange(index, 'image', e.target.value)}
+                                            placeholder="Image address"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={student.name}
+                                            onChange={e => handleStudentChange(index, 'name', e.target.value)}
+                                            placeholder="Name"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            required
+                                        />
+                                        <input
+                                            type="text"
+                                            value={student.course}
+                                            onChange={e => handleStudentChange(index, 'course', e.target.value)}
+                                            placeholder="Course"
+                                            className="w-full p-2 border rounded-lg bg-white"
+                                            required
+                                        />
+
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+
                     <div className="flex justify-end space-x-3">
                         <button
                             type="button"
@@ -1166,9 +1433,10 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                            className={isSubmitting ? 'px-6 py-2.5 bg-gray-600 text-white rounded-lg transition-colors' : 'px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors'}
+                            disabled={isSubmitting}
                         >
-                            {editData ? 'Save Changes' : 'Submit'}
+                            {isSubmitting ? 'Submitting...' : 'Save'}
                         </button>
                     </div>
                 </form>

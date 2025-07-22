@@ -109,8 +109,8 @@ const Admin = () => {
         animate="visible"
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="min-h-screen p-8">
-        <div className="max-w-9/10 mx-auto space-y-8">
-          <img src={logo} alt="LOGO" className='h-28 mx-auto' />
+        <div className="max-w-4/5 mx-auto space-y-8">
+          <img src={logo} alt="LOGO" className='w-150 aspect-auto mx-auto' />
           <button
             onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white font-semibold absolute top-8 right-8 rounded-xl hover:bg-red-600 transition-colors">
             Logout
@@ -118,16 +118,16 @@ const Admin = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link to="/admin/colleges">
-            <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
-              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Colleges</h2>
-              <p className="text-gray-600">Add, edit, or remove college information</p>
-            </div>
+              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Colleges</h2>
+                <p className="text-gray-600">Add, edit, or remove college information</p>
+              </div>
             </Link>
-            <Link to="/admin/users">
-            <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
-              <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">UG's Management</h2>
-              <p className="text-gray-600">Manage UG's accounts and permissions</p>
-            </div>
+            <Link to="/admin/mentors">
+              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Mentors</h2>
+                <p className="text-gray-600">Add, edit, delete Mentors</p>
+              </div>
             </Link>
           </div>
         </div>

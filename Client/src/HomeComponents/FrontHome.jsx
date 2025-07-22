@@ -27,9 +27,9 @@ const FrontHome = () => {
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       transition={{ duration: 0.7, ease: 'easeOut' }}
-      className="w-full px-4 py-8"
+      className="w-full mx-auto px-4 py-8"
     >
-      <div className="flex flex-col md:flex-row items-center justify-center bg-primary w-full shadow-3d rounded-xl overflow-hidden ">
+      <div className="flex flex-col md:flex-row items-center justify-center bg-primary w-[95%] mx-auto shadow-3d rounded-xl overflow-hidden ">
         {/* Text Section */}
         <div className="w-full md:w-1/2 flex flex-col text-center justify-center gap-4 sm:gap-6 xl:gap-8 p-6 px-0">
           <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-admeasy-extrabold text-tprimary leading-snug">
@@ -37,7 +37,7 @@ const FrontHome = () => {
             <span className="text-orange-400">College</span> in INDORE & DELHI
           </h1>
           <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
-            Discover top-rated colleges near you and connect with UGs/alumni to make the right choice for your future.
+            Discover top-rated colleges near you and connect with UGs/Alumnis to make the right choice for your future.
           </p>
           <form onSubmit={handleSearch} className="relative w-9/10 sm:w-full max-w-xl mx-auto mt-4">
             <input
@@ -68,7 +68,7 @@ const FrontHome = () => {
           <img
             src={Girl}
             alt="College search illustration"
-            className="hidden md:block mt-5 lg:mt-0 max-h-[420px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
+            className="hidden md:block mt-5 lg:mt-0 max-h-[440px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
           />
         </div>
       </div>

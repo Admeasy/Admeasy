@@ -16,23 +16,25 @@ const fadeUpVariant = {
   visible: { opacity: 1, y: 0 },
 }
 
-const CollegeCard = () => {
+export default function CollegeCard() {
   // State to hold the list of colleges
   const [Colleges, setColleges] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
 
   // Fetching colleges from the server
   useEffect(() => {
     async function fetchColleges() {
+      setIsLoading(true)
       try {
         const response = await fetch('/api/colleges');
         const data = await response.json();
 
         // Select 4 random colleges from the fetched data
-        const shuffled = [...data].sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 4);
+        const selected = [...data].sort(() => 0.5 - Math.random()).slice(0, 4);
         setColleges(selected);
-
+        setIsLoading(false);
       } catch (error) {
+        setIsLoading(false);
         console.error('Error fetching colleges:', error);
       }
     }
@@ -41,7 +43,7 @@ const CollegeCard = () => {
   }, []);
 
   return (
-    
+
     <motion.section
       variants={fadeUpVariant}
       initial="hidden"
@@ -50,35 +52,35 @@ const CollegeCard = () => {
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
       className=" text-tprimary my-5">
-        <amp-ad width="100vw" height="320"
-     type="adsense"
-     data-ad-client="ca-pub-7704358624083535"
-     data-ad-slot="5535443803"
-     data-auto-format="rspv"
-     data-full-width="">
-  <div overflow=""></div>
-</amp-ad>
+      <amp-ad width="100vw" height="320"
+        type="adsense"
+        data-ad-client="ca-pub-7704358624083535"
+        data-ad-slot="5535443803"
+        data-auto-format="rspv"
+        data-full-width="">
+        <div overflow=""></div>
+      </amp-ad>
       <div className="pt-4">
-        <div className="w-full mb-8 px-2 sm:p-0 flex items-center justify-center gap-0 sm:gap-3">
+        <div className="w-full mb-8 p-0 flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />
-          <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-semibold text-center">
+          <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-extrabold text-center">
             Discover the Best Colleges Near You
           </h1>
         </div>
 
         <div className="flex my-4 flex-wrap justify-around p-0 md:p-2 md:m-2">
-          {Colleges.map(
+          {isLoading ? (<h3 className='mb-5 text-lg md:text-2xl text-tsecondary text-center font-semibold'>Loading Colleges...</h3>) : Colleges.map(
             // Function here
             (college, index) => (
 
               <Link key={index} to={`/colleges/${college._id}`}>
                 <div className=' hidden md:flex '>
-                  <div className="  w-max h-9/10 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadow duration-300 p-2 md:p-1 lg:p-3 flex">
+                  <div className="w-max h-65 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadowtransform duration-300 p-2 md:p-1 lg:p-3 flex hover:scale-105">
                     <div className='w-18 md:w-25 m-0 md:mr-2'>
                       <img src={college.logo} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
-                      <p className="text-yellow-500 text-lg font-semibold m-1">⭐ {formatRating(college?.rating)}</p>
+                      <p className="text-yellow-500 text-xl font-semibold m-1">⭐ {formatRating(college?.rating)}</p>
                     </div>
-                    <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12 justify-center">
+                    <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12">
                       <h2 className="text-2xl font-bold">
                         {college.name}
                       </h2>
@@ -133,7 +135,7 @@ const CollegeCard = () => {
         </div>
         <div className='text-center'>
           {/* <a href="/colleges">View More</a> */}
-          <ExploreBtn text='View More' isSticky={false} />
+          <ExploreBtn text='View More' linkbtn='/colleges' isSticky={false} />
         </div>
 
       </div>
@@ -141,5 +143,3 @@ const CollegeCard = () => {
 
   )
 }
-
-export default CollegeCard
