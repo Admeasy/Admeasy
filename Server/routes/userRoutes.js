@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 // SIGN UP
 router.post('/signup', async (req, res) => {
     try {
-        const { name, image, course, college, phone, email, password } = req.body;
+        const { email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
         }
@@ -49,8 +49,8 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ success: false, message: 'Email already registered' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ name, image, course, college, phone, email, password: hashedPassword });
-        
+        const user = new User({ email, password: hashedPassword });
+
         // Log in the user by setting cookies
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
@@ -173,23 +173,27 @@ router.put('/me', authenticateJWT, upload.single('image'), async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        const { name, college, course } = req.body;
+        const { name, institute, course, phone } = req.body;
         if (name) user.name = name;
-        if (college) user.college = college;
+        if (institute) user.institute = institute;
         if (course) user.course = course;
-
+        if (phone) user.phone = phone;
         // Handle image upload if file provided
         if (req.file) {
             const ext = path.extname(req.file.originalname).toLowerCase();
-            const fileName = `users/${user._id}.${ext}`;
-            const uploadResult = await b2.uploadBuffer(req.file.buffer, fileName);
-            // Construct public URL
-            const imageUrl = `${process.env.B2_BUCKET_URL.replace(/\/$/, '')}/file/${process.env.B2_BUCKET_NAME}/${fileName}`;
-            user.image = imageUrl;
+            const fileName = `users/${user._id + ext}`;
+            await b2.uploadBuffer(req.file.buffer, fileName);
+            user.image = fileName;
         }
 
         await user.save();
         const updatedUser = await User.findById(user._id).select('-password -refreshToken');
+
+        if (updatedUser.image) {
+            imageName = updatedUser.image;
+            updatedUser.image = b2.getDownloadAuthorization(imageName);
+        }
+
         res.json({ success: true, user: updatedUser });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

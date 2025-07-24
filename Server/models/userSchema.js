@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    college: {
+    institute: {
         type: String,
         trim: true
     },

@@ -13,7 +13,8 @@ const EditProfile = () => {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    college: '',
+    phone: '',
+    institute: '',
     course: ''
   });
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,8 @@ const EditProfile = () => {
       setForm({
         name: user.name || '',
         email: user.email || '',
-        college: user.college || '',
+        phone: user.phone || '',
+        institute: user.institute || '',
         course: user.course || ''
       });
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
@@ -33,6 +35,13 @@ const EditProfile = () => {
       setLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (localStorage.getItem('profileUpdated') === 'true') {
+      toast.success('Profile updated successfully');
+      localStorage.removeItem('profileUpdated');
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -52,7 +61,8 @@ const EditProfile = () => {
     e.preventDefault();
     const formData = new FormData();
     formData.append('name', form.name);
-    formData.append('college', form.college);
+    formData.append('phone', form.phone)
+    formData.append('institute', form.institute);
     formData.append('course', form.course);
     if (profilePic) {
       formData.append('image', profilePic);
@@ -70,13 +80,15 @@ const EditProfile = () => {
         setForm({
           name: updatedUser.name || '',
           email: updatedUser.email || '',
-          college: updatedUser.college || '',
+          phone: updatedUser.phone || '',
+          institute: updatedUser.institute || '',
           course: updatedUser.course || ''
         });
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
         setUser(updatedUser); // Update context
-        toast.success('Profile updated successfully');
+        localStorage.setItem('profileUpdated', 'true');
+        window.location.reload();
       } else {
         toast.error('Failed to update profile');
       }
@@ -108,14 +120,6 @@ const EditProfile = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
     <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
       <button
@@ -124,7 +128,7 @@ const EditProfile = () => {
       >
         Logout
       </button>
-      <h2 className="text-2xl font-bold text-center mb-8">My Profile</h2>
+      <h2 className="text-3xl font-bold text-center mb-8">My Profile</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col items-center">
           <label htmlFor="profile-pic" className="cursor-pointer group">
@@ -132,6 +136,7 @@ const EditProfile = () => {
               src={preview || fallbackProfilePic}
               alt="Profile Preview"
               className="w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 group-hover:border-blue-400 transition"
+              onError={e => e.target.src = fallbackProfilePic}
             />
           </label>
           <input
@@ -165,11 +170,22 @@ const EditProfile = () => {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
-          College Name
+          Phone Number
+          <input
+            type="tel"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Institute/School Name
           <input
             type="text"
-            name="college"
-            value={form.college}
+            name="institute"
+            value={form.institute}
             onChange={handleChange}
             required
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -187,7 +203,7 @@ const EditProfile = () => {
           />
         </label>
         <div className="flex gap-4 justify-center mt-4">
-          <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer">Submit</button>
+          <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-700" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
           <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 transition cursor-pointer">Cancel</button>
         </div>
       </form>

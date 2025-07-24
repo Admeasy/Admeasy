@@ -60,7 +60,7 @@ function App() {
   return (
     <>
       {!isAdminRoute && <Navbar />}
-             <ToastContainer />
+      <ToastContainer />
       <Routes>
         <Route path='/' element={<Home />}></Route>
         <Route path='/contact' element={<Contact />}></Route>
