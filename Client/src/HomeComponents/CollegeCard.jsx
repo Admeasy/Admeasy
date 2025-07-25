@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import ExploreBtn from './ExploreBtn'
-import Institute from '../assets/Icons/Institute.webp'
+import Institute from '../assets/Others/Institute.webp'
 import { Link } from 'react-router-dom'
 
 // Helper function to format rating

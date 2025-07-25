@@ -111,9 +111,9 @@ const LogIn = () => {
                     autoComplete="new-password"
                     disabled={isSubmitting}
                 />
-                <div className="flex justify-end">
+                {/* <div className="flex justify-end">
                     <Link to="/forgot-password" className="text-blue-600 hover:underline text-sm">Forgot password?</Link>
-                </div>
+                </div> */}
                 <button
                     type="submit"
                     className="bg-blue-600 text-white rounded-lg py-2 text-xl font-admeasy-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-600"
