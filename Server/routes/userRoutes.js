@@ -157,21 +157,45 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-// GET CURRENT USER (protected)
-router.get('/me', authenticateJWT, async (req, res) => {
+// GET CURRENT USER (supports both session and JWT)
+router.get('/me', async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password -refreshToken');
-        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        let user = null;
+        if (req.user) {
+            // Passport session user
+            user = await User.findById(req.user.id || req.user._id).select('-password -refreshToken');
+        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            // JWT fallback
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            user = await User.findById(decoded.id).select('-password -refreshToken');
+        }
+        if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
         res.json({ success: true, user });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-router.put('/me', authenticateJWT, upload.single('image'), async (req, res) => {
+// UPDATE CURRENT USER (supports both session and JWT)
+router.put('/me', upload.single('image'), async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        let user = null;
+        if (req.user) {
+            // Passport session user
+            user = await User.findById(req.user.id || req.user._id);
+        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            // JWT fallback
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            user = await User.findById(decoded.id);
+        } else if (req.cookies['accessToken']) {
+            // JWT in cookie fallback
+            const token = req.cookies['accessToken'];
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            user = await User.findById(decoded.id);
+        }
+        if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
         const { name, institute, course, phone } = req.body;
         if (name) user.name = name;
@@ -200,10 +224,25 @@ router.put('/me', authenticateJWT, upload.single('image'), async (req, res) => {
     }
 });
 
-router.get('/me/pic', authenticateJWT, async (req, res) => {
+// GET USER PROFILE PICTURE (supports both session and JWT)
+router.get('/me/pic', async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        let user = null;
+        if (req.user) {
+            // Passport session user
+            user = await User.findById(req.user.id || req.user._id);
+        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            // JWT fallback
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            user = await User.findById(decoded.id);
+        } else if (req.cookies['accessToken']) {
+            // JWT in cookie fallback
+            const token = req.cookies['accessToken'];
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            user = await User.findById(decoded.id);
+        }
+        if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
         const files = await b2.listFiles(`users/${user._id}`);
         if (!files || files.length === 0) {

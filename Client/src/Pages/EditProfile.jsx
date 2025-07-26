@@ -176,7 +176,6 @@ const EditProfile = () => {
             name="phone"
             value={form.phone}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>
@@ -187,7 +186,6 @@ const EditProfile = () => {
             name="institute"
             value={form.institute}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>
@@ -198,7 +196,6 @@ const EditProfile = () => {
             name="course"
             value={form.course}
             onChange={handleChange}
-            required
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>

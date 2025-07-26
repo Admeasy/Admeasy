@@ -66,9 +66,9 @@ const Navbar = () => {
         {user ? (
           <Link to="/me" className="flex items-center">
             <img
-              src={user.imageUrl || fallbackProfilePic}
+              src={user.image || user.imageUrl || fallbackProfilePic}
               alt="Profile"
-              className="size-12 rounded-full object-cover border-2 border-link hover:shadow-lg transition-all duration-200"
+              className="size-12 rounded-full object-cover hover:border-2 border-link hover:shadow-lg transition-all duration-200"
               style={{ width: 48, height: 48 }}
             />
           </Link>

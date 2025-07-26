@@ -86,7 +86,8 @@ const SignUp = () => {
             className="w-2/5 mx-auto p-6 bg-primary shadow-3d rounded-2xl">
             <img src={Logo} className='w-1/2 mx-auto mb-4' alt="Admeasy Logo" />
             <h1 className="text-5xl text-center font-admeasy-bold text-tprimary mb-10">Create a New Account</h1>
-            <button className="w-2/3 bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer text-2xl font-admeasy-semibold transform hover:scale-105 mb-6">
+            <button className="w-2/3 bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer text-2xl font-admeasy-semibold transform hover:scale-105 mb-6"
+                onClick={() => window.location.href = 'http://localhost:5000/auth/google'}>
                 <img src={googleIcon} className='w-8' alt="Google icon" />
                 Continue with Google
             </button>
