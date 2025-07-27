@@ -81,10 +81,15 @@ export default function CollegeCard() {
                       <p className="text-yellow-500 text-xl font-semibold m-1">⭐ {formatRating(college?.rating)}</p>
                     </div>
                     <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12">
-                      <h2 className="text-2xl font-bold">
+                      <h2 className={`${college.name.length>35
+                        ?'text-[14px] md:text-[16px] font-admeasy-extrabold' 
+                        :'font-admeasy-extrabold text-lg'}`}>
                         {college.name}
                       </h2>
-                      <p className="text-xl md:text-sm text-tsecondary">{college.location}</p>
+                      <p className={`${college.location.length>45
+                        ? 'text-[12px] md:text-[13px]'
+                        :' text-[15px]'
+                      } text-tsecondary`}>{college.location}</p>
                       {/* <p className="text-sm text-gray-700 line-clamp-3">cd
             {college.description}
           </p> */}
@@ -104,7 +109,7 @@ export default function CollegeCard() {
                   />
 
                   {/* College Name */}
-                  <h2 className="text-lg font-bold text-center mt-2">
+                  <h2 className={`font-bold text-center mt-2`}>
                     {college.name}
                   </h2>
 

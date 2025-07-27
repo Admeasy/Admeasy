@@ -10,9 +10,9 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const Footer = () => {
   // Define Position
-  const notify = () => toast("Message Sent Buddy😎!");
+  const notify = () => toast("Boom! Feedback received You're awesome.🚀");
   // Define Position
-  const toastErr = () => toast.error("Message cannot be empty, bro😅!");
+  const toastErr = () => toast.error("Empty feedback? That’s not cool 😅");
   const [message, setMessage] = useState(""); // 1️⃣ Fix typo
 
   const InputHandler = (e) => {
@@ -56,8 +56,9 @@ const Footer = () => {
                 <h2 className="text-2xl font-admeasy-extrabold text-gray-900 dark:text-white ">Got something on your mind?!</h2>
 
                 <p className="mt-4 text-gray-500 dark:text-gray-400">
-                  Whether it’s feedback, a suggestion, or just a quick “hello” — we’re all ears!
-                  Drop your message and let’s keep the conversation going. 🚀
+                  Your feedback matters.
+                  Suggestions, questions, or comments — we’re listening.
+                  Drop us a message anytime.
                 </p>
               </div>
             </div>
@@ -72,10 +73,9 @@ const Footer = () => {
                     value={message}
                     onChange={InputHandler}
                     name='msg'
-
                     type="text"
                     id="message"
-                    placeholder="Send Your Message"
+                    placeholder="Send Your Feedback!"
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm placeholder-gray-400  dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"
                   />
                   <button type='submit' className="cursor-pointer transition-all bg-blue-500 text-white px-6 py-2 rounded-lg

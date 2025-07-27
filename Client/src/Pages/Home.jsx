@@ -5,6 +5,7 @@ import FAQ from '../HomeComponents/FAQ'
 import StudentSwiper from '../HomeComponents/StudentSwiper'
 import { useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
+import JoiningMentor from './JoiningMentor'
 const Home = () => {
   const location = useLocation();
 
@@ -20,6 +21,7 @@ const Home = () => {
 
   return (
     <main>
+      <JoiningMentor/>
       <FrontHome />
       <StudentSwiper/>
       <CollegeCard />

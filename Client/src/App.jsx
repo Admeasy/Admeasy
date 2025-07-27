@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './Pages/Home'
+import ScrollUpButton from './components/ScrollUpButton';
 import Footer from './components/Footer'
 import Contact from './Pages/Contact'
 import About from './Pages/About'
@@ -39,7 +40,9 @@ function App() {
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
         <Route path='/admin/mentors' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>
       </Routes>
+      <ScrollUpButton/>
       {!isAdminRoute && <Footer />}
+  
     </>
   )
 }
