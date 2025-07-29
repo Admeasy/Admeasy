@@ -9,6 +9,10 @@ const userSchema = new mongoose.Schema({
     image: {
         type: String,
     },
+    gender: {
+        type: String,
+        trim: true
+    },
     course: {
         type: String,
         trim: true

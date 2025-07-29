@@ -4,13 +4,13 @@ import logo from '../assets/Admeasy/LOGO.webp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { useUser } from '../context/UserContext';
-// import Pic from '../assets/UGs/FaizahNaqvi.webp'
 
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 const Navbar = () => {
   const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const navLinks = (
     <>
@@ -52,35 +52,62 @@ const Navbar = () => {
     </>
   );
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      setIsOpen(!isOpen);
+    }
+  };
+
   return (
     <nav className="w-full mb-5 flex items-center justify-between px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
       {/* Logo */}
       <div className="flex-shrink-0">
-        <img draggable="false" className="w-36 2xl:w-48" src={logo} alt="logo" />
+        <Link to="/">
+          <img 
+            draggable="false" 
+            className="w-36 2xl:w-48" 
+            src={logo} 
+            alt="Admeasy Logo" 
+          />
+        </Link>
       </div>
 
       {/* Desktop Links */}
-      <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide">
+      <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide items-center">
         {navLinks}
-        {/* <img src={Pic} className='size-15 rounded-full hover:border-2' /> */}
         {user ? (
           <Link to="/me" className="flex items-center">
             <img
-              src={user.image || user.imageUrl || fallbackProfilePic}
+              src={imageError ? fallbackProfilePic : (user.imageUrl || user.image || fallbackProfilePic)}
               alt="Profile"
-              className="size-12 rounded-full object-cover hover:border-2 border-link hover:shadow-lg transition-all duration-200"
-              style={{ width: 48, height: 48 }}
+              className="w-12 h-12 rounded-full object-cover hover:border-2 border-link hover:shadow-lg transition-all duration-200"
+              onError={handleImageError}
             />
           </Link>
         ) : (
-          <Link to='/login' className="w-45 flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-103 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200">
+          <Link 
+            to='/login' 
+            className="flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-105 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200"
+          >
             Log In / Sign Up
           </Link>
         )}
       </div>
 
       {/* Mobile Hamburger */}
-      <div className="md:hidden text-3xl cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+      <div 
+        className="md:hidden text-3xl cursor-pointer" 
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isOpen}
+      >
         {isOpen ? <FiX /> : <FiMenu />}
       </div>
 
@@ -92,9 +119,35 @@ const Navbar = () => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-[100%] left-0 w-full bg-primary shadow-lg rounded-b-xl z-50 flex flex-col items-center text-center font-admeasy font-semibold text-base tracking-wide"
+            className="absolute top-[100%] left-0 w-full bg-primary shadow-lg rounded-b-xl z-50 flex flex-col items-center text-center font-admeasy font-semibold text-base tracking-wide py-4"
           >
             {navLinks}
+            {/* Mobile User Profile/Login */}
+            <div className="mt-4 pt-4 border-t border-gray-200 w-full">
+              {user ? (
+                <Link 
+                  to="/me" 
+                  className="flex items-center justify-center gap-2 py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <img
+                    src={imageError ? fallbackProfilePic : (user.image || user.imageUrl || fallbackProfilePic)}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={handleImageError}
+                  />
+                  <span>Profile</span>
+                </Link>
+              ) : (
+                <Link 
+                  to='/login' 
+                  className="flex items-center justify-center text-lg py-2 px-4 text-white bg-link rounded-xl mx-4"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Log In / Sign Up
+                </Link>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

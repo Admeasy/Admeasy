@@ -9,26 +9,40 @@ export function useUser() {
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null); // user object: { name, email, image, ... }
 
-  useEffect(() => {
-    // Fetch current user on mount
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('/api/users/me', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user || null);
-        } else {
-          setUser(null);
+  const fetchUser = async () => {
+    try {
+      const res = await fetch('/api/users/me', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        let user = data.user;
+        // Fetch authorized image URL if user has an image
+        if (user && user.image) {
+          try {
+            const imgRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+            if (imgRes.ok) {
+              const imgUrl = await imgRes.json();
+              user = { ...user, imageUrl: imgUrl };
+            }
+          } catch {
+            user = { ...user, imageUrl: null };
+          }
         }
-      } catch (err) {
+        setUser(user);
+      } else {
         setUser(null);
       }
-    };
+    } catch (err) {
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch current user on mount
     fetchUser();
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ user, setUser, fetchUser }}>
       {children}
     </UserContext.Provider>
   );

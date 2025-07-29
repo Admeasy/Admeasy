@@ -115,17 +115,26 @@ router.post('/login', async (req, res) => {
 // LOGOUT
 router.post('/logout', async (req, res) => {
     try {
-        const refreshToken = req.cookies['refreshToken'];
-        if (refreshToken) {
-            const user = await User.findOne({ refreshToken });
-            if (user) {
-                user.refreshToken = null;
-                await user.save();
+        // Passport logout (for Google/session users)
+        req.logout(function(err) {
+            if (err) {
+                return res.status(500).json({ success: false, message: err.message });
             }
-        }
-        res.clearCookie('accessToken');
-        res.clearCookie('refreshToken');
-        res.json({ success: true, message: 'Logged out' });
+            req.session?.destroy(() => {
+                // Clear cookies as before
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                res.clearCookie('refreshToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                res.json({ success: true, message: 'Logged out' });
+            });
+        });
     } catch (err) {
         console.log(err);
         res.status(500).json({ success: false, message: err.message });
@@ -137,8 +146,24 @@ router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
         if (!refreshToken) return res.status(401).json({ success: false, message: 'No refresh token' });
+        
+        // Check if user exists and has this refresh token (not logged out)
         const user = await User.findOne({ refreshToken });
-        if (!user) return res.status(403).json({ success: false, message: 'Invalid refresh token' });
+        if (!user) {
+            // User has logged out or token is invalid, clear cookies
+            res.clearCookie('accessToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax'
+            });
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax'
+            });
+            return res.status(403).json({ success: false, message: 'User has logged out' });
+        }
+        
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(user);
@@ -146,10 +171,21 @@ router.post('/refresh', async (req, res) => {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 15 * 60 * 1000
+                maxAge: 12 * 60 * 60 * 1000 // 12 hours
             });
             res.json({ success: true });
         } catch (err) {
+            // Refresh token is invalid or expired, clear cookies
+            res.clearCookie('accessToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax'
+            });
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax'
+            });
             return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
         }
     } catch (err) {
@@ -167,8 +203,33 @@ router.get('/me', async (req, res) => {
         } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
             // JWT fallback
             const token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-            user = await User.findById(decoded.id).select('-password -refreshToken');
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id).select('-password -refreshToken');
+            } catch (jwtErr) {
+                // Token is invalid or expired, clear it
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
+        } else if (req.cookies['accessToken']) {
+            // JWT in cookie fallback
+            const token = req.cookies['accessToken'];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id).select('-password -refreshToken');
+            } catch (jwtErr) {
+                // Token is invalid or expired, clear it
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
         res.json({ success: true, user });
@@ -187,21 +248,42 @@ router.put('/me', upload.single('image'), async (req, res) => {
         } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
             // JWT fallback
             const token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-            user = await User.findById(decoded.id);
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id);
+            } catch (jwtErr) {
+                // Token is invalid or expired, clear it
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
         } else if (req.cookies['accessToken']) {
             // JWT in cookie fallback
             const token = req.cookies['accessToken'];
-            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-            user = await User.findById(decoded.id);
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id);
+            } catch (jwtErr) {
+                // Token is invalid or expired, clear it
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const { name, institute, course, phone } = req.body;
+        const { name, institute, course, phone, gender } = req.body;
         if (name) user.name = name;
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = phone;
+        if (gender) user.gender = gender;
         // Handle image upload if file provided
         if (req.file) {
             const ext = path.extname(req.file.originalname).toLowerCase();
@@ -234,17 +316,37 @@ router.get('/me/pic', async (req, res) => {
         } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
             // JWT fallback
             const token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-            user = await User.findById(decoded.id);
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id);
+            } catch (jwtErr) {
+                // Token is invalid or expired, clear it
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
         } else if (req.cookies['accessToken']) {
             // JWT in cookie fallback
             const token = req.cookies['accessToken'];
-            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-            user = await User.findById(decoded.id);
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id);
+            } catch (jwtErr) {
+                // Token is invalid or expired, clear it
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax'
+                });
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const files = await b2.listFiles(`users/${user._id}`);
+        const files = await b2.listFiles(user.image);
         if (!files || files.length === 0) {
             // No image uploaded yet
             return res.json(null); // or send a default image URL if you want

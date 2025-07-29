@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../assets/Admeasy/LOGO.webp'
 import googleIcon from '../assets/Icons/google.svg'
 import { motion } from 'framer-motion'
+import { useUser } from '../context/UserContext'
 
 
 const fadeUpVariant = {
@@ -16,6 +17,7 @@ const LogIn = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { fetchUser } = useUser();
 
     const validateEmail = (email) => {
         return /^\S+@\S+\.\S+$/.test(email);
@@ -56,8 +58,8 @@ const LogIn = () => {
             if (res.ok) {
                 setEmail('');
                 setPassword('');
+                await fetchUser(); // Refresh user context
                 navigate('/');
-                window.location.reload(); // Force reload to update context/UI
             } else {
                 setError(data.message || 'Login failed');
             }

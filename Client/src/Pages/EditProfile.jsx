@@ -7,7 +7,7 @@ import { useUser } from '../context/UserContext'
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 const EditProfile = () => {
-  const { user, setUser } = useUser();
+  const { user, setUser, fetchUser } = useUser();
   const [profilePic, setProfilePic] = useState(null);
   const [preview, setPreview] = useState(null);
   const [form, setForm] = useState({
@@ -15,26 +15,29 @@ const EditProfile = () => {
     email: '',
     phone: '',
     institute: '',
-    course: ''
+    course: '',
+    gender: ''
   });
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (user && !isSubmitting) {
       setForm({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
         institute: user.institute || '',
-        course: user.course || ''
+        course: user.course || '',
+        gender: user.gender || ''
       });
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
       setLoading(false);
-    } else {
+    } else if (!user) {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isSubmitting]);
 
   useEffect(() => {
     if (localStorage.getItem('profileUpdated') === 'true') {
@@ -44,6 +47,7 @@ const EditProfile = () => {
   }, []);
 
   const handleChange = (e) => {
+    console.log('Form change:', e.target.name, e.target.value);
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -64,10 +68,12 @@ const EditProfile = () => {
     formData.append('phone', form.phone)
     formData.append('institute', form.institute);
     formData.append('course', form.course);
+    formData.append('gender', form.gender);
     if (profilePic) {
       formData.append('image', profilePic);
     }
     setLoading(true);
+    setIsSubmitting(true);
     try {
       const res = await fetch('/api/users/me', {
         method: 'PUT',
@@ -76,19 +82,20 @@ const EditProfile = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('Server response:', data);
         const updatedUser = data.user || {};
         setForm({
-          name: updatedUser.name || '',
-          email: updatedUser.email || '',
-          phone: updatedUser.phone || '',
-          institute: updatedUser.institute || '',
-          course: updatedUser.course || ''
+          name: updatedUser.name || form.name,
+          email: updatedUser.email || form.email,
+          phone: updatedUser.phone || form.phone,
+          institute: updatedUser.institute || form.institute,
+          course: updatedUser.course || form.course,
+          gender: updatedUser.gender || form.gender
         });
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
-        setUser(updatedUser); // Update context
-        localStorage.setItem('profileUpdated', 'true');
-        window.location.reload();
+        // Don't update user context here to prevent form reset
+        toast.success('Profile updated successfully');
       } else {
         toast.error('Failed to update profile');
       }
@@ -96,6 +103,7 @@ const EditProfile = () => {
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -111,8 +119,11 @@ const EditProfile = () => {
       });
       if (res.ok) {
         setUser(null);
-        navigate('/');
+        // Clear any localStorage items
+        localStorage.clear();
+        // Force a page reload to clear any cached state
         toast.success('Logged out successfully');
+        window.location.href = '/';
       }
     } catch (err) {
       console.error('Logout failed:', err);
@@ -158,6 +169,20 @@ const EditProfile = () => {
             required
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Gender
+          <select
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Rather not to say">Rather not to say</option>
+          </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Email

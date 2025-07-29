@@ -25,37 +25,12 @@ import { useUser } from './context/UserContext';
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const { user, setUser } = useUser();
+  const { user, setUser, fetchUser } = useUser();
 
   useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch('/api/users/me', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          let user = data.user;
-          // Fetch authorized image URL if user has an image
-          if (user && user.image) {
-            try {
-              const imgRes = await fetch('/api/users/me/pic', { credentials: 'include' });
-              if (imgRes.ok) {
-                const imgUrl = await imgRes.json();
-                user = { ...user, imageUrl: imgUrl };
-              }
-            } catch {
-              user = { ...user, imageUrl: null };
-            }
-          }
-          setUser(user);
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      }
-    }
+    // Fetch user data on app mount
     fetchUser();
-  }, [setUser]);
+  }, [fetchUser]);
 
   return (
     <>

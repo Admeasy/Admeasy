@@ -31,13 +31,41 @@ passport.use(
         let isNewUser = false;
         if (!user) {
           // Create new user if not exists
-          user = await User.create({
+          const userData = {
             name: profile.displayName,
             email: profile.emails[0].value,
             image: profile.photos[0].value,
             password: Math.random().toString(36).slice(-8), // random password, not used
-          });
+          };
+          
+          // Extract gender from Google profile if available
+          if (profile._json && profile._json.gender) {
+            const googleGender = profile._json.gender;
+            // Map Google's gender values to our options
+            if (googleGender === 'male') {
+              userData.gender = 'Male';
+            } else if (googleGender === 'female') {
+              userData.gender = 'Female';
+            } else {
+              userData.gender = 'Rather not to say';
+            }
+          }
+          
+          user = await User.create(userData);
           isNewUser = true;
+        } else {
+          // Update existing user's gender if not set and available from Google
+          if (!user.gender && profile._json && profile._json.gender) {
+            const googleGender = profile._json.gender;
+            if (googleGender === 'male') {
+              user.gender = 'Male';
+            } else if (googleGender === 'female') {
+              user.gender = 'Female';
+            } else {
+              user.gender = 'Rather not to say';
+            }
+            await user.save();
+          }
         }
         // Attach isNewUser to user object for callback
         user._isNewUser = isNewUser;

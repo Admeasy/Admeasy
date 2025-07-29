@@ -17,7 +17,7 @@ const SignUp = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { setUser } = useUser();
+    const { fetchUser } = useUser();
 
     const validateEmail = (email) => {
         return /^\S+@\S+\.\S+$/.test(email);
@@ -56,16 +56,9 @@ const SignUp = () => {
             });
             const data = await res.json();
             if (res.ok) {
-                // Fetch user after signup and set context
-                try {
-                  const userRes = await fetch('/api/users/me', { credentials: 'include' });
-                  if (userRes.ok) {
-                    const userData = await userRes.json();
-                    setUser(userData.user || null);
-                  }
-                } catch (err) { /* ignore */ }
                 setEmail('');
                 setPassword('');
+                await fetchUser(); // Refresh user context
                 navigate('/me');
             } else {
                 setError(data.message || 'Registration failed');
