@@ -20,10 +20,11 @@ const EditProfile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && !isSubmitting) {
+    if (user && !hasInitialized) {
       setForm({
         name: user.name || '',
         email: user.email || '',
@@ -34,10 +35,11 @@ const EditProfile = () => {
       });
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
       setLoading(false);
+      setHasInitialized(true);
     } else if (!user) {
       setLoading(false);
     }
-  }, [user, isSubmitting]);
+  }, [user, hasInitialized]);
 
   useEffect(() => {
     if (localStorage.getItem('profileUpdated') === 'true') {
@@ -47,7 +49,6 @@ const EditProfile = () => {
   }, []);
 
   const handleChange = (e) => {
-    console.log('Form change:', e.target.name, e.target.value);
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -225,7 +226,7 @@ const EditProfile = () => {
           />
         </label>
         <div className="flex gap-4 justify-center mt-4">
-          <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-700" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
+          <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-700" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
           <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 transition cursor-pointer">Cancel</button>
         </div>
       </form>

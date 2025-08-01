@@ -12,6 +12,8 @@ import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import StudentInfoModel from "../components/StudentInfoModel";
 import { Link } from 'react-router-dom'
+import Login from '../Pages/Login'
+import { useUser } from "../context/UserContext";
 
 
 const fadeUpVariant = {
@@ -46,7 +48,8 @@ export default function StudentSwiper() {
   const [percentage, setPercentage] = useState("");
   const [redirect, setRedirect] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
+  const { user, setUser, fetchUser } = useUser();
+  const [showLogin, setShowLogin] = useState(false);
   //  Form Cancel Handler Function
   const cancelHandler = () => {
     setShowModal(false);
@@ -182,7 +185,11 @@ export default function StudentSwiper() {
                 onClick={() => {
                   const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
                   setRedirect(message);
-                  setShowModal(true);
+                  if (user) {
+                    setShowModal(true);
+                  } else {
+                    setShowLogin(true);
+                  }
                 }}
               >
                 <div className="flex flex-col space-y-1">
@@ -231,21 +238,9 @@ export default function StudentSwiper() {
               </CustomButton>
             </Link>
           </div>
-          {/* <a href={`https://wa.me/919243299145/?text=${encodedAltWmessage}`} target="_blank" rel="noopener noreferrer" className="w-fit h-fit mx-auto mt-4 flex justify-center items-center gap-2">
-            {isMobile ? (
-              <h3 className="text-tprimary text-center text-lg font-admeasy-bold">
-                No Right Mentor Yet? WhatsApp Us for One!
-              </h3>
-            ) : (
-              <h3 className="text-tprimary text-center text-xl font-admeasy-bold">
-                Can't find a relatable UG student to guide you?
-                WhatsApp us — we'll connect you with one
-              </h3>
-            )}
-            <img src={WA} className="size-10" />
-          </a> */}
         </Swiper>
       </motion.section >
+      {showLogin && <Login isOpen={showLogin} onClose={() => setShowLogin(false)} />}
     </>
   );
 }

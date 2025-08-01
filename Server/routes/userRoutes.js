@@ -32,6 +32,28 @@ function generateRefreshToken(user) {
     );
 }
 
+// Helper: check if image is a Google URL and handle accordingly
+async function processUserImage(user) {
+    if (!user.image) return user;
+    
+    // Check if it's a Google URL (contains googleusercontent.com)
+    if (user.image.includes('googleusercontent.com')) {
+        // Use proxy URL to avoid rate limiting
+        user.image = `/api/users/proxy-image?url=${encodeURIComponent(user.image)}`;
+        return user;
+    } else {
+        // It's a Backblaze file, get authorized URL
+        try {
+            const imageName = user.image;
+            user.image = await b2.getDownloadAuthorization(imageName);
+        } catch (err) {
+            console.error('Error getting Backblaze authorization:', err);
+            // If there's an error, return the original image field
+        }
+        return user;
+    }
+}
+
 router.get('/', async (req, res) => {
     const users = User.find();
     res.json(users);
@@ -232,7 +254,11 @@ router.get('/me', async (req, res) => {
             }
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
-        res.json({ success: true, user });
+        
+        // Process the user's image (handle Google URLs vs Backblaze files)
+        const processedUser = await processUserImage(user);
+        
+        res.json({ success: true, user: processedUser });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -295,12 +321,10 @@ router.put('/me', upload.single('image'), async (req, res) => {
         await user.save();
         const updatedUser = await User.findById(user._id).select('-password -refreshToken');
 
-        if (updatedUser.image) {
-            imageName = updatedUser.image;
-            updatedUser.image = b2.getDownloadAuthorization(imageName);
-        }
+        // Process the user's image (handle Google URLs vs Backblaze files)
+        const processedUser = await processUserImage(updatedUser);
 
-        res.json({ success: true, user: updatedUser });
+        res.json({ success: true, user: processedUser });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -346,17 +370,75 @@ router.get('/me/pic', async (req, res) => {
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const files = await b2.listFiles(user.image);
-        if (!files || files.length === 0) {
+        if (!user.image) {
             // No image uploaded yet
-            return res.json(null); // or send a default image URL if you want
+            return res.json(null);
         }
-        const fileName = files[0].fileName;
-        const auth = await b2.getDownloadAuthorization(fileName);
-        res.json(auth.url);
+
+        // Check if it's a Google URL (contains googleusercontent.com)
+        if (user.image.includes('googleusercontent.com')) {
+            // Return proxy URL to avoid rate limiting
+            return res.json(`/api/users/proxy-image?url=${encodeURIComponent(user.image)}`);
+        } else {
+            // It's a Backblaze file, get authorized URL
+            try {
+                const files = await b2.listFiles(user.image);
+                if (!files || files.length === 0) {
+                    // No image found in Backblaze
+                    return res.json(null);
+                }
+                const fileName = files[0].fileName;
+                const auth = await b2.getDownloadAuthorization(fileName);
+                res.json(auth.url);
+            } catch (err) {
+                console.error('Error getting Backblaze authorization:', err);
+                res.status(500).json({ success: false, message: 'Error retrieving image' });
+            }
+        }
     } catch (err) {
         console.log(err);
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// PROXY GOOGLE IMAGE (to avoid rate limiting)
+router.get('/proxy-image', async (req, res) => {
+    try {
+        const { url } = req.query;
+        
+        if (!url) {
+            return res.status(400).json({ success: false, message: 'URL parameter is required' });
+        }
+
+        // Only allow Google user content URLs for security
+        if (!url.includes('googleusercontent.com')) {
+            return res.status(403).json({ success: false, message: 'Only Google user content URLs are allowed' });
+        }
+
+        // Fetch the image from Google
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            return res.status(response.status).json({ 
+                success: false, 
+                message: `Failed to fetch image: ${response.status} ${response.statusText}` 
+            });
+        }
+
+        // Get the image buffer
+        const buffer = await response.arrayBuffer();
+        
+        // Set appropriate headers
+        res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        
+        // Send the image
+        res.send(Buffer.from(buffer));
+        
+    } catch (err) {
+        console.error('Error proxying image:', err);
+        res.status(500).json({ success: false, message: 'Error proxying image' });
     }
 });
 

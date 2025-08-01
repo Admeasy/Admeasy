@@ -16,7 +16,7 @@ import Course from './Pages/Course'
 import Admin from './Pages/Admin'
 import ManageColleges from './Pages/ManageColleges'
 import SignUp from './Pages/SignUp'
-import LogIn from './Pages/LogIn'
+import Login from './Pages/Login'
 import Profile from './Pages/EditProfile'
 import { useEffect } from 'react';
 import { useUser } from './context/UserContext';
@@ -30,7 +30,7 @@ function App() {
   useEffect(() => {
     // Fetch user data on app mount
     fetchUser();
-  }, [fetchUser]);
+  }, []);
 
   return (
     <>
@@ -47,7 +47,7 @@ function App() {
         <Route path='/Terms' element={<TermsAndConditions />}></Route>
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/signup' element={<SignUp />}></Route>
-        <Route path='/login' element={<LogIn />}></Route>
+        <Route path='/login' element={<Login />}></Route>
         <Route path='/me' element={<Profile />}></Route>
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>

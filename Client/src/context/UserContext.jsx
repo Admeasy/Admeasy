@@ -36,11 +36,6 @@ export function UserProvider({ children }) {
     }
   };
 
-  useEffect(() => {
-    // Fetch current user on mount
-    fetchUser();
-  }, []);
-
   return (
     <UserContext.Provider value={{ user, setUser, fetchUser }}>
       {children}

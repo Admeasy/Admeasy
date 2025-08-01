@@ -54,7 +54,16 @@ passport.use(
           user = await User.create(userData);
           isNewUser = true;
         } else {
-          // Update existing user's gender if not set and available from Google
+          // Update existing user's profile photo and gender if available from Google
+          let needsUpdate = false;
+          
+          // Always update the profile photo with fresh Google URL
+          if (profile.photos && profile.photos[0] && profile.photos[0].value) {
+            user.image = profile.photos[0].value;
+            needsUpdate = true;
+          }
+          
+          // Update gender if not set and available from Google
           if (!user.gender && profile._json && profile._json.gender) {
             const googleGender = profile._json.gender;
             if (googleGender === 'male') {
@@ -64,6 +73,11 @@ passport.use(
             } else {
               user.gender = 'Rather not to say';
             }
+            needsUpdate = true;
+          }
+          
+          // Save user if any updates were made
+          if (needsUpdate) {
             await user.save();
           }
         }
