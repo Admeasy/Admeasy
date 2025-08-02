@@ -285,18 +285,18 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
             <ul className="mt-8 flex flex-wrap justify-start gap-4 text-xs sm:mt-0 lg:justify-end">
               <li>
                 <Link
-                  onClick={handleClick("/Terms")}
-                  to={'/Terms'}
+                  onClick={handleClick("/t&c")}
+                  to={'/t&c'}
                   title='Terms & Conditions Of Admeasy' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400">Terms & Conditions</Link>
               </li>
 
               <li>
-                <Link title='View Our Privacy & Policies' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400" onClick={handleClick("/Policies")} to={'/Policies'} >Privacy & Policy</Link>
+                <Link title='View Our Privacy & Policies' className="text-gray-500 transition hover:opacity-75 dark:text-gray-400" onClick={handleClick("/policies")} to={'/policies'} >Privacy & Policy</Link>
               </li>
 
               <li>
                 <Link
-                  to="/Policies#Cookies"
+                  to="/policies#Cookies"
                   className="text-gray-500 transition hover:opacity-75 dark:text-gray-400">
                   Cookies
                 </Link>

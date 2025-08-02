@@ -123,7 +123,7 @@ useEffect(() => {
               higher education sector through innovation and student-centric services.
             </p>
           </Section>
-          <Section>
+          <Section id='who-We-Are'>
             <h2 className="text-2xl md:text-4xl font-semibold">Who We Are?</h2>
             <p className="text-[12px] md:text-2xl text-gray-700 px-4">
               At <strong>Admeasy</strong>, we’re not just another college admission platform — we’re a solution born from frustration.

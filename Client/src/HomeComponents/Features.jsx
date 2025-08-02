@@ -23,15 +23,15 @@ const features = [
     Upcoming: false,
   },
   {
-    icon: <FaPhoneAlt className="w-8 h-8 text-red-500" />,
-    title: "🎯 Direct College Connect",
-    description: "Admeasy lets you connect directly with verified colleges — skip the agents, spam calls, and confusing middle steps. Talk to colleges transparently and make confident decisions, all in one platform.",
-    Upcoming: false,
-  },
-  {
     icon: <PiStudentDuotone className="w-10 h-10 text-purple-600" />,
     title: "Talk To Alumni",
     description: "Connect with students from your preferred college to gain real insights into campus life — from academics and faculty to fests and student culture.",
+    Upcoming: false,
+  },
+  {
+    icon: <FaPhoneAlt className="w-8 h-8 text-red-500" />,
+    title: "🎯 Direct College Connect",
+    description: "Admeasy lets you connect directly with verified colleges — skip the agents, spam calls, and confusing middle steps. Talk to colleges transparently and make confident decisions, all in one platform.",
     Upcoming: true,
   },
   {

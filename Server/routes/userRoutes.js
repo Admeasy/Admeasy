@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/userSchema');
-const authenticateJWT = require('../middleware/userAuth')
 const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
 const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
 const path = require('path');

@@ -18,6 +18,7 @@ import ManageColleges from './Pages/ManageColleges'
 import SignUp from './Pages/SignUp'
 import Login from './Pages/Login'
 import Profile from './Pages/EditProfile'
+import MentorshipForm from './Pages/MentorshipForm'
 import { useEffect } from 'react';
 import { useUser } from './context/UserContext';
 
@@ -43,13 +44,14 @@ function App() {
         <Route path='/mentors' element={<Mentors />}></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
-        <Route path='/Policies' element={<PrivacyPolicy />}></Route>
-        <Route path='/Terms' element={<TermsAndConditions />}></Route>
+        <Route path='/policies' element={<PrivacyPolicy />}></Route>
+        <Route path='/t&c' element={<TermsAndConditions />}></Route>
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/signup' element={<SignUp />}></Route>
         <Route path='/login' element={<Login />}></Route>
         <Route path='/me' element={<Profile />}></Route>
         <Route path='/admin' element={<Admin />}></Route>
+        <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
         <Route path='/admin/mentors' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>
       </Routes>

@@ -5,6 +5,7 @@ const path = require('path');
 require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
+const ApplicationsRoutes = require('./routes/applicationRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
@@ -57,6 +58,7 @@ app.get('/auth/google/callback',
 // API Routes
 app.use('/api/colleges', CollegesRoutes);
 app.use('/api/users', UsersRoutes);
+app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
 
 // Serve static files from the dist directory

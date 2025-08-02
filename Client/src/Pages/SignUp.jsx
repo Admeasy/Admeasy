@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../assets/Admeasy/LOGO.webp'
 import googleIcon from '../assets/Icons/google.svg'
@@ -18,6 +18,10 @@ const SignUp = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { fetchUser } = useUser();
+    
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     const validateEmail = (email) => {
         return /^\S+@\S+\.\S+$/.test(email);
