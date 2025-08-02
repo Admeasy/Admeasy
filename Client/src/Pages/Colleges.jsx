@@ -105,13 +105,13 @@ const Colleges = () => {
           onChange={handleSearch}
           className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]'
           type="text"
-          placeholder='Search Best B.Tech colleges near me...'
+          placeholder='B.Tech colleges...'
         />
         <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'>
           <img draggable="false" src={SearchLogo} alt="Search" />
         </button>
       </div>
-      <div className='w-full p-3 flex justify-evenly flex-wrap gap-10'>
+      <div className='w-full lg:p-3 flex justify-evenly flex-wrap lg:gap-10'>
         {colleges.map(
           (college) => (
             <Link to={`/colleges/${college._id}`} key={college._id}>
@@ -121,22 +121,22 @@ const Colleges = () => {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="bg-primary rounded-2xl p-4 shadow-3d w-70 hover:scale-105 transition-transform duration-200 h-[500px] flex flex-col justify-between">
-                <img src={college.logo} alt={college.name} className="h-16 mx-auto" />
+                className="bg-primary rounded-2xl mb-5 px-2 py-1 shadow-3d w-30 sm:w-50 hover:scale-105 transition-transform duration-200 h-[250px] md:h-[300px] flex flex-col gap-1 sm:justify-evenly">
+                <img src={college.logo} alt={college.name} className="mx-auto w-15 sm:w-20" />
 
-                <div className="text-tprimary text-lg font-bold mt-4 text-center">
+                <div className = {`${college.name.length>20? 'text-[12px] lg:text-[14px]':'text-[12px]'} text-tprimary  font-bold mt-2 text-center`}>
                   {college.name}
                 </div>
 
-                <div className="text-tsecondary text-sm text-center">
+                <div className={`text-tsecondary ${college.location.length>30?'text-[8px] md:text-[10px] lg:text-[12px]':'text-[13px]'}  text-center`}>
                   {college.location}
                 </div>
 
-                <div className="text-rating font-semibold text-sm text-center mt-1">
+                <div className="text-rating font-semibold text-sm text-center ">
                   ⭐ {college.rating?.overall || 'N/A'}
                 </div>
 
-                <div className="text-sm text-tsecondary mt-4 space-y-1 overflow-hidden">
+                <div className="hidden text-sm text-tsecondary space-y-1 overflow-hidden">
                   <p>
                     <span className="font-semibold text-tprimary">Established:</span> {college.establishedYear}
                   </p>

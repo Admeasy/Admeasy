@@ -7,7 +7,7 @@ const ScrollUpButton = () => {
     const handleScroll = () => {
       setShowButton(window.scrollY > 100);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);  
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
