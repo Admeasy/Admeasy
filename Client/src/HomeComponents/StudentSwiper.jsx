@@ -141,7 +141,7 @@ export default function StudentSwiper() {
         className="my-8 relative bg-primary p-6 rounded-2xl shadow-3d w-[90%] mx-auto">
         <h2 className="w-fit mx-auto text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-tprimary mb-4 flex justify-evenly items-center">
           <img src={Boy} alt="WhatsApp" className="w-14 mr-0 sm:mr-4" />
-          Talk to UGs/Alumnis
+          Talk to UGs/Alumni
         </h2>
         {loading && <div className="w-full flex justify-center items-center py-10"><span className="text-2xl">Loading students...</span></div>}
         {error && <div className="w-full flex justify-center items-center py-10 text-red-500"><span className="text-2xl">{'An error occurred'}</span></div>}
