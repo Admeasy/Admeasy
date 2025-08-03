@@ -10,6 +10,7 @@ const fadeUpVariant = {
 
 const Colleges = () => {
   const [colleges, setColleges] = useState([]);
+  const [loading, setLoading] = useState(false);
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialSearchQuery = searchParams.get('search') || '';
@@ -66,6 +67,7 @@ const Colleges = () => {
   useEffect(() => {
     async function fetchColleges() {
       try {
+        setLoading(true);
         const response = await fetch('/api/colleges');
         const data = await response.json();
 
@@ -84,8 +86,10 @@ const Colleges = () => {
         } else {
           setColleges(shuffleArray(data));
         }
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching colleges:', error);
+        setLoading(false);
       }
     }
     fetchColleges();
@@ -112,6 +116,7 @@ const Colleges = () => {
         </button>
       </div>
       <div className='w-full p-3 flex justify-evenly flex-wrap gap-10'>
+        {loading && (<h2 className='text-2xl text-tsecondary text-center'>Loading...</h2>)}
         {colleges.map(
           (college) => (
             <Link to={`/colleges/${college._id}`} key={college._id}>

@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const { Users } = require('../db');
 const User = require('../models/userSchema');
 
@@ -35,7 +36,7 @@ passport.use(
             name: profile.displayName,
             email: profile.emails[0].value,
             image: profile.photos[0].value,
-            password: Math.random().toString(36).slice(-8), // random password, not used
+            password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // random password, not used
           };
           
           // Extract gender from Google profile if available

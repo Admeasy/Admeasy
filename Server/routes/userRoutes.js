@@ -8,6 +8,7 @@ const path = require('path');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { Users } = require('../db');
 
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
@@ -33,7 +34,7 @@ function generateRefreshToken(user) {
 // Helper: check if image is a Google URL and handle accordingly
 async function processUserImage(user) {
     if (!user.image) return user;
-    
+
     // Check if it's a Google URL (contains googleusercontent.com)
     if (user.image.includes('googleusercontent.com')) {
         // Use proxy URL to avoid rate limiting
@@ -53,7 +54,7 @@ async function processUserImage(user) {
 }
 
 router.get('/', async (req, res) => {
-    const users = User.find();
+    const users = await User.find();
     res.json(users);
 });
 
@@ -136,7 +137,7 @@ router.post('/login', async (req, res) => {
 router.post('/logout', async (req, res) => {
     try {
         // Passport logout (for Google/session users)
-        req.logout(function(err) {
+        req.logout(function (err) {
             if (err) {
                 return res.status(500).json({ success: false, message: err.message });
             }
@@ -166,7 +167,7 @@ router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
         if (!refreshToken) return res.status(401).json({ success: false, message: 'No refresh token' });
-        
+
         // Check if user exists and has this refresh token (not logged out)
         const user = await User.findOne({ refreshToken });
         if (!user) {
@@ -183,7 +184,7 @@ router.post('/refresh', async (req, res) => {
             });
             return res.status(403).json({ success: false, message: 'User has logged out' });
         }
-        
+
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(user);
@@ -252,10 +253,10 @@ router.get('/me', async (req, res) => {
             }
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
-        
+
         // Process the user's image (handle Google URLs vs Backblaze files)
         const processedUser = await processUserImage(user);
-        
+
         res.json({ success: true, user: processedUser });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -403,7 +404,7 @@ router.get('/me/pic', async (req, res) => {
 router.get('/proxy-image', async (req, res) => {
     try {
         const { url } = req.query;
-        
+
         if (!url) {
             return res.status(400).json({ success: false, message: 'URL parameter is required' });
         }
@@ -415,29 +416,74 @@ router.get('/proxy-image', async (req, res) => {
 
         // Fetch the image from Google
         const response = await fetch(url);
-        
+
         if (!response.ok) {
-            return res.status(response.status).json({ 
-                success: false, 
-                message: `Failed to fetch image: ${response.status} ${response.statusText}` 
+            return res.status(response.status).json({
+                success: false,
+                message: `Failed to fetch image: ${response.status} ${response.statusText}`
             });
         }
 
         // Get the image buffer
         const buffer = await response.arrayBuffer();
-        
+
         // Set appropriate headers
         res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
         res.setHeader('Access-Control-Allow-Origin', '*');
-        
+
         // Send the image
         res.send(Buffer.from(buffer));
-        
+
     } catch (err) {
         console.error('Error proxying image:', err);
         res.status(500).json({ success: false, message: 'Error proxying image' });
     }
 });
+
+router.delete('/:userId', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Delete manually uploaded image if present and not a Google image
+        if (user.image && !user.image.includes('googleusercontent.com')) {
+            try {
+                await b2.deleteFiles(user.image);
+            } catch (err) {
+                return res.status(500).json({ success: false, message: 'Unable to delete User image.' });
+            }
+        }
+        // If this is self-deletion, flush and destroy the session
+        if (req.user && req.user._id && req.user._id.toString() === req.params.userId && req.session && req.logout) {
+            req.logout(function (err) {
+                if (err) {
+                    console.error('Error logging out user:', err);
+                }
+                req.session.destroy((err) => {
+                    if (err) {
+                        console.error('Error destroying session:', err);
+                    }
+                });
+            });
+        }
+
+        await User.findByIdAndDelete(req.params.userId);
+
+        // Remove all sessions for this user from the session store
+        try {
+            const sessionCollection = Users.collection('sessions');
+            await sessionCollection.deleteMany({ "session": { $regex: req.params.userId } });
+        } catch (err) {
+            console.error('Error deleting user sessions from MongoDB:', err);
+        }
+
+        res.json({ success: true, message: 'User and image deleted successfully (if applicable)' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+})
 
 module.exports = router;

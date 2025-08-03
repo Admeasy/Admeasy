@@ -11,7 +11,7 @@ import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import StudentInfoModel from "../components/StudentInfoModel";
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Login from '../Pages/Login'
 import { useUser } from "../context/UserContext";
 
@@ -38,6 +38,7 @@ export default function StudentSwiper() {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
   const size = useWindowSize();
+  const navigate = useNavigate();
   const isMobile = size.width && size.width < 768;
   const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ export default function StudentSwiper() {
   const [percentage, setPercentage] = useState("");
   const [redirect, setRedirect] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const { user, setUser, fetchUser } = useUser();
+  const { user } = useUser();
   const [showLogin, setShowLogin] = useState(false);
   //  Form Cancel Handler Function
   const cancelHandler = () => {
@@ -183,10 +184,10 @@ export default function StudentSwiper() {
               <button
                 className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
                 onClick={() => {
-                  const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
-                  setRedirect(message);
                   if (user) {
-                    setShowModal(true);
+                    const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`;
+                    const encodedMessage = encodeURIComponent(message);
+                    window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
                   } else {
                     setShowLogin(true);
                   }

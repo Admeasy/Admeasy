@@ -112,7 +112,7 @@ const Admin = () => {
         <div className="max-w-4/5 mx-auto space-y-8">
           <img src={logo} alt="LOGO" className='w-150 aspect-auto mx-auto' />
           <button
-            onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white font-semibold absolute top-8 right-8 rounded-xl hover:bg-red-600 transition-colors">
+            onClick={handleLogout} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-500 text-white font-semibold absolute top-2 sm:top-5 right-2 sm:right-5 rounded-lg sm:rounded-xl hover:bg-red-600 transition-colors">
             Logout
           </button>
 
@@ -123,10 +123,10 @@ const Admin = () => {
                 <p className="text-gray-600">Add, edit, or remove college information</p>
               </div>
             </Link>
-            <Link to="/admin/mentors">
+            <Link to="/admin/users">
               <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
-                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Mentors</h2>
-                <p className="text-gray-600">Add, edit, delete Mentors</p>
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Users</h2>
+                <p className="text-gray-600">Add, edit, delete Users</p>
               </div>
             </Link>
           </div>

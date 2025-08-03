@@ -73,7 +73,7 @@ const Colleges = () => {
     }
 
     const handleDelete = async (collegeId) => {
-        if (window.confirm('Are you sure you want to delete this college? This will also delete all gallery images.')) {
+        if (window.confirm('Are you sure you want to delete this college? This will also delete all gallery images of this college.')) {
             setDeletingCollegeId(collegeId);
             try {
                 const response = await fetch(`/api/colleges/${collegeId}`, {
@@ -148,15 +148,15 @@ const Colleges = () => {
     }
 
     return (
-        <div className='min-h-screen p-8'>
+        <main className='min-h-screen p-6 sm:p-8'>
             <button 
-                className='size-fit m-0 p-2 text-center text-3xl absolute top-4 left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-400 transition-colors' 
-                onClick={() => navigate('/admin')}
+                className='size-4 sm:size-8 m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-400 transition-colors' 
+                onClick={() => navigate(-1)}
             >
                 <FaArrowLeft />
             </button>
             
-            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-thead1 font-admeasy-bold text-5xl mb-8">
+            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-thead1 font-admeasy-bold text-3xl sm:text-5xl text-center mb-8">
                 Manage Colleges
             </h1>
 
@@ -169,7 +169,7 @@ const Colleges = () => {
             <div className="max-w-6xl mx-auto">
                 <button
                     onClick={handleAddNew}
-                    className="mb-4 px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+                    className="mb-4 px-3 sm:px-6 py-1.25 sm:py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
                 >
                     <FaPlus className="mr-2" />
                     Add New College
@@ -192,30 +192,30 @@ const Colleges = () => {
                     {filteredColleges.map((college) => (
                         <li 
                             key={college._id} 
-                            className="flex items-center justify-between p-6 bg-white rounded-xl shadow-md"
+                            className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 p-3 sm:p-6 bg-white rounded-xl shadow-lg hover:shadow-md"
                         >
                             <span className="text-xl font-medium">{college.name}</span>
-                            <div className="space-x-3">
+                            <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => handleEdit(college._id)}
-                                    className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                    className="px-3 sm:px-6 py-1.25 sm:py-2.5 flex items-center gap-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                                 >
-                                    <FaEdit className="inline mr-2" />
+                                    <FaEdit className="inline" />
                                     Edit
                                 </button>
                                 <button
                                     onClick={() => handleDelete(college._id)}
                                     disabled={deletingCollegeId === college._id}
-                                    className={`px-6 py-2.5 ${deletingCollegeId === college._id ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'} text-white rounded-lg transition-colors`}
+                                    className={`px-3 sm:px-6 py-1.25 sm:py-2.5 flex items-center gap-2 ${deletingCollegeId === college._id ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'} text-white rounded-lg transition-colors`}
                                 >
                                     {deletingCollegeId === college._id ? (
                                         <>
-                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                            <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
                                             Deleting...
                                         </>
                                     ) : (
                                         <>
-                                            <FaTrash className="inline mr-2" />
+                                            <FaTrash className="inline" />
                                             Delete
                                         </>
                                     )}
@@ -233,7 +233,7 @@ const Colleges = () => {
                     />
                 )}
             </div>
-        </div>
+        </main>
     )
 }
 

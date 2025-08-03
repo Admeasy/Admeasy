@@ -60,7 +60,7 @@ export default function LogIn({ isOpen, onClose }) {
                 setEmail('');
                 setPassword('');
                 await fetchUser(); // Refresh user context
-                navigate('/');
+                isOpen ? onClose() : navigate('/');
             } else {
                 setError(data.message || 'Login failed');
             }

@@ -218,13 +218,14 @@ const EditProfile = () => {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Course Name
+          {"Course Name (Also add Stream if in Class 11th/12th)"}
           <input
             type="text"
             name="course"
             value={form.course}
             onChange={handleChange}
             required
+            placeholder='E.g., Class 12th (PCM)'
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </label>

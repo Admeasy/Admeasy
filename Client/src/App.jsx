@@ -13,11 +13,12 @@ import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import Course from './Pages/Course'
-import Admin from './Pages/Admin'
-import ManageColleges from './Pages/ManageColleges'
 import SignUp from './Pages/SignUp'
 import Login from './Pages/Login'
 import Profile from './Pages/EditProfile'
+import Admin from './Pages/Admin'
+import ManageColleges from './Pages/ManageColleges'
+import ManageUsers from './Pages/ManageUsers'
 import MentorshipForm from './Pages/MentorshipForm'
 import { useEffect } from 'react';
 import { useUser } from './context/UserContext';
@@ -53,7 +54,8 @@ function App() {
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
-        <Route path='/admin/mentors' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>
+        <Route path='/admin/users' element={<ManageUsers />}></Route>
+        <Route path='/admin/users' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>
       </Routes>
       {!isAdminRoute && <Footer />}
     </>
