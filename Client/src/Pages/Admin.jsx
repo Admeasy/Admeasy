@@ -129,6 +129,12 @@ const Admin = () => {
                 <p className="text-gray-600">Add, edit, delete Users</p>
               </div>
             </Link>
+            <Link to="/admin/messages">
+              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Check Messages</h2>
+                <p className="text-gray-600">Check and reply messages</p>
+              </div>
+            </Link>
           </div>
         </div>
       </motion.div>

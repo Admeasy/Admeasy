@@ -55,7 +55,7 @@ function App() {
         <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
         <Route path='/admin/users' element={<ManageUsers />}></Route>
-        <Route path='/admin/users' element={<h1 className='mt-5 text-5xl text-tprimary text-center font-bold'>Coming Soon...</h1>}></Route>
+        <Route path='/admin/messages' element={<Messages />}></Route>
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

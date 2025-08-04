@@ -11,6 +11,16 @@ const MentorshipRequest = require('../models/mentorshipRequestSchema');
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+router.get('/mentorship', async (req, res) => {
+    try {
+        const applications = await MentorshipRequest.find();
+        res.json(applications);
+    } catch (e) {
+        res.status(500).josn('Internal Server Error');
+        console.log(e);
+    }
+})
+
 router.post('/mentorship', upload.single('image'), async (req, res) => {
     try {
         const { name, email, phone, college, course} = req.body;
