@@ -23,7 +23,7 @@ router.get('/mentorship', async (req, res) => {
 
 router.post('/mentorship', upload.single('image'), async (req, res) => {
     try {
-        const { name, email, phone, college, course} = req.body;
+        const { name, email, phone, college, course } = req.body;
 
         if (!name || !email || !phone || !college || !course) {
             res.status(400).json('Missing required fields');
@@ -48,7 +48,6 @@ router.post('/mentorship', upload.single('image'), async (req, res) => {
         }
 
         await applicant.save();
-        console.log('Submitted!')
         res.status(200).json('Application submitted!');
     } catch (e) {
         console.log(e);

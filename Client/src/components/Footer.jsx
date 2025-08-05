@@ -11,25 +11,49 @@ import 'react-toastify/dist/ReactToastify.css'
 const Footer = () => {
   // Define Position
   const notify = () => toast("Message Sent Buddy😎!");
-  // Define Position
-  const toastErr = () => toast.error("Message cannot be empty, bro😅!");
-  const [message, setMessage] = useState(""); // 1️⃣ Fix typo
+  const [form, setForm] = useState({
+    email: '',
+    msg: ''
+  });
 
-  const InputHandler = (e) => {
-    setMessage(e.target.value); // 2️⃣ Match the corrected state name
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const FormHandler = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    
-    if (message.trim() === "") {
-      toastErr();
-      return;
+
+    if (form.email === "") {
+      toast.error("Awwww! Buddy! We need your Email for contacting you! 🫤")
     }
 
-    notify();
-    setMessage(""); // 3️⃣ Reset input after success
+    if (form.msg === "") {
+      toast.error("We want to hear from you?! Drop your message in the field.... 🫠");
+    }
+
+    const data = JSON.stringify({ email: form.email, msg: form.msg });
+    console.log(data);
+
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: data
+      });
+
+      if (res.ok) {
+        notify();
+      } else {
+        toast.error('Ugghhh! Failed to send message. 😫');
+        console.log(res.json());
+      }
+    } catch (err) {
+      toast.error('Ahhh! An Error Occurred... 😑')
+    }
   };
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -63,29 +87,26 @@ const Footer = () => {
             </div>
 
             <div className="col-span-2 lg:col-span-3 lg:flex lg:items-end">
-              <form onSubmit={FormHandler} className="w-full">
-             
-                <div
-                  className="border border-gray-100 p-2 sm:flex sm:items-center sm:gap-4 dark:border-gray-800"
-                >
-                  <input
-                    value={message}
-                    onChange={InputHandler}
-                    name='msg'
-
-                    type="text"
-                    id="message"
-                    placeholder="Send Your Message"
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm placeholder-gray-400  dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"
-                  />
-                  <button type='submit' className="cursor-pointer transition-all bg-blue-500 text-white px-6 py-2 rounded-lg
-border-blue-600 w-full mt-5 sm:mt-0 sm:w-max
-border-b-[4px] hover:brightness-110 hover:-translate-zy-[1px] hover:border-b-[6px]
-active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
-                    Send
-                  </button>
-                  
-                </div>
+              <form onSubmit={handleSubmit} className="w-fit mx-auto border border-gray-100 p-2 sm:flex sm:flex-col sm:items-center space-y-4 sm:space-y-0 sm:gap-4 dark:border-gray-800">
+                <input
+                  value={form.email}
+                  onChange={handleChange}
+                  name='email'
+                  type="email"
+                  id="email"
+                  placeholder="Enter Your Email"
+                  className="w-full sm:w-100 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm placeholder-gray-400  dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"
+                />
+                <textarea
+                  value={form.msg}
+                  onChange={handleChange}
+                  name='msg'
+                  id="message"
+                  placeholder="Send Your Message"
+                  className="w-full sm:w-100 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm placeholder-gray-400  dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"></textarea>
+                <button type='submit' className="cursor-pointer transition-all bg-blue-500 text-white px-4 py-1.5 rounded-lg border-blue-600 w-full mt-0 sm:w-max border-b-[4px] hover:brightness-110 hover:-translate-zy-[1px] hover:border-b-[6px] active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
+                  Send
+                </button>
               </form>
             </div>
 
@@ -222,7 +243,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
         </div> */}
 
 
-{/* Social/proffesional Links In foooter */}
+            {/* Social/proffesional Links In foooter */}
             <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
               {/* Instagram */}
               <li>
@@ -245,10 +266,10 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   aria-label='LinkedIn'
                   className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
                 >
-                  <IoLogoLinkedin className='size-6'/>
+                  <IoLogoLinkedin className='size-6' />
                 </a>
               </li>
-{/* Twitter (Yeah I'll call it twitter(MuskMelon😏)) */}
+              {/* Twitter (Yeah I'll call it twitter(MuskMelon😏)) */}
               <li>
                 <a
                   href="https://x.com/admeasy_in?s=08"
@@ -260,7 +281,7 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   <FaXTwitter className="size-6" />
                 </a>
               </li>
-{/* Github */}
+              {/* Github */}
               <li>
                 <a
                   href="#"

@@ -150,7 +150,7 @@ const Colleges = () => {
     return (
         <main className='min-h-screen p-6 sm:p-8'>
             <button 
-                className='size-4 sm:size-8 m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-400 transition-colors' 
+                className='m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-300 transition-colors' 
                 onClick={() => navigate(-1)}
             >
                 <FaArrowLeft />

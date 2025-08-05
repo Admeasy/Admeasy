@@ -20,6 +20,7 @@ import Admin from './Pages/Admin'
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
 import MentorshipForm from './Pages/MentorshipForm'
+import Messages from './Pages/Messages'
 import { useEffect } from 'react';
 import { useUser } from './context/UserContext';
 

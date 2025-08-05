@@ -79,6 +79,21 @@ html,body{
   width: 100%;
   scroll-behavior: smooth;
 }
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-4 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
 .active{
   border-bottom: 2px solid #0057A0;
   color: #0057A0;

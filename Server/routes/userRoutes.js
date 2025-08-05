@@ -9,6 +9,7 @@ require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db');
+const { verifyAdminToken } = require('../middleware/adminAuth');
 
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
@@ -53,7 +54,7 @@ async function processUserImage(user) {
     }
 }
 
-router.get('/', async (req, res) => {
+router.get('/', verifyAdminToken, async (req, res) => {
     const users = await User.find();
     res.json(users);
 });
@@ -438,6 +439,46 @@ router.get('/proxy-image', async (req, res) => {
     } catch (err) {
         console.error('Error proxying image:', err);
         res.status(500).json({ success: false, message: 'Error proxying image' });
+    }
+});
+
+// GET AUTHORIZED IMAGE URL FOR OTHER USER (for admin/unlock functionality)
+router.get('/:userId/image', verifyAdminToken, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Find the user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (!user.image) {
+            return res.json(null);
+        }
+
+        // Check if it's a Google URL (contains googleusercontent.com)
+        if (user.image.includes('googleusercontent.com')) {
+            // Return proxy URL to avoid rate limiting
+            return res.json(`/api/users/proxy-image?url=${encodeURIComponent(user.image)}`);
+        } else {
+            // It's a Backblaze file, get authorized URL
+            try {
+                const files = await b2.listFiles(user.image);
+                if (!files || files.length === 0) {
+                    return res.json(null);
+                }
+                const fileName = files[0].fileName;
+                const auth = await b2.getDownloadAuthorization(fileName);
+                res.json(auth.url);
+            } catch (err) {
+                console.error('Error getting Backblaze authorization:', err);
+                res.status(500).json({ success: false, message: 'Error retrieving image' });
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 

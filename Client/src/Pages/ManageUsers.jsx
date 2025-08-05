@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { FaArrowLeft, FaSearch, FaTrash } from 'react-icons/fa'
+import { FaArrowLeft, FaSearch, FaTrash, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaUniversity, FaVenusMars, FaLock } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { useUser } from '../context/UserContext'
 
 const ManageUsers = () => {
     const navigate = useNavigate()
@@ -11,6 +12,11 @@ const ManageUsers = () => {
     const [error, setError] = useState(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [deletingUserId, setDeletingUserId] = useState(null)
+    const [selectedUser, setSelectedUser] = useState(null)
+    const [showModal, setShowModal] = useState(false)
+    const [unlockedImages, setUnlockedImages] = useState({})
+    const [unlockingImage, setUnlockingImage] = useState(null)
+    const { user: currentUser } = useUser()
 
     const showError = (error) => { toast.error(error); return "" }
     const showSuccess = (msg) => toast.success(msg)
@@ -34,6 +40,41 @@ const ManageUsers = () => {
         }
     }
 
+    const handleShowUserDetails = (user) => {
+        setSelectedUser(user)
+        setShowModal(true)
+    }
+
+    const closeModal = () => {
+        setShowModal(false)
+        setSelectedUser(null)
+    }
+
+    const unlockImage = async (userId) => {
+        if (unlockedImages[userId]) return; // Already unlocked
+        
+        setUnlockingImage(userId);
+        try {
+            const response = await fetch(`/api/users/${userId}/image`, { 
+                credentials: 'include' 
+            });
+            if (!response.ok) {
+                throw new Error('Failed to unlock image');
+            }
+            const imageUrl = await response.json();
+            if (imageUrl) {
+                setUnlockedImages(prev => ({
+                    ...prev,
+                    [userId]: imageUrl
+                }));
+            }
+        } catch (err) {
+            showError('Failed to unlock image');
+        } finally {
+            setUnlockingImage(null);
+        }
+    }
+
     const handleDelete = async (userId) => {
         if (!window.confirm('Are you sure you want to delete this user?')) return
         setDeletingUserId(userId)
@@ -48,6 +89,9 @@ const ManageUsers = () => {
             }
             showSuccess('User deleted successfully');
             await fetchUsers();
+            if (selectedUser && selectedUser._id === userId) {
+                closeModal();
+            }
         } catch (err) {
             showError(err.message)
         } finally {
@@ -71,7 +115,7 @@ const ManageUsers = () => {
     }
 
     return (
-        <main className='min-h-screen p-6 sm:p-8'>
+        <main className='min-h-screen p-4 sm:p-6 lg:p-8'>
             <button
                 className='m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-300 transition-colors'
                 onClick={() => navigate(-1)}
@@ -79,15 +123,13 @@ const ManageUsers = () => {
                 <FaArrowLeft />
             </button>
 
-            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-thead1 font-admeasy-bold text-3xl sm:text-5xl text-center mb-8">
+            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-thead1 font-admeasy-bold text-2xl sm:text-3xl lg:text-5xl text-center mb-6 sm:mb-8">
                 Manage Users
             </h1>
 
             <ToastContainer className='hidden' />
 
-            {error && (
-                showError(error)
-            )}
+            {error && showError(error)}
 
             <div className="max-w-6xl mx-auto">
                 <div className="relative mb-6">
@@ -103,27 +145,225 @@ const ManageUsers = () => {
                     />
                 </div>
 
-                <ul className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {filteredUsers.map((user) => (
-                        <li
+                        <div
                             key={user._id}
-                            className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 p-3 sm:p-6 bg-white rounded-xl shadow-lg hover:shadow-md"
+                            className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
+                            onClick={() => handleShowUserDetails(user)}
                         >
-                            <span className="text-xl font-medium">{user.name || 'No Name'}</span>
-                            <span className="text-gray-600">{user.email || 'No Email'}</span>
+                            <div className="p-4 sm:p-6 flex-1">
+                                <div className="flex items-center space-x-3 mb-4">
+                                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                                        {user.image ? (
+                                            <img
+                                                src={user.image}
+                                                alt={user.name || 'User'}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg sm:text-xl" style={{ display: user.image ? 'none' : 'flex' }}>
+                                            {(user.name || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                                            {user.name || 'No Name'}
+                                        </h3>
+                                        <p className="text-sm text-gray-600 truncate">
+                                            {user.email || 'No Email'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 text-sm">
+                                    {user.course && (
+                                        <div className="flex items-center text-gray-600">
+                                            <FaGraduationCap className="w-4 h-4 mr-2 flex-shrink-0" />
+                                            <span className="truncate">{user.course}</span>
+                                        </div>
+                                    )}
+                                    {user.institute && (
+                                        <div className="flex items-center text-gray-600">
+                                            <FaUniversity className="w-4 h-4 mr-2 flex-shrink-0" />
+                                            <span className="truncate">{user.institute}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                            </div>
                             <button
-                                className={`ml-4 px-3 py-1 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center disabled:bg-gray-700 ${deletingUserId === user._id ? 'cursor-not-allowed' : ''}`}
-                                onClick={() => handleDelete(user._id)}
+                                className={`w-9/10 mx-auto mb-3 px-3 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center disabled:bg-gray-400 ${deletingUserId === user._id ? 'cursor-not-allowed' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(user._id);
+                                }}
                                 disabled={deletingUserId === user._id}
                                 title="Delete user"
                             >
                                 <FaTrash className="mr-2" />
                                 {deletingUserId === user._id ? 'Deleting...' : 'Delete'}
                             </button>
-                        </li>
+                        </div>
                     ))}
-                </ul>
+                </div>
+
+                {filteredUsers.length === 0 && !isLoading && (
+                    <div className="text-center py-12">
+                        <p className="text-gray-500 text-lg">No users found</p>
+                    </div>
+                )}
             </div>
+
+            {/* User Details Modal */}
+            {showModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between p-4 sm:p-6 pb-0">
+                            <h2 className="text-xl sm:text-2xl font-bold text-thead1">
+                                User Details
+                            </h2>
+                            <div className="flex items-center gap-4">
+                                {/* Delete button in modal */}
+                                <button
+                                    className={`px-3 py-2 rounded-lg text-white transition-colors flex items-center justify-center ${deletingUserId === selectedUser._id
+                                        ? 'bg-gray-500 cursor-not-allowed'
+                                        : 'bg-red-500 hover:bg-red-600'
+                                        }`}
+                                    onClick={() => handleDelete(selectedUser._id)}
+                                    disabled={deletingUserId === selectedUser._id}
+                                    title="Delete user"
+                                >
+                                    <FaTrash className="mr-2" />
+                                    Delete
+                                </button>
+                                <button
+                                    onClick={closeModal}
+                                    className="text-gray-500 hover:text-gray-700 text-4xl font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-4 sm:p-6 flex-grow overflow-y-auto">
+                            <div className="flex flex-col items-center mb-6">
+                                {/* Large Round Image */}
+                                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden bg-gray-200 mb-4 flex-shrink-0 relative">
+                                    {selectedUser.image ? (
+                                        <>
+                                            {/* Show locked image if not unlocked and not Google user */}
+                                            {!unlockedImages[selectedUser._id] && !selectedUser.image.includes('googleusercontent.com') ? (
+                                                <div 
+                                                    className="w-full h-full relative cursor-pointer group"
+                                                    onClick={() => unlockImage(selectedUser._id)}
+                                                >
+                                                    {/* Blurred original image as background */}
+                                                    <img
+                                                        src={selectedUser.image}
+                                                        alt={selectedUser.name || 'User'}
+                                                        className="w-full h-full object-cover blur-sm"
+                                                    />
+                                                    {/* Translucent black overlay */}
+                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                                                        <FaLock className="text-white text-2xl sm:text-3xl mb-2" />
+                                                        <span className="text-white text-sm sm:text-base font-medium text-center">
+                                                            {unlockingImage === selectedUser._id ? 'Unlocking...' : 'Tap to Unlock'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                /* Show unlocked/Google image */
+                                                <img
+                                                    src={unlockedImages[selectedUser._id] || selectedUser.image}
+                                                    alt={selectedUser.name || 'User'}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'flex';
+                                                    }}
+                                                />
+                                            )}
+                                        </>
+                                    ) : null}
+                                    <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white font-bold text-4xl sm:text-5xl" style={{ display: selectedUser.image ? 'none' : 'flex' }}>
+                                        {(selectedUser.name || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+
+                                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center">
+                                    {selectedUser.name || 'No Name'}
+                                </h3>
+                            </div>
+
+                            {/* User Information */}
+                            <div className="space-y-4">
+                                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                    <FaEnvelope className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm text-gray-500">Email</p>
+                                        <p className="font-medium">{selectedUser.email || 'No Email'}</p>
+                                    </div>
+                                </div>
+
+                                {selectedUser.phone && (
+                                    <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                        <FaPhone className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm text-gray-500">Phone</p>
+                                            <p className="font-medium">{selectedUser.phone}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedUser.gender && (
+                                    <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                        <FaVenusMars className="w-5 h-5 text-pink-500 mr-3 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm text-gray-500">Gender</p>
+                                            <p className="font-medium capitalize">{selectedUser.gender}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedUser.course && (
+                                    <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                        <FaGraduationCap className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm text-gray-500">Course</p>
+                                            <p className="font-medium">{selectedUser.course}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedUser.institute && (
+                                    <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                        <FaUniversity className="w-5 h-5 text-indigo-500 mr-3 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-sm text-gray-500">Institute</p>
+                                            <p className="font-medium">{selectedUser.institute}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Close button at bottom */}
+                        <div className="p-4 sm:p-6 pt-0 border-t border-gray-100">
+                            <button
+                                onClick={closeModal}
+                                className="w-full px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     )
 }

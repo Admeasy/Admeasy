@@ -6,6 +6,7 @@ require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
 const ApplicationsRoutes = require('./routes/applicationRoutes');
+const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
@@ -60,6 +61,7 @@ app.use('/api/colleges', CollegesRoutes);
 app.use('/api/users', UsersRoutes);
 app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
+app.use('/api/messages', MessageRoutes);
 
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
