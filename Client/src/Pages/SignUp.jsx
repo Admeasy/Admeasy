@@ -80,30 +80,31 @@ const SignUp = () => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.25 }}
             transition={{ duration: 0.9, ease: 'easeOut' }}
-            className="w-2/5 mx-auto p-6 bg-primary shadow-3d rounded-2xl">
-            <img src={Logo} className='w-1/2 mx-auto mb-4' alt="Admeasy Logo" />
-            <h1 className="text-5xl text-center font-admeasy-bold text-tprimary mb-10">Create a New Account</h1>
-            <button className="w-2/3 bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer text-2xl font-admeasy-semibold transform hover:scale-105 mb-6"
+            className="w-full max-w-[90vw] sm:max-w-lg md:max-w-xl lg:w-2/5 mx-auto p-4 sm:p-6 bg-primary shadow-3d rounded-2xl"
+        >
+            <img src={Logo} className='w-32 sm:w-1/2 mx-auto mb-4' alt="Admeasy Logo" />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl text-center font-admeasy-bold text-tprimary mb-6 sm:mb-10">Create a New Account</h1>
+            <button className="w-full sm:w-2/3 bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer text-lg sm:text-2xl font-admeasy-semibold transform hover:scale-105 mb-4 sm:mb-6"
                 onClick={() => window.location.href = 'http://localhost:5000/auth/google'}>
-                <img src={googleIcon} className='w-8' alt="Google icon" />
+                <img src={googleIcon} className='w-6 sm:w-8' alt="Google icon" />
                 Continue with Google
             </button>
             {/* Divider with OR */}
-            <div className="relative flex items-center w-2/3 mx-auto my-6">
+            <div className="relative flex items-center w-full sm:w-2/3 mx-auto my-4 sm:my-6">
                 <div className="flex-grow border-t border-gray-400"></div>
-                <span className="flex-shrink-0 px-1 bg-primary text-gray-700 text-lg font-semibold absolute left-1/2 -translate-x-1/2 -top-3">OR</span>
+                <span className="flex-shrink-0 px-1 bg-primary text-gray-700 text-base sm:text-lg font-semibold absolute left-1/2 -translate-x-1/2 -top-3">OR</span>
                 <div className="flex-grow border-t border-gray-400"></div>
             </div>
-            <form className="flex flex-col gap-4 w-2/3 mx-auto" onSubmit={handleSubmit}>
+            <form className="flex flex-col gap-3 sm:gap-4 w-full sm:w-2/3 mx-auto" onSubmit={handleSubmit}>
                 {error && (
-                    <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-center text-sm font-semibold">
+                    <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-center text-xs sm:text-sm font-semibold">
                         {error}
                     </div>
                 )}
                 <input
                     type="email"
                     placeholder="Email"
-                    className={`p-3 rounded-lg border ${error && (error.includes('Email') || error.includes('email')) ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg`}
+                    className={`p-2 sm:p-3 rounded-lg border ${error && (error.includes('Email') || error.includes('email')) ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-400 text-base sm:text-lg`}
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); }}
                     autoComplete="email"
@@ -112,7 +113,7 @@ const SignUp = () => {
                 <input
                     type="password"
                     placeholder="Password"
-                    className={`p-3 rounded-lg border ${error && error.includes('Password') ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg`}
+                    className={`p-2 sm:p-3 rounded-lg border ${error && error.includes('Password') ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-400 text-base sm:text-lg`}
                     value={password}
                     onChange={e => { setPassword(e.target.value); setError(''); }}
                     autoComplete="new-password"
@@ -120,18 +121,18 @@ const SignUp = () => {
                 />
                 <button
                     type="submit"
-                    className="bg-blue-600 text-white rounded-lg py-2 text-xl font-admeasy-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-600"
+                    className="bg-blue-600 text-white rounded-lg py-2 text-lg sm:text-xl font-admeasy-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-600"
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
             </form>
-            <div className="mt-6 text-center">
-                <span className="text-gray-700">Already have an account? </span>
+            <div className="mt-4 sm:mt-6 text-center">
+                <span className="text-gray-700 text-sm sm:text-base">Already have an account? </span>
                 <Link to="/login" className="text-blue-600 hover:underline font-admeasy-semibold">Log In</Link>
             </div>
-            <div className="mt-6 text-center">
-                <span className="text-gray-700">Want to guide students? </span>
+            <div className="mt-4 sm:mt-6 text-center">
+                <span className="text-gray-700 text-sm sm:text-base">Want to guide students? </span>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSeK9OSftbLbTUpYCJjs7Y9CPKVilVTvz7i-D0KZApmdVCnEqw/viewform?usp=dialog" target='_blank' className="text-blue-600 hover:underline font-admeasy-semibold">Become a Mentor now</a>
             </div>
         </motion.section>

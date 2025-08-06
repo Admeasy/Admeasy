@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bounce, toast } from 'react-toastify'
+import { useNavigationBlocker } from '../hooks/useNavigationBlocker'
+import { FaInfoCircle } from "react-icons/fa";
+import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useUser } from '../context/UserContext'
 
@@ -16,12 +18,41 @@ const EditProfile = () => {
     phone: '',
     institute: '',
     course: '',
+    streamOrYear: '',
     gender: ''
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    for (const f in form) {
+      if (f === "") {
+        setIsEmpty(true);
+      }
+    }
+  }, form)
+
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (isEmpty || isDirty) {
+        event.preventDefault();
+        event.returnValue = 'Fill the form!'; // This message is often ignored by modern browsers
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [isEmpty, isDirty])
+
 
   useEffect(() => {
     if (user && !hasInitialized) {
@@ -30,7 +61,8 @@ const EditProfile = () => {
         email: user.email || '',
         phone: user.phone || '',
         institute: user.institute || '',
-        course: user.course || '',
+        course: user.course ? user.course.split(' (')[0] : '',
+        streamOrYear: user.course && user.course.includes('(') ? user.course.split('(')[1].replace(')', '') : '',
         gender: user.gender || ''
       });
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
@@ -50,6 +82,7 @@ const EditProfile = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setIsDirty(true);
   };
 
   const handlePicChange = (e) => {
@@ -60,15 +93,26 @@ const EditProfile = () => {
       reader.onloadend = () => setPreview(reader.result);
       reader.readAsDataURL(file);
     }
+    setIsDirty(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validation: all required fields
+    if (!form.name || !form.phone || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
+      toast.error('Please fill all required fields.');
+      return;
+    }
     const formData = new FormData();
     formData.append('name', form.name);
     formData.append('phone', form.phone)
     formData.append('institute', form.institute);
-    formData.append('course', form.course);
+    // Combine course and streamOrYear if both are present
+    let courseValue = form.course;
+    if (form.course !== 'Class 9th' && form.course !== 'Class 10th' && form.streamOrYear) {
+      courseValue = `${form.course} (${form.streamOrYear})`;
+    }
+    formData.append('course', courseValue);
     formData.append('gender', form.gender);
     if (profilePic) {
       formData.append('image', profilePic);
@@ -83,19 +127,25 @@ const EditProfile = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log('Server response:', data);
         const updatedUser = data.user || {};
+        // Parse course and streamOrYear for form state
+        let course = updatedUser.course || '';
+        let streamOrYear = '';
+        if (course.includes('(')) {
+          streamOrYear = course.split('(')[1].replace(')', '');
+          course = course.split(' (')[0];
+        }
         setForm({
           name: updatedUser.name || form.name,
           email: updatedUser.email || form.email,
           phone: updatedUser.phone || form.phone,
           institute: updatedUser.institute || form.institute,
-          course: updatedUser.course || form.course,
+          course: course || form.course,
+          streamOrYear: streamOrYear || form.streamOrYear,
           gender: updatedUser.gender || form.gender
         });
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
-        // Don't update user context here to prevent form reset
         toast.success('Profile updated successfully');
       } else {
         toast.error('Failed to update profile');
@@ -105,6 +155,9 @@ const EditProfile = () => {
     } finally {
       setLoading(false);
       setIsSubmitting(false);
+      setIsEmpty(false);
+      setIsDirty(false);
+      setIsSubmitted(true);
     }
   };
 
@@ -131,12 +184,14 @@ const EditProfile = () => {
       toast.error('Failed to logout');
     }
   };
+  // 👇 Block route changes if form is dirty and not submitted
+  useNavigationBlocker(isEmpty && isDirty && !isSubmitted, "Please complete your profile before leaving this page.");
 
   return (
     <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
       <button
         onClick={handleLogout}
-        className="absolute top-4 right-4 px-3 py-1 rounded-md bg-red-500 text-white font-semibold hover:bg-red-700 transition cursor-pointer"
+        className="absolute top-2 sm:top-4 right-2 sm:right-4 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md bg-red-500 text-white font-semibold hover:bg-red-700 transition cursor-pointer"
       >
         Logout
       </button>
@@ -202,6 +257,7 @@ const EditProfile = () => {
             type="tel"
             name="phone"
             value={form.phone}
+            required
             onChange={handleChange}
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
@@ -218,15 +274,38 @@ const EditProfile = () => {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
-          {"Course Name (Also add Stream if in Class 11th/12th)"}
-          <input
-            type="text"
+          Course
+          <select
             name="course"
             value={form.course}
             onChange={handleChange}
             required
-            placeholder='E.g., Class 12th (PCM)'
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="">Select Course</option>
+            <option value="Class 9th">Class 9th</option>
+            <option value="Class 10th">Class 10th</option>
+            <option value="Class 11th">Class 11th</option>
+            <option value="Class 12th">Class 12th</option>
+            <option value="Diploma">Diploma</option>
+            <option value="Post Diploma">Post Diploma</option>
+            <option value="Graduation">Graduation</option>
+            <option value="Post Graduation">Post Graduation</option>
+            <option value="Doctorate">Doctorate</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Stream/Course Name + Year
+          <span className="w-fit text-xs sm:text-sm text-tsecondary font-medium sm:font-light flex items-start sm:items-center gap-1"><FaInfoCircle className='mt-0.5 sm:mt-0' /> If you're in 11th/12th, enter your Stream only</span>
+          <input
+            type="text"
+            name="streamOrYear"
+            value={form.streamOrYear}
+            onChange={handleChange}
+            required={form.course !== 'Class 9th' && form.course !== 'Class 10th'}
+            disabled={form.course === 'Class 9th' || form.course === 'Class 10th'}
+            placeholder="E.g., B.Tech. in Mechanical Engg. 2nd year"
+            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
           />
         </label>
         <div className="flex gap-4 justify-center mt-4">

@@ -108,7 +108,7 @@ const Messages = () => {
   return (
     <main className='min-h-screen p-6 sm:p-8'>
       <button
-        className='m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-300 transition-colors'
+        className='admin-back-button'
         onClick={() => navigate(-1)}
       >
         <FaArrowLeft />
@@ -122,7 +122,7 @@ const Messages = () => {
 
       {error && showError(error)}
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="relative mb-6">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <FaSearch className="h-5 w-5 text-gray-400" />

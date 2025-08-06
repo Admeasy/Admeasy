@@ -150,13 +150,13 @@ const Colleges = () => {
     return (
         <main className='min-h-screen p-6 sm:p-8'>
             <button 
-                className='m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-300 transition-colors' 
+                className='admin-back-button' 
                 onClick={() => navigate(-1)}
             >
                 <FaArrowLeft />
             </button>
             
-            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-thead1 font-admeasy-bold text-3xl sm:text-5xl text-center mb-8">
+            <h1 className="admin-heading">
                 Manage Colleges
             </h1>
 

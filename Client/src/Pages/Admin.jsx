@@ -39,7 +39,7 @@ const Admin = () => {
     };
 
     verifyAdmin();
-  }, []);
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -118,19 +118,25 @@ const Admin = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link to="/admin/colleges">
-              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+              <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Colleges</h2>
                 <p className="text-gray-600">Add, edit, or remove college information</p>
               </div>
             </Link>
             <Link to="/admin/users">
-              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+              <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Users</h2>
                 <p className="text-gray-600">View and Delete Users</p>
               </div>
             </Link>
+            <Link to="/admin/applications">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Applications</h2>
+                <p className="text-gray-600">Review, Accept/Reject Applications</p>
+              </div>
+            </Link>
             <Link to="/admin/messages">
-              <div className="bg-white p-6 rounded-2xl shadow-3d hover:shadow-md transition-shadow duration-300">
+              <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Check Messages</h2>
                 <p className="text-gray-600">Check and reply messages</p>
               </div>

@@ -19,6 +19,8 @@ import Profile from './Pages/EditProfile'
 import Admin from './Pages/Admin'
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
+import ManageApplications from './Pages/ManageApplications'
+import JobApplications from './Pages/JobApplications'
 import MentorshipForm from './Pages/MentorshipForm'
 import Messages from './Pages/Messages'
 import { useEffect } from 'react';
@@ -46,9 +48,9 @@ function App() {
         <Route path='/mentors' element={<Mentors />}></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
+        <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/policies' element={<PrivacyPolicy />}></Route>
         <Route path='/t&c' element={<TermsAndConditions />}></Route>
-        <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
         <Route path='/signup' element={<SignUp />}></Route>
         <Route path='/login' element={<Login />}></Route>
         <Route path='/me' element={<Profile />}></Route>
@@ -57,6 +59,8 @@ function App() {
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
         <Route path='/admin/users' element={<ManageUsers />}></Route>
         <Route path='/admin/messages' element={<Messages />}></Route>
+        <Route path='/admin/applications' element={<ManageApplications />}></Route>
+        <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
       </Routes>
       {!isAdminRoute && <Footer />}
     </>

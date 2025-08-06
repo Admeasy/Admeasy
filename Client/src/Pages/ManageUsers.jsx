@@ -3,6 +3,7 @@ import { FaArrowLeft, FaSearch, FaTrash, FaUser, FaEnvelope, FaPhone, FaGraduati
 import { useState, useEffect } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import GoogleIcon from '../assets/Icons/google.svg'
 import { useUser } from '../context/UserContext'
 
 const ManageUsers = () => {
@@ -117,13 +118,13 @@ const ManageUsers = () => {
     return (
         <main className='min-h-screen p-4 sm:p-6 lg:p-8'>
             <button
-                className='m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-gray-300 transition-colors'
+                className='admin-back-button'
                 onClick={() => navigate(-1)}
             >
                 <FaArrowLeft />
             </button>
 
-            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-thead1 font-admeasy-bold text-2xl sm:text-3xl lg:text-5xl text-center mb-6 sm:mb-8">
+            <h1 className="admin-heading">
                 Manage Users
             </h1>
 
@@ -153,7 +154,7 @@ const ManageUsers = () => {
                             onClick={() => handleShowUserDetails(user)}
                         >
                             <div className="p-4 sm:p-6 flex-1">
-                                <div className="flex items-center space-x-3 mb-4">
+                                <div className="flex items-center space-x-3 mb-4 relative">
                                     <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                                         {user.image ? (
                                             <img
@@ -170,6 +171,7 @@ const ManageUsers = () => {
                                             {(user.name || 'U').charAt(0).toUpperCase()}
                                         </div>
                                     </div>
+                                    {user.image ? user?.image.includes('googleusercontent.com') && (<img src={GoogleIcon} alt="Google Account" className="size-6 sm:size-8 absolute top-0 right-0" />) : null}
                                     <div className="flex-1 min-w-0">
                                         <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                                             {user.name || 'No Name'}

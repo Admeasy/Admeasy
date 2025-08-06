@@ -15,35 +15,35 @@ const Navbar = () => {
   const navLinks = (
     <>
       <NavLink
-        className="hover:text-link px-2 py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
         to="/"
         onClick={() => setIsOpen(false)}
       >
         Home
       </NavLink>
       <NavLink
-        className="hover:text-link px-2 py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
         to="/colleges"
         onClick={() => setIsOpen(false)}
       >
         Find Colleges
       </NavLink>
       <NavLink
-        className="hover:text-link px-2 py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
         to="/mentors"
         onClick={() => setIsOpen(false)}
       >
         Talk to Mentors
       </NavLink>
       <NavLink
-        className="hover:text-link px-2 py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
         to="/about"
         onClick={() => setIsOpen(false)}
       >
         About Us
       </NavLink>
       <NavLink
-        className="hover:text-link px-2 py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
         to="/contact"
         onClick={() => setIsOpen(false)}
       >
@@ -119,7 +119,7 @@ const Navbar = () => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-[100%] left-0 w-full bg-primary shadow-lg rounded-b-xl z-50 flex flex-col items-center text-center font-admeasy font-semibold text-base tracking-wide py-4"
+            className="absolute top-[100%] left-0 w-full bg-primary shadow-lg rounded-b-xl z-50 flex flex-col items-center space-y-2 text-center font-admeasy font-semibold text-base tracking-wide py-4"
           >
             {navLinks}
             {/* Mobile User Profile/Login */}

@@ -1,6 +1,12 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 
 const UserContext = createContext();
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
 
 export function useUser() {
   return useContext(UserContext);
@@ -10,28 +16,20 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null); // user object: { name, email, image, ... }
 
   const fetchUser = async () => {
-    try {
-      const res = await fetch('/api/users/me', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        let user = data.user;
-        // Fetch authorized image URL if user has an image
-        if (user && user.image) {
-          try {
-            const imgRes = await fetch('/api/users/me/pic', { credentials: 'include' });
-            if (imgRes.ok) {
-              const imgUrl = await imgRes.json();
-              user = { ...user, imageUrl: imgUrl };
-            }
-          } catch {
-            user = { ...user, imageUrl: null };
-          }
-        }
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-    } catch (err) {
+    // Always attempt to refresh
+    await fetch("/api/users/refresh", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    // Then fetch user data
+    const res = await fetch("/api/users/me", {
+      credentials: "include",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data.user);
+    } else {
       setUser(null);
     }
   };
