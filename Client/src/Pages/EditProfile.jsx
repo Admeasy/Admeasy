@@ -1,12 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useNavigationBlocker } from '../hooks/useNavigationBlocker'
 import { FaInfoCircle } from "react-icons/fa";
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useUser } from '../context/UserContext'
 
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+// Utility function to check if user profile is complete
+function isProfileComplete(user) {
+  if (!user) return false;
+  // List all required fields
+  const requiredFields = ['name', 'email', 'phone', 'institute', 'course', 'gender'];
+  // For 11th/12th and above, streamOrYear is also required
+  const needsStreamOrYear = user.course && user.course !== 'Class 9th' && user.course !== 'Class 10th';
+  for (let field of requiredFields) {
+    if (!user[field] || user[field] === '') return false;
+  }
+  if (needsStreamOrYear) {
+    // Check if course has (streamOrYear) part
+    if (!user.course.includes('(')) return false;
+    const streamOrYear = user.course.split('(')[1]?.replace(')', '').trim();
+    if (!streamOrYear) return false;
+  }
+  return true;
+}
 
 const EditProfile = () => {
   const { user, setUser, fetchUser } = useUser();
@@ -30,29 +48,14 @@ const EditProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    for (const f in form) {
-      if (f === "") {
-        setIsEmpty(true);
-      }
-    }
-  }, form)
-
+    // Check if any value in the form is an empty string
+    const anyEmpty = Object.values(form).some(val => val === "");
+    setIsEmpty(anyEmpty);
+  }, [form]);
 
   useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (isEmpty || isDirty) {
-        event.preventDefault();
-        event.returnValue = 'Fill the form!'; // This message is often ignored by modern browsers
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    }
-  }, [isEmpty, isDirty])
-
+    setIsSubmitted(isProfileComplete(user));
+  }, [user]);
 
   useEffect(() => {
     if (user && !hasInitialized) {
@@ -72,6 +75,23 @@ const EditProfile = () => {
       setLoading(false);
     }
   }, [user, hasInitialized]);
+
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem('blockNavigation');
+      window.dispatchEvent(new Event('blockNavigationChange'));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (isEmpty || isDirty || !isSubmitted) {
+      localStorage.setItem('blockNavigation', 'true');
+    } else {
+      localStorage.removeItem('blockNavigation');
+    }
+    // Dispatch custom event
+    window.dispatchEvent(new Event('blockNavigationChange'));
+  }, [isEmpty, isDirty, isSubmitted]);
 
   useEffect(() => {
     if (localStorage.getItem('profileUpdated') === 'true') {
@@ -184,8 +204,6 @@ const EditProfile = () => {
       toast.error('Failed to logout');
     }
   };
-  // 👇 Block route changes if form is dirty and not submitted
-  useNavigationBlocker(isEmpty && isDirty && !isSubmitted, "Please complete your profile before leaving this page.");
 
   return (
     <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
@@ -252,7 +270,7 @@ const EditProfile = () => {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Phone Number
+          {"Phone Number (+91)"}
           <input
             type="tel"
             name="phone"
@@ -294,23 +312,25 @@ const EditProfile = () => {
             <option value="Doctorate">Doctorate</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Stream/Course Name + Year
-          <span className="w-fit text-xs sm:text-sm text-tsecondary font-medium sm:font-light flex items-start sm:items-center gap-1"><FaInfoCircle className='mt-0.5 sm:mt-0' /> If you're in 11th/12th, enter your Stream only</span>
-          <input
-            type="text"
-            name="streamOrYear"
-            value={form.streamOrYear}
-            onChange={handleChange}
-            required={form.course !== 'Class 9th' && form.course !== 'Class 10th'}
-            disabled={form.course === 'Class 9th' || form.course === 'Class 10th'}
-            placeholder="E.g., B.Tech. in Mechanical Engg. 2nd year"
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
-          />
-        </label>
+        {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' ? (
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Stream/Course Name + Year
+            <span className="w-fit text-xs sm:text-sm text-tsecondary font-medium sm:font-light flex items-start sm:items-center gap-1"><FaInfoCircle className='mt-0.5 sm:mt-0' /> If you're in 11th/12th, enter your Stream only</span>
+            <input
+              type="text"
+              name="streamOrYear"
+              value={form.streamOrYear}
+              onChange={handleChange}
+              required
+              disabled={form.course === 'Class 9th' || form.course === 'Class 10th' || form.course === ''}
+              placeholder="E.g., B.Tech. in Mechanical Engg. 2nd year"
+              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            />
+          </label>
+        ) : null}
         <div className="flex gap-4 justify-center mt-4">
           <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-700" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
-          <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 transition cursor-pointer">Cancel</button>
+          <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition cursor-pointer" disabled={isEmpty || isDirty || !isSubmitted} >Cancel</button>
         </div>
       </form>
     </main>

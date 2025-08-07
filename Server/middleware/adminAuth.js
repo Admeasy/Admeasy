@@ -39,7 +39,7 @@ const adminAuth = async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 3600000 // 1 hour
+        maxAge: 60 * 60 * 1000 // 1 hour
       });
 
       // Authentication successful

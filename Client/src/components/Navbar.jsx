@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import logo from '../assets/Admeasy/LOGO.webp';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +11,23 @@ const Navbar = () => {
   const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [blockNavigation, setBlockNavigation] = useState(true);
+
+  useEffect(() => {
+    const handleBlockNavChange = () => {
+      setBlockNavigation(localStorage.getItem('blockNavigation') === 'true');
+    };
+    window.addEventListener('storage', handleBlockNavChange);
+    window.addEventListener('blockNavigationChange', handleBlockNavChange);
+    // Initial check
+    handleBlockNavChange();
+    return () => {
+      window.removeEventListener('storage', handleBlockNavChange);
+      window.removeEventListener('blockNavigationChange', handleBlockNavChange);
+    };
+  }, []);
+
+  const shouldHide = blockNavigation && user;
 
   const navLinks = (
     <>
@@ -63,22 +80,22 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full mb-5 flex items-center justify-between px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
+    <nav className="w-full mb-5 flex items-center justify-between px-2.5 md:px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
       {/* Logo */}
       <div className="flex-shrink-0">
         <Link to="/">
-          <img 
-            draggable="false" 
-            className="w-36 2xl:w-48" 
-            src={logo} 
-            alt="Admeasy Logo" 
+          <img
+            draggable="false"
+            className="w-36 2xl:w-48"
+            src={logo}
+            alt="Admeasy Logo"
           />
         </Link>
       </div>
 
       {/* Desktop Links */}
       <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide items-center">
-        {navLinks}
+        {!shouldHide && navLinks}
         {user ? (
           <Link to="/me" className="flex items-center">
             <img
@@ -89,8 +106,8 @@ const Navbar = () => {
             />
           </Link>
         ) : (
-          <Link 
-            to='/login' 
+          <Link
+            to='/login'
             className="flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-105 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200"
           >
             Log In / Sign Up
@@ -98,56 +115,55 @@ const Navbar = () => {
         )}
       </div>
 
-      {/* Mobile Hamburger */}
-      <div 
-        className="md:hidden text-3xl cursor-pointer" 
-        onClick={() => setIsOpen(!isOpen)}
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
-        role="button"
-        aria-label={isOpen ? "Close menu" : "Open menu"}
-        aria-expanded={isOpen}
-      >
-        {isOpen ? <FiX /> : <FiMenu />}
+      <div className="md:hidden flex items-center max-[323px]:gap-1 gap-2">
+        {user ? (
+          <Link
+            to="/me"
+            className="md:hidden flex items-center justify-center gap-2 py-2 cursor-pointer"
+            onClick={() => setIsOpen(false)}
+          >
+            <img
+              src={imageError ? fallbackProfilePic : (user.imageUrl || user.image || fallbackProfilePic)}
+              alt="Profile"
+              className="w-9 h-9 rounded-full object-cover"
+              onError={handleImageError}
+            />
+          </Link>
+        ) : !shouldHide && (
+          <Link
+            to='/login'
+            className="md:hidden flex items-center justify-center text-lg text-center py-0.75 px-2.5 text-white bg-link rounded-xl cursor-pointer"
+            onClick={() => setIsOpen(false)}
+          >
+            Log In
+          </Link>
+        )}
+
+        {/* Mobile Hamburger */}
+        <div
+          className="md:hidden p-0 m-0 text-3xl cursor-pointer"
+          onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          role="button"
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isOpen}
+        >
+          {!shouldHide && isOpen ? <FiX /> : <FiMenu />}
+        </div>
       </div>
 
       {/* Mobile Nav Menu */}
       <AnimatePresence>
-        {isOpen && (
+        {!shouldHide && isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
             className="absolute top-[100%] left-0 w-full bg-primary shadow-lg rounded-b-xl z-50 flex flex-col items-center space-y-2 text-center font-admeasy font-semibold text-base tracking-wide py-4"
           >
             {navLinks}
-            {/* Mobile User Profile/Login */}
-            <div className="mt-4 pt-4 border-t border-gray-200 w-full">
-              {user ? (
-                <Link 
-                  to="/me" 
-                  className="flex items-center justify-center gap-2 py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <img
-                    src={imageError ? fallbackProfilePic : (user.image || user.imageUrl || fallbackProfilePic)}
-                    alt="Profile"
-                    className="w-10 h-10 rounded-full object-cover"
-                    onError={handleImageError}
-                  />
-                  <span>Profile</span>
-                </Link>
-              ) : (
-                <Link 
-                  to='/login' 
-                  className="flex items-center justify-center text-lg py-2 px-4 text-white bg-link rounded-xl mx-4"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Log In / Sign Up
-                </Link>
-              )}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

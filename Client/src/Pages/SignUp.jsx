@@ -64,6 +64,7 @@ const SignUp = () => {
                 setPassword('');
                 await fetchUser(); // Refresh user context
                 navigate('/me');
+                window.location.reload();
             } else {
                 setError(data.message || 'Registration failed');
             }

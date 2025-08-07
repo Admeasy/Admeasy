@@ -28,15 +28,21 @@ export function UserProvider({ children }) {
     });
     if (res.ok) {
       const data = await res.json();
-      setUser(data.user);
+      let userObj = data.user;
+      const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+      if (imageRes.ok) {
+        const imageUrl = await imageRes.json();
+        userObj.imageUrl = imageUrl;
+      }
+      setUser(userObj);
     } else {
       setUser(null);
     }
-  };
+  }
 
   return (
     <UserContext.Provider value={{ user, setUser, fetchUser }}>
       {children}
     </UserContext.Provider>
   );
-} 
+}

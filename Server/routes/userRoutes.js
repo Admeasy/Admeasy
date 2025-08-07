@@ -327,6 +327,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
         res.json({ success: true, user: processedUser });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+        console.log(err);
     }
 });
 
