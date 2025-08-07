@@ -8,21 +8,24 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
   const [name, setName] = useState("");
   const [stream, setStream] = useState("");
   const [percentage, setPercentage] = useState("");
+  const [skipInfo,setSkipInfo] = useState(false)
 
   // Error Toast
   const FormErr = (e) => {
-    e.preventDefault();
+    e.preventDefault()
     toast.error("All fields are required!", {
       position: "top-center",
       autoClose: 2000,
       theme: "colored",
     });
   };
-
+  // CheckBox Handler
+  const checkboxHandler = (e)=>{
+    setSkipInfo(e.target.checked)
+  }
   // Form Submission Handler
   const submitHandler = (e) => {
     e.preventDefault();
-
     if (!name.trim() || !stream.trim() || !percentage.trim()) {
       return FormErr(e);
     }
@@ -43,7 +46,7 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
       // Reset after opening link
     }, 1000);
   };
-
+  
   return (
     <div className="fixed inset-0 w-screen h-screen z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4">
       {/* Form Container */}
@@ -95,30 +98,39 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
               className="mt-2 w-full h-10 px-3 text-sm text-gray-600 border placeholder:font-admeasy-bold border-gray-300 rounded focus:outline-none focus:ring-2 placeholder:text-[12px] focus:ring-indigo-700"
             />
           </div>
+          <label className="container">
+            <input type="checkbox" checked={skipInfo} onChange={checkboxHandler} />
+              <div className="checkmark"></div>
+            <p className='text-[10px] sm:text-[12px] lg:text-[14px] text-gray-600 font-admeasy'>Proceed without providing details</p>
+          </label>
+
 
           {/* Buttons */}
           <div className="flex justify-center gap-4 mt-8">
             <button
               type="submit"
-              onClick={submitHandler}
+              onClick={(e) => {
+                skipInfo ? onClose() : submitHandler(e);
+              }}
               className="cursor-pointer transition-all bg-blue-500 text-white rounded-lg border-blue-600 px-6 py-2 border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px] active:border-b-[2px] active:brightness-90 active:translate-y-[2px] font-medium"
             >
               Submit
             </button>
+          
 
-            <button
+            {/* <button
               type="button"
               onClick={onClose}
               className="bg-gray-100 hover:bg-gray-300 cursor-pointer text-gray-600 px-6 py-2 text-sm rounded border font-medium transition-colors"
             >
               Skip
-            </button>
+            </button> */}
           </div>
 
           {/* Note */}
           <p className="text-xs text-gray-600 pt-4">
             <strong>Note:</strong> This information will be shared with the UG Mentor. <br />
-            <span className="text-[11px] text-gray-500">यह जानकारी UG Mentor के के साथ साझा की जाएगी।</span>
+            <span className="text-[11px] text-gray-500">यह जानकारी Mentor के साथ साझा की जाएगी।</span>
           </p>
         </form>
 

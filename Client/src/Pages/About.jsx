@@ -4,6 +4,12 @@ import { motion } from 'framer-motion'
 import Section from '../components/AboutSection'
 import { useLocation } from 'react-router-dom'
 
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { EffectCards } from 'swiper/modules';
+
+// Swiper styles
+import 'swiper/css';
+import 'swiper/css/effect-cards';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -84,6 +90,12 @@ useEffect(() => {
       title: 'Co-founder & Chief Operations Officer (COO)',
       description: 'Keeps our day-to-day execution smooth and efficient.',
     },
+    {
+  emoji: '📣',
+  name: 'Parth Tiwari',
+  title: 'Chief Marketing Officer (CMO)',
+  description: 'Marketing strategist, growth enabler, and brand visibility lead.',
+}
   ];
   return (
     <>
@@ -137,10 +149,10 @@ useEffect(() => {
                 <span role="img" aria-label="developer">👨‍💻</span>
                 Meet Our Team
               </h2>
-              <div className="flex flex-wrap justify-center gap-6">
+               <div className="flex flex-wrap justify-center gap-6">
                 {teamMembers.map((member, index) => (
                   <div key={index}
-                    className="flex flex-col items-center justify-evenly bg-white p-3 md:gap-2 rounded-2xl shadow hover:shadow-md w-full sm:w-[45%] lg:w-[22%] transition">
+                    className="flex md:hidden flex-col items-center justify-evenly bg-white p-3 md:gap-2 rounded-2xl shadow hover:shadow-md w-full transition">
                     <h3 className="text-2xl md:text-3xl font-semibold">{member.emoji}</h3>
                     <h3 className="text-2xl md:text-3xl font-semibold text-gray-800">
                       {member.name}
@@ -149,6 +161,25 @@ useEffect(() => {
                     <p className="text-gray-700 text-sm">{member.description}</p>
                   </div>
                 ))}
+              </div>
+              <div className="hidden md:flex justify-center gap-6">
+                <Swiper
+        effect={'cards'}
+        grabCursor={true}
+        modules={[EffectCards]}
+        className="w-full sm:w-[360px] h-[460px]"
+      >
+        {teamMembers.map((member, idx) => (
+          <SwiperSlide key={idx}>
+            <div className="bg-white rounded-2xl shadow-3d p-6 flex flex-col items-center justify-center text-center h-full">
+              <div className="text-5xl mb-4">{member.emoji}</div>
+              <h3 className="text-lg font-semibold text-gray-800">{member.name}</h3>
+              <p className="text-sm font-medium text-blue-600 mt-1">{member.title}</p>
+              <p className="text-gray-500 text-sm mt-3">{member.description}</p>
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
               </div>
             </div>
           </Section>

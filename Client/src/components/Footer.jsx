@@ -15,6 +15,9 @@ const Footer = () => {
     email: '',
     msg: ''
   });
+  // Define Position
+  const toastErr = () => toast.error("Empty feedback? That’s not cool 😅");
+  const [message, setMessage] = useState(""); // 1️⃣ Fix typo
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -80,8 +83,9 @@ const Footer = () => {
                 <h2 className="text-2xl font-admeasy-extrabold text-gray-900 dark:text-white ">Got something on your mind?!</h2>
 
                 <p className="mt-4 text-gray-500 dark:text-gray-400">
-                  Whether it’s feedback, a suggestion, or just a quick “hello” — we’re all ears!
-                  Drop your message and let’s keep the conversation going. 🚀
+                  Your feedback matters.
+                  Suggestions, questions, or comments — we’re listening.
+                  Drop us a message anytime.
                 </p>
               </div>
             </div>
@@ -284,7 +288,7 @@ const Footer = () => {
               {/* Github */}
               <li>
                 <a
-                  href="#"
+                  href="https://instagram.com/admeasy.in"
                   rel="noreferrer"
                   target="_blank"
                   aria-label='Instagram'

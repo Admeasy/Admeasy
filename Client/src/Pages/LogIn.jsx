@@ -79,8 +79,7 @@ export default function LogIn({ isOpen, onClose }) {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.9, ease: 'easeOut' }}
-                className={`w-full max-w-[90vw] sm:max-w-lg md:max-w-xl lg:w-2/5 mx-auto p-4 sm:p-6 bg-primary shadow-3d rounded-2xl ${isOpen ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1000' : ''}`}
-            >
+                className={`w-full max-w-[90vw] sm:max-w-lg md:max-w-xl lg:w-2/5 mx-auto p-4 sm:p-6 bg-primary shadow-3d rounded-2xl ${isOpen ? 'fixed top-5/9 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1000' : ''}`}>
                 {isOpen && (
                     <button className="absolute top-4 right-4 p-2 rounded-full bg-none hover:bg-black/5" onClick={onClose}>
                         <FaTimes size={24} />

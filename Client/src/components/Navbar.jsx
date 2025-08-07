@@ -32,40 +32,41 @@ const Navbar = () => {
   const navLinks = (
     <>
       <NavLink
-        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/"
         onClick={() => setIsOpen(false)}
       >
         Home
       </NavLink>
       <NavLink
-        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/colleges"
         onClick={() => setIsOpen(false)}
       >
         Find Colleges
       </NavLink>
       <NavLink
-        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/mentors"
         onClick={() => setIsOpen(false)}
       >
         Talk to Mentors
       </NavLink>
       <NavLink
-        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/about"
         onClick={() => setIsOpen(false)}
       >
         About Us
       </NavLink>
       <NavLink
-        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-2 transition-colors duration-300 block md:inline"
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/contact"
         onClick={() => setIsOpen(false)}
       >
         Contact Us
       </NavLink>
+         
     </>
   );
 
@@ -80,7 +81,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full mb-5 flex items-center justify-between px-2.5 md:px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
+    <nav className="w-full mb-5 flex items-center justify-between px-2.5 lg:px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
       {/* Logo */}
       <div className="flex-shrink-0">
         <Link to="/">
@@ -94,7 +95,7 @@ const Navbar = () => {
       </div>
 
       {/* Desktop Links */}
-      <div className="hidden md:flex gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide items-center">
+      <div className="hidden md:flex gap-4 lg:gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide items-center">
         {!shouldHide && navLinks}
         {user ? (
           <Link to="/me" className="flex items-center">
@@ -102,15 +103,14 @@ const Navbar = () => {
               src={imageError ? fallbackProfilePic : (user.imageUrl || user.image || fallbackProfilePic)}
               alt="Profile"
               className="w-12 h-12 rounded-full object-cover hover:border-2 border-link hover:shadow-lg transition-all duration-200"
-              onError={handleImageError}
-            />
+              onError={handleImageError} />
           </Link>
         ) : (
           <Link
             to='/login'
-            className="flex items-center justify-center text-xl py-2 px-3 text-white transform hover:scale-105 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200"
+            className="flex items-center justify-center text-lg lg:text-xl py-1.5 lg:py-2 px-2 lg:px-3 text-white transform hover:scale-105 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200"
           >
-            Log In / Sign Up
+            {window.innerWidth >= 1024 ? 'Log In / Sign Up' : 'Log In'}
           </Link>
         )}
       </div>
@@ -167,6 +167,7 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      
     </nav>
   );
 };

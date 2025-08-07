@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import ExploreBtn from './ExploreBtn'
 import Institute from '../assets/Others/Institute.webp'
 import { Link } from 'react-router-dom'
-
+import gAds from '../components/gAds'
 // Helper function to format rating
 const formatRating = (rating) => {
   if (typeof rating === 'number') return rating.toFixed(1);
@@ -38,10 +38,19 @@ export default function CollegeCard() {
         console.error('Error fetching colleges:', error);
       }
     }
-
     fetchColleges();
   }, []);
+  const gAds = ()=>{
+    useEffect(() => {
+  const script = document.createElement("script");
+  script.src = "//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
+  script.async = true;
+  document.body.appendChild(script);
 
+  (window.adsbygoogle = window.adsbygoogle || []).push({});
+  gAds()
+}, []);
+  }
   return (
 
     <motion.section
@@ -52,14 +61,14 @@ export default function CollegeCard() {
       transition={{ duration: 0.7, ease: 'easeOut' }}
       id='collegebg'
       className=" text-tprimary my-5">
-      <amp-ad width="100vw" height="320"
+      {/* <amp-ad width="100vw" height="320"
         type="adsense"
-        data-ad-client="ca-pub-7704358624083535"
-        data-ad-slot="5535443803"
-        data-auto-format="rspv"
+        data-ad-client=""
+        data-ad-slot=""
+        data-auto-format=""
         data-full-width="">
         <div overflow=""></div>
-      </amp-ad>
+      </amp-ad> */}
       <div className="pt-4">
         <div className="w-full mb-8 p-0 flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />
@@ -67,7 +76,8 @@ export default function CollegeCard() {
             Discover the Best Colleges Near You
           </h1>
         </div>
-
+        {/* Google Ads Component */}
+        <gAds/>
         <div className="flex my-4 flex-wrap justify-around p-0 md:p-2 md:m-2">
           {isLoading ? (<h3 className='mb-5 text-lg md:text-2xl text-tsecondary text-center font-semibold'>Loading Colleges...</h3>) : Colleges.map(
             // Function here
@@ -81,10 +91,15 @@ export default function CollegeCard() {
                       <p className="text-yellow-500 text-xl font-semibold m-1">⭐ {formatRating(college?.rating)}</p>
                     </div>
                     <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12">
-                      <h2 className="text-2xl font-bold">
+                      <h2 className={`${college.name.length>35
+                        ?'text-[14px] md:text-[16px] font-admeasy-extrabold' 
+                        :'font-admeasy-extrabold text-lg'}`}>
                         {college.name}
                       </h2>
-                      <p className="text-xl md:text-sm text-tsecondary">{college.location}</p>
+                      <p className={`${college.location.length>45
+                        ? 'text-[12px] md:text-[13px]'
+                        :' text-[15px]'
+                      } text-tsecondary`}>{college.location}</p>
                       {/* <p className="text-sm text-gray-700 line-clamp-3">cd
             {college.description}
           </p> */}
@@ -104,7 +119,7 @@ export default function CollegeCard() {
                   />
 
                   {/* College Name */}
-                  <h2 className="text-lg font-bold text-center mt-2">
+                  <h2 className={`font-bold text-center mt-2`}>
                     {college.name}
                   </h2>
 

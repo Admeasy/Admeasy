@@ -10,10 +10,10 @@ import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 import { motion } from "framer-motion";
-import StudentInfoModel from "../components/StudentInfoModel";
 import { Link, useNavigate } from 'react-router-dom'
 import Login from '../Pages/Login'
 import { useUser } from "../context/UserContext";
+import ButtonIcon from "../components/ButtonIcon";
 
 
 const fadeUpVariant = {
@@ -22,8 +22,6 @@ const fadeUpVariant = {
 }
 
 const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-const altWmessage = 'Hey there! I am unable to find a relatable UG student to guide me! Can you please connect me with one?'
-const encodedAltWmessage = encodeURIComponent(altWmessage)
 
 function shuffleArray(array) {
   const arr = [...array];
@@ -44,24 +42,8 @@ export default function StudentSwiper() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [students, setStudents] = useState([]);
-  const [name, setName] = useState("");
-  const [stream, setStream] = useState("");
-  const [percentage, setPercentage] = useState("");
-  const [redirect, setRedirect] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const { user } = useUser();
   const [showLogin, setShowLogin] = useState(false);
-  //  Form Cancel Handler Function
-  const cancelHandler = () => {
-    setShowModal(false);
-
-    setTimeout(() => {
-      window.open(`https://wa.me/919243299145?text=${redirect}`, "_blank");
-    }, 10); // give enough time for user to notice the toast
-  }
-  const onXclick = () => {
-    setShowModal(false)
-  }
 
   function getStudentImageUrl(imageName) {
     if (imageName) {
@@ -130,12 +112,6 @@ export default function StudentSwiper() {
 
   return (
     <>
-      <StudentInfoModel
-        isOpen={showModal}
-        redirect={redirect}
-        onClose={cancelHandler}
-        onX={onXclick}
-        setShowModal={setShowModal} />
       <motion.section
         variants={fadeUpVariant}
         initial="hidden"
@@ -181,18 +157,8 @@ export default function StudentSwiper() {
         >
           {students.map((student, index) => (
             <SwiperSlide key={index} className="h-60">
-              <button
-                className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
-                onClick={() => {
-                  if (user) {
-                    const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`;
-                    const encodedMessage = encodeURIComponent(message);
-                    window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
-                  } else {
-                    setShowLogin(true);
-                  }
-                }}
-              >
+              <div
+                className="h-64 mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 hover:shadow-xl transition duration-300 ease-in-out border-none w-full">
                 <div className="flex flex-col space-y-1">
                   {/* Image with College Logo Overlay */}
                   <div>
@@ -218,7 +184,7 @@ export default function StudentSwiper() {
                     ) : null}
                   </div>
                   {/* Text Content */}
-                  <div className="mt-4 text-center flex flex-col space-y-1.5">
+                  <div className="mt-1 text-center flex flex-col space-y-1.5">
                     {/* Student Name */}
                     <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
                     {/* Highlighted College Name */}
@@ -227,9 +193,21 @@ export default function StudentSwiper() {
                     <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
                       {student.course}
                     </span>
+                    <div className='cursor-pointer absolute bottom-2 left-1/2 -translate-x-1/2'>
+                      <ButtonIcon text={'Chat Now'} onClick={(e) => {
+                        e.stopPropagation();
+                        if (user) {
+                          const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`;
+                          const encodedMessage = encodeURIComponent(message);
+                          window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
+                        } else {
+                          setShowLogin(true);
+                        }
+                      }} />
+                    </div>
                   </div>
                 </div>
-              </button>
+              </div>
             </SwiperSlide>
           ))}
           <div className="w-fit h-fit mt-5 mb-1.5 mx-auto">
