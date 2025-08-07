@@ -10,14 +10,11 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const Footer = () => {
   // Define Position
-  const notify = () => toast("Message Sent Buddy😎!");
+  const notify = () => toast("Message Sent Buddy 😎! Thanks for your showing your interest....");
   const [form, setForm] = useState({
     email: '',
     msg: ''
   });
-  // Define Position
-  const toastErr = () => toast.error("Empty feedback? That’s not cool 😅");
-  const [message, setMessage] = useState(""); // 1️⃣ Fix typo
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
