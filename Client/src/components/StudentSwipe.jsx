@@ -27,6 +27,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import StudentInfoModal from "./StudentInfoModal";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import ButtonIcon from "./ButtonIcon";
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -546,12 +547,8 @@ const cancelHandler = () => {
                   <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[12px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
                    {student.university}
                   </span>
-     </div>
+                  </div>
                  :""}
-
-
-
-
                   </div>
 
                   {/* Text Content */}
@@ -567,6 +564,7 @@ const cancelHandler = () => {
                     <span className="inline-block mt-1 px-3 py-1 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
                       {student.course}
                     </span>
+                 
                   </div>
                 </div>
                 </button>

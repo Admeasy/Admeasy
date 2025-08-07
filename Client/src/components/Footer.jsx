@@ -224,22 +224,11 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
 
 {/* Social/proffesional Links In foooter */}
             <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
-              {/* Instagram */}
-              <li>
-                <a
-                  href="#"
-                  rel="noreferrer"
-                  target="_blank"
-                  aria-label='Facebook'
-                  className="text-gray-700 transition hover:opacity-75 dark:text-gray-200"
-                >
-                  <FaFacebook className="size-6" />
-                </a>
-              </li>
+         
 
               <li>
                 <a
-                  href="#"
+                  href="https://www.linkedin.com/company/admeasy-in"
                   rel="noreferrer"
                   target="_blank"
                   aria-label='LinkedIn'
@@ -260,10 +249,10 @@ active:border-b-[2px] active:brightness-90 active:translate-y-[2px]">
                   <FaXTwitter className="size-6" />
                 </a>
               </li>
-{/* Github */}
+{/* Instagram */}
               <li>
                 <a
-                  href="#"
+                  href="https://www.instagram.com/aadesh.admeasy.in?igsh=a3JjZ3ZzemR3M2Jq"
                   rel="noreferrer"
                   target="_blank"
                   aria-label='Instagram'

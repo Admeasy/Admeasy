@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const gAds = () => {
+const GoogleAds = () => {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
@@ -29,4 +29,4 @@ const gAds = () => {
   );
 };
 
-export default gAds;
+export default GoogleAds;

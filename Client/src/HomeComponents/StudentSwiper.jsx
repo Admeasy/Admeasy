@@ -12,7 +12,7 @@ import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import StudentInfoModel from "../components/StudentInfoModel";
 import { Link } from 'react-router-dom'
-
+import ButtonIcon from "../components/ButtonIcon";
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -177,20 +177,16 @@ export default function StudentSwiper() {
         >
           {students.map((student, index) => (
             <SwiperSlide key={index} className="h-60">
-              <button
-                className="h-58 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
-                onClick={() => {
-                  const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
-                  setRedirect(message);
-                  setShowModal(true);
-                }}
+              <div
+                className="h-60 cursor-pointer mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 group hover:shadow-xl transition duration-300 ease-in-out border-none w-full"
+                
               >
                 <div className="flex flex-col space-y-1">
                   {/* Image with College Logo Overlay */}
                   <div>
                     <img
                       src={getStudentImageUrl(student.image)}
-                      className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                      className="size-20 m-0 mx-auto rounded-full object-cover object-center shadow-md"
                       onError={(e) => {
                         e.target.src = fallbackImage;
                       }} />
@@ -210,18 +206,28 @@ export default function StudentSwiper() {
                     ) : null}
                   </div>
                   {/* Text Content */}
-                  <div className="mt-4 text-center flex flex-col space-y-1.5">
+                  <div className="mt-2 text-center flex flex-col space-y-1">
                     {/* Student Name */}
                     <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
                     {/* Highlighted College Name */}
-                    <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
+                    <p onClick={()=>{
+                      window.location.href = `/colleges/${college._id}`
+                    }} 
+                    className={`${student.college.length>30? 'text-[10px] md:text-[12px]':'text-[12px]'} font-admeasy-bold text-[#39365c]`}>{student.college}</p>
                     {/* Course Badge */}
                     <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
                       {student.course}
                     </span>
                   </div>
-                </div>
-              </button>
+                  <div  className='absolute bottom-2 left-1/2 transform -translate-x-1/2 flex justify-center items-center cursor-pointer' onClick={() => {
+                            const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
+                            setRedirect(message);
+                            setShowModal(true);
+                        }}>
+                                <ButtonIcon text={'Chat Now'} />
+                            </div>    
+                    </div>
+              </div>
             </SwiperSlide>
           ))}
           <div className="w-fit h-fit mt-5 mb-1.5 mx-auto">

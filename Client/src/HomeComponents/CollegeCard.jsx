@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import ExploreBtn from './ExploreBtn'
 import Institute from '../assets/Icons/Institute.webp'
 import { Link } from 'react-router-dom'
-import gAds from '../components/gAds'
 // Helper function to format rating
 const formatRating = (rating) => {
   if (typeof rating === 'number') return rating.toFixed(1);
@@ -70,14 +69,14 @@ export default function CollegeCard() {
         <div overflow=""></div>
       </amp-ad> */}
       <div className="pt-4">
-        <div className="w-full mb-8 p-0 flex items-center justify-center gap-0 sm:gap-3">
+        <div className="w-full mb-8 p-0  sm:flex items-center justify-center gap-0 sm:gap-3">
           <img src={Institute} alt="" className="w-14" />
-          <h1 className="w-fit h-fit text-2xl md:text-4xl m-0 mt-1 p-0 font-extrabold text-center">
+          <h1 className="w-fit h-fit media-[min-width:300px]:text-[16px] text-[20px] md:text-4xl m-0 mt-1 p-0 font-extrabold text-center">
             Discover the Best Colleges Near You
           </h1>
         </div>
         {/* Google Ads Component */}
-        <gAds/>
+        
         <div className="flex my-4 flex-wrap justify-around p-0 md:p-2 md:m-2">
           {isLoading ? (<h3 className='mb-5 text-lg md:text-2xl text-tsecondary text-center font-semibold'>Loading Colleges...</h3>) : Colleges.map(
             // Function here

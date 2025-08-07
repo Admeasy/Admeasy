@@ -215,6 +215,7 @@ useEffect(() => {
               We’re currently focused on expanding our college network — especially from top institutions like <strong> Delhi University</strong> — so students across India get access to opportunities they deserve.
             </p>
           </Section>
+          
         </main>
       </div>
     </>
