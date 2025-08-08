@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Admeasy } = require('../db');
 
 const CollegesSchema = new mongoose.Schema({
   _id: {
@@ -253,4 +254,4 @@ const CollegesSchema = new mongoose.Schema({
   }]
 });
 
-module.exports = mongoose.model('Colleges', CollegesSchema);
+module.exports = Admeasy.model('Colleges', CollegesSchema);

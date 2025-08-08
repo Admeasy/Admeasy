@@ -4,7 +4,13 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
+const UsersRoutes = require('./routes/userRoutes');
+const ApplicationsRoutes = require('./routes/applicationRoutes');
+const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
+const session = require('express-session');
+const passport = require('./middleware/passport');
+const MongoStore = require('connect-mongo');
 
 const app = express();
 
@@ -18,9 +24,44 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'default_secret',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGODB_USERS_URI }),
+  cookie: {
+    secure: false, // set to true if using HTTPS in production
+    httpOnly: true,
+    maxAge: 12 * 60 * 60 * 1000 // 12 hours
+  }
+}));
+
+// Initialize Passport and session
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Google OAuth routes
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login', session: true }),
+  (req, res) => {
+    // Redirect based on whether the user is new or existing
+    if (req.user && req.user._isNewUser) {
+      res.redirect('http://localhost:5173/me');
+    } else {
+      res.redirect('http://localhost:5173/');
+    }
+  }
+);
+
 // API Routes
 app.use('/api/colleges', CollegesRoutes);
+app.use('/api/users', UsersRoutes);
+app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
+app.use('/api/messages', MessageRoutes);
 
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));

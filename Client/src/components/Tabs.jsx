@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
-import StudentInfoModel from './StudentInfoModel';
 import Contact from '../components/CollegeContactCard'
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -12,6 +11,9 @@ import BoyWithLaptop from '../assets/Others/BoyWithLaptop.webp'
 import Boy from '../assets/Others/BoyPointingSideways.webp'
 import Star from '../assets/Others/Star.webp'
 import { FaArrowRight } from 'react-icons/fa6';
+import ButtonIcon from '../components/ButtonIcon';
+import { useUser } from '../context/UserContext'
+import Login from '../Pages/Login';
 
 
 function classNames(...classes) {
@@ -79,7 +81,7 @@ const RatingBar = ({ rating, label }) => {
 
 export default function Tabs({ college = {} }) {
   // Tabs component initialization
-
+  const { user } = useUser();
   const [selectedTab, setSelectedTab] = useState(0);
   const [gallery, setGallery] = useState([]);
   const [isGalleryLoading, setIsGalleryLoading] = useState(true);
@@ -87,8 +89,7 @@ export default function Tabs({ college = {} }) {
   const [lastGalleryFetch, setLastGalleryFetch] = useState(null);
   const [recruitersWithLogos, setRecruitersWithLogos] = useState([]);
   const [isLoadingLogos, setIsLoadingLogos] = useState(true);
-  const [redirect, setRedirect] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [mentors, setMentors] = useState([]);
   const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
 
@@ -106,18 +107,6 @@ export default function Tabs({ college = {} }) {
     highest: safeGet(college, 'package.highest', 'Not Available'),
     average: safeGet(college, 'package.average', 'Not Available')
   };
-
-  //  Form Cancel Handler Function
-  const cancelHandler = () => {
-    setShowModal(false);
-
-    setTimeout(() => {
-      window.open(`https://wa.me/919243299145?text=${redirect}`, "_blank");
-    }, 10); // give enough time for user to notice the toast
-  }
-  const onXclick = () => {
-    setShowModal(false)
-  }
 
   function getStudentImageUrl(imageName) {
     if (imageName) {
@@ -499,20 +488,14 @@ export default function Tabs({ college = {} }) {
               </h2>
               <div className="w-full p-3 flex justify-evenly flex-wrap gap-10">
                 {mentors && mentors.length > 0 ? (mentors.map((student) => (
-                  <motion.button
+                  <motion.div
                     variants={fadeUpVariant}
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.25 }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                     key={student._id}
-                    className="w-60 cursor-pointer mt-4 relative flex flex-col items-center bg-primary rounded-xl shadow-3d p-6 transform hover:scale-105 transition-transform duration-300 ease-in-out border-none"
-                    onClick={() => {
-                      const message = `Hey there! I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective about ${student.course}!`;
-                      setRedirect(message);
-                      setShowModal(true);
-                    }}
-                  >
+                    className="w-60 h-62 mt-4 relative flex flex-col items-center bg-primary rounded-xl shadow-3d p-6 transform hover:scale-105 transition-transform duration-300 ease-in-out border-none">
                     <div className="flex flex-col space-y-1">
                       {/* Image with College Logo Overlay */}
                       <div>
@@ -524,18 +507,30 @@ export default function Tabs({ college = {} }) {
                           }} />
                       </div>
                       {/* Text Content */}
-                      <div className="mt-4 text-center flex flex-col space-y-1.5">
+                      <div className="mt-2 text-center flex flex-col space-y-1.5">
                         {/* Student Name */}
-                        <p className="text-base font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
+                        <p className="text-sm font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
                         {/* Highlighted College Name */}
-                        <p className="text-sm font-medium text-[#39365c]">{student.college}</p>
+                        <p className="text-xs font-medium text-[#39365c]">{student.college}</p>
                         {/* Course Badge */}
                         <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
                           {student.course}
                         </span>
+                        <div className='absolute bottom-2.5 left-1/2 -translate-x-1/2 cursor-pointer' onClick={(e) => {
+                          e.stopPropagation();
+                          if (user) {
+                            const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${college.name} to gain some real insights and perspective!`;
+                            const encodedMessage = encodeURIComponent(message);
+                            window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
+                          } else {
+                            setShowLogin(true);
+                          }
+                        }}>
+                          <ButtonIcon text={'Chat Now'} />
+                        </div>
                       </div>
                     </div>
-                  </motion.button>
+                  </motion.div>
                 ))) : (<h4 className='text-xl text-center'>No Mentors found...</h4>)}
               </div>
             </motion.section>
@@ -659,15 +654,7 @@ export default function Tabs({ college = {} }) {
           </TabPanel>
         </TabPanels>
       </TabGroup>
-      
-      {/* StudentInfoModel - rendered at root level for proper positioning */}
-      <StudentInfoModel
-        isOpen={showModal}
-        redirect={redirect}
-        onClose={cancelHandler}
-        onX={onXclick}
-        setShowModal={setShowModal}
-      />
-    </section>
+      {showLogin && <Login isOpen={showLogin} onClose={() => setShowLogin(false)} />}
+    </section >
   );
 }

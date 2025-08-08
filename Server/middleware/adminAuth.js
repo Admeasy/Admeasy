@@ -6,12 +6,12 @@ const adminAuth = async (req, res, next) => {
     const { username, password } = req.body;
 
     // Check if environment variables are set
-    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
+    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_ADMIN_SECRET) {
       console.error('Missing environment variables:');
       console.error('- ADMIN_USERNAME:', !!process.env.ADMIN_USERNAME);
       console.error('- ADMIN_PASSWORD:', !!process.env.ADMIN_PASSWORD);
-      console.error('- JWT_SECRET:', !!process.env.JWT_SECRET);
-      
+      console.error('- JWT_ADMIN_SECRET:', !!process.env.JWT_ADMIN_SECRET);
+
       return res.status(500).json({
         success: false,
         message: 'Server configuration error - Missing environment variables'
@@ -26,11 +26,11 @@ const adminAuth = async (req, res, next) => {
 
     if (isUsernameMatch && isPasswordMatch) {
       // Create authentication token
-      
+
       // Create JWT token
       const token = jwt.sign(
         { username, role: 'admin' },
-        process.env.JWT_SECRET,
+        process.env.JWT_ADMIN_SECRET,
         { expiresIn: '1h' }
       );
 
@@ -39,26 +39,26 @@ const adminAuth = async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 3600000 // 1 hour
+        maxAge: 60 * 60 * 1000 // 1 hour
       });
 
       // Authentication successful
-      return res.json({ 
+      return res.json({
         success: true,
         message: 'Authentication successful'
       });
     }
 
     // Authentication failed
-    return res.status(401).json({ 
-      success: false, 
+    return res.status(401).json({
+      success: false,
       message: 'Invalid credentials'
     });
 
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Internal server error',
       error: error.message
     });
@@ -69,21 +69,21 @@ const adminAuth = async (req, res, next) => {
 const verifyAdminToken = (req, res, next) => {
   try {
     const token = req.cookies.adminToken;
-    
+
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'No token provided' 
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
     req.admin = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Invalid token' 
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token'
     });
   }
 };

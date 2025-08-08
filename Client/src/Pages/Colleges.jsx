@@ -10,6 +10,7 @@ const fadeUpVariant = {
 
 const Colleges = () => {
   const [colleges, setColleges] = useState([]);
+  const [loading, setLoading] = useState(false);;
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialSearchQuery = searchParams.get('search') || '';
@@ -66,9 +67,10 @@ const Colleges = () => {
   useEffect(() => {
     async function fetchColleges() {
       try {
+        setLoading(true);
         const response = await fetch('/api/colleges');
         const data = await response.json();
-
+        
         // If there's a search query, filter the results
         if (searchQuery) {
           // Split the search query into terms and remove empty strings
@@ -76,16 +78,18 @@ const Colleges = () => {
             .toLowerCase()
             .split(/[\s,]+/)
             .filter(term => term.length > 0);
-
-          const filteredColleges = data.filter(college =>
+          
+          const filteredColleges = data.filter(college => 
             matchesSearchTerms(college, searchTerms)
           );
           setColleges(filteredColleges);
         } else {
           setColleges(shuffleArray(data));
         }
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching colleges:', error);
+        setLoading(false);
       }
     }
     fetchColleges();
@@ -103,15 +107,15 @@ const Colleges = () => {
           name='search'
           value={searchQuery}
           onChange={handleSearch}
-          className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]'
-          type="text"
-          placeholder='B.Tech colleges...'
+          className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' 
+          type="text" 
+          placeholder='Search Best B.Tech colleges near me...' 
         />
         <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'>
           <img draggable="false" src={SearchLogo} alt="Search" />
         </button>
       </div>
-      <div className='w-full lg:p-3 flex justify-evenly flex-wrap lg:gap-10'>
+      <div className='w-full p-3 flex justify-evenly flex-wrap gap-10'>
         {colleges.map(
           (college) => (
             <Link to={`/colleges/${college._id}`} key={college._id}>

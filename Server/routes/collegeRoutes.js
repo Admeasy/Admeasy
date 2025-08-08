@@ -19,14 +19,6 @@ const upload = multer({
     }
 });
 
-let conn = mongoose.connect(process.env.MONGODB_URI)
-
-if (conn) {
-    console.log('Connected to MongoDB');
-} else {
-    console.error('Failed to connect to MongoDB');
-}
-
 // Helper function to upload files to B2 directly from memory
 async function uploadToB2(files, collegeId) {
     const b2Client = new BackblazeB2Client();

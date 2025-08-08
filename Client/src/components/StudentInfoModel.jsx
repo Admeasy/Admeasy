@@ -130,7 +130,7 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
           {/* Note */}
           <p className="text-xs text-gray-600 pt-4">
             <strong>Note:</strong> This information will be shared with the UG Mentor. <br />
-            <span className="text-[11px] text-gray-500">यह जानकारी UG Mentor के साथ साझा की जाएगी।</span>
+            <span className="text-[11px] text-gray-500">यह जानकारी Mentor के साथ साझा की जाएगी।</span>
           </p>
         </form>
 
