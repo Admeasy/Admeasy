@@ -26,7 +26,7 @@ import MentorshipForm from './Pages/MentorshipForm'
 import Messages from './Pages/Messages'
 import { useEffect } from 'react';
 import { useUser } from './context/UserContext';
-
+import TextPressure from "../ReactBits/TextPressure/TextPressure"
 
 function App() {
   const location = useLocation();
@@ -65,6 +65,7 @@ function App() {
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
         <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
       </Routes>
+   
       <ScrollUpButton/>
       {!isAdminRoute && <Footer />}
   

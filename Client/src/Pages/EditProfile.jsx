@@ -100,6 +100,7 @@ const EditProfile = () => {
     }
   }, []);
 
+  // Onchange
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setIsDirty(true);
@@ -123,6 +124,7 @@ const EditProfile = () => {
       toast.error('Please fill all required fields.');
       return;
     }
+
     const formData = new FormData();
     formData.append('name', form.name);
     formData.append('phone', form.phone)
@@ -131,6 +133,11 @@ const EditProfile = () => {
     let courseValue = form.course;
     if (form.course !== 'Class 9th' && form.course !== 'Class 10th' && form.streamOrYear) {
       courseValue = `${form.course} (${form.streamOrYear})`;
+    }
+        // mobile Function
+      if(form.phone.length<10 || form.phone.startsWith("1"|"2"|"3"|"4"|"5")){
+      toast.error("Not cool")
+      return;
     }
     formData.append('course', courseValue);
     formData.append('gender', form.gender);
@@ -204,15 +211,49 @@ const EditProfile = () => {
       toast.error('Failed to logout');
     }
   };
-
+  const teleValidate = ''
   return (
     <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
-      <button
+      {/* (Mentos Jindagi) Logout Button */}
+      <div className='flex w-full justify-end'> 
+       <button
+      className="
+        group flex items-center justify-start 
+        w-[45px] h-[45px] 
+        border-none rounded-full cursor-pointer relative overflow-hidden 
+        shadow-[2px_2px_10px_rgba(0,0,0,0.199)]
+        bg-red-500 transition-all duration-300 
+        active:translate-x-[2px] active:translate-y-[2px]
+        hover:w-[125px] hover:rounded-[40px]"
         onClick={handleLogout}
-        className="absolute top-2 sm:top-4 right-2 sm:right-4 px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-md bg-red-500 text-white font-semibold hover:bg-red-700 transition cursor-pointer"
+    >
+      {/* Sign (Icon) */}
+      <div
+        className="
+          w-full flex items-center justify-center transition-all duration-300 
+          group-hover:w-[30%] group-hover:pl-5
+        "
+      >
+        <svg viewBox="0 0 512 512" className="w-[17px]">
+          <path
+            fill="white"
+            d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"
+          ></path>
+        </svg>
+      </div>
+
+      {/* Text */}
+      <div
+        className="
+          absolute right-0 w-0 opacity-0 text-white 
+          text-[1.2em] font-semibold transition-all duration-300 
+          group-hover:opacity-100 group-hover:w-[70%] group-hover:pr-[10px]
+        "
       >
         Logout
-      </button>
+      </div>
+    </button>
+    </div>
       <h2 className="text-3xl font-bold text-center mb-8">My Profile</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col items-center">
@@ -269,6 +310,7 @@ const EditProfile = () => {
             className="w-full px-3 py-2 rounded-md border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
           />
         </label>
+        {/* Phone Number */}
         <label className="flex flex-col gap-1 text-sm font-medium">
           {"Phone Number (+91)"}
           <input

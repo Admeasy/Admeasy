@@ -3,7 +3,7 @@ import '../App.css'
 import { motion } from 'framer-motion'
 import Section from '../components/AboutSection'
 import { useLocation } from 'react-router-dom'
-
+import TextPressure from '../../ReactBits/TextPressure/TextPressure'
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCards } from 'swiper/modules';
 
@@ -109,7 +109,7 @@ useEffect(() => {
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.9, ease: 'easeOut' }}
-            className="w-full h-fit m-auto p-4 sm:p-12 pt-16 sm:pt-[7rem] md:pt-[6.5rem] lg:pt-20 xl:pt-24 text-center relative">
+            className="w-full h-fit m-auto p-4 sm:p-12 text-center relative">
             <style>
               {`
             @media (max-width: 465px) {
@@ -119,9 +119,26 @@ useEffect(() => {
             }
           `}
             </style>
-            <h1 className='h-about custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-tprimary tracking-wide lg:tracking-widest z-5 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
-            <img className='w-full md:w-8/10 lg:w-7/10 xl:w-6/10 m-auto relative z-10 rounded-4xl mt-16 sm:mt-0' />
-            <h1 className='custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1>
+           {/* Simple Heading */}
+            {/* <h1 className='h-about custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-tprimary tracking-wide lg:tracking-widest z-5 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
+            */}
+
+<div className='h-max relative'>
+  <TextPressure
+    text="About Us!"
+    flex={true}
+    alpha={false}
+    stroke={false}
+    width={true}
+    weight={true}
+    italic={true}
+    textColor="black"
+    strokeColor="#ff0000"
+    minFontSize={16}
+  />
+</div>
+
+            {/* <h1 className='custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1> */}
           </motion.header>
         </div>
         {/* Main Sections */}

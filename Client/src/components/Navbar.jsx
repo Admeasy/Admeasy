@@ -4,7 +4,7 @@ import logo from '../assets/Admeasy/LOGO.webp';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { useUser } from '../context/UserContext';
-
+import LoginButton from './LoginButton';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 const Navbar = () => {
@@ -81,7 +81,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full mb-5 flex items-center justify-between px-2.5 lg:px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
+    <nav className="w-full flex items-center justify-between px-2.5 lg:px-5 py-3 2xl:py-4 bg-bg sticky top-0 z-[1000] shadow-[0_8px_16px_#d1d9e6] rounded-b-2xl">
       {/* Logo */}
       <div className="flex-shrink-0">
         <Link to="/">
@@ -106,11 +106,9 @@ const Navbar = () => {
               onError={handleImageError} />
           </Link>
         ) : (
-          <Link
-            to='/login'
-            className="flex items-center justify-center text-lg lg:text-xl py-1.5 lg:py-2 px-2 lg:px-3 text-white transform hover:scale-105 hover:text-black hover:shadow-xl shadow-lg bg-link rounded-xl transition-transform duration-200"
-          >
-            {window.innerWidth >= 1024 ? 'Log In / Sign Up' : 'Log In'}
+          // Login Signup Page 
+          <Link to='/login'>
+            <LoginButton/>
           </Link>
         )}
       </div>
@@ -130,12 +128,16 @@ const Navbar = () => {
             />
           </Link>
         ) : !shouldHide && (
-          <Link
-            to='/login'
-            className="md:hidden flex items-center justify-center text-lg text-center py-0.75 px-2.5 text-white bg-link rounded-xl cursor-pointer"
-            onClick={() => setIsOpen(false)}
-          >
-            Log In
+          // <Link
+          //   to='/login'
+          //   className="md:hidden flex items-center justify-center text-lg text-center py-0.75 px-2.5 text-white bg-link rounded-xl cursor-pointer"
+          //   
+          // >
+          //   Log In
+          // </Link>
+        // Login Signup Page 
+          <Link to='/login' onClick={() => setIsOpen(false)}>
+            <LoginButton/>
           </Link>
         )}
 

@@ -6,26 +6,24 @@ import { RiQuestionAnswerFill } from "react-icons/ri";
 
 const faqs = [
   {
-    question: "🎓 What is Admeasy?",
-    answer: `Admeasy is your smart admission buddy! 🤝📱 We're a student-first platform that helps you find the right college without drowning in confusion or compromising your privacy. 🚫📞 No spam. No data selling. Just genuine guidance, verified college info, and tools to make your admission journey smooth, stress-free, and regret-free. ✨🎯`,
+    question: "What is Admeasy?",
+    answer: `Admeasy puts students first, helping you choose the right college with honest guidance, trusted information, and complete privacy. No spam, no data selling—just a simple, stress-free admission journey that keeps you confident, informed, and free from future regrets.`,
   },
   {
-    question: "🔐 Is my data safe with Admeasy?",
-    answer: `100% safe and secure — no spam, no nonsense. 🛡️📵 At Admeasy, your privacy is our priority. We collect only the necessary details (like your name, contact info, and preferences) to personalize your experience — and we never sell or share your data. ❌📞
-Unlike other platforms, you won't receive annoying spam calls or random emails. Your data stays with us, just the way it should. 🔒✅`,
+    question: "Is my data safe with Admeasy?",
+    answer: `Admeasy keeps your data 100% safe and private. We collect only what’s needed, never sell or share it, and ensure no spam calls or emails—just a secure, personalized admission experience.`,
   },
   {
-    question: "❓Does Admeasy help with scholarships or financial aid information?",
-    answer: "Yes! While Admeasy doesn't directly provide scholarships or financial aid, we guide you toward the right opportunities. Our platform includes filters to help you discover colleges that offer scholarships, fee waivers, or budget-friendly programs based on your preferences. 💸🎓 ➡️ For detailed and updated information, feel free to contact our support team — we're here to help!.",
+    question: "Can Admeasy help me land a scholarship or find affordable college options?",
+    answer: "Absolutely! While we don’t hand out scholarships ourselves, we make finding them a whole lot easier. Use our smart filters to discover colleges offering scholarships, fee waivers, or budget-friendly programs that match your needs. Need the latest details? Our support team’s got your back!",
   },
   {
-    question: "💬 Does Admeasy offer counselling or live support?",
-    answer: `Absolutely! 🧑‍🏫💬 Admeasy offers personalized counselling through experienced undergraduates and our dedicated support team. Whether you're confused about college options or just need guidance, we've got your back — all at a very pocket-friendly price. 💡🎓`,
+    question: "Does Admeasy offer counselling or live support?",
+    answer: `Absolutely! Admeasy offers personalized counselling from experienced undergraduates and our support team. From college confusion to clear guidance, we’ve got your back—delivering expert advice at a budget-friendly price.`,
   },
   {
-    question: "🔄 How often is the college database updated?",
-    answer: `We keep it fresh! 🗂️✨ College details like fee structure and placement stats are updated once every year, directly sourced from official data. Internship opportunities and additional info are refreshed more frequently — depending on availability and updates from the institutions. 🎓💼
-We aim to keep everything as current as possible — and if you ever need the latest scoop, our support team is just a message away! 💬📲`,
+    question: "How often is the college database updated?",
+    answer: `We keep it fresh! College details like fees and placement stats are updated yearly from official sources, while internships and extra info are refreshed more often. For the latest updates, our support team is always ready to help.`,
   },
 ];
 

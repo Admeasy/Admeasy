@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import SearchLogo from '../assets/Others/Search-logo.webp';
-import Girl from '../assets/Others/Girl.webp';
-import Hero from '../assets/Others/hero.webp'
+import pcGirl from '../assets/Others/pc-hero-.png'
+import mbGirl from '../assets/Others/mobile-hero-.png'
+// import Hero from '../assets/Others/hero.webp'
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -33,17 +34,17 @@ const FrontHome = () => {
         {/* Text Section */}
         <div className="w-full md:w-1/2 flex flex-col text-center justify-center gap-4 sm:gap-6 xl:gap-8 p-6 px-0">
           <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-admeasy-extrabold text-tprimary leading-snug">
-            Find the <span className="text-orange-400">Best</span><br />
-            <span className="text-orange-400">College</span> in INDORE & DELHI
+            Get <span className="text-blue-900">Real Insights</span><br />
+             from your <span className="text-blue-900">Seniors</span>
           </h1>
-          <p className="text-[14px] sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
-            Discover top-rated colleges near you and connect with UGs/Alumnis to make the right choice for your future.
+          <p className="text-[14px] font-admeasy sm:text-base md:text-lg text-tsecondary px-2 md:px-6">
+            Discover top-rated colleges near you and connect with UGs/Alumnis to make the right choice for your future. <strong > ₹ 0 to talk to IITians, IIMities, SRCCians</strong>
           </p>
           <form onSubmit={handleSearch} className="relative w-9/10 sm:w-full max-w-xl mx-auto mt-4">
             <input
               name="search"
               type="text"
-              placeholder="Search Best B.Tech colleges near me..."
+              placeholder="Search IIT Indore, DU..."
               className="w-full h-12 sm:h-14 px-4  rounded-full bg-white text-sm sm:text-base placeholder:text-tsecondary placeholder:text-[12px] sm:placeholder:text-base shadow-inset-6 outline-none"
               aria-label="Search for colleges"/>
             <button
@@ -61,12 +62,15 @@ const FrontHome = () => {
 
         {/* Girl Image Section */}
         <div className="md:pt-13 w-full md:w-fit h-full relative flex justify-center md:justify-left md:mt-10">
+          {/* Mobile Image */}
           <img
-            src={Hero}
+            src={mbGirl}
             alt="College search illustration"
             className="block md:hidden max-h-[280px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"/>
+          
+          {/* Pc Image */}
           <img
-            src={Girl}
+            src={pcGirl}
             alt="College search illustration"
             className="hidden md:block mt-5 lg:mt-0 max-h-[440px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
           />

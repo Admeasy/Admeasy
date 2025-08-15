@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "npm start",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -23,7 +24,7 @@
     "react-router-dom": "^7.6.0",
     "react-router-navigation-prompt": "^1.9.6",
     "react-toastify": "^11.0.5",
-    "styled-components": "^6.1.18",
+    "styled-components": "^6.1.19",
     "swiper": "^11.2.6",
     "tailwindcss": "^4.1.7"
   },
