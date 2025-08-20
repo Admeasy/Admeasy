@@ -27,6 +27,7 @@ import Messages from './Pages/Messages'
 import { useEffect } from 'react';
 import { useUser } from './context/UserContext';
 import TextPressure from "../ReactBits/TextPressure/TextPressure"
+import { NotFound } from './Pages/NotFound';
 
 function App() {
   const location = useLocation();
@@ -64,6 +65,9 @@ function App() {
         <Route path='/admin/messages' element={<Messages />}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
         <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
+
+        {/* 404 Slap */}
+      <Route path='*' element={<NotFound/>} />
       </Routes>
    
       <ScrollUpButton/>
