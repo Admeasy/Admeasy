@@ -23,12 +23,9 @@ const Footer = () => {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (form.email === "") {
-      toast.error("Awwww! Buddy! We need your Email for contacting you! 🫤")
-    }
-
-    if (form.msg === "") {
-      toast.error("We want to hear from you?! Drop your message in the field.... 🫠");
+    if (form.email === ""||form.msg === "") {
+      toast.error("Buddy! Empty Fields Are not really cool🫤")
+      return;
     }
 
     const data = JSON.stringify({ email: form.email, msg: form.msg });
@@ -47,11 +44,17 @@ const Footer = () => {
         notify();
       } else {
         toast.error('Ugghhh! Failed to send message. 😫');
-        console.log(res.json());
+        // console.log(res.json());
       }
-    } catch (err) {
-      toast.error('Ahhh! An Error Occurred... 😑')
     }
+    // Catch Err
+    catch (err) {
+      toast.error('Ahhh! An Error Occurred...😑')
+    }
+    setForm({
+      email:'',
+      msg:''
+    })
   };
 
   const location = useLocation();

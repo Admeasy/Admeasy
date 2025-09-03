@@ -1,55 +1,96 @@
 import { useState } from 'react';
-import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from 'react-router-dom';
+import { toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setShowModal }) {
   if (!isOpen) return null;
 
   const [name, setName] = useState("");
-  const [stream, setStream] = useState("");
-  const [percentage, setPercentage] = useState("");
-  const [skipInfo,setSkipInfo] = useState(false)
+  const [number, setNumber] = useState("");
+  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
 
   // Error Toast
-  const FormErr = (e) => {
-    e.preventDefault()
+  const FormErr = () => {
     toast.error("All fields are required!", {
       position: "top-center",
       autoClose: 2000,
       theme: "colored",
     });
   };
-  // CheckBox Handler
-  const checkboxHandler = (e)=>{
-    setSkipInfo(e.target.checked)
-  }
-  // Form Submission Handler
-  const submitHandler = (e) => {
-    e.preventDefault();
-    if (!name.trim() || !stream.trim() || !percentage.trim()) {
-      return FormErr(e);
-    }
-    setShowModal(false)
-    toast.success(`Form submitted successfully ${name}`, {
-      position: "top-center",
-      autoClose: 1500,
-      theme: "colored",
-    });
 
-    setName("");
-    setStream("");
-    setPercentage("");
-    setTimeout(() => {
-      const finalMessage = `${redirect}\nAbout Me:\n• Name: ${name}\n• Stream: ${stream}\n• Percentage in 12th: ${percentage}`;
-      const encoded = encodeURIComponent(finalMessage);
-      window.open(`https://wa.me/919243299145?text=${encoded}`, "_blank");
-      // Reset after opening link
-    }, 1000);
+  // Form Submission Handler
+  const submitHandler = async (e) => {
+    e.preventDefault();
+
+    if (!name.trim() || !email.trim() || !number.trim()) {
+      return FormErr();
+    }
+    if(
+      !email.trim().endsWith('gmail.com')){
+      toast.error('Email is not valid',
+        {
+          position:'top-center'
+        }
+      )
+      return;
+    }
+
+    if(  number.length !== 10 || 
+  !/^[6-9]\d{9}$/.test(number)  ){
+      toast.error('Number Is Not Valid',{
+        position:'top-center'
+      })
+      return;
+    }
+
+    try {
+      const data = { name, email, number };
+
+      const res = await fetch('/api/enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const errorMsg = await res.text();
+        toast.error(`Ugghhh! Failed: ${errorMsg}`, {
+          position: "top-center",
+          autoClose: 1500,
+          theme: "colored",
+        });
+        return;
+      }
+
+      toast.success(`Our Team Will Contact You Shortly, ${name}`, {
+        position: "top-center",
+        autoClose: 1500,
+        theme: "colored",
+      });
+
+      // ✅ Reset form fields
+      setName("");
+      setEmail("");
+      setNumber("");
+
+      // ✅ Close modal
+      onX();
+      onClose();
+
+    } catch (err) {
+      console.error(err);
+      toast.error('Ahhh! An Error Occurred...😑', {
+        position: "top-center",
+        autoClose: 1500,
+        theme: "colored",
+      });
+    }
   };
-  
+
   return (
     <div className="fixed inset-0 w-screen h-screen z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4">
-      {/* Form Container */}
       <div className="relative py-6 px-6 md:px-8 bg-primary rounded-2xl border-gray-300 w-full max-w-md mx-auto overflow-y-auto max-h-[90vh]">
         {/* Close Button */}
         <button
@@ -61,79 +102,84 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
         </button>
 
         <h1 className="text-gray-800 text-xl font-bold mb-4 text-center">Student Information Form</h1>
-        <form className="space-y-4">
-          {/* Name */}
 
+        {/* ✅ Attach submitHandler to form */}
+        <form className="space-y-4" onSubmit={submitHandler}>
+          {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Name*</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Name<span className="text-red-600">*</span>
+            </label>
             <input
               type="text"
               placeholder="e.g. John Doe"
               onChange={(e) => setName(e.target.value)}
               value={name}
-              className="mt-2  w-full h-10 px-3 text-sm text-gray-600 border placeholder:font-admeasy-bold border-gray-300 rounded focus:outline-none focus:ring-2 placeholder:text-[12px] focus:ring-indigo-700"
-            />
-          </div>
-
-          {/* Stream */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Stream + Optional*</label>
-            <input
-              type="text"
-              placeholder="e.g. Commerce + Maths"
-              onChange={(e) => setStream(e.target.value)}
-              value={stream}
               className="mt-2 w-full h-10 px-3 text-sm text-gray-600 border placeholder:font-admeasy-bold border-gray-300 rounded focus:outline-none focus:ring-2 placeholder:text-[12px] focus:ring-indigo-700"
             />
           </div>
 
-          {/* Percentage */}
+          {/* Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">11th/12th Percentage*</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Your Number<span className="text-red-600">*</span>
+            </label>
+           <div className="flex items-center gap-1">
+  {/* Country Code */}
+  <span className="bg-gray-100 py-2 px-3 text-gray-700 text-sm font-admeasy-bold border border-gray-300 rounded-l">
+    +91
+  </span>
+
+  {/* Input Field */}
+  <input
+    type="tel"
+    placeholder="Your Number"
+    onChange={(e) => setNumber(e.target.value)}
+    value={number}
+    className="w-full h-10 px-3 text-sm text-gray-700 border border-gray-300 rounded-r placeholder:font-admeasy-bold placeholder:text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-700"
+  />
+</div>
+
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Your Email <span className="text-red-600">*</span>
+            </label>
             <input
-              type="text"
-              placeholder="e.g. 80%"
-              onChange={(e) => setPercentage(e.target.value)}
-              value={percentage}
+              type="email"
+              placeholder="Your Email"
+              onChange={(e) => setEmail(e.target.value)}
+              value={email}
               className="mt-2 w-full h-10 px-3 text-sm text-gray-600 border placeholder:font-admeasy-bold border-gray-300 rounded focus:outline-none focus:ring-2 placeholder:text-[12px] focus:ring-indigo-700"
             />
           </div>
-          <label className="container">
-            <input type="checkbox" checked={skipInfo} onChange={checkboxHandler} />
-              <div className="checkmark"></div>
-            <p className='text-[10px] sm:text-[12px] lg:text-[14px] text-gray-600 font-admeasy'>Proceed without providing details</p>
-          </label>
 
+          {/* Skip login link */}
+          {/* <div>
+            <p
+              className="text-[10px] sm:text-[12px] lg:text-[17px] cursor-pointer text-gray-600 font-admeasy"
+              onClick={() => {
+                navigate('/login');
+                onX();
+                onClose();
+              }}
+            >
+              <span className="underline">Login</span> To skip Form
+            </p>
+          </div> */}
 
           {/* Buttons */}
           <div className="flex justify-center gap-4 mt-8">
             <button
               type="submit"
-              onClick={(e) => {
-                skipInfo ? onClose() : submitHandler(e);
-              }}
               className="cursor-pointer transition-all bg-blue-500 text-white rounded-lg border-blue-600 px-6 py-2 border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px] active:border-b-[2px] active:brightness-90 active:translate-y-[2px] font-medium"
             >
               Submit
             </button>
-          
-
-            {/* <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-100 hover:bg-gray-300 cursor-pointer text-gray-600 px-6 py-2 text-sm rounded border font-medium transition-colors"
-            >
-              Skip
-            </button> */}
           </div>
-
-          {/* Note */}
-          <p className="text-xs text-gray-600 pt-4">
-            <strong>Note:</strong> This information will be shared with the UG Mentor. <br />
-            <span className="text-[11px] text-gray-500">यह जानकारी Mentor के साथ साझा की जाएगी।</span>
-          </p>
         </form>
-
       </div>
     </div>
   );

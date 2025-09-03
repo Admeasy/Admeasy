@@ -76,7 +76,7 @@ useEffect(() => {
       emoji: '🎨',
       name: 'Nitish Kr. Yadav',
       title: 'Co-founder & Co-Chief Technical Officer (Co-CTO)',
-      description: 'Frontend expert, UI designer, and student outreach strategist.',
+      description: 'Frontend expert, UI designer',
     },
     {
       emoji: '🛠️',
@@ -94,7 +94,7 @@ useEffect(() => {
   emoji: '📣',
   name: 'Parth Tiwari',
   title: 'Chief Marketing Officer (CMO)',
-  description: 'Marketing strategist, growth enabler, and brand visibility lead.',
+  description: 'Marketing strategist, growth enabler,and brand visibility lead.',
 }
   ];
   return (
@@ -163,8 +163,7 @@ useEffect(() => {
           <Section className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto text-center">
               <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
-                <span role="img" aria-label="developer">👨‍💻</span>
-                Meet Our Team
+              Team Members
               </h2>
                <div className="flex flex-wrap justify-center gap-6">
                 {teamMembers.map((member, index) => (
@@ -203,7 +202,6 @@ useEffect(() => {
           <Section className="bg-white py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto text-center">
               <h2 className="text-1xl md:text-4xl font-bold tracking-tight text-gray-900 mb-6 flex items-center justify-center gap-2">
-                <span role="img" aria-label="lock">🔐</span>
                 What Makes Us Different
               </h2>
               <ul className="text-[15px] md:text-2xl text-gray-700 space-y-4 text-left">

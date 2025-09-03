@@ -11,10 +11,10 @@ import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from 'react-router-dom'
-import Login from '../Pages/Login'
 import { useUser } from "../context/UserContext";
 import ButtonIcon from "../components/ButtonIcon";
-
+import LogInComp from "../Pages/LogInComp";
+import { toast } from "react-toastify";
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -118,7 +118,7 @@ export default function StudentSwiper() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="my-8 relative bg-primary p-6 rounded-2xl shadow-3d w-[90%] mx-auto">
+        className="my-8 cursor-grab active:cursor-grabbing relative bg-primary p-6 rounded-2xl shadow-3d w-[90%] mx-auto">
         <h2 className="w-fit mx-auto text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-tprimary mb-4 flex justify-evenly items-center">
           <img src={Boy} alt="WhatsApp" className="w-14 mr-0 sm:mr-4" />
           Talk to UGs/Alumnis
@@ -204,7 +204,12 @@ export default function StudentSwiper() {
                           const encodedMessage = encodeURIComponent(message);
                           window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
                         } else {
-                          setShowLogin(true);
+                          navigate('/login')
+                          setTimeout(() => {
+                            toast.dark('Login to get real insights from alumni',{
+                              position: 'top-center'
+                            })
+                          }, 1);
                         }
                       }} />
                     </div>
@@ -222,7 +227,7 @@ export default function StudentSwiper() {
           </div>
         </Swiper>
       </motion.section >
-      {showLogin && <Login isOpen={showLogin} onClose={() => setShowLogin(false)} />}
+      {showLogin && <LogInComp isOpen={showLogin} onClose={() => setShowLogin(false)} />}
     </>
   );
 }

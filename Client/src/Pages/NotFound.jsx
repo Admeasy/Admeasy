@@ -41,7 +41,7 @@ export const NotFound = () => {
       {windowWidth > 1024 ? (
         <FooterBtn text="Go Back" ShowIcon={false}/>  
       ) : (
-        <div onClick={()=>navigate("/")}>
+        <div>
        <MobileBtn>
         Go Home
        </MobileBtn>

@@ -120,7 +120,7 @@ const EditProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Validation: all required fields
-    if (!form.name || !form.phone || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
+    if (!form.name.trim() || !form.phone.trim() || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
       toast.error('Please fill all required fields.');
       return;
     }
@@ -135,10 +135,16 @@ const EditProfile = () => {
       courseValue = `${form.course} (${form.streamOrYear})`;
     }
         // mobile Function
-      if(form.phone.length<10 || form.phone.startsWith("1"|"2"|"3"|"4"|"5")){
-      toast.error("Not cool")
-      return;
-    }
+     if (
+  form.phone.trim().length < 10 ||
+  ["1", "2", "3", "4", "5"].some((digit) =>
+    form.phone.trim().startsWith(digit)
+  )
+) {
+  toast.error("Mobile Number Is Invalid");
+  return;
+}
+
     formData.append('course', courseValue);
     formData.append('gender', form.gender);
     if (profilePic) {
@@ -173,7 +179,8 @@ const EditProfile = () => {
         });
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
-        toast.success('Profile updated successfully');
+        toast.success('Profile updated successfully')
+        navigate('/');
       } else {
         toast.error('Failed to update profile');
       }
@@ -371,7 +378,9 @@ const EditProfile = () => {
           </label>
         ) : null}
         <div className="flex gap-4 justify-center mt-4">
+          {/* Save */}
           <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-700" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
+          {/* Cancel  */}
           <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition cursor-pointer" disabled={isEmpty || isDirty || !isSubmitted} >Cancel</button>
         </div>
       </form>

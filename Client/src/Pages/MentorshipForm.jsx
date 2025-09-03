@@ -242,14 +242,12 @@ const MentorshipForm = () => {
                     />
                     <label htmlFor="terms" className="text-sm text-gray-700">
                         I agree to the&nbsp;
-                        <a
-                            href="/terms-and-conditions"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
+                        <p
+                            onClick={()=> navigate('/t&c')}
+                            className="text-blue-600 hover:underline inline-block cursor-pointer"
                         >
                             Terms and Conditions
-                        </a>
+                        </p>
                         &nbsp;and understand that my application will be reviewed by Admeasy team.
                     </label>
                 </div>

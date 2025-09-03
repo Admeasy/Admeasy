@@ -8,7 +8,7 @@ import { useState } from 'react';
     const navigate = useNavigate();
   return (
     <StyledWrapper>
-      <button className="btn-cssbuttons">
+      <button className="btn-cssbuttons" onClick={()=>navigate('/')} >
         <span>{text}</span>
         
            

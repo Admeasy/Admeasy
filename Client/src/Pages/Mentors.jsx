@@ -4,7 +4,7 @@ import SearchLogo from '../assets/Others/Search-logo.webp'
 import { motion } from 'framer-motion'
 import ButtonIcon from '../components/ButtonIcon';
 import { useUser } from "../context/UserContext";
-import Login from '../Pages/Login'
+import LogIn from "./LogIn"
 
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 100 },
@@ -204,7 +204,7 @@ const Mentors = () => {
                     </motion.div>
                 ))}
             </main>
-            {showLogin && <Login isOpen={showLogin} onClose={() => setShowLogin(false)} />}
+            {showLogin && <LogIn isOpen={showLogin} onClose={() => setShowLogin(false)} />}
         </>
     )
 }

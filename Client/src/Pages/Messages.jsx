@@ -225,8 +225,7 @@ const Messages = () => {
              <div className="p-6">
                <button
                  onClick={closeModal}
-                 className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-               >
+                 className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
                  Close
                </button>
              </div>

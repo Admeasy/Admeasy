@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import ExploreBtn from './ExploreBtn'
-import Institute from '../assets/Others/Institute.webp'
+import GradientText from './GradientText'
 import { Link } from 'react-router-dom'
 // Helper function to format rating
 const formatRating = (rating) => {
@@ -68,91 +68,124 @@ export default function CollegeCard() {
         data-full-width="">
         <div overflow=""></div>
       </amp-ad> */}
-      <div className="pt-4">
-        <div className="w-full mb-8 p-0  sm:flex items-center justify-center gap-0 sm:gap-3">
-          <img src={Institute} alt="" className="w-14" />
-          <h1 className="w-fit h-fit media-[min-width:300px]:text-[16px] text-[20px] md:text-4xl m-0 mt-1 p-0 font-extrabold text-center">
-            Discover the Best Colleges Near You
-          </h1>
-        </div>
-        {/* Google Ads Component */}
-        
-        <div className="flex my-4 flex-wrap justify-around p-0 md:p-2 md:m-2">
-          {isLoading ? (<h3 className='mb-5 text-lg md:text-2xl text-tsecondary text-center font-semibold'>Loading Colleges...</h3>) : Colleges.map(
-            // Function here
-            (college, index) => (
+     <div className="pt-10 bg-gradient-to-b from-sky-50 to-white">
+  {/* ===== Heading Section ===== */}
+  <div className="w-full mb-10 flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+    {/* Custom SVG instead of emoji */}
 
-              <Link key={index} to={`/colleges/${college._id}`}>
-                <div className=' hidden md:flex '>
-                  <div className="w-max h-65 bg-primary cursor-pointer m-2.5 rounded-3xl shadow-3d transition-shadowtransform duration-300 p-2 md:p-1 lg:p-3 flex hover:scale-105">
-                    <div className='w-18 md:w-25 m-0 md:mr-2'>
-                      <img src={college.logo} alt={college.name} draggable="false" className="md:h-20 md:w-20 h-10 w-10 object-fill" />
-                      <p className="text-yellow-500 text-xl font-semibold m-1">⭐ {formatRating(college?.rating)}</p>
-                    </div>
-                    <div className="relative flex flex-col w-30 md:w-50 gap-1 pb-12">
-                      <h2 className={`${college.name.length>35
-                        ?'text-[14px] md:text-[16px] font-admeasy-extrabold' 
-                        :'font-admeasy-extrabold text-lg'}`}>
-                        {college.name}
-                      </h2>
-                      <p className={`${college.location.length>45
-                        ? 'text-[12px] md:text-[13px]'
-                        :' text-[15px]'
-                      } text-tsecondary`}>{college.location}</p>
-                      {/* <p className="text-sm text-gray-700 line-clamp-3">cd
-            {college.description}
-          </p> */}
-                      <ExploreBtn linkbtn={(`/colleges/${college._id}`)} />
-                    </div>
+    <div>
+ 
+{/* <h1 className="text-2xl md:text-4xl font-extrabold text-gray-800">
+  Discover the{" "}
+  <span className="relative inline-block px-2">
 
-                  </div>
-                </div>
-                <div className="md:hidden w-[300px] h-[350px] bg-primary cursor-pointer m-2.5 rounded-3xl shadow-lg transition-shadow duration-300 p-4 flex flex-col items-center gap-2">
+    <span className="absolute inset-0 rounded-lg p-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradientMove blur-sm"></span>
+    
 
-                  {/* Logo of College */}
-                  <img
-                    src={college.logo}
-                    alt={college.name}
-                    draggable="false"
-                    className="h-30 w-30 object-contain"
-                  />
-
-                  {/* College Name */}
-                  <h2 className={`font-bold text-center mt-2`}>
-                    {college.name}
-                  </h2>
-
-                  {/* Rating & Address Row */}
-                  <div className="flex justify-between w-full px-2 mt-2">
-                    <p className="text-yellow-500 text-sm">⭐ {formatRating(college?.rating)}</p>
-                    <p className="text-[12px] md:text-sm text-tsecondary text-right">{college.location}</p>
-                  </div>
-
-                  {/* Button at the bottom */}
-                  <div className="relative h-full mt-4 w-full">
-                    <button
-                      type="submit"
-                      className="absolute bottom-0 left-1/2 transform -translate-x-1/2
-    cursor-pointer transition-all bg-blue-500 text-white px-6 py-2 rounded-lg
-    border-blue-600 w-full sm:w-max
-    border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px]
-    active:border-b-[2px] active:brightness-90 active:translate-y-[2px]"
-                    >
-                      Explore
-                    </button>
-                  </div>
+    <span className="relative bg-white rounded-lg px-3 py-1 text-gray-900">
+      Best Colleges
+    </span>
+  </span>{" "}
+  Near You
+</h1> */}
+    <h1 className="flex gap-2 text-xl sm:text-3xl md:text-4xl font-admeasy-extrabold text-gray-800">
+      <GradientText
+colors={["#6EE7B7", "#3B82F6", "#9333EA"]}
+  animationSpeed={8}
+  showBorder={false}
+  className="font-admeasy-extrabold"
+>Discover Top Colleges Trusted by Students</GradientText>
+</h1>
 
 
-                </div>
-              </Link>
-            ))}
-        </div>
-        <div className='text-center'>
-          {/* <a href="/colleges">View More</a> */}
-          <ExploreBtn text='View More' linkbtn='/colleges' isSticky={false} />
-        </div>
+      <p className="text-gray-500 text-sm md:text-base mt-1">
+        Find top-rated institutions near your city with trusted reviews and details
+      </p>
+    </div>
+  </div>
 
-      </div>
+  {/* ===== Cards Section ===== */}
+  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 px-4 md:px-10">
+    {isLoading ? (
+      <h3 className="mb-5 text-lg md:text-2xl text-tsecondary text-center font-semibold col-span-full">
+        Loading Colleges...
+      </h3>
+    ) : (
+      Colleges.map((college, index) => (
+        <Link key={index} to={`/colleges/${college._id}`}>
+          <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
+            {/* Top Section with Logo & Rating */}
+            <div className="flex items-center gap-4 p-4">
+              <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center shadow-inner">
+                <img
+                  src={college.logo}
+                  alt={college.name}
+                  className="h-12 w-12 object-contain"
+                  draggable="false"
+                />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg text-gray-800 group-hover:text-blue-600 transition">
+                  {college.name}
+                </h2>
+                <p className="text-gray-500 text-sm line-clamp-2">
+                  {college.location}
+                </p>
+              </div>
+            </div>
+
+            {/* Rating Badge */}
+  <div className="px-4">
+  <span
+    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium
+      ${
+        !college.rating || college.rating <= 3
+          ? "bg-red-50 text-red-700"
+          : college.rating < 4
+          ? "bg-orange-50 text-orange-700"
+          : "bg-green-50 text-green-700"
+      }`}
+  >
+    ⭐ {college.rating ? formatRating(college.rating) : "N/A"}
+  </span>
+</div>
+
+
+
+
+
+
+            {/* Explore Button */}
+            <div className="p-4 mt-2">
+              <button
+                type="button"
+                className="cursor-pointer w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-xl font-semibold transition-all hover:bg-blue-700 hover:gap-3"
+              >
+                Explore
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </Link>
+      ))
+    )}
+  </div>
+
+  {/* View More Button */}
+  <div className="text-center cursor-pointer mt-10">
+    <ExploreBtn text="View More" linkbtn="/colleges" isSticky={false} />
+  </div>
+</div>
+
     </motion.section>
 
   )

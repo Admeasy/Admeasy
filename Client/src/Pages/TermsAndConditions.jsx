@@ -72,7 +72,7 @@ const TermsAndConditions = () => {
         <h2 className="text-2xl font-admeasy-extrabold mb-3 flex items-center gap-2">📬 Contact Us</h2>
         <p className="mb-1">If you have any questions about this document, please contact:</p>
         <p className="mb-1">📬 Contact us with any concerns at: <strong>support@admeasy.in</strong></p>
-        <p>🏢 <strong>Campii Admission Solutions LLP</strong></p>
+        <p>🏢 <strong>Admeasy Addmission Solutions Pvt Ltd</strong></p>
       </div>
     </section>
   );
