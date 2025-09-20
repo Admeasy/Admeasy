@@ -142,7 +142,7 @@ useEffect(() => {
           </motion.header>
         </div>
         {/* Main Sections */}
-        <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-40 bg-white">
+        <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-0 bg-white">
           <Section>
             <h2 className="text-2xl md:text-4xl font-semibold">What is Admeasy?</h2>
             <p className="text-[12px] md:text-2xl text-gray-700 px-4">
@@ -155,9 +155,9 @@ useEffect(() => {
           <Section id='who-We-Are'>
             <h2 className="text-2xl md:text-4xl font-semibold">Who We Are?</h2>
             <p className="text-[12px] md:text-2xl text-gray-700 px-4">
-              At <strong>Admeasy</strong>, we’re not just another college admission platform — we’re a solution born from frustration.
-              It all started when our founder, <strong> Aadesh Panwar</strong>, completed school and began his college search. Instead of clarity, he found chaos: too many options, too little guidance, and worst of all — endless spam calls after signing up on "big" admission websites that sold his personal data to colleges.
-              That’s when the idea for Admeasy was born — a platform that connects students with the right colleges <strong> without compromising their privacy</strong>.
+              At <strong>Admeasy</strong>, we’re not just another college admission platform we’re a solution born from frustration.
+              It all started when our founder, <strong> Aadesh Panwar</strong>, completed school and began his college search. Instead of clarity, he found chaos: too many options, too little guidance, and worst of all endless spam calls after signing up on "big" admission websites that sold his personal data to colleges.
+              That’s when the idea for Admeasy was born a platform that connects students with the right colleges <strong> without compromising their privacy</strong>.
             </p>
           </Section>
           <Section className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -207,7 +207,7 @@ useEffect(() => {
               <ul className="text-[15px] md:text-2xl text-gray-700 space-y-4 text-left">
                 <li className="flex items-start gap-3">
                   <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>We never sell your data</strong> — ever.</span>
+                  <span><strong>We never sell your data</strong> ever.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-green-600 font-semibold">✔</span>
@@ -215,11 +215,11 @@ useEffect(() => {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>Built by students, for students</strong></span>
+                  <span><strong>Talk to Mentors For Free and Get Real Insights!</strong></span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>Privacy and transparency first</strong> — always.</span>
+                  <span><strong>Privacy and transparency first</strong> always.</span>
                 </li>
               </ul>
             </div>
@@ -227,7 +227,7 @@ useEffect(() => {
           <Section>
             <h2 className="text-2xl md:text-4xl font-semibold">Our Vision</h2>
             <p className="text-[14px] md:text-xl lg:text-2xl text-gray-700 px-16">
-              We’re currently focused on expanding our college network — especially from top institutions like <strong> Delhi University</strong> — so students across India get access to opportunities they deserve.
+              We’re currently focused on expanding our college network especially from top institutions like <strong> Delhi University</strong> so students across India get access to opportunities they deserve.
             </p>
           </Section>
           

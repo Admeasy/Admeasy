@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import SearchLogo from '../assets/Others/Search-logo.webp'
 import { motion } from 'framer-motion'
 import ButtonIcon from '../components/ButtonIcon';
 import { useUser } from "../context/UserContext";
 import LogIn from "./LogIn"
+import { toast } from 'react-toastify';
 
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 100 },
@@ -40,7 +41,7 @@ const Mentors = () => {
         const query = e.target.value;
         setSearchQuery(query);
     }
-
+    const navigate = useNavigate()
     // Filter mentors based on search query
     const filteredMentors = mentors.filter(mentor => {
         if (!searchQuery.trim()) return true;
@@ -163,7 +164,7 @@ const Mentors = () => {
                             <div>
                                 <img
                                     src={getStudentImageUrl(student.image)}
-                                    className="size-20 md:size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                                    className="aspect-square size-20 md:size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
                                     onError={(e) => {
                                         e.target.src = fallbackImage;
                                     }} />
@@ -171,7 +172,7 @@ const Mentors = () => {
                                     draggable="false"
                                     src={student.collegeLogo}
                                     alt="College Logo"
-                                    className="absolute top-3 left-3 size-10 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
+                                    className="aspect-square absolute top-3 left-3 size-10 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
                                 {student.university ? (
                                     <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[10.5px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
                                         {student.university}
@@ -194,7 +195,10 @@ const Mentors = () => {
                                         const encodedMessage = encodeURIComponent(message);
                                         window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
                                     } else {
-                                        setShowLogin(true);
+                                       navigate('/login')
+                                       toast.dark('Login to get real insights from alumni',{
+                                        position:'top-center',
+                                       }) ;
                                     }
                                 }}>
                                     <ButtonIcon text={'Chat Now'} />

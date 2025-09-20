@@ -17,13 +17,13 @@ router.get('/', verifyAdminToken, async (req, res) => {
 // ✅ Create new enrollment
 router.post('/', async (req, res) => {
   try {
-    const { name, email, number } = req.body;
+    const { name, email, number,bannerName } = req.body;
 
-    if (!name || !email || !number) {
+    if (!name || !email || !number||!bannerName) {
       return res.status(400).json('Missing Fields');
     }
 
-    const enrollment = new Enrollment({ name, email, number });
+    const enrollment = new Enrollment({ name, email, number,bannerName });
     await enrollment.save();
 
     res.json('Enrollment submitted successfully!');
@@ -34,20 +34,20 @@ router.post('/', async (req, res) => {
 });
 
 // ✅ Delete enrollment (admin only)
-// router.delete('/:id', verifyAdminToken, async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const enrollment = await Enrollment.findByIdAndDelete(id);
+router.delete('/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const enrollment = await Enrollment.findByIdAndDelete(id);
 
-//     if (!enrollment) {
-//       return res.status(404).json('Enrollment not found');
-//     }
+    if (!enrollment) {
+      return res.status(404).json('Enrollment not found');
+    }
 
-//     res.json('Enrollment deleted successfully');
-//   } catch (e) {
-//     console.log(e);
-//     res.status(500).json('Internal Server Error');
-//   }
-// });
+    res.json('Enrollment deleted successfully');
+  } catch (e) {
+    console.log(e);
+    res.status(500).json('Internal Server Error');
+  }
+});
 
 module.exports = router;

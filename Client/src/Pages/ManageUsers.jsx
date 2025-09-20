@@ -18,7 +18,7 @@ const ManageUsers = () => {
     const [unlockedImages, setUnlockedImages] = useState({})
     const [unlockingImage, setUnlockingImage] = useState(null)
     const { user: currentUser } = useUser()
-
+    const [userCount,SetUserCount] = useState(0)
     const showError = (error) => { toast.error(error); return "" }
     const showSuccess = (msg) => toast.success(msg)
 
@@ -107,7 +107,12 @@ const ManageUsers = () => {
         )
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
 
-    if (isLoading) {
+    useEffect(()=>{
+ SetUserCount(filteredUsers.length)
+    },[filteredUsers])
+       
+    
+        if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -133,7 +138,7 @@ const ManageUsers = () => {
             {error && showError(error)}
 
             <div className="max-w-6xl mx-auto">
-                <div className="relative mb-6">
+                <div className="relative mb-3">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FaSearch className="h-5 w-5 text-gray-400" />
                     </div>
@@ -146,6 +151,15 @@ const ManageUsers = () => {
                     />
                 </div>
 
+
+             <div className="flex items-center justify-center mb-3">
+      <div className="bg-white shadow-lg rounded-2xl p-2 flex flex-col items-center w-64 border border-gray-100">
+        <h2 className="text-xl font-bold text-gray-800">Total Users</h2>
+        <p className="text-3xl font-extrabold text-blue-600 mt-1">
+          {userCount}
+        </p>
+      </div>
+    </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {filteredUsers.map((user) => (
                         <div

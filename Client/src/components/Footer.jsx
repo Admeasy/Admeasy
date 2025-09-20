@@ -179,9 +179,9 @@ const Footer = () => {
 
               <ul className="mt-6 space-y-4 text-sm">
                 <li>
-                  <a href="/contact" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
+                  <Link to="/contact" className="text-gray-700 transition hover:opacity-75 dark:text-gray-200">
                     Contact
-                  </a>
+                  </Link>
                 </li>
 
                 <li>

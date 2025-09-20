@@ -44,33 +44,33 @@ const Enrollments = () => {
     setSelectedEnrollment(null)
   }
 
-  // const handleDelete = async (id) => {
-  //   if (!window.confirm('Are you sure you want to delete this enrollment?')) return
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this enrollment?')) return
 
-  //   setDeletingEnrollmentId(id)
-  //   try {
-  //     const response = await fetch(`/api/enrollments/${id}`, {
-  //       method: 'DELETE',
-  //       credentials: 'include'
-  //     })
+    setDeletingEnrollmentId(id)
+    try {
+      const response = await fetch(`/api/enrollments/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
 
-  //     if (!response.ok) {
-  //       const errorData = await response.json()
-  //       throw new Error(errorData.message || 'Failed to delete enrollment')
-  //     }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to delete enrollment')
+      }
 
-  //     showSuccess('Enrollment deleted successfully')
-  //     await fetchEnrollments()
+      showSuccess('Enrollment deleted successfully')
+      await fetchEnrollments()
 
-  //     if (selectedEnrollment && selectedEnrollment._id === id) {
-  //       closeModal()
-  //     }
-  //   } catch (err) {
-  //     showError(err.message)
-  //   } finally {
-  //     setDeletingEnrollmentId(null)
-  //   }
-  // }
+      if (selectedEnrollment && selectedEnrollment._id === id) {
+        closeModal()
+      }
+    } catch (err) {
+      showError(err.message)
+    } finally {
+      setDeletingEnrollmentId(null)
+    }
+  }
 
   const options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' }
   const formatDate = (stamp) => {
@@ -80,15 +80,15 @@ const Enrollments = () => {
     return new Intl.DateTimeFormat('en-US', options).format(date)
   }
 
-  const filteredEnrollments = enrollments
-    .filter(e =>
-      (e.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (e.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (e.number?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (formatDate(e.createdAt).toLowerCase()).includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-
+ const filteredEnrollments = enrollments
+  .filter(e =>
+    (e.bannerName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (e.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (e.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (e.number?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (formatDate(e.createdAt).toLowerCase()).includes(searchQuery.toLowerCase())
+  )
+  .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -134,7 +134,7 @@ const Enrollments = () => {
               className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6 relative flex flex-col h-64"
             >
               {/* Delete Button */}
-              {/* <button
+              <button
                 className={`absolute top-2 right-2 p-2 rounded-full text-white transition-colors ${
                   deletingEnrollmentId === enrollment._id
                     ? 'bg-gray-500 cursor-not-allowed'
@@ -144,8 +144,9 @@ const Enrollments = () => {
                 disabled={deletingEnrollmentId === enrollment._id}
               >
                 <FaTrash className="text-sm" />
-              </button> */}
+              </button>
 
+              <p className='text-red-800'>User Clicked On {enrollment.bannerName||'None'}</p>
               <h3 className="text-lg font-semibold text-thead1 mb-2">{enrollment.name || 'No Name'}</h3>
               <p className="text-gray-600 text-sm">{enrollment.email || 'No Email'}</p>
               <p className="text-gray-600 text-sm">{enrollment.number || 'No Number'}</p>
@@ -153,8 +154,7 @@ const Enrollments = () => {
 
               <button
                 className="mt-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2"
-                onClick={() => handleShowFullEnrollment(enrollment)}
-              >
+                onClick={() => handleShowFullEnrollment(enrollment)}>
                 <FaEye className="text-sm" />
                 Show Full Enrollment
               </button>
@@ -191,6 +191,7 @@ const Enrollments = () => {
               </div>
             </div>
             <div className="p-6 flex-grow overflow-y-auto">
+              <p className="text-gray-600">User Clicked On Banner Of <span className='text-red-700 font-admeasy-bold'>{selectedEnrollment.bannerName} </span> </p>
               <p className="text-gray-600"><strong>Email:</strong> {selectedEnrollment.email}</p>
               <p className="text-gray-600"><strong>Number:</strong> {selectedEnrollment.number}</p>
               <p className="text-gray-600"><strong>Joined:</strong> {selectedEnrollment.createdAt ? formatDate(selectedEnrollment.createdAt) : 'No Timestamp'}</p>

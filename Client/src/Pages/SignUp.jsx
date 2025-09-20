@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react"
 import { useUser } from '../context/UserContext';
 import { MdAlternateEmail } from "react-icons/md";
 import { MdLockOutline } from "react-icons/md";
+import { toast } from 'react-toastify'
 
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 60 },
@@ -156,11 +157,20 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
             </form>
-             <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
+            {/* If Issue With Google Fixed */}
+             {/* <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
                 onClick={() => window.location.href = googleAuthUrl}> 
                 <img src={googleIcon} className='w-6' alt="Google icon" />
                 Continue with Google
-            </button>
+            </button> */}
+            {/* Issue */}
+                {/* While Issue */}
+                            <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
+                                onClick={() => toast.error('Google login error — please try again later.')}>
+                                <img src={googleIcon} className='w-3 sm:w-5' alt="Google icon" />
+                                Continue with Google
+                            </button>
+
             <div className="mt-4 sm:mt-6 text-center">
                 <span className="text-gray-700 text-sm sm:text-base">Already have an account? </span>
                 <span onClick={()=>setShowLogin(!showLogin)} className="cursor-pointer text-blue-600 hover:underline font-admeasy-semibold">Log In</span>

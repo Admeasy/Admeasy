@@ -1,11 +1,12 @@
 import { Swiper, SwiperSlide } from "swiper/react";
 import useWindowSize from "../components/useWindowSize";
-import { Navigation } from "swiper/modules";
+import { Navigation,Autoplay } from "swiper/modules";
 import Boy from "../assets/Others/Student.webp"
 // import WA from "../assets/Icons/wa2.webp"
 import { useRef, useEffect, useState } from "react";
 import CustomButton from "./3d-btn";
 import "swiper/css";
+import "swiper/css/autoplay"
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 import "swiper/css/navigation";
@@ -13,7 +14,6 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from 'react-router-dom'
 import { useUser } from "../context/UserContext";
 import ButtonIcon from "../components/ButtonIcon";
-import LogInComp from "../Pages/LogInComp";
 import { toast } from "react-toastify";
 
 const fadeUpVariant = {
@@ -22,16 +22,6 @@ const fadeUpVariant = {
 }
 
 const fallbackImage = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-
-function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
 export default function StudentSwiper() {
   const prevRef = useRef(null);
   const nextRef = useRef(null);
@@ -44,6 +34,14 @@ export default function StudentSwiper() {
   const [students, setStudents] = useState([]);
   const { user } = useUser();
   const [showLogin, setShowLogin] = useState(false);
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
   function getStudentImageUrl(imageName) {
     if (imageName) {
@@ -129,20 +127,20 @@ export default function StudentSwiper() {
         {/* Custom Arrow Buttons */}
         <div
           ref={prevRef}
-          className="absolute left-2 top-1/2 sm:top-3/5 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
+          className="hidden md:inline-block absolute left-2 top-1/2 sm:top-3/5 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
         >
           <CustomButton><IoIosArrowBack /></CustomButton>
         </div>
         <div
           ref={nextRef}
-          className="absolute right-2 top-1/2 sm:top-3/5 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
+          className="hidden md:inline-block absolute right-2 top-1/2 sm:top-3/5 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
         >
           <CustomButton><IoIosArrowForward /></CustomButton>
         </div>
         <Swiper
-          modules={[Navigation]}
+          modules={[Navigation,Autoplay]}
           spaceBetween={20}
-          slidesPerView={3}
+          slidesPerView={3.8}
           loop={true}
           onBeforeInit={(swiper) => {
             swiper.params.navigation.prevEl = prevRef.current;
@@ -150,13 +148,13 @@ export default function StudentSwiper() {
           }}
           breakpoints={{
             0: { slidesPerView: 1 },
-            640: { slidesPerView: 2 },
-            1024: { slidesPerView: 3 },
+            640: { slidesPerView: 2.5 },
+            1024: { slidesPerView: 3.8 },
           }}
           className="pb-1"
         >
-          {students.map((student, index) => (
-            <SwiperSlide key={index} className="h-60">
+          {students.map((student) => (
+            <SwiperSlide key={student.name} className="h-60">
               <div
                 className="h-64 mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 hover:shadow-xl transition duration-300 ease-in-out border-none w-full">
                 <div className="flex flex-col space-y-1">
@@ -164,24 +162,24 @@ export default function StudentSwiper() {
                   <div>
                     <img
                       src={getStudentImageUrl(student.image)}
-                      className="size-20 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                      className="aspect-square size-20 m-0 mx-auto rounded-full object-cover object-center shadow-md"
                       onError={(e) => {
-                        e.target.src = fallbackImage;
+                        if (e.target.src !== fallbackImage) e.target.src = fallbackImage;
                       }} />
                     <div className="">
                       <img
                         draggable="false"
                         src={student.collegeLogo}
                         alt="College Logo"
-                        className="absolute top-3 left-3 size-12 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
+                        className="aspect-square absolute top-3 left-3 size-12 md:size-14 lg:size-17 object-contain rounded-full border-2 border-white shadow-lg bg-white z-10" />
                     </div>
-                    {student.university ? (
+                    {student.university && (
                       <div className="">
                         <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-700 text-white text-[7px] sm:text-[9px] md:text-[12px] px-2 py-1 rounded-md uppercase font-semibold tracking-wider shadow-sm animate-pulse">
                           {student.university}
                         </span>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                   {/* Text Content */}
                   <div className="mt-1 text-center flex flex-col space-y-1.5">
@@ -206,9 +204,10 @@ export default function StudentSwiper() {
                         } else {
                           navigate('/login')
                           setTimeout(() => {
+                            if(!user){
                             toast.dark('Login to get real insights from alumni',{
                               position: 'top-center'
-                            })
+                            })}
                           }, 1);
                         }
                       }} />
@@ -227,7 +226,6 @@ export default function StudentSwiper() {
           </div>
         </Swiper>
       </motion.section >
-      {showLogin && <LogInComp isOpen={showLogin} onClose={() => setShowLogin(false)} />}
     </>
   );
 }

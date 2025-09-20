@@ -32,7 +32,7 @@ const CollegeDetailed = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { id } = useParams();
-
+  const [tabs,SetTabs] = useState(0)
   useEffect(() => {
     window.scrollTo(0, 0);
   },);
@@ -144,7 +144,7 @@ const CollegeDetailed = () => {
 
       {/* Tabs Section */}
       <main className="w-full mx-auto px-1 sm:px-4 py-8">
-        <Tabs college={college} />
+        <Tabs selectedTab={tabs} college={college} />
       </main>
     </div>
   );

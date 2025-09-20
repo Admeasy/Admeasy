@@ -61,20 +61,19 @@ const FrontHome = () => {
         </div>
 
         {/* Girl Image Section */}
-        <div className="md:pt-13 w-full md:w-fit h-full relative flex justify-center md:justify-left md:mt-10">
-          {/* Mobile Image */}
+        {/* <div className="md:pt-13 w-full md:w-fit h-full relative flex justify-center md:justify-left md:mt-10">
+   
           <img
             src={mbGirl}
             alt="College search illustration"
             className="block md:hidden max-h-[280px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"/>
-          
-          {/* Pc Image */}
+
           <img
             src={pcGirl}
             alt="College search illustration"
             className="hidden md:block mt-5 lg:mt-0 max-h-[440px] object-contain drop-shadow-[8px_0px_16px_#d1d9e6]"
           />
-        </div>
+        </div> */}
       </div>
     </motion.section>
   );

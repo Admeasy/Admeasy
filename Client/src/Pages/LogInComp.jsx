@@ -9,6 +9,7 @@ import { MdAlternateEmail } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react"
 import { MdLockOutline } from "react-icons/md";
 import Ballpit from '../components/Ballpit'
+import { toast } from 'react-toastify'
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 60 },
     visible: { opacity: 1, y: 0 },
@@ -168,8 +169,15 @@ const googleAuthUrl =
                     </button>
                     </div>
                 </form>
-                 <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
+                {/* When Issue Fixed */}
+                 {/* <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
                     onClick={() => window.location.href = googleAuthUrl}>
+                    <img src={googleIcon} className='w-3 sm:w-5' alt="Google icon" />
+                    Continue with Google
+                </button> */}
+                {/* While Issue */}
+                <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
+                    onClick={() => toast.error('Google login error — please try again later.')}>
                     <img src={googleIcon} className='w-3 sm:w-5' alt="Google icon" />
                     Continue with Google
                 </button>

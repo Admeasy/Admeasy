@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FaInfoCircle } from "react-icons/fa";
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext'
 
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -219,6 +220,13 @@ const EditProfile = () => {
     }
   };
   const teleValidate = ''
+
+  const { pathname } = useLocation();
+
+useEffect(() => {
+  window.scrollTo(0, 0);
+}, [pathname]);
+
   return (
     <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
       {/* (Mentos Jindagi) Logout Button */}

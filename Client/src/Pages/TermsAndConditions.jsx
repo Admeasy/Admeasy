@@ -12,7 +12,7 @@ const TermsAndConditions = () => {
   return (
     <section className="bg-white  p-8 rounded-2xl shadow-3d max-w-4xl mx-auto my-12 text-gray-800">
       <h1 className="text-3xl  my-6 font-bold text-center">
-        📜 Terms & Conditions Of Admeasy</h1>
+        Terms & Conditions Of Admeasy</h1>
 
       {/* Section 1 */}
       <div className="mb-6">
@@ -47,7 +47,7 @@ const TermsAndConditions = () => {
       <div className="mb-6">
         <h2 className="text-2xl font-admeasy-extrabold mb-3">4. Intellectual Property</h2>
         <p>
-          All content on Admeasy, including design, text, graphics, and software, is the property of <strong>Campii Admission Solutions LLP</strong>. Unauthorized copying, reproduction, or distribution is prohibited.
+          All content on Admeasy, including design, text, graphics, and software, is the property of <strong> Admeasy Admission Solutions Pvt. Ltd.</strong> Unauthorized copying, reproduction, or distribution is prohibited.
         </p>
       </div>
 
@@ -69,10 +69,10 @@ const TermsAndConditions = () => {
 
       {/* Contact Section */}
       <div className="mt-10 border-t pt-6">
-        <h2 className="text-2xl font-admeasy-extrabold mb-3 flex items-center gap-2">📬 Contact Us</h2>
+        <h2 className="text-2xl font-admeasy-extrabold mb-3 flex items-center gap-2"> Contact Us</h2>
         <p className="mb-1">If you have any questions about this document, please contact:</p>
-        <p className="mb-1">📬 Contact us with any concerns at: <strong>support@admeasy.in</strong></p>
-        <p>🏢 <strong>Admeasy Addmission Solutions Pvt Ltd</strong></p>
+        <p className="mb-1"> Contact us with any concerns at: <strong>support@admeasy.in</strong></p>
+        <p><strong>Admeasy Addmission Solutions Pvt Ltd</strong></p>
       </div>
     </section>
   );

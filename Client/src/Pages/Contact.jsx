@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useEffect } from 'react'
 import Envelope from '../assets/Icons/envelope.svg'
 import Phone from '../assets/Icons/phone.svg'
 import WA from '../assets/Icons/wa.webp'
@@ -9,6 +10,10 @@ const fadeUpVariant = {
 }
 
 const Contact = () => {
+  useEffect(() => {
+      window.scrollTo(0, 0);
+    }, []);
+  
   return (
     <>
     <motion.section

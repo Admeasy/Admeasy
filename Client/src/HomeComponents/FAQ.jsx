@@ -7,11 +7,11 @@ import { RiQuestionAnswerFill } from "react-icons/ri";
 const faqs = [
   {
     question: "What is Admeasy?",
-    answer: `Admeasy puts students first, helping you choose the right college with honest guidance, trusted information, and complete privacy. No spam, no data selling—just a simple, stress-free admission journey that keeps you confident, informed, and free from future regrets.`,
+    answer: `Admeasy puts students first, helping you choose the right college with honest guidance, trusted information, and complete privacy. No spam, no data selling just a simple, stress-free admission journey that keeps you confident, informed, and free from future regrets.`,
   },
   {
     question: "Is my data safe with Admeasy?",
-    answer: `Admeasy keeps your data 100% safe and private. We collect only what’s needed, never sell or share it, and ensure no spam calls or emails—just a secure, personalized admission experience.`,
+    answer: `Admeasy keeps your data 100% safe and private. We collect only what’s needed, never sell or share it, and ensure no spam calls or emails just a secure, personalized admission experience.`,
   },
   {
     question: "Can Admeasy help me land a scholarship or find affordable college options?",

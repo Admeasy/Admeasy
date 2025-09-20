@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom';
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { FaCheckCircle, FaDotCircle } from "react-icons/fa";
 import CustomButton from '../HomeComponents/3d-btn';
 import Contact from '../components/CollegeContactCard'
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import Institute from '../assets/Others/Institute.webp'
 import Building from '../assets/Others/Building.webp'
 import BoyWithLaptop from '../assets/Others/BoyWithLaptop.webp'
@@ -13,9 +14,8 @@ import Star from '../assets/Others/Star.webp'
 import { FaArrowRight } from 'react-icons/fa6';
 import ButtonIcon from '../components/ButtonIcon';
 import { useUser } from '../context/UserContext'
-import Login from '../Pages/Login';
-
-
+import LogIn from '../Pages/LogIn';
+import { toast } from 'react-toastify';
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
@@ -79,7 +79,7 @@ const RatingBar = ({ rating, label }) => {
   );
 };
 
-export default function Tabs({ college = {} }) {
+export default function Tabs({college = {} }) {
   // Tabs component initialization
   const { user } = useUser();
   const [selectedTab, setSelectedTab] = useState(0);
@@ -207,6 +207,7 @@ export default function Tabs({ college = {} }) {
     fetchRecruitersLogos();
   }, [college?.recruiters]);
 
+  const navigate = useNavigate()
   return (
     <section className="w-full flex justify-center items-center px-1 sm:px-2 py-16">
       <TabGroup selectedIndex={selectedTab} onChange={setSelectedTab} className='w-full'>
@@ -501,7 +502,7 @@ export default function Tabs({ college = {} }) {
                       <div>
                         <img
                           src={getStudentImageUrl(student.image)}
-                          className="size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
+                          className="aspect-square size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
                           onError={(e) => {
                             e.target.src = fallbackImage;
                           }} />
@@ -519,11 +520,17 @@ export default function Tabs({ college = {} }) {
                         <div className='absolute bottom-2.5 left-1/2 -translate-x-1/2 cursor-pointer' onClick={(e) => {
                           e.stopPropagation();
                           if (user) {
+                            if(user.name=== undefined|| user.course=== undefined){
+                              navigate('/me')
+                              toast.info('Please Fill Your Informations')
+                              return;
+                            }
                             const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${college.name} to gain some real insights and perspective!`;
                             const encodedMessage = encodeURIComponent(message);
                             window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
                           } else {
-                            setShowLogin(true);
+                            navigate('/login')
+                            toast.info('Please Login before talking to Mentors')
                           }
                         }}>
                           <ButtonIcon text={'Chat Now'} />

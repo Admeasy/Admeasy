@@ -1,15 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
-export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setShowModal }) {
+export default function StudentInfoModal({ isOpen, onClose, onX, bannerName }) {
   if (!isOpen) return null;
 
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const [email, setEmail] = useState("");
-  const navigate = useNavigate();
 
   // Error Toast
   const FormErr = () => {
@@ -27,26 +25,19 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
     if (!name.trim() || !email.trim() || !number.trim()) {
       return FormErr();
     }
-    if(
-      !email.trim().endsWith('gmail.com')){
-      toast.error('Email is not valid',
-        {
-          position:'top-center'
-        }
-      )
+
+    if (!email.trim().endsWith('gmail.com')) {
+      toast.error('Email is not valid', { position: 'top-center' });
       return;
     }
 
-    if(  number.length !== 10 || 
-  !/^[6-9]\d{9}$/.test(number)  ){
-      toast.error('Number Is Not Valid',{
-        position:'top-center'
-      })
+    if (number.length !== 10 || !/^[6-9]\d{9}$/.test(number)) {
+      toast.error('Number Is Not Valid', { position: 'top-center' });
       return;
     }
 
     try {
-      const data = { name, email, number };
+      const data = { name, email, number, bannerName };
 
       const res = await fetch('/api/enrollments', {
         method: 'POST',
@@ -77,7 +68,6 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
 
       // ✅ Close modal
       onX();
-      onClose();
 
     } catch (err) {
       console.error(err);
@@ -92,6 +82,7 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
   return (
     <div className="fixed inset-0 w-screen h-screen z-50 flex items-center justify-center backdrop-blur-sm bg-black/50 p-4">
       <div className="relative py-6 px-6 md:px-8 bg-primary rounded-2xl border-gray-300 w-full max-w-md mx-auto overflow-y-auto max-h-[90vh]">
+        
         {/* Close Button */}
         <button
           onClick={onX}
@@ -101,9 +92,11 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
           ×
         </button>
 
-        <h1 className="text-gray-800 text-xl font-bold mb-4 text-center">Student Information Form</h1>
+        <h1 className="text-gray-800 text-xl font-bold mb-4 text-center">
+          Student Information Form
+        </h1>
 
-        {/* ✅ Attach submitHandler to form */}
+        {/* Form */}
         <form className="space-y-4" onSubmit={submitHandler}>
           {/* Name */}
           <div>
@@ -124,22 +117,21 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
             <label className="block text-sm font-medium text-gray-700">
               Your Number<span className="text-red-600">*</span>
             </label>
-           <div className="flex items-center gap-1">
-  {/* Country Code */}
-  <span className="bg-gray-100 py-2 px-3 text-gray-700 text-sm font-admeasy-bold border border-gray-300 rounded-l">
-    +91
-  </span>
+            <div className="flex items-center gap-1">
+              {/* Country Code */}
+              <span className="bg-gray-100 py-2 px-3 text-gray-700 text-sm font-admeasy-bold border border-gray-300 rounded-l">
+                +91
+              </span>
 
-  {/* Input Field */}
-  <input
-    type="tel"
-    placeholder="Your Number"
-    onChange={(e) => setNumber(e.target.value)}
-    value={number}
-    className="w-full h-10 px-3 text-sm text-gray-700 border border-gray-300 rounded-r placeholder:font-admeasy-bold placeholder:text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-700"
-  />
-</div>
-
+              {/* Input Field */}
+              <input
+                type="tel"
+                placeholder="Your Number"
+                onChange={(e) => setNumber(e.target.value)}
+                value={number}
+                className="w-full h-10 px-3 text-sm text-gray-700 border border-gray-300 rounded-r placeholder:font-admeasy-bold placeholder:text-[12px] focus:outline-none focus:ring-2 focus:ring-indigo-700"
+              />
+            </div>
           </div>
 
           {/* Email */}
@@ -155,20 +147,6 @@ export default function StudentInfoModal({ isOpen, onClose, redirect, onX, setSh
               className="mt-2 w-full h-10 px-3 text-sm text-gray-600 border placeholder:font-admeasy-bold border-gray-300 rounded focus:outline-none focus:ring-2 placeholder:text-[12px] focus:ring-indigo-700"
             />
           </div>
-
-          {/* Skip login link */}
-          {/* <div>
-            <p
-              className="text-[10px] sm:text-[12px] lg:text-[17px] cursor-pointer text-gray-600 font-admeasy"
-              onClick={() => {
-                navigate('/login');
-                onX();
-                onClose();
-              }}
-            >
-              <span className="underline">Login</span> To skip Form
-            </p>
-          </div> */}
 
           {/* Buttons */}
           <div className="flex justify-center gap-4 mt-8">

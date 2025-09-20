@@ -1,6 +1,7 @@
 import FrontHome from '../HomeComponents/FrontHome'
 import CollegeCard from '../HomeComponents/CollegeCard'
 import Features from '../HomeComponents/Features'
+import CollabBanner from '../components/CollabBanner'
 import FAQ from '../HomeComponents/FAQ'
 import StudentSwiper from '../HomeComponents/StudentSwiper'
 import { useLocation } from 'react-router-dom'
@@ -22,6 +23,7 @@ const Home = () => {
     <main>
       <FrontHome />
       <StudentSwiper/>
+      <CollabBanner/>
       <CollegeCard />
       <Features />
       <FAQ />

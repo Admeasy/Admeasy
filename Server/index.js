@@ -6,6 +6,7 @@ require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
 const enrollmentsRoute  = require('./routes/enrollmentRoutes')
+const blogRoute = require('./routes/blogRoutes')
 const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
@@ -64,6 +65,7 @@ app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
 app.use('/api/messages', MessageRoutes);
 app.use('/api/enrollments', enrollmentsRoute);
+app.use('/api/blog',blogRoute)
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
 

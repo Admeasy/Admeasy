@@ -13,31 +13,31 @@ const features = [
   {
     icon: <FaShieldAlt className="w-8 h-8 text-green-600" />,
     title: "No Spam, No Data Selling",
-    description: "Your data is safe with us — we strictly avoid sharing or selling it to third parties. No spam, no shady deals — just secure, transparent service designed with your privacy in mind.",
+    description: "Your data is safe with us we strictly avoid sharing or selling it to third parties. No spam, no shady deals just secure, transparent service designed with your privacy in mind.",
     Upcoming: false,
   },
   {
     icon: <FaStar className="w-8 h-8 text-yellow-500" />,
     title: "Verified Reviews & Ratings",
-    description: "Get honest reviews from students — not paid promotions.",
+    description: "Get honest reviews from students not paid promotions.",
     Upcoming: false,
   },
   {
     icon: <PiStudentDuotone className="w-10 h-10 text-purple-600" />,
     title: "Talk To Alumni",
-    description: "Connect with students from your preferred college to gain real insights into campus life — from academics and faculty to fests and student culture.",
+    description: "Connect with students from your preferred college to gain real insights into campus life from academics and faculty to fests and student culture.",
     Upcoming: false,
   },
   {
     icon: <FaPhoneAlt className="w-8 h-8 text-red-500" />,
     title: "🎯 Direct College Connect",
-    description: "Admeasy lets you connect directly with verified colleges — skip the agents, spam calls, and confusing middle steps. Talk to colleges transparently and make confident decisions, all in one platform.",
+    description: "Admeasy lets you connect directly with verified colleges skip the agents, spam calls, and confusing middle steps. Talk to colleges transparently and make confident decisions, all in one platform.",
     Upcoming: true,
   },
   {
     icon: <GiTakeMyMoney className="w-12 h-12 text-teal-500" />,
     title: "Sell Your Notes For Money",
-    description: "Why let your notes gather dust when they can earn you real money? 📚💰 Upload your study material and start getting paid for helping others learn.",
+    description: "Why let your notes gather dust when they can earn you real money? Upload your study material and start getting paid for helping others learn.",
     Upcoming: true,
   },
 ];
