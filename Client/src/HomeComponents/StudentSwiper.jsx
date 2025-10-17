@@ -118,7 +118,6 @@ function shuffleArray(array) {
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className="my-8 cursor-grab active:cursor-grabbing relative bg-primary p-6 rounded-2xl shadow-3d w-[90%] mx-auto">
         <h2 className="w-fit mx-auto text-center text-xl sm:text-2xl lg:text-4xl font-admeasy-extrabold text-tprimary mb-4 flex justify-evenly items-center">
-          <img src={Boy} alt="WhatsApp" className="w-14 mr-0 sm:mr-4" />
           Talk to UGs/Alumnis
         </h2>
         {loading && <div className="w-full flex justify-center items-center py-10"><span className="text-2xl">Loading students...</span></div>}
@@ -147,14 +146,14 @@ function shuffleArray(array) {
             swiper.params.navigation.nextEl = nextRef.current;
           }}
           breakpoints={{
-            0: { slidesPerView: 1 },
+            0: { slidesPerView: 1.5 },
             640: { slidesPerView: 2.5 },
             1024: { slidesPerView: 3.8 },
           }}
           className="pb-1"
         >
           {students.map((student) => (
-            <SwiperSlide key={student.name} className="h-60">
+            <SwiperSlide key={student.name} className="h-40">
               <div
                 className="h-64 mt-4 relative flex flex-col items-center bg-white rounded-xl shadow-md p-4 hover:shadow-xl transition duration-300 ease-in-out border-none w-full">
                 <div className="flex flex-col space-y-1">
