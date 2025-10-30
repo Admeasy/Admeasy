@@ -120,7 +120,8 @@ function App() {
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
-        <Route path='/mentors/login' element={<MentorsLogin/>} />
+        <Route path='/mentors/login' element={<MentorsLogin/>}></Route>
+        <Route path='/mentors/profile' element={<MentorsProfile/>}></Route>
         <Route path='/policies' element={<PrivacyPolicy />}></Route>
         <Route path='/t&c' element={<TermsAndConditions />}></Route>
 {/* We don't need Signup route */}

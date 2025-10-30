@@ -35,10 +35,26 @@ const Schema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    tagline: {
+        type: String,
+        trim: true
+    },
     bio: {
         type: String,
         trim: true
-    }
+    },
+    competitiveExamsAttempted: [{
+        name: {
+            type: String,
+            trim: true,
+            required: true
+        },
+        rank: {
+            type: String,
+            trim: true,
+            required: true
+        }
+    }]
 });
 
 module.exports = Admeasy.model('Mentors', Schema);
