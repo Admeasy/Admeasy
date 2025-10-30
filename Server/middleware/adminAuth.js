@@ -23,15 +23,16 @@ const adminAuth = async (req, res, next) => {
     const isPasswordMatch = password === process.env.ADMIN_PASSWORD;
 
     // Validate credentials
-
     if (isUsernameMatch && isPasswordMatch) {
-      // Create authentication token
-
-      // Create JWT token
+      // Create JWT token with admin ID
       const token = jwt.sign(
-        { username, role: 'admin' },
+        { 
+          _id: 'admin-' + Date.now(), // Generate a unique ID for this admin session
+          username, 
+          role: 'admin' 
+        },
         process.env.JWT_ADMIN_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: '12h' } // Extended to 12 hours
       );
 
       // Set HTTP-only cookie
@@ -39,7 +40,7 @@ const adminAuth = async (req, res, next) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 1000 // 1 hour
+        maxAge: 12 * 60 * 60 * 1000 // 12 hours
       });
 
       // Authentication successful
@@ -70,20 +71,34 @@ const verifyAdminToken = (req, res, next) => {
   try {
     const token = req.cookies.adminToken;
 
+    console.log('=== VERIFY ADMIN TOKEN ===');
+    console.log('Token exists:', !!token);
+    console.log('Cookies:', req.cookies);
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'No token provided'
+        message: 'No token provided - Please login again'
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
-    req.admin = decoded;
+    console.log('Decoded token:', decoded);
+    
+    // Set admin info on request
+    req.admin = {
+      _id: decoded._id,
+      username: decoded.username,
+      role: decoded.role
+    };
+    
+    console.log('Admin authenticated:', req.admin.username);
     next();
   } catch (error) {
+    console.error('Token verification error:', error.message);
     return res.status(401).json({
       success: false,
-      message: 'Invalid token'
+      message: 'Invalid or expired token - Please login again'
     });
   }
 };

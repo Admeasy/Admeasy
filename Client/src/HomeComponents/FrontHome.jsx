@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SearchLogo from '../assets/Others/Search-logo.webp';
 import pcGirl from '../assets/Others/pc-hero-.png'
@@ -20,6 +21,52 @@ const FrontHome = () => {
       navigate(`/colleges?search=${encodeURIComponent(searchQuery)}`);
     }
   };
+  const [placeholder, setPlaceholder] = useState("");
+  const [textIndex, setTextIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Array for animation
+  const placeholders = [
+    "Search IIT Indore...",
+    "Search IIM Ahmedabad",
+    "Search Shri Ram College of Commerce",
+    "Search Delhi University...",
+    "Find Your Dream College..."
+  ];
+
+  useEffect(() => {
+    const currentText = placeholders[textIndex];
+
+    const timeout = setTimeout(() => {
+      // If paused, wait before starting deletion
+      if (isPaused) {
+        setIsPaused(false);
+        setIsDeleting(true);
+        return;
+      }
+
+      if (!isDeleting && charIndex < currentText.length) {
+
+        setPlaceholder(currentText.substring(0, charIndex + 1));
+        setCharIndex(charIndex + 1);
+      } else if (isDeleting && charIndex > 0) {
+
+        setPlaceholder(currentText.substring(0, charIndex - 1));
+        setCharIndex(charIndex - 1);
+      } else if (!isDeleting && charIndex === currentText.length) {
+
+        setIsPaused(true);
+      } else if (isDeleting && charIndex === 0) {
+
+        setIsDeleting(false);
+        setTextIndex((textIndex + 1) % placeholders.length);
+      }
+    }, isPaused ? 2000 : isDeleting ? 40 : 20);
+
+    return () => clearTimeout(timeout);
+  }, [charIndex, isDeleting, textIndex, isPaused]);
 
   return (
     <motion.section
@@ -44,7 +91,7 @@ const FrontHome = () => {
             <input
               name="search"
               type="text"
-              placeholder="Search IIT Indore, DU..."
+              placeholder={placeholder}
               className="w-full h-12 sm:h-14 px-4  rounded-full bg-white text-sm sm:text-base placeholder:text-tsecondary placeholder:text-[12px] sm:placeholder:text-base shadow-inset-6 outline-none"
               aria-label="Search for colleges"/>
             <button

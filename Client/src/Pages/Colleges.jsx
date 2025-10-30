@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { BsThreeDotsVertical } from "react-icons/bs";
+import { useLocation, useNavigate } from 'react-router-dom'
+import ReactPaginate from 'react-paginate';
 import SearchLogo from '../assets/Others/Search-logo.webp'
 import { motion } from 'framer-motion'
+import { FaShareAlt } from "react-icons/fa";
+import SharePopUp from '../components/SharePopUp';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -10,153 +14,311 @@ const fadeUpVariant = {
 
 const Colleges = () => {
   const [colleges, setColleges] = useState([]);
-  const [loading, setLoading] = useState(false);;
+  const [loading, setLoading] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [sharePopupCollege, setSharePopupCollege] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalColleges, setTotalColleges] = useState(0);
+  const limit = 15;
+
   const location = useLocation();
+  const navigate = useNavigate();
+  const menuRefs = useRef({});
+  
   const searchParams = new URLSearchParams(location.search);
   const initialSearchQuery = searchParams.get('search') || '';
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location]);
+  }, [location, currentPage]);
 
-  // Helper function to safely convert any value to string
-  const safeToString = (value) => {
-    if (value === null || value === undefined) return '';
-    return String(value).toLowerCase();
-  };
-
-  // Helper function to check if any search term matches any field
-  const matchesSearchTerms = (college, searchTerms) => {
-    // Safely extract course information
-    const courseInfo = (college.courses || []).map(course => [
-      course?.title,
-      course?.duration
-    ]).flat();
-
-    // Create array of searchable fields
-    const fieldsToSearch = [
-      college.name,
-      college.location,
-      college.type,
-      college.desc,
-      college.establishedYear,
-      ...courseInfo,
-      ...(college.keywords || [])
-    ]
-      .filter(Boolean) // Remove null/undefined values
-      .map(safeToString); // Convert all values to lowercase strings
-
-    // Check if all search terms match at least one field
-    return searchTerms.every(term =>
-      fieldsToSearch.some(field => field.includes(term))
-    );
-  };
-
-  // Helper function to shuffle array
-  const shuffleArray = (array) => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  // Fetching colleges from the server
+  // Close menu when clicking outside
   useEffect(() => {
-    async function fetchColleges() {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/colleges');
-        const data = await response.json();
-        
-        // If there's a search query, filter the results
-        if (searchQuery) {
-          // Split the search query into terms and remove empty strings
-          const searchTerms = String(searchQuery)
-            .toLowerCase()
-            .split(/[\s,]+/)
-            .filter(term => term.length > 0);
-          
-          const filteredColleges = data.filter(college => 
-            matchesSearchTerms(college, searchTerms)
-          );
-          setColleges(filteredColleges);
-        } else {
-          setColleges(shuffleArray(data));
+    const handleClickOutside = (e) => {
+      if (openMenuId && menuRefs.current[openMenuId]) {
+        if (!menuRefs.current[openMenuId].contains(e.target)) {
+          setOpenMenuId(null);
         }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching colleges:', error);
-        setLoading(false);
       }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
+
+  //  Fetch Colleges with Pagination
+  const fetchColleges = async (page = 1, query = '') => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/colleges?page=${page}&limit=${limit}&search=${query}`);
+      const data = await response.json();
+      setColleges(data.colleges || []);
+      setTotalPages(data.totalPages || 1);
+      setCurrentPage(data.currentPage || 1);
+      setTotalColleges(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    } finally {
+      setLoading(false);
     }
-    fetchColleges();
-  }, [searchQuery]);
+  };
+
+  // Refetch when page or search changes
+  useEffect(() => {
+    fetchColleges(currentPage, searchQuery);
+  }, [currentPage, searchQuery]);
 
   const handleSearch = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-  }
+    setCurrentPage(1); // reset page when searching
+  };
+
+  const handlePageClick = ({ selected }) => {
+    setCurrentPage(selected + 1); // ReactPaginate uses 0-based index
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleMenu = (collegeId, e) => {
+    e.stopPropagation();
+    setOpenMenuId(collegeId);
+  };
+
+  const handleViewCollege = (collegeId, e) => {
+    e.preventDefault();
+    setOpenMenuId(null);
+    navigate(`/colleges/${collegeId}`);
+  };
+
+  const handleShareCollege = (college, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenuId(null);
+    setSharePopupCollege(college);
+  };
+const [placeholder, setPlaceholder] = useState("");
+const [textIndex, setTextIndex] = useState(0);
+const [charIndex, setCharIndex] = useState(0);
+const [isDeleting, setIsDeleting] = useState(false);
+const [isPaused, setIsPaused] = useState(false);
+
+// Array for animation
+const placeholders = [
+  "Search IIT Indore...",
+  "Search IIM Ahmedabad",
+  "Search Shri Ram College of Commerce",
+  "Search Delhi University...",
+  "Find Your Dream College..."
+];
+
+useEffect(() => {
+  const currentText = placeholders[textIndex];
+  
+  const timeout = setTimeout(() => {
+    // If paused, wait before starting deletion
+    if (isPaused) {
+      setIsPaused(false);
+      setIsDeleting(true);
+      return;
+    }
+    
+    if (!isDeleting && charIndex < currentText.length) {
+
+      setPlaceholder(currentText.substring(0, charIndex + 1));
+      setCharIndex(charIndex + 1);
+    } else if (isDeleting && charIndex > 0) {
+
+      setPlaceholder(currentText.substring(0, charIndex - 1));
+      setCharIndex(charIndex - 1);
+    } else if (!isDeleting && charIndex === currentText.length) {
+
+      setIsPaused(true);
+    } else if (isDeleting && charIndex === 0) {
+
+      setIsDeleting(false);
+      setTextIndex((textIndex + 1) % placeholders.length);
+    }
+  }, isPaused ? 2000 : isDeleting ? 40 : 20);
+
+  return () => clearTimeout(timeout);
+}, [charIndex, isDeleting, textIndex, isPaused]);
 
   return (
     <>
-      <div className="w-full m-0 my-4 p-4 flex items-center justify-center">
+      {/* Search bar */}
+      <div className="w-full m-0 my-4 p-4 flex items-center justify-center relative">
         <input
           name='search'
           value={searchQuery}
           onChange={handleSearch}
           className='pl-4 outline-0 bg-bg rounded-3xl xl:h-14 h-10 md:h-9 lg:h-12 w-full placeholder:text-tsecondary placeholder:text-[12px] xl:placeholder:text-[16px] sm:placeholder:text-[13px] shadow-inset-6 text-[12px] sm:text-[14px] lg:text-[18px]' 
           type="text" 
-          placeholder='Search Best B.Tech colleges near me...' 
+          placeholder={placeholder} 
         />
-        <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-8 w-10'>
-          <img draggable="false" src={SearchLogo} alt="Search" />
+        <button className='cursor-pointer text-[12px] lg:text-[16px] md:text-[14px] xl:text-[17px] absolute right-4 sm:right-8 w-10'>
+          <img draggable="false" src={SearchLogo} alt="Search" className='size-8 sm:size-12' />
         </button>
       </div>
-      <div className='w-full p-3 flex justify-evenly flex-wrap gap-10'>
-        {colleges.map(
-          (college) => (
-            <Link to={`/colleges/${college._id}`} key={college._id}>
+
+      {/* Share popup */}
+      {sharePopupCollege && (
+        <SharePopUp 
+          isOpen={true} 
+          college={`https://admeasy.in/colleges/${sharePopupCollege._id}`} 
+          CollegeName={sharePopupCollege.name} 
+          onClose={() => setSharePopupCollege(null)} 
+        />
+      )}
+
+      {/* Cards */}
+      <div className='w-full p-3 flex justify-evenly flex-wrap gap-10 min-h-[400px]'>
+        {loading ? (
+          <div className="w-full flex flex-col justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-500 text-lg">Loading colleges...</p>
+          </div>
+        ) : colleges.length > 0 ? (
+          colleges.map((college) => (
+            <div key={college._id} className="relative">
               <motion.div
                 variants={fadeUpVariant}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="bg-primary rounded-2xl mb-5 px-2 py-1 shadow-3d w-30 sm:w-50 hover:scale-105 transition-transform duration-200 h-[250px] md:h-[300px] flex flex-col gap-1 sm:justify-evenly">
+                onClick={(e) => handleViewCollege(college._id, e)}
+                className="bg-primary rounded-2xl mb-5 px-2 py-1 shadow-3d w-30 sm:w-50 hover:scale-105 transition-transform duration-200 h-[250px] md:h-[300px] flex flex-col gap-1 sm:justify-evenly cursor-pointer"
+              >
                 <img src={college.logo} alt={college.name} className="mx-auto w-15 sm:w-20" />
 
-                <div className = {`${college.name.length>20? 'text-[12px] lg:text-[14px]':'text-[12px]'} text-tprimary  font-bold mt-2 text-center`}>
+                <div className={`${college.name.length > 20 ? 'text-[12px] lg:text-[14px]' : 'text-[12px]'} text-tprimary font-bold mt-2 text-center`}>
                   {college.name}
                 </div>
 
-                <div className={`text-tsecondary ${college.location.length>30?'text-[8px] md:text-[10px] lg:text-[12px]':'text-[13px]'}  text-center`}>
+                <div className={`text-tsecondary ${college.location.length > 30 ? 'text-[8px] md:text-[10px] lg:text-[12px]' : 'text-[13px]'} text-center`}>
                   {college.location}
                 </div>
 
-                <div className="text-rating font-semibold text-sm text-center ">
+                <div className="text-rating font-semibold text-sm text-center">
                   ⭐ {college.rating?.overall || 'N/A'}
                 </div>
 
-                <div className="hidden text-sm text-tsecondary space-y-1 overflow-hidden">
-                  <p>
-                    <span className="font-semibold text-tprimary">Established:</span> {college.establishedYear}
-                  </p>
-                  <p>
-                    <span className="font-semibold text-tprimary">Type:</span> {college.type}
-                  </p>
-                  <p>
-                    <span className="font-semibold line-clamp-3 text-tprimary">Description:</span> {college.desc.split(' ').slice(0, 20).join(' ')}...
-                  </p>
-                </div>
+                <button
+                  onClick={(e) => toggleMenu(college._id, e)}
+                  className='absolute top-5 right-2 hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded transition-colors'
+                  title="More options"
+                >
+                  <BsThreeDotsVertical size={17} />
+                </button>
               </motion.div>
-            </Link>
-          ))}
-      </div>
-    </>
-  )
-}
 
-export default Colleges
+              {openMenuId === college._id && (
+                <div
+                  ref={(el) => menuRefs.current[college._id] = el}
+                  className='absolute top-12 right-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 w-40 border border-gray-200 dark:border-gray-700'
+                >
+                  <button
+                    onClick={(e) => handleViewCollege(college._id, e)}
+                    className='w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors text-gray-800 dark:text-gray-200'
+                  >
+                    View College
+                  </button>
+                  <div className='border-t border-gray-200 dark:border-gray-700'></div>
+                  <button
+                    onClick={(e) => handleShareCollege(college, e)}
+                    className='w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg transition-colors text-gray-800 dark:text-gray-200 flex items-center gap-2'
+                  >
+                    <FaShareAlt size={14} /> Share College
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="w-full flex flex-col justify-center items-center py-20">
+            <p className="text-gray-500 text-xl mb-2">No colleges found</p>
+            {searchQuery && (
+              <p className="text-gray-400 text-sm">Try adjusting your search terms</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Pagination with ReactPaginate */}
+      {!loading && totalPages > 1 && (
+  <motion.div
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5, ease: "easeOut" }}
+    viewport={{ once: true }}
+    className="flex justify-center mt-10 mb-12"
+  >
+    <ReactPaginate
+      breakLabel="..."
+      nextLabel={
+        <span className="flex items-center gap-1 font-medium">
+          Next <span className="text-lg">→</span>
+        </span>
+      }
+      previousLabel={
+        <span className="flex items-center gap-1 font-medium">
+          <span className="text-lg">←</span> Prev
+        </span>
+      }
+      onPageChange={handlePageClick}
+      pageRangeDisplayed={5}
+      marginPagesDisplayed={0}
+      pageCount={totalPages}
+      forcePage={currentPage - 1} // Adjust for 0-based index
+      renderOnZeroPageCount={null}
+      containerClassName="
+        flex flex-wrap items-center justify-center gap-3
+        bg-white/70 dark:bg-gray-900/50 backdrop-blur-sm
+        px-5 py-3 rounded-2xl shadow-md border
+        border-gray-200/60 dark:border-gray-700/50
+      "
+      pageLinkClassName="
+        flex items-center justify-center w-10 h-10
+        rounded-xl font-medium text-gray-700 dark:text-gray-300
+        border border-gray-300 dark:border-gray-600
+        cursor-pointer transition-all duration-300
+        hover:-translate-y-0.5 hover:bg-blue-50 dark:hover:bg-blue-950/40
+        hover:text-blue-600 dark:hover:text-blue-400
+      "
+      activeLinkClassName="
+        bg-gradient-to-r from-blue-600 to-indigo-600
+        text-white border-blue-600 shadow-[0_0_15px_-4px_rgba(59,130,246,0.5)]
+        scale-105
+      "
+      previousLinkClassName="
+        flex items-center justify-center px-4 h-10 rounded-xl
+        font-semibold text-gray-700 dark:text-gray-200
+        border border-gray-300 dark:border-gray-600 cursor-pointer
+        transition-all duration-300 hover:-translate-y-0.5
+        hover:bg-blue-50 dark:hover:bg-blue-950/40
+        hover:text-blue-600 dark:hover:text-blue-400
+      "
+      nextLinkClassName="
+        flex items-center justify-center px-4 h-10 rounded-xl
+        font-semibold text-gray-700 dark:text-gray-200
+        border border-gray-300 dark:border-gray-600 cursor-pointer
+        transition-all duration-300 hover:-translate-y-0.5
+        hover:bg-blue-50 dark:hover:bg-blue-950/40
+        hover:text-blue-600 dark:hover:text-blue-400
+      "
+      disabledClassName="
+        opacity-40 cursor-not-allowed
+        hover:translate-y-0 hover:bg-transparent hover:text-gray-400
+      "
+      breakLinkClassName="flex items-center justify-center w-8 h-10 text-gray-400 select-none"
+    />
+  </motion.div>
+)}
+
+    </>
+  );
+};
+
+export default Colleges;

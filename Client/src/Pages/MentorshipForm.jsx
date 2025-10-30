@@ -94,7 +94,20 @@ const MentorshipForm = () => {
             });
 
             if (res.ok) {
-                toast.success('Application submitted successfully. We will contact you shortly.');
+                navigate('/')
+                toast.success('Application submitted successfully. We will contact you shortly.')
+                setForm({
+                    name:"",
+                    email:"",
+                    phone:"",
+                    college:"",
+                    course:""
+                });
+                setProfilePic(null)
+                setPreview("")
+                setAgreedToTerms(false)
+                if(fileInputRef.current) fileInputRef.current.value = "";
+            
             } else {
                 toast.error('An Error Occurred!');
             }
@@ -270,6 +283,7 @@ const MentorshipForm = () => {
                     </button>
                 </div>
             </form>
+            
         </main>
     )
 }

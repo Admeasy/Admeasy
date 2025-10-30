@@ -55,58 +55,70 @@ function shuffleArray(array) {
     }
   }
 
-  useEffect(() => {
-    async function getStudents() {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/colleges/');
-        const colleges = await res.json();
+ useEffect(() => {
+  async function getStudents() {
+    try {
+      setLoading(true);
 
-        // Flatten all students, attaching college info
-        let allStudents = [];
-        let dustudents = []
-        colleges.forEach(college => {
-          if (college.students && college.students.length > 0) {
-            college.students.forEach(student => {
-              if (college.affiliation === 'Delhi University' || college.name.includes('Delhi University') || college.name.includes('DU')) {
-                dustudents.push({
-                  ...student,
-                  college: college.name,
-                  collegeLogo: college.logo || '',
-                  university: college.affiliation || 'Delhi University'
-                })
-              } else {
-                allStudents.push({
-                  ...student,
-                  college: college.name,
-                  collegeLogo: college.logo || '',
-                  university: college.affiliation
-                });
-              }
-            });
-          }
-        });
+      // ✅ Fetch with large limit
+      const res = await fetch('/api/colleges?page=1&limit=9999');
+      const data = await res.json();
 
-        // Shuffle and pick 5 students
-        let shuffledAllStudents = shuffleArray(allStudents).slice(0, 5);
-        const shuffledDUStudents = shuffleArray(dustudents);
+      // ✅ Safely extract the array
+      const colleges = data.colleges || [];
 
-        // Add DU students to the beginning of shuffled array
-        shuffledDUStudents.forEach(student => {
-          shuffledAllStudents.unshift(student);
-        })
+      // Prepare arrays
+      let allStudents = [];
+      let dustudents = [];
 
-        setStudents(shuffledAllStudents);
-        setLoading(false);
-      } catch (error) {
-        setLoading(false);
-        setError(error);
-        console.log(error);
-      }
+      // ✅ Loop through colleges correctly
+      colleges.forEach(college => {
+        if (college.students && college.students.length > 0) {
+          college.students.forEach(student => {
+            // DU detection logic
+            if (
+              college.affiliation === 'Delhi University' ||
+              college.name.includes('Delhi University') ||
+              college.name.includes('DU')
+            ) {
+              dustudents.push({
+                ...student,
+                college: college.name,
+                collegeLogo: college.logo || '',
+                university: college.affiliation || 'Delhi University',
+              });
+            } else {
+              allStudents.push({
+                ...student,
+                college: college.name,
+                collegeLogo: college.logo || '',
+                university: college.affiliation,
+              });
+            }
+          });
+        }
+      });
+
+      // ✅ Shuffle
+      const shuffledAllStudents = shuffleArray(allStudents).slice(0, 5);
+      const shuffledDUStudents = shuffleArray(dustudents);
+
+      // ✅ Prepend DU students
+      shuffledDUStudents.forEach(student => {
+        shuffledAllStudents.unshift(student);
+      });
+
+      setStudents(shuffledAllStudents);
+    } catch (error) {
+      console.error(error);
+      setError(error);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    getStudents()
-  }, [])
+  getStudents();
+}, []);
 
   return (
     <>
@@ -124,34 +136,39 @@ function shuffleArray(array) {
         {error && <div className="w-full flex justify-center items-center py-10 text-red-500"><span className="text-2xl">{'An error occurred'}</span></div>}
         {!loading && !students.length && <div className="w-full flex justify-center items-center py-10"><span className="text-2xl">No students found</span></div>}
         {/* Custom Arrow Buttons */}
-        <div
-          ref={prevRef}
-          className="hidden md:inline-block absolute left-2 top-1/2 sm:top-3/5 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
-        >
-          <CustomButton><IoIosArrowBack /></CustomButton>
-        </div>
-        <div
-          ref={nextRef}
-          className="hidden md:inline-block absolute right-2 top-1/2 sm:top-3/5 z-10 -translate-y-1/2 text-thead2 hover:text-[#3F37C9] cursor-pointer text-2xl font-bold"
-        >
-          <CustomButton><IoIosArrowForward /></CustomButton>
-        </div>
-        <Swiper
-          modules={[Navigation,Autoplay]}
-          spaceBetween={20}
-          slidesPerView={3.8}
-          loop={true}
-          onBeforeInit={(swiper) => {
-            swiper.params.navigation.prevEl = prevRef.current;
-            swiper.params.navigation.nextEl = nextRef.current;
-          }}
-          breakpoints={{
-            0: { slidesPerView: 1.5 },
-            640: { slidesPerView: 2.5 },
-            1024: { slidesPerView: 3.8 },
-          }}
-          className="pb-1"
-        >
+<div className="hidden md:inline-block absolute left-2 top-1/2 z-10 -translate-y-1/2">
+  <CustomButton ref={prevRef}>
+    <IoIosArrowBack size={24} />
+  </CustomButton>
+</div>
+<div className="hidden md:inline-block absolute right-2 top-1/2 z-10 -translate-y-1/2">
+  <CustomButton ref={nextRef}>
+    <IoIosArrowForward size={24} />
+  </CustomButton>
+</div>
+
+{/* Swiper Carousel */}
+<Swiper
+  modules={[Navigation, Autoplay]}
+  spaceBetween={20}
+  slidesPerView={3.8}
+  loop={true}
+  autoplay={{ delay: 3000, disableOnInteraction: false }}
+  onBeforeInit={(swiper) => {
+    swiper.params.navigation.prevEl = prevRef.current;
+    swiper.params.navigation.nextEl = nextRef.current;
+  }}
+  navigation={{
+    prevEl: prevRef.current,
+    nextEl: nextRef.current,
+  }}
+  breakpoints={{
+    0: { slidesPerView: 1.5 },
+    640: { slidesPerView: 2.5 },
+    1024: { slidesPerView: 3.8 },
+  }}
+  className="pb-1"
+>
           {students.map((student) => (
             <SwiperSlide key={student.name} className="h-40">
               <div

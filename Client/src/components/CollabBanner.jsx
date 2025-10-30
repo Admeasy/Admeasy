@@ -1,12 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { IoIosArrowForward } from "react-icons/io";
+import { IoIosArrowBack } from "react-icons/io";
+import CustomButton from "../HomeComponents/3d-btn";
+import { Autoplay, Navigation, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
+
 import StudentInfoModal from "./StudentInfoModel";
 
-// MGCI Banner IMgs
+// Banners
 import MGCIBannerTwo from "../assets/Banner/MGCI-Banner-Neet.webp";
 import Bannerimg from "../assets/Banner/NEET.webp";
 import MGCIBrochure from "../assets/Banner/MGCIbrochure.pdf";
-
-// UDAAN
 import UdaanBannerJee from "../assets/Banner/UDAAN-Banner-JEE.webp";
 import UdaanBannerNeet from "../assets/Banner/UDAAN-Banner-NEET.webp";
 import UdaanBanner from "../assets/Banner/UDAAN-Banner.webp";
@@ -14,6 +22,8 @@ import UdaanBanner from "../assets/Banner/UDAAN-Banner.webp";
 const CollabBanner = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeBanner, setActiveBanner] = useState(null);
+  const prevRef = useRef(null);
+  const nextRef = useRef(null);
 
   const Banners = [
     {
@@ -64,75 +74,109 @@ const CollabBanner = () => {
   };
 
   return (
-    <section className="py-14 px-6 bg-gradient-to-br from-white to-blue-50">
+    <section className="py-14 px-6 bg-gradient-to-br from-white to-blue-50 relative">
       {/* Section Heading */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-10">
-        <h2 className="text-3xl font-admeasy-extrabold text-gray-900 tracking-tight">
-          OUR <span className="text-blue-600">Brand Collaborator</span>
+      <div className="relative flex flex-col sm:flex-row justify-center items-center mb-10">
+        <h2 className="text-xl text-center md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-900">
+          Some <span className="text-blue-600">Best Picks✨</span>
         </h2>
         <a
           href="https://forms.gle/zShtayAGBWxthf6z6"
-          className="text-sm sm:text-base mt-3 sm:mt-0 px-5 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md hover:shadow-lg hover:scale-105 transition"
-        >
-          Become a brand collaborator
+          className=" sm:absolute right-0 text-sm sm:text-base mt-3 sm:mt-0 px-5 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md hover:shadow-lg hover:scale-105 transition">
+          Get Listed Here
         </a>
       </div>
 
-      {/* Cards */}
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Custom Navigation Buttons */}
+      <div className="absolute top-1/2 left-2 z-10 transform -translate-y-1/2 cursor-pointer text-blue-600 hover:text-blue-800 transition">
+      <CustomButton ref={prevRef} ><IoIosArrowBack size={28} /></CustomButton>
+        
+      </div>
+      <div className="absolute top-1/2 right-2 z-10 transform -translate-y-1/2 cursor-pointer text-blue-600 hover:text-blue-800 transition">
+      <CustomButton ref={nextRef}><IoIosArrowForward size={28}  /></CustomButton>
+      </div>
+
+      {/* Swiper Carousel */}
+      <Swiper
+        modules={[Autoplay, Navigation, Pagination]}
+        spaceBetween={7}
+        slidesPerView={1}
+        loop={true}
+        autoplay={{ delay: 3000, disableOnInteraction: false }}
+        navigation={{
+          prevEl: prevRef.current,
+          nextEl: nextRef.current,
+        }}
+        className="hover:cursor-grab active:cursor-grabbing"
+        onSwiper={(swiper) => {
+          // Assign navigation after mount
+          setTimeout(() => {
+            if (swiper.params.navigation) {
+              swiper.params.navigation.prevEl = prevRef.current;
+              swiper.params.navigation.nextEl = nextRef.current;
+              swiper.navigation.init();
+              swiper.navigation.update();
+            }
+          });
+        }}
+        breakpoints={{
+          640: { slidesPerView: 1 },
+          768: { slidesPerView: 2 },
+          1024: { slidesPerView: 3 },
+        }}
+      >
         {Banners.map((banner, index) => (
-          <div
-            key={index}
-            className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto"
-          >
-            {/* Image */}
-            <div className="h-40 flex items-center justify-center bg-gray-50">
-              <img
-                src={banner.imgSrc}
-                alt={banner.bannerName}
-                className="rounded-2xl max-h-36 object-contain mx-auto transform group-hover:scale-105 transition duration-500"
-                draggable="false"
-              />
-            </div>
+          <SwiperSlide key={index}>
+            <div className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto">
+              {/* Image */}
+              <div className="h-40 flex items-center justify-center bg-gray-50">
+                <img
+                  src={banner.imgSrc}
+                  alt={banner.bannerName}
+                  className="rounded-2xl max-h-36 object-contain mx-auto transform group-hover:scale-105 transition duration-500"
+                  draggable="false"
+                />
+              </div>
 
-            {/* Text */}
-            <div className="flex-1 flex flex-col p-5 text-center">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                {banner.Headline}
-              </h3>
-              <p className="text-sm text-gray-600">{banner.Subheadline}</p>
-              <p className="text-sm text-gray-600 mb-4">
-                {banner.SubheadlineO}
-              </p>
+              {/* Text */}
+              <div className="flex-1 flex flex-col p-5 text-center">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  {banner.Headline}
+                </h3>
+                <p className="text-sm text-gray-600">{banner.Subheadline}</p>
+                <p className="text-sm text-gray-600 mb-4">
+                  {banner.SubheadlineO}
+                </p>
 
-              {/* Buttons */}
-              <div className="mt-auto flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  onClick={() => handleEnroll(banner)}
-                  className="w-full sm:w-auto cursor-pointer bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2 rounded-xl font-semibold shadow-md hover:shadow-lg hover:scale-105 transition"
-                >
-                  Enroll Now
-                </button>
-                {banner.brochure && (
-                  <a
-                    href={banner.brochure}
-                    download={`${banner.bannerName}-Brochure.pdf`}
-                    className="w-full sm:w-auto cursor-pointer px-5 py-2 rounded-xl bg-blue-100 text-blue-700 font-medium border border-blue-200 hover:bg-blue-200 transition"
+                {/* Buttons */}
+                <div className="mt-auto flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={() => handleEnroll(banner)}
+                    className="w-full sm:w-auto cursor-pointer bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2 rounded-xl font-semibold shadow-md hover:shadow-lg hover:scale-105 transition"
                   >
-                    Prospectus
-                  </a>
-                )}
+                    Enroll Now
+                  </button>
+                  {banner.brochure && (
+                    <a
+                      href={banner.brochure}
+                      download={`${banner.bannerName}-Brochure.pdf`}
+                      className="w-full sm:w-auto cursor-pointer px-5 py-2 rounded-xl bg-blue-100 text-blue-700 font-medium border border-blue-200 hover:bg-blue-200 transition"
+                    >
+                      Prospectus
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </SwiperSlide>
         ))}
-      </div>
+      </Swiper>
 
       {/* Modal */}
       {isOpen && activeBanner && (
         <StudentInfoModal
           isOpen={isOpen}
-          onX={()=>setIsOpen(false)}
+          onX={() => setIsOpen(false)}
           bannerName={activeBanner.bannerName}
         />
       )}

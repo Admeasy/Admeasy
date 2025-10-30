@@ -7,6 +7,8 @@ import ExploreBtn from "./ExploreBtn";
 import GradientText from "./GradientText";
 import { FaShareAlt } from "react-icons/fa";
 import { toast } from "react-toastify";
+import SharePopUp from "../components/SharePopUp";
+
 // ✅ Helper function to format rating
 const formatRating = (rating) => {
   if (typeof rating === "number") return rating.toFixed(1);
@@ -25,51 +27,52 @@ const fadeUpVariant = {
 export default function CollegeCard() {
   const [Colleges, setColleges] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mentors,SetMentors] = useState(0)
-
-// // Fetch colleges Data
-// useEffect(() => {
-//   const fetchCollege = async () => {
-//     try {
-//       const response = await fetch(`/api/colleges/${id}`);
-//       if (!response.ok) {
-//         throw new Error(`Failed to fetch college data (${response.status})`);
-//       }
-//       const data = await response.json();
-//       SetMentors(data);
-//       console.log(mentors)
-//     } catch (err) {
-//       console.error('Error fetching college data:', err);
-//     }
-//   };
-
-//   fetchCollege();
-// }, [mentors]);
-
+  const [mentors, SetMentors] = useState(0);
+  
+  // ✅ Store selected college info for sharing
+  const [selectedCollege, setSelectedCollege] = useState(null);
 
   // ✅ Fetch colleges
   useEffect(() => {
-    async function fetchColleges() {
-      setIsLoading(true);
-      try {
-        const response = await fetch("/api/colleges");
-        const data = await response.json();
-        // Pick 4 random colleges
-        const selected = [...data]
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 4);
+  let isMounted = true;
 
-        setColleges(selected);
-      } catch (error) {
-        console.error("Error fetching colleges:", error);
-      } finally {
-        setIsLoading(false);
+  async function fetchColleges() {
+    setIsLoading(true);
+    try {
+      // ✅ Explicitly request ALL colleges
+      const response = await fetch("/api/colleges?page=1&limit=9999");
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+
+      // ✅ Extract array correctly
+      const collegeList = data.colleges || [];
+
+      // ✅ Shuffle (Fisher–Yates)
+      const shuffled = [...collegeList];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-    }
-    fetchColleges();
-  }, []);
 
-  const navigate = useNavigate()
+      // ✅ Show only few randomly
+      const count = window.innerWidth > 1024 ? 6 : 4;
+      if (isMounted) setColleges(shuffled.slice(0, count));
+    } catch (error) {
+      console.error("Error fetching colleges:", error);
+    } finally {
+      if (isMounted) setIsLoading(false);
+    }
+  }
+
+  fetchColleges();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
+
+
+  const navigate = useNavigate();
 
   return (
     <motion.section
@@ -107,7 +110,6 @@ export default function CollegeCard() {
               Loading Colleges...
             </h3>
           ) : (
-            
             Colleges.map((college) => (
               <div key={college._id}>
                 <div className="bg-white rounded-2xl shadow-admeasy hover:shadow-xl transition-all duration-300 overflow-hidden group">
@@ -122,36 +124,31 @@ export default function CollegeCard() {
                       />
                     </div>
                     <div>
-                      <h2 
-                      onClick={() => {
-                        navigate(`/colleges/${college._id}`)
-                      }}
-                      title={`${college.name}`}
-                      className="cursor-pointer font-semibold text-lg text-gray-800 group-hover:text-blue-600 transition">
+                      <h2
+                        onClick={() => {
+                          navigate(`/colleges/${college._id}`);
+                        }}
+                        title={`${college.name}`}
+                        className="cursor-pointer font-semibold text-lg text-gray-800 group-hover:text-blue-600 transition"
+                      >
                         {college.name}
                       </h2>
                       <p className="text-gray-500 text-sm flex items-center gap-1">
                         <FaMapMarkerAlt className="text-blue-500" />
                         {college.location}
                       </p>
-                      
                     </div>
                   </div>
-                  <hr class="h-[2px] bg-gray-400 border-0 rounded" />
+                  <hr className="h-[2px] bg-gray-400 border-0 rounded" />
                   <div className="py-4 px-8 flex justify-between items-center bg-white rounded-2xl">
-                    <p 
-                    //title={`Click to see mentors of ${college.name}`}  
-                    className="text-gray-700 font-medium hover:underline hover:text-blue-600 transition">
+                    <p className="text-gray-700 font-medium hover:underline hover:text-blue-600 transition">
                       {college?.students?.length ?? 0} Mentors
                     </p>
                     <span className="w-px h-6 bg-gray-300"></span>
-                    <p 
-                    //title={`Click to see Courses of ${college.name}`} 
-                    className="text-gray-700 font-medium hover:underline hover:text-blue-600 transition">
+                    <p className="text-gray-700 font-medium hover:underline hover:text-blue-600 transition">
                       {college?.courses?.length ?? 0} Courses
                     </p>
                   </div>
-
 
                   {/* Rating */}
                   <div className="px-5 py-3 flex items-center gap-2">
@@ -169,29 +166,15 @@ export default function CollegeCard() {
                       {college.rating ? formatRating(college.rating) : "N/A"}
                     </span>
                   </div>
-
-                  {/* Explore Button */}
+                        {/* Buttons */}
                   <div className="px-5 pb-5 flex items-center gap-3">
                     {/* Share button */}
                     <button
                       onClick={() => {
-                        const shareUrl = `https://admeasy.in/colleges/${college._id}`;
-                        const message =  `Hey 👋  
-I discovered this college on *Admeasy* – the smarter way to explore colleges without spam calls.  
-
-✨ Why Admeasy?  
-- Free mentors from top colleges 🎓  
-- 100% data privacy 🔒  
-- Verified info & student-friendly guidance 📚  
-
-Check out this college here 👉 ${shareUrl}`;
-                        navigator.clipboard.writeText(message)
-                          .then(() => {
-                       toast.success("🎓 College link copied! Share it with friends 👥");
-                          })
-                          .catch((err) => {
-                            toast.error('Opps! Something is not really great!')
-                          });
+                        setSelectedCollege({
+                          id: college._id,
+                          name: college.name,
+                        });
                       }}
                       title="Share this college"
                       type="button"
@@ -204,7 +187,7 @@ Check out this college here 👉 ${shareUrl}`;
                     {/* Explore button */}
                     <button
                       onClick={() => {
-                        navigate(`/colleges/${college._id}`)
+                        navigate(`/colleges/${college._id}`);
                       }}
                       title={`Click to know more about ${college.name}`}
                       type="button"
@@ -214,7 +197,6 @@ Check out this college here 👉 ${shareUrl}`;
                       <FaArrowRight className="w-4 h-4" />
                     </button>
                   </div>
-
                 </div>
               </div>
             ))
@@ -226,6 +208,16 @@ Check out this college here 👉 ${shareUrl}`;
           <ExploreBtn text="View More" linkbtn="/colleges" isSticky={false} />
         </div>
       </div>
+
+      {/* ✅ Single SharePopUp component outside the map */}
+      {selectedCollege && (
+        <SharePopUp
+          isOpen={true}
+          onClose={() => setSelectedCollege(null)}
+          college={`https://admeasy.in/colleges/${selectedCollege.id}`}
+          CollegeName={selectedCollege.name}
+        />
+      )}
     </motion.section>
   );
 }

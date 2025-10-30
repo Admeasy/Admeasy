@@ -43,12 +43,13 @@ const Colleges = () => {
 
     const fetchColleges = async () => {
         try {
-            const response = await fetch('/api/colleges')
+            const response = await fetch('/api/colleges?page=1&limit=9999')
             if (!response.ok) {
                 throw new Error('Failed to fetch colleges')
             }
             const data = await response.json()
-            setColleges(data)
+            const colleges = data.colleges||[]
+            setColleges(colleges)
         } catch (err) {
             setError(err.message)
         } finally {

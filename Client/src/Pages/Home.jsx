@@ -3,6 +3,7 @@ import CollegeCard from '../HomeComponents/CollegeCard'
 import Features from '../HomeComponents/Features'
 import CollabBanner from '../components/CollabBanner'
 import FAQ from '../HomeComponents/FAQ'
+import BlogSwiper from '../HomeComponents/BlogsSwiper'
 import StudentSwiper from '../HomeComponents/StudentSwiper'
 import { useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
@@ -25,6 +26,7 @@ const Home = () => {
       <StudentSwiper/>
       <CollabBanner/>
       <CollegeCard />
+      <BlogSwiper/>
       <Features />
       <FAQ />
     </main>

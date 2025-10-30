@@ -187,7 +187,7 @@ useEffect(() => {
       >
         {teamMembers.map((member, idx) => (
           <SwiperSlide key={idx}>
-            <div className="bg-white rounded-2xl shadow-3d p-6 flex flex-col items-center justify-center text-center h-full">
+            <div className="bg-white rounded-2xl shadow-3d p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-5xl mb-4">{member.emoji}</div>
               <h3 className="text-lg font-semibold text-gray-800">{member.name}</h3>
               <p className="text-sm font-medium text-blue-600 mt-1">{member.title}</p>
@@ -199,36 +199,33 @@ useEffect(() => {
               </div>
             </div>
           </Section>
-          <Section className="bg-white py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-1xl md:text-4xl font-bold tracking-tight text-gray-900 mb-6 flex items-center justify-center gap-2">
+          <Section className="bg-white py-20 px-2 sm:px-6 lg:px-8 flex items-center justify-center min-h-screen">
+            <div className="max-w-3xl text-center">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-gray-900 mb-8">
                 What Makes Us Different
               </h2>
-              <ul className="text-[15px] md:text-2xl text-gray-700 space-y-4 text-left">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>We never sell your data</strong> ever.</span>
+              <ul className="space-y-4 text-[16px] md:text-2xl text-gray-700">
+                <li>
+                  <strong>We never sell your data</strong> ever.
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>No spam calls or annoying emails</strong></span>
+                <li>
+                  <strong>No spam calls or annoying emails</strong>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>Talk to Mentors For Free and Get Real Insights!</strong></span>
+                <li>
+                  <strong>Talk to Mentors For Free</strong> and get real insights!
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 font-semibold">✔</span>
-                  <span><strong>Privacy and transparency first</strong> always.</span>
+                <li>
+                  <strong>Privacy and transparency first</strong> always.
                 </li>
               </ul>
             </div>
           </Section>
+
           <Section>
             <h2 className="text-2xl md:text-4xl font-semibold">Our Vision</h2>
-            <p className="text-[14px] md:text-xl lg:text-2xl text-gray-700 px-16">
-              We’re currently focused on expanding our college network especially from top institutions like <strong> Delhi University</strong> so students across India get access to opportunities they deserve.
-            </p>
+            <p className="text-[14px] md:text-xl lg:text-2xl text-gray-700">
+            <strong> We’re currently focused on scaling across Delhi NCR, Madhya Pradesh, Chhattisgarh, Maharashtra, Uttar Pradesh, Punjab, and Haryana. </strong> So students from every corner can explore real opportunities and make smarter college choices
+           </p>
           </Section>
           
         </main>

@@ -161,13 +161,47 @@ router.post('/', upload.any(), async (req, res) => {
 
 // Route to get all colleges
 router.get('/', async (req, res) => {
-    try {
-        const colleges = await College.find();
-        res.json(colleges);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching colleges', error });
+  try {
+    let { page, limit } = req.query;
+
+    // Convert to numbers
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    // If no pagination params, return all colleges
+    if (!page || !limit) {
+      const colleges = await College.find();
+      return res.json(colleges);
     }
+    const search = req.query.search ||''
+      const searchFilter = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { location: { $regex: search, $options: 'i' } },
+            { affiliation: { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
+
+
+    // Paginated response
+    const skip = (page - 1) * limit;
+    const total = await College.countDocuments(searchFilter);
+    const colleges = await College.find(searchFilter).skip(skip).limit(limit);
+
+    res.json({
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      colleges,
+    });
+  } catch (error) {
+    console.error("Error fetching colleges:", error);
+    res.status(500).json({ message: "Error fetching colleges", error });
+  }
 });
+
 
 router.get('/:id', async (req, res) => {
     try {

@@ -1,4 +1,176 @@
 @import "tailwindcss";
+.blog-content a {
+  color: rgb(0, 47, 255) !important;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.blog-content a:hover {
+  color: rgb(0, 0, 180) !important; /* optional darker hover color */
+}
+.blog-content li[data-list="bullet"] {
+  list-style-type: disc !important;
+  margin-left: 1.5rem; /* indent */
+  display: list-item !important;
+}
+
+.blog-content ol,
+.blog-content ul {
+  margin-left: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.blog-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+.blog-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+/* Fix Quill list styles */
+.ql-editor ol,
+.ql-editor ul {
+  padding-left: 1.5rem; /* spacing for bullets/numbers */
+  margin: 0.5rem 0;
+}
+
+/* Show numbers for ordered lists */
+.ql-editor ol {
+  list-style-type: decimal !important;
+}
+
+/* Show bullets for unordered lists */
+.ql-editor ul {
+  list-style-type: disc !important;
+}
+
+/* Fix list item spacing */
+.ql-editor li {
+  margin-bottom: 0.25rem;
+}
+
+/* Optional: make nested lists look cleaner */
+.ql-editor li > ol,
+.ql-editor li > ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.blog-content th,
+.blog-content td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.blog-content th {
+  background-color: #f8f8f8;
+  font-weight: bold;
+}
+
+/* === Quill editor list styling with Tailwind === */
+/* Reset counter per ol so numbering starts at 1 for each list */
+.blog-content ol {
+  counter-reset: ql-counter;
+  margin-left: 1.25rem; /* adjust indentation */
+  padding-left: 0;
+}
+
+/* Make Quill's li behave like list items and increment counter */
+.blog-content li[data-list="ordered"] {
+  counter-increment: ql-counter;
+  position: relative;
+  padding-left: 1.6rem; /* space for marker */
+  margin-bottom: 0.35rem;
+}
+
+/* Render the number inside Quill UI span */
+.blog-content li[data-list="ordered"] > .ql-ui::before {
+  content: counter(ql-counter) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 600;
+  color: #6b7280; /* Tailwind gray-500 look */
+  line-height: 1.4;
+}
+
+/* Bullet lists: show a dot if you want custom bullet style */
+.blog-content li[data-list="bullet"] > .ql-ui::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 1.05em;
+  color: #6b7280;
+}
+
+/* Ensure list text aligns with the marker */
+.blog-content li {
+  display: block;
+  /* leave normal text flow; padding-left already applied above */
+}
+
+/* Optional: spacing/line-height to match your prose */
+.blog-content ul,
+.blog-content ol {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.blog-content li {
+  line-height: 1.6;
+}
+
+/* Add indentation and spacing for list items */
+[data-list="bullet"] {
+  display: list-item;
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  line-height: 1.6;
+}
+
+
+/* Bullet list */
+.ql-editor ul,
+.ql-align-center ul,
+.ql-align-left ul,
+.ql-align-right ul {
+  @apply list-disc pl-6 my-2;
+}
+
+/* Numbered list */
+.ql-editor ol,
+.ql-align-center ol,
+.ql-align-left ol,
+.ql-align-right ol {
+  @apply list-decimal pl-6 my-2;
+}
+
+/* List items */
+.ql-editor li {
+  @apply mb-1 leading-relaxed;
+}
+
+
+/* Quill alignment fixes for Tailwind */
+.ql-align-center {
+  @apply text-center;
+}
+
+.ql-align-right {
+  @apply text-right;
+}
+
+.ql-align-left {
+  @apply text-left;
+}
+
+.ql-align-justify {
+  @apply text-justify;
+}
+
 
 @font-face {
   font-family: 'Poppins Extrabold';

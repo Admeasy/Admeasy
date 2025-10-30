@@ -5,8 +5,8 @@ const path = require('path');
 require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
-const enrollmentsRoute  = require('./routes/enrollmentRoutes')
-const blogRoute = require('./routes/blogRoutes')
+const enrollmentsRoute  = require('./routes/enrollmentRoutes');
+const blogRoute = require('./routes/blogRoutes');
 const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
@@ -18,7 +18,7 @@ const app = express();
 
 // Enable CORS with credentials
 app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
+  origin: process.env.FRONTEND_URL ||'https://admeasy.in', // Your frontend URL
   credentials: true
 }));
 
@@ -48,15 +48,17 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login', session: true }),
-  (req, res) => {
-    // Redirect based on whether the user is new or existing
+  async (req, res) => {
     if (req.user && req.user._isNewUser) {
-      res.redirect('http://localhost:5173/me');
+     return res.redirect('http://localhost:5173/me');
     } else {
-      res.redirect('http://localhost:5173/');
+     return res.redirect('http://localhost:5173/');
     }
   }
 );
+
+// Server uploaded blog images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/api/colleges', CollegesRoutes);
@@ -65,8 +67,9 @@ app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
 app.use('/api/messages', MessageRoutes);
 app.use('/api/enrollments', enrollmentsRoute);
-app.use('/api/blog',blogRoute)
-// Serve static files from the dist directory
+app.use('/api/blog', blogRoute);
+
+// Serve static files from the dist directory (frontend build)
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Handle all routes that don't start with /api by serving index.html

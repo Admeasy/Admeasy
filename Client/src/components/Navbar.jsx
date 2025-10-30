@@ -43,28 +43,35 @@ const Navbar = () => {
         to="/colleges"
         onClick={() => setIsOpen(false)}
       >
-        Find Colleges
+       Colleges
       </NavLink>
       <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/mentors"
         onClick={() => setIsOpen(false)}
       >
-        Talk to Mentors
+        Best Mentors
       </NavLink>
       <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/about"
         onClick={() => setIsOpen(false)}
       >
-        About Us
+        About
       </NavLink>
       <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/contact"
         onClick={() => setIsOpen(false)}
       >
-        Contact Us
+        Contact
+      </NavLink>
+         <NavLink
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
+        to="/blog"
+        onClick={() => setIsOpen(false)}
+      >
+        Blogs
       </NavLink>
          
     </>
@@ -95,10 +102,10 @@ const Navbar = () => {
       </div>
 
       {/* Desktop Links */}
-      <div className="hidden md:flex gap-4 lg:gap-8 font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide items-center">
+      <div className="hidden min-[890px]:flex gap-2 lg:gap-4 ml-auto font-admeasy text-lg 2xl:text-2xl font-semibold tracking-wide items-center">
         {!shouldHide && navLinks}
         {user ? (
-          <Link to="/me" className="flex items-center">
+          <Link to="/me" className="flex items-center ml-6">
             <img
               src={imageError ? fallbackProfilePic : (user.imageUrl || user.image || fallbackProfilePic)}
               alt="Profile"
@@ -107,17 +114,17 @@ const Navbar = () => {
           </Link>
         ) : (
           // Login Signup Page 
-          <Link to='/login'>
+          <Link to='/login' className="ml-6">
             <LoginButton/>
           </Link>
         )}
       </div>
 
-      <div className="md:hidden flex items-center max-[323px]:gap-1 gap-2">
+      <div className="max-[889px]:flex hidden items-center max-[323px]:gap-1 gap-2">
         {user ? (
           <Link
             to="/me"
-            className="md:hidden flex items-center justify-center gap-2 py-2 cursor-pointer"
+            className="max-[899px]:flex hidden items-center justify-center gap-2 py-2 cursor-pointer"
             onClick={() => setIsOpen(false)}
           >
             <img
@@ -128,14 +135,7 @@ const Navbar = () => {
             />
           </Link>
         ) : !shouldHide && (
-          // <Link
-          //   to='/login'
-          //   className="md:hidden flex items-center justify-center text-lg text-center py-0.75 px-2.5 text-white bg-link rounded-xl cursor-pointer"
-          //   
-          // >
-          //   Log In
-          // </Link>
-        // Login Signup Page 
+          // Login Signup Page 
           <Link to='/login' onClick={() => setIsOpen(false)}>
             <LoginButton/>
           </Link>
@@ -143,7 +143,7 @@ const Navbar = () => {
 
         {/* Mobile Hamburger */}
         <div
-          className="md:hidden p-0 m-0 text-3xl cursor-pointer"
+          className="max-[899px]:block hidden p-0 m-0 text-3xl cursor-pointer"
           onClick={() => setIsOpen(!isOpen)}
           onKeyDown={handleKeyDown}
           tabIndex={0}

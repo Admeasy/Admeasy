@@ -123,6 +123,12 @@ const Admin = () => {
                 <p className="text-gray-600">Add, edit, or remove college information</p>
               </div>
             </Link>
+              <Link to="/admin/blogs">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Blogs</h2>
+                <p className="text-gray-600">Add, edit, or remove Blogs</p>
+              </div>
+            </Link>
             <Link to="/admin/users">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Users</h2>

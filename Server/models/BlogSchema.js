@@ -1,5 +1,5 @@
-const mongoose = require('mongoose')
-const {Applications} = require('../db')
+const mongoose = require('mongoose');
+const { Applications } = require('../db');
 
 const BlogSchema = new mongoose.Schema(
   {
@@ -21,35 +21,26 @@ const BlogSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    category:{
+    category: {
       type: String,
-      required: true
+      required: true,
     },
-    readingTime:{
-      type:Number,
-      required:true
+    readingTime: {
+      type: Number,
+      required: true,
     },
-
-    // custom "by" fields
     createdBy: {
-      type: String, 
+      type: String,  // Changed from ObjectId to String
       required: false,
     },
     updatedBy: {
-      type: String,
+      type: String,  // Changed from ObjectId to String
       required: false,
     },
   },
   {
-    timestamps:true
-});
-
-// middleware to update "updatedBy" automatically
-BlogSchema.pre("save", function (next) {
-  if (this.isModified()) {
-    this.updatedBy = this._updatedBy; // you can pass this manually in controller
+    timestamps: true,
   }
-  next();
-});
+);
 
 module.exports = Applications.model("Blog", BlogSchema);

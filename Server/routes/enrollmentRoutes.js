@@ -15,7 +15,7 @@ router.get('/', verifyAdminToken, async (req, res) => {
 });
 
 // ✅ Create new enrollment
-router.post('/', async (req, res) => {
+router.post('/',verifyAdminToken, async (req, res) => {
   try {
     const { name, email, number,bannerName } = req.body;
 

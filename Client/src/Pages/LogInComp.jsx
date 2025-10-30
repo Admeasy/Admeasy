@@ -63,7 +63,8 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
                 setEmail('');
                 setPassword('');
                 await fetchUser(); // Refresh user context
-                isOpen ? onClose() : navigate('/');
+                isOpen ? onClose() : navigate('/me');
+                toast.info("Please Setup Your Profile")
             } else {
                 setError(data.message || 'Login failed');
             }
@@ -74,7 +75,7 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
     };
 const googleAuthUrl = 
   process.env.NODE_ENV === "production" 
-    ? "https://admeasy.in/auth/google" 
+    ? "https://admeasy.in/auth/google"
     : "http://localhost:5000/auth/google";
 
     return (
@@ -170,17 +171,17 @@ const googleAuthUrl =
                     </div>
                 </form>
                 {/* When Issue Fixed */}
-                 {/* <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
+                 <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
                     onClick={() => window.location.href = googleAuthUrl}>
                     <img src={googleIcon} className='w-3 sm:w-5' alt="Google icon" />
                     Continue with Google
-                </button> */}
+                </button>
                 {/* While Issue */}
-                <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
+                {/* <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
                     onClick={() => toast.error('Google login error — please try again later.')}>
                     <img src={googleIcon} className='w-3 sm:w-5' alt="Google icon" />
                     Continue with Google
-                </button>
+                </button> */}
                 <div className="mt-4 sm:mt-6 text-center">
                     <span className="text-gray-700 text-sm sm:text-base">Don't have an account? </span>
                     <span onClick={()=>setShowLogin(!showLogin)} className="text-blue-600 hover:underline font-admeasy-semibold cursor-pointer">Create one</span>

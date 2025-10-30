@@ -6,6 +6,8 @@ import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
 import Footer from './components/Footer'
+import MentorsLogin from './Pages/MentorsLogin';
+import MentorsProfile from './Pages/MentorsProfile';
 import LoginModal from './components/LoginModal';
 import Contact from './Pages/Contact'
 import About from './Pages/About'
@@ -32,8 +34,9 @@ import { useUser } from './context/UserContext';
 import TextPressure from "../ReactBits/TextPressure/TextPressure"
 import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
-
-
+import ManageBlogs from './Pages/ManageBlogs';
+import BlogDetail from './Pages/BlogDetail';
+import { AnimatePresence, motion } from 'framer-motion';
 // Vartalaap Banner Imgs
 function App() {
   const location = useLocation();
@@ -117,6 +120,7 @@ function App() {
         <Route path='/colleges' element={<Colleges />}></Route>
         <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
         <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
+        <Route path='/mentors/login' element={<MentorsLogin/>} />
         <Route path='/policies' element={<PrivacyPolicy />}></Route>
         <Route path='/t&c' element={<TermsAndConditions />}></Route>
 {/* We don't need Signup route */}
@@ -135,9 +139,17 @@ function App() {
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
+        <Route path='/admin/blogs' element={<ManageBlogs/>}></Route>
         <Route path='/admin/users' element={<ManageUsers />}></Route>
         <Route path='/admin/messages' element={<Messages />}></Route>
-        <Route path='/admin/blog' element={<Blogs/>}></Route>
+        {/* The Original Path is Blog */}
+        <Route path='/blog' element={<Blogs/>}></Route>
+        <Route path='/blog/:id' element={<BlogDetail/>}></Route>
+        {/* But sometimes Users mistakenly goes to /Blogs */}
+        <Route path='/blogs' element={<Blogs/>}></Route>
+        <Route path='/blogs/:id' element={<BlogDetail/>}></Route>
+        
+        
         <Route path='/admin/enrollments'element={<Enrollments/>}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
         <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
