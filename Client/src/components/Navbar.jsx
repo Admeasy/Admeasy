@@ -124,13 +124,13 @@ const Navbar = () => {
         {user ? (
           <Link
             to="/me"
-            className="max-[899px]:flex hidden items-center justify-center gap-2 py-2 cursor-pointer"
+            className="relative max-[899px]:flex hidden items-center justify-center gap-2 py-2 cursor-pointer"
             onClick={() => setIsOpen(false)}
           >
             <img
               src={imageError ? fallbackProfilePic : (user.imageUrl || user.image || fallbackProfilePic)}
               alt="Profile"
-              className="w-9 h-9 rounded-full object-cover"
+              className="aspect-square w-9 h-9 object-contain"
               onError={handleImageError}
             />
           </Link>

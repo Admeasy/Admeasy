@@ -21,6 +21,7 @@ import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
 import Admin from './Pages/Admin'
+import Onboarding from './Pages/Onboarding';
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
 import ManageApplications from './Pages/ManageApplications'
@@ -136,6 +137,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path='/onboarding' element={<Onboarding/>}></Route>
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>

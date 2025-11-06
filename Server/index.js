@@ -16,10 +16,36 @@ const MongoStore = require('connect-mongo');
 
 const app = express();
 
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+const requiredEnvVars = [
+  'MONGODB_USERS_URI',
+  'SESSION_SECRET',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+];
+const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
+if (missing.length) {
+  console.error('Missing required environment variables:', missing.join(', '));
+  console.error('Please set them in your .env and restart the server.');
+}
+
 // Enable CORS with credentials
 app.use(cors({
-  origin: process.env.FRONTEND_URL ||'https://admeasy.in', // Your frontend URL
-  credentials: true
+  origin: (origin, callback) => {
+    const allowList = [
+      'https://admeasy.in',
+      'http://localhost:5173',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+    if (!origin || allowList.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
 }));
 
 // Middleware
@@ -33,8 +59,9 @@ app.use(session({
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_USERS_URI }),
   cookie: {
-    secure: false, // set to true if using HTTPS in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
     maxAge: 12 * 60 * 60 * 1000 // 12 hours
   }
 }));
@@ -49,10 +76,14 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login', session: true }),
   async (req, res) => {
+    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' 
+      ? 'https://admeasy.in' 
+      : 'http://localhost:5173');
+    
     if (req.user && req.user._isNewUser) {
-     return res.redirect('http://localhost:5173/me');
+     return res.redirect(`${frontendUrl}/me`);
     } else {
-     return res.redirect('http://localhost:5173/');
+     return res.redirect(`${frontendUrl}/`);
     }
   }
 );

@@ -121,7 +121,12 @@ const EditProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Validation: all required fields
-    if (!form.name.trim() || !form.phone.trim() || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
+    if (!form.name.trim() || 
+    !String(form.phone).trim() || 
+    !form.institute || 
+    !form.course || 
+    !form.gender || 
+    ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
       toast.error('Please fill all required fields.');
       return;
     }
@@ -137,9 +142,9 @@ const EditProfile = () => {
     }
         // mobile Function
      if (
-  form.phone.trim().length < 10 ||
+  String(form.phone).trim().length < 10 ||
   ["1", "2", "3", "4", "5"].some((digit) =>
-    form.phone.trim().startsWith(digit)
+    String(form.phone).trim().startsWith(digit)
   )
 ) {
   toast.error("Mobile Number Is Invalid");
@@ -276,7 +281,7 @@ useEffect(() => {
             <img
               src={preview || fallbackProfilePic}
               alt="Profile Preview"
-              className="w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 group-hover:border-blue-400 transition"
+              className="w-24 h-24 aspect-circle object-cover mb-2 border-2 border-gray-200 group-hover:border-blue-400 transition"
               onError={e => e.target.src = fallbackProfilePic}
             />
           </label>
