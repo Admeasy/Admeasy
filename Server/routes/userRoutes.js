@@ -469,7 +469,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
         if (name) user.name = name;
         if (institute) user.institute = institute;
         if (course) user.course = course;
-        if (phone) user.phone = phone;
+        if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
         if (gender) user.gender = gender;
         
         // Onboarding fields - handle JSON strings from FormData
