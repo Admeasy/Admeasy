@@ -38,7 +38,22 @@ const EditProfile = () => {
     institute: '',
     course: '',
     streamOrYear: '',
-    gender: ''
+    gender: '',
+    // Onboarding fields
+    languages: [],
+    city: '',
+    educationType: '',
+    board: '',
+    universityName: '',
+    class: '',
+    stream: '',
+    schoolName: '',
+    courseLevel: '',
+    courseDetails: '',
+    collegeName: '',
+    examsPreparingFor: [],
+    reasonForAdmeasy: '',
+    reasonForAdmeasyInput: ''
   });
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,7 +82,22 @@ const EditProfile = () => {
         institute: user.institute || '',
         course: user.course ? user.course.split(' (')[0] : '',
         streamOrYear: user.course && user.course.includes('(') ? user.course.split('(')[1].replace(')', '') : '',
-        gender: user.gender || ''
+        gender: user.gender || '',
+        // Onboarding fields
+        languages: user.languages || [],
+        city: user.city || '',
+        educationType: user.educationType || '',
+        board: user.board || '',
+        universityName: user.universityName || '',
+        class: user.class || '',
+        stream: user.stream || '',
+        schoolName: user.schoolName || '',
+        courseLevel: user.courseLevel || '',
+        courseDetails: user.courseDetails || '',
+        collegeName: user.collegeName || '',
+        examsPreparingFor: user.examsPreparingFor || [],
+        reasonForAdmeasy: user.reasonForAdmeasy || '',
+        reasonForAdmeasyInput: user.reasonForAdmeasyInput || ''
       });
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
       setLoading(false);
@@ -153,6 +183,27 @@ const EditProfile = () => {
 
     formData.append('course', courseValue);
     formData.append('gender', form.gender);
+    
+    // Onboarding fields
+    if (form.languages && Array.isArray(form.languages)) {
+      formData.append('languages', JSON.stringify(form.languages));
+    }
+    if (form.city) formData.append('city', form.city);
+    if (form.educationType) formData.append('educationType', form.educationType);
+    if (form.board) formData.append('board', form.board);
+    if (form.universityName) formData.append('universityName', form.universityName);
+    if (form.class) formData.append('class', form.class);
+    if (form.stream) formData.append('stream', form.stream);
+    if (form.schoolName) formData.append('schoolName', form.schoolName);
+    if (form.courseLevel) formData.append('courseLevel', form.courseLevel);
+    if (form.courseDetails) formData.append('courseDetails', form.courseDetails);
+    if (form.collegeName) formData.append('collegeName', form.collegeName);
+    if (form.examsPreparingFor && Array.isArray(form.examsPreparingFor)) {
+      formData.append('examsPreparingFor', JSON.stringify(form.examsPreparingFor));
+    }
+    if (form.reasonForAdmeasy) formData.append('reasonForAdmeasy', form.reasonForAdmeasy);
+    if (form.reasonForAdmeasyInput) formData.append('reasonForAdmeasyInput', form.reasonForAdmeasyInput);
+    
     if (profilePic) {
       formData.append('image', profilePic);
     }
@@ -181,7 +232,22 @@ const EditProfile = () => {
           institute: updatedUser.institute || form.institute,
           course: course || form.course,
           streamOrYear: streamOrYear || form.streamOrYear,
-          gender: updatedUser.gender || form.gender
+          gender: updatedUser.gender || form.gender,
+          // Update onboarding fields
+          languages: updatedUser.languages || form.languages,
+          city: updatedUser.city || form.city,
+          educationType: updatedUser.educationType || form.educationType,
+          board: updatedUser.board || form.board,
+          universityName: updatedUser.universityName || form.universityName,
+          class: updatedUser.class || form.class,
+          stream: updatedUser.stream || form.stream,
+          schoolName: updatedUser.schoolName || form.schoolName,
+          courseLevel: updatedUser.courseLevel || form.courseLevel,
+          courseDetails: updatedUser.courseDetails || form.courseDetails,
+          collegeName: updatedUser.collegeName || form.collegeName,
+          examsPreparingFor: updatedUser.examsPreparingFor || form.examsPreparingFor,
+          reasonForAdmeasy: updatedUser.reasonForAdmeasy || form.reasonForAdmeasy,
+          reasonForAdmeasyInput: updatedUser.reasonForAdmeasyInput || form.reasonForAdmeasyInput
         });
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);

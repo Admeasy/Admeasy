@@ -15,6 +15,9 @@ import { IoIosArrowBack } from "react-icons/io";
 import { FaMale, FaFemale, FaTransgender, FaUser } from "react-icons/fa";
 import { MdSchool, MdCastle } from "react-icons/md";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
+import { toast } from "react-toastify";
 import {
   Atom,
   Calculator,
@@ -116,9 +119,16 @@ const step1Schema = z.object({
 });
 
 
-const step3Schema = z.object({
+const step3Schema = (requirePassword = false) => z.object({
   email: z.string().email("Enter a valid email"),
   phone: z.string().min(10, "Enter a valid phone number"),
+  ...(requirePassword ? {
+    password: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Za-z]/, "Password must contain a letter")
+      .regex(/[0-9]/, "Password must contain a number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain a special character")
+  } : {})
 });
 
 
@@ -198,11 +208,34 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [educationType, setEducationType] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { user, fetchUser } = useUser();
+
+  // Check if user can access onboarding on mount
+  useEffect(() => {
+    const checkOnboardingAccess = async () => {
+      try {
+        const res = await fetch('/api/users/onboarding/status', {
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (!data.canAccess) {
+          // User has already completed onboarding, redirect to home
+          toast.info('You have already completed onboarding');
+          navigate('/');
+        }
+      } catch (err) {
+        console.error('Error checking onboarding status:', err);
+      }
+    };
+    checkOnboardingAccess();
+  }, [navigate]);
 
   const getCurrentSchema = () => {
     if (step === 1) return step1Schema;
     if (step === 2) return step2Schema;
-    if (step === 3) return step3Schema;
+    if (step === 3) return step3Schema(!user); // Require password if user is not logged in
     if (step === 4) return step4Schema;
     if (step === 5 && educationType === "school") return schoolSchema;
     if (step === 5 && educationType === "college") return collegeSchema;
@@ -214,9 +247,15 @@ export default function Onboarding() {
   const form = useForm({
     resolver: zodResolver(getCurrentSchema()),
     defaultValues: formData,
+    mode: 'onChange'
   });
 
-  const onSubmit = (data) => {
+  // Update form schema when user state changes (for password requirement)
+  useEffect(() => {
+    form.clearErrors();
+  }, [user, form]);
+
+  const onSubmit = async (data) => {
     const updatedData = { ...formData, ...data };
     setFormData(updatedData);
 
@@ -228,9 +267,41 @@ export default function Onboarding() {
       (educationType === "school" && step === 6) ||
       (educationType === "college" && step === 6)
     ) {
-      alert("🎉 Onboarding Complete!");
-      console.log("Final Data:", updatedData);
-      // Send data to backend here
+      // Send data to backend
+      setIsSubmitting(true);
+      try {
+        // Prepare data for backend
+        const onboardingData = {
+          ...updatedData,
+          // Ensure phone is a string if it's a number
+          phone: String(updatedData.phone || ''),
+          // Get email and password from user if logged in, or from form if not
+          email: user?.email || updatedData.email,
+          password: user ? undefined : updatedData.password // Only send password if creating new account
+        };
+
+        const res = await fetch('/api/users/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(onboardingData),
+          credentials: 'include'
+        });
+
+        const result = await res.json();
+        
+        if (res.ok) {
+          toast.success('🎉 Onboarding Complete!');
+          await fetchUser(); // Refresh user context
+          navigate('/me');
+        } else {
+          toast.error(result.message || 'Failed to complete onboarding');
+        }
+      } catch (err) {
+        console.error('Onboarding error:', err);
+        toast.error('Network error. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     } 
  else {
       setStep((prev) => prev + 1);
@@ -301,9 +372,10 @@ export default function Onboarding() {
                 <button
                   type="button"
                   onClick={form.handleSubmit(onSubmit)}
-                  className="ml-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium"
+                  disabled={isSubmitting}
+                  className="ml-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {step === 6 ? "Complete" : "Continue"}
+                  {isSubmitting ? "Saving..." : step === 6 ? "Complete" : "Continue"}
                 </button>
               </div>
             </div>
@@ -554,6 +626,7 @@ function Step2({ form }) {
 function Step3({ form }) {
   const { register, formState } = form;
   const { errors } = formState;
+  const { user } = useUser();
 
   return (
     <div className="space-y-6">
@@ -572,12 +645,33 @@ function Step3({ form }) {
           {...register("email")}
           type="email"
           placeholder="your.email@example.com"
-          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+          disabled={!!user?.email}
+          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
         {errors.email && (
           <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
         )}
       </div>
+
+      {!user && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Password
+          </label>
+          <input
+            {...register("password")}
+            type="password"
+            placeholder="Create a password"
+            className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+          />
+          {errors.password && (
+            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            Must be at least 8 characters, contain a letter, number, and special character
+          </p>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -960,13 +1054,27 @@ function Step5College({ form }) {
 // Step 6 College
 function Step6College({ form}) {
   const { register, formState, setValue, watch } = form;
+  const { user } = useUser();
 
-  const [selectedExams, setSelectedExams] = useState([]);
+  const [selectedExams, setSelectedExams] = useState(watch("examsPreparingFor") || []);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errors, setErrors] = useState({});
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  // Initialize selectedExams from form data if available
+  const formExams = watch("examsPreparingFor");
+  useEffect(() => {
+    if (formExams && Array.isArray(formExams) && formExams.length > 0 && selectedExams.length === 0) {
+      setSelectedExams(formExams);
+    }
+  }, [formExams, selectedExams.length]);
+
+  // Sync selectedExams with form when it changes
+  useEffect(() => {
+    setValue("examsPreparingFor", selectedExams, { shouldValidate: true });
+  }, [selectedExams, setValue]);
 
   // Filter exams based on search query
   const filteredExams = examsList.filter((exam) =>

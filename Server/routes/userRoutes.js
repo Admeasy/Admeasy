@@ -97,6 +97,161 @@ router.post('/signup', async (req, res) => {
     }
 });
 
+// Complete onboarding and save user data
+router.post('/onboarding', async (req, res) => {
+    try {
+        // get user from token if exists(user might be logged in from signup)
+        let user = null;
+        if (req.cookies['accessToken']) {
+            const token = req.cookies['accessToken'];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id);
+            } catch (jwtErr) {
+                // token invalid,user needs to create account
+            }
+        }
+
+        // If user doesn't exist, create new account
+        if (!user) {
+            const { email, password } = req.body;
+            if (!email || !password) {
+                return res.status(400).json({ success: false, message: 'Email and password are required for new accounts' });
+            }
+            
+            const existing = await User.findOne({ email });
+            if (existing) {
+                return res.status(409).json({ success: false, message: 'Email already registered. Please log in first.' });
+            }
+            
+            const hashedPassword = await bcrypt.hash(password, 10);
+            user = new User({ email, password: hashedPassword });
+        }
+
+        // Check if user has already completed onboarding
+        if (user.hasCompletedOnboarding) {
+            return res.status(403).json({ success: false, message: 'Onboarding already completed' });
+        }
+
+        // Extract onboarding data from request body
+        const {
+            name,
+            gender,
+            languages,
+            city,
+            phone,
+            educationType,
+            board,
+            universityName,
+            class: userClass,
+            stream,
+            schoolName,
+            courseLevel,
+            courseDetails,
+            collegeName,
+            examsPreparingFor,
+            reasonForAdmeasy,
+            reasonForAdmeasyInput
+        } = req.body;
+
+        // Update user with onboarding data
+        if (name) user.name = name;
+        if (gender) user.gender = gender;
+        if (languages && Array.isArray(languages)) user.languages = languages;
+        if (city) user.city = city;
+        if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
+        if (educationType) user.educationType = educationType;
+        if (board) user.board = board;
+        if (universityName) user.universityName = universityName;
+        if (userClass) user.class = userClass;
+        if (stream) user.stream = stream;
+        if (schoolName) user.schoolName = schoolName;
+        if (courseLevel) user.courseLevel = courseLevel;
+        if (courseDetails) user.courseDetails = courseDetails;
+        if (collegeName) user.collegeName = collegeName;
+        if (examsPreparingFor && Array.isArray(examsPreparingFor)) user.examsPreparingFor = examsPreparingFor;
+        if (reasonForAdmeasy) user.reasonForAdmeasy = reasonForAdmeasy;
+        if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
+
+        // Set institute and course based on education type
+        if (educationType === 'school' && schoolName) {
+            user.institute = schoolName;
+            if (userClass) {
+                user.course = `Class ${userClass}`;
+                if (stream) {
+                    user.course += ` (${stream})`;
+                }
+            }
+        } else if (educationType === 'college' && collegeName) {
+            user.institute = collegeName;
+            if (courseDetails) {
+                user.course = courseDetails;
+            }
+        }
+
+        // Mark onboarding as completed
+        user.hasCompletedOnboarding = true;
+
+        // Generate tokens if user is new
+        if (!user.refreshToken) {
+            const accessToken = generateAccessToken(user);
+            const refreshToken = generateRefreshToken(user);
+            user.refreshToken = refreshToken;
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            });
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
+            });
+        }
+
+        await user.save();
+
+        res.status(200).json({ success: true, message: 'Onboarding completed successfully', user: await User.findById(user._id).select('-password -refreshToken') });
+    } catch (err) {
+        console.error('Onboarding error:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// CHECK ONBOARDING STATUS - Check if user can access onboarding
+router.get('/onboarding/status', async (req, res) => {
+    try {
+        let user = null;
+        if (req.cookies['accessToken']) {
+            const token = req.cookies['accessToken'];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id).select('hasCompletedOnboarding email');
+            } catch (jwtErr) {
+                // Not logged in, can access onboarding
+                return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+            }
+        }
+
+        if (!user) {
+            // Not logged in, can access onboarding
+            return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+        }
+
+        // If user has completed onboarding, they cannot access it
+        if (user.hasCompletedOnboarding) {
+            return res.json({ success: true, canAccess: false, reason: 'already_completed' });
+        }
+
+        // User is logged in but hasn't completed onboarding
+        return res.json({ success: true, canAccess: true, reason: 'not_completed' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // LOG IN
 router.post('/login', async (req, res) => {
     try {
@@ -304,12 +459,46 @@ router.put('/me', upload.single('image'), async (req, res) => {
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const { name, institute, course, phone, gender } = req.body;
+        const { 
+            name, institute, course, phone, gender,
+            languages, city, educationType, board, universityName,
+            class: userClass, stream, schoolName, courseLevel, courseDetails,
+            collegeName, examsPreparingFor, reasonForAdmeasy, reasonForAdmeasyInput
+        } = req.body;
+        
         if (name) user.name = name;
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = phone;
         if (gender) user.gender = gender;
+        
+        // Onboarding fields - handle JSON strings from FormData
+        if (languages !== undefined) {
+            try {
+                user.languages = typeof languages === 'string' ? JSON.parse(languages) : (Array.isArray(languages) ? languages : []);
+            } catch {
+                user.languages = Array.isArray(languages) ? languages : [];
+            }
+        }
+        if (city !== undefined) user.city = city;
+        if (educationType) user.educationType = educationType;
+        if (board) user.board = board;
+        if (universityName) user.universityName = universityName;
+        if (userClass) user.class = userClass;
+        if (stream) user.stream = stream;
+        if (schoolName) user.schoolName = schoolName;
+        if (courseLevel) user.courseLevel = courseLevel;
+        if (courseDetails) user.courseDetails = courseDetails;
+        if (collegeName) user.collegeName = collegeName;
+        if (examsPreparingFor !== undefined) {
+            try {
+                user.examsPreparingFor = typeof examsPreparingFor === 'string' ? JSON.parse(examsPreparingFor) : (Array.isArray(examsPreparingFor) ? examsPreparingFor : []);
+            } catch {
+                user.examsPreparingFor = Array.isArray(examsPreparingFor) ? examsPreparingFor : [];
+            }
+        }
+        if (reasonForAdmeasy) user.reasonForAdmeasy = reasonForAdmeasy;
+        if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
         // Handle image upload if file provided
         if (req.file) {
             const ext = path.extname(req.file.originalname).toLowerCase();

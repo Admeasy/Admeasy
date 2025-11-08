@@ -66,8 +66,7 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
                 setEmail('');
                 setPassword('');
                 await fetchUser(); // Refresh user context
-                navigate('/me');
-                window.location.reload();
+                navigate('/onboarding');
             } else {
                 setError(data.message || 'Registration failed');
             }
