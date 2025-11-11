@@ -61,40 +61,55 @@ router.get('/', verifyAdminToken, async (req, res) => {
 
 // SIGN UP
 router.post('/signup', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
-        }
-        const existing = await User.findOne({ email });
-        if (existing) {
-            return res.status(409).json({ success: false, message: 'Email already registered' });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword });
-
-        // Log in the user by setting cookies
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-        user.refreshToken = refreshToken;
-        await user.save();
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
-        });
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
-        });
-
-        res.status(201).json({ success: true, message: 'User registered successfully' });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
     }
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res
+        .status(409)
+        .json({ success: false, message: 'Email already registered' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ email, password: hashedPassword });
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 12 * 60 * 60 * 1000, // 12 hours
+    });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
+    });
+
+    // returned the ID of user
+    return res.status(201).json({
+      id: user._id,
+      success: true,
+      message: 'User registered successfully',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Complete onboarding and save user data
@@ -241,9 +256,9 @@ router.get('/onboarding/status', async (req, res) => {
         }
 
         // If user has completed onboarding, they cannot access it
-        if (user.hasCompletedOnboarding) {
-            return res.json({ success: true, canAccess: false, reason: 'already_completed' });
-        }
+        // if (user.hasCompletedOnboarding) {
+        //     return res.json({ success: true, canAccess: false, reason: 'already_completed' });
+        // }
 
         // User is logged in but hasn't completed onboarding
         return res.json({ success: true, canAccess: true, reason: 'not_completed' });
@@ -716,5 +731,7 @@ router.delete('/:userId', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 })
+
+
 
 module.exports = router;

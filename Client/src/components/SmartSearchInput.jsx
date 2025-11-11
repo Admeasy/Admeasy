@@ -85,7 +85,6 @@ export default function SmartSearchInput({
   const handleSelect = (item) => {
     setQuery(item);
     setSuggestions([]);
-    if (onSelect) onSelect(item);
   };
 
   return (

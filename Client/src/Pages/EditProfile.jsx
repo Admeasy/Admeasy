@@ -12,17 +12,31 @@ const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank
 function isProfileComplete(user) {
   if (!user) return false;
   // List all required fields
-  const requiredFields = ['name', 'email', 'phone', 'institute', 'course', 'gender'];
-  // For 11th/12th and above, streamOrYear is also required
-  const needsStreamOrYear = user.course && user.course !== 'Class 9th' && user.course !== 'Class 10th';
+  const requiredFields = ['name', 'email', 'phone', 'institute', 'gender'];
+  
+  // Check basic required fields
   for (let field of requiredFields) {
     if (!user[field] || user[field] === '') return false;
   }
+  
+  // Check if course exists (either as course or courseLevel)
+  const courseValue = user.course || user.courseLevel;
+  if (!courseValue || courseValue === '') return false;
+  
+  // For 11th/12th and above, streamOrYear is also required
+  const needsStreamOrYear = courseValue !== 'Class 9th' && courseValue !== 'Class 10th';
+  
   if (needsStreamOrYear) {
-    // Check if course has (streamOrYear) part
-    if (!user.course.includes('(')) return false;
-    const streamOrYear = user.course.split('(')[1]?.replace(')', '').trim();
-    if (!streamOrYear) return false;
+    // Check if course has (streamOrYear) part OR courseDetails exists
+    if (user.course && user.course.includes('(')) {
+      const streamOrYear = user.course.split('(')[1]?.replace(')', '').trim();
+      if (!streamOrYear) return false;
+    } else if (user.courseDetails) {
+      // Has courseDetails from onboarding
+      return true;
+    } else {
+      return false;
+    }
   }
   return true;
 }
@@ -64,9 +78,15 @@ const EditProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if any value in the form is an empty string
-    const anyEmpty = Object.values(form).some(val => val === "");
-    setIsEmpty(anyEmpty);
+    // Check if any required value in the form is an empty string
+    const requiredFields = ['name', 'phone', 'institute', 'course', 'gender'];
+    const anyEmpty = requiredFields.some(field => !form[field] || form[field] === "");
+    
+    // Also check streamOrYear if applicable
+    const needsStreamOrYear = form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th';
+    const streamOrYearEmpty = needsStreamOrYear && (!form.streamOrYear || form.streamOrYear === "");
+    
+    setIsEmpty(anyEmpty || streamOrYearEmpty);
   }, [form]);
 
   useEffect(() => {
@@ -75,13 +95,46 @@ const EditProfile = () => {
 
   useEffect(() => {
     if (user && !hasInitialized) {
+      console.log('Initializing form with user data:', user);
+      
+      // Determine course and streamOrYear from multiple possible sources
+      let courseValue = '';
+      let streamOrYearValue = '';
+      
+      // Priority 1: Check if user.course exists and has the combined format
+      if (user.course && user.course.includes('(')) {
+        courseValue = user.course.split(' (')[0];
+        streamOrYearValue = user.course.split('(')[1].replace(')', '');
+        console.log('Using combined course format:', { courseValue, streamOrYearValue });
+      } 
+      // Priority 2: Check if user.course exists without combined format
+      else if (user.course) {
+        courseValue = user.course;
+        console.log('Using simple course format:', courseValue);
+      }
+      // Priority 3: Fall back to courseLevel from onboarding
+      else if (user.courseLevel) {
+        courseValue = user.courseLevel;
+        console.log('Using courseLevel from onboarding:', courseValue);
+      }
+      
+      // For streamOrYear, check courseDetails from onboarding if not already set
+      if (!streamOrYearValue && user.courseDetails) {
+        streamOrYearValue = user.courseDetails;
+        console.log('Using courseDetails for streamOrYear:', streamOrYearValue);
+      }
+      
+      // Determine institute from multiple sources
+      const instituteValue = user.institute || user.schoolName || user.collegeName || '';
+      console.log('Institute value:', instituteValue);
+      
       setForm({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        institute: user.institute || '',
-        course: user.course ? user.course.split(' (')[0] : '',
-        streamOrYear: user.course && user.course.includes('(') ? user.course.split('(')[1].replace(')', '') : '',
+        institute: instituteValue,
+        course: courseValue,
+        streamOrYear: streamOrYearValue,
         gender: user.gender || '',
         // Onboarding fields
         languages: user.languages || [],
@@ -99,6 +152,13 @@ const EditProfile = () => {
         reasonForAdmeasy: user.reasonForAdmeasy || '',
         reasonForAdmeasyInput: user.reasonForAdmeasyInput || ''
       });
+      
+      console.log('Form initialized with:', {
+        course: courseValue,
+        streamOrYear: streamOrYearValue,
+        institute: instituteValue
+      });
+      
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
       setLoading(false);
       setHasInitialized(true);
@@ -150,6 +210,9 @@ const EditProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    console.log('Submitting form with:', form);
+    
     // Validation: all required fields
     if (!form.name.trim() || 
     !String(form.phone).trim() || 
@@ -161,29 +224,32 @@ const EditProfile = () => {
       return;
     }
 
+    // mobile Function
+    if (
+      String(form.phone).trim().length < 10 ||
+      ["1", "2", "3", "4", "5"].some((digit) =>
+        String(form.phone).trim().startsWith(digit)
+      )
+    ) {
+      toast.error("Mobile Number Is Invalid");
+      return;
+    }
+
     const formData = new FormData();
     formData.append('name', form.name);
-    formData.append('phone', form.phone)
+    formData.append('phone', form.phone);
+    formData.append('gender', form.gender);
     formData.append('institute', form.institute);
+    
     // Combine course and streamOrYear if both are present
     let courseValue = form.course;
     if (form.course !== 'Class 9th' && form.course !== 'Class 10th' && form.streamOrYear) {
       courseValue = `${form.course} (${form.streamOrYear})`;
     }
-        // mobile Function
-     if (
-  String(form.phone).trim().length < 10 ||
-  ["1", "2", "3", "4", "5"].some((digit) =>
-    String(form.phone).trim().startsWith(digit)
-  )
-) {
-  toast.error("Mobile Number Is Invalid");
-  return;
-}
-
     formData.append('course', courseValue);
-    formData.append('gender', form.gender);
     
+    console.log('Sending course value:', courseValue);
+  
     // Onboarding fields
     if (form.languages && Array.isArray(form.languages)) {
       formData.append('languages', JSON.stringify(form.languages));
@@ -207,17 +273,23 @@ const EditProfile = () => {
     if (profilePic) {
       formData.append('image', profilePic);
     }
+    
     setLoading(true);
     setIsSubmitting(true);
+    
     try {
       const res = await fetch('/api/users/me', {
         method: 'PUT',
         credentials: 'include',
         body: formData
       });
+      
       if (res.ok) {
         const data = await res.json();
         const updatedUser = data.user || {};
+        
+        console.log('Updated user from API:', updatedUser);
+        
         // Parse course and streamOrYear for form state
         let course = updatedUser.course || '';
         let streamOrYear = '';
@@ -225,6 +297,7 @@ const EditProfile = () => {
           streamOrYear = course.split('(')[1].replace(')', '');
           course = course.split(' (')[0];
         }
+        
         setForm({
           name: updatedUser.name || form.name,
           email: updatedUser.email || form.email,
@@ -249,14 +322,22 @@ const EditProfile = () => {
           reasonForAdmeasy: updatedUser.reasonForAdmeasy || form.reasonForAdmeasy,
           reasonForAdmeasyInput: updatedUser.reasonForAdmeasyInput || form.reasonForAdmeasyInput
         });
+        
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
-        toast.success('Profile updated successfully')
+        
+        // Update the user context
+        await fetchUser();
+        
+        toast.success('Profile updated successfully');
         navigate('/');
       } else {
-        toast.error('Failed to update profile');
+        const errorData = await res.json();
+        console.error('API Error:', errorData);
+        toast.error(errorData.message || 'Failed to update profile');
       }
     } catch (err) {
+      console.error('Submit error:', err);
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);
@@ -290,13 +371,20 @@ const EditProfile = () => {
       toast.error('Failed to logout');
     }
   };
-  const teleValidate = ''
 
   const { pathname } = useLocation();
 
-useEffect(() => {
-  window.scrollTo(0, 0);
-}, [pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  if (loading) {
+    return (
+      <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
+        <div className="text-center">Loading...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
@@ -381,9 +469,9 @@ useEffect(() => {
             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Rather not to say">Rather not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Rather not to say</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
@@ -458,9 +546,22 @@ useEffect(() => {
         ) : null}
         <div className="flex gap-4 justify-center mt-4">
           {/* Save */}
-          <button type="submit" className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-700" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
+          <button 
+            type="submit" 
+            className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed" 
+            disabled={isSubmitting || isEmpty}
+          >
+            {isSubmitting ? 'Saving...' : 'Save'}
+          </button>
           {/* Cancel  */}
-          <button type="button" onClick={handleCancel} className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition cursor-pointer" disabled={isEmpty || isDirty || !isSubmitted} >Cancel</button>
+          <button 
+            type="button" 
+            onClick={handleCancel} 
+            className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition cursor-pointer" 
+            disabled={isEmpty || isDirty || !isSubmitted}
+          >
+            Cancel
+          </button>
         </div>
       </form>
     </main>

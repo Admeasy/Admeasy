@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronUp } from "react-icons/fa";
 import axios from "axios";
 import { Check, Search, X } from 'lucide-react';
+
 import SmartSearchInput from "../components/SmartSearchInput";
-import { useForm, Watch } from "react-hook-form";
+import { Controller, useForm, Watch } from "react-hook-form";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import male from '../assets/Icons/male.svg'
 import female from "../assets/Icons/femenine.svg"
 import other from "../assets/Icons/transition.svg"
@@ -231,23 +233,33 @@ export default function Onboarding() {
     };
     checkOnboardingAccess();
   }, [navigate]);
+const getCurrentSchema = () => {
+  if (step === 1) return step1Schema;
+  if (step === 2) return step2Schema;
+  if (step === 3) return step3Schema(!user);
+  if (step === 4) return step4Schema;
 
-  const getCurrentSchema = () => {
-    if (step === 1) return step1Schema;
-    if (step === 2) return step2Schema;
-    if (step === 3) return step3Schema(!user); // Require password if user is not logged in
-    if (step === 4) return step4Schema;
-    if (step === 5 && educationType === "school") return schoolSchema;
-    if (step === 5 && educationType === "college") return collegeSchema;
-    if (step === 6 && educationType === "college" ) return step6CollegeSchema;
-    if (step === 6 && educationType === "school") return step6CollegeSchema;
-    return z.object({});
-  };
+  if (step === 5) {
+    if (educationType === "school") return schoolSchema;
+    if (educationType === "college") return collegeSchema;
+    throw new Error("Education type missing at step 5");
+  }
 
+  if (step === 6) {
+    if (educationType === "college") return step6CollegeSchema;
+    if (educationType === "school") return step6CollegeSchema;
+    throw new Error("Education type missing at step 6");
+  }
+
+  throw new Error(`No schema found for step ${step}`);
+};
+  const schema = useMemo(() => getCurrentSchema(), [step, user, educationType]);
+  
   const form = useForm({
-    resolver: zodResolver(getCurrentSchema()),
-    defaultValues: formData,
-    mode: 'onChange'
+    resolver: zodResolver(schema),
+    defaultValues: useRef(formData).current,
+    mode: 'onChange',
+    shouldUnregister:false,
   });
 
   // Update form schema when user state changes (for password requirement)
@@ -261,7 +273,7 @@ export default function Onboarding() {
 
     if (step === 4) {
       setEducationType(data.educationType);
-      setStep(6);
+      setStep(5);
     }
     else if (
       (educationType === "school" && step === 6) ||
@@ -279,7 +291,7 @@ export default function Onboarding() {
           email: user?.email || updatedData.email,
           password: user ? undefined : updatedData.password // Only send password if creating new account
         };
-
+        console.log(onboardingData)
         const res = await fetch('/api/users/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -291,6 +303,7 @@ export default function Onboarding() {
         
         if (res.ok) {
           toast.success('🎉 Onboarding Complete!');
+          console.log(onboardingData)
           await fetchUser(); // Refresh user context
           navigate('/me');
         } else {
@@ -349,6 +362,7 @@ export default function Onboarding() {
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
           >
+            <form>
             <div className="space-y-6">
               {step === 1 && <Step1 form={form} />}
               {step === 2 && <Step2 form={form} />}
@@ -379,6 +393,7 @@ export default function Onboarding() {
                 </button>
               </div>
             </div>
+            </form>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -391,72 +406,115 @@ export default function Onboarding() {
 
 // Step 1: Name & Gender
 function Step1({ form }) {
-  const { register, formState, setValue, watch } = form;
+  const { register, setValue, watch, formState } = form;
   const { errors } = formState;
+
   const selectedGender = watch("gender");
 
-  const genderOptions = [
-    { value: "male", label: "Male", icon: male },
-    { value: "female", label: "Female", icon: female },
-    { value: "other", label: "Other", icon: other },
-  ];
+  const genderOptions = useMemo(
+    () => [
+      { value: "male", label: "Male", icon:male},
+      { value: "female", label: "Female", icon:female},
+      { value: "other", label: "Other", icon:other},
+    ],
+    []
+  );
+
+  const handleGenderSelect = useCallback(
+    (value) => {
+      setValue("gender", value, { shouldValidate: true, shouldDirty: true });
+    },
+    [setValue]
+  );
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
           Let's get to know you better
         </h2>
         <p className="text-gray-600">Tell us a bit about yourself</p>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      {/* Name Field */}
+      <div className="space-y-2">
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
           Your Name
         </label>
         <input
-          {...register("name")}
+          id="name"
+          type="text"
+          {...register("name", { required: "Please enter your name" })}
           placeholder="Enter your full name"
-          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+          className={`w-full border-2 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition ${
+            errors.name ? "border-red-500" : "border-gray-300"
+          }`}
+          autoComplete="name"
+          aria-invalid={errors.name ? "true" : "false"}
+          aria-describedby={errors.name ? "name-error" : undefined}
         />
         {errors.name && (
-          <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+          <p
+            id="name-error"
+            className="text-red-500 text-sm flex items-center gap-1"
+            role="alert"
+          >
+            {errors.name.message}
+          </p>
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+      {/* Gender Field */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
           Gender
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          {genderOptions.map(({ value, label, icon: Icon }) => (
+        <input type="hidden" {...register("gender", { required: true })} />
+        <div
+          className="grid grid-cols-3 gap-3"
+          role="radiogroup"
+          aria-label="Gender selection"
+          aria-describedby={errors.gender ? "gender-error" : undefined}
+        >
+          {genderOptions.map(({ value, label, icon }) => (
             <button
               key={value}
               type="button"
-              onClick={() => setValue("gender", value)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+              onClick={() => handleGenderSelect(value)}
+              role="radio"
+              aria-checked={selectedGender === value}
+              aria-label={label}
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 selectedGender === value
                   ? "border-blue-500 bg-blue-50 text-blue-600"
                   : "border-gray-300 hover:border-gray-400 text-gray-600"
               }`}
             >
-              <img src={Icon} className="w-22" alt="" />
+              <img src={icon} className="w-12" alt="" />
               <span className="font-medium">{label}</span>
             </button>
           ))}
         </div>
         {errors.gender && (
-          <p className="text-red-500 text-sm mt-2">Please Select Gender</p>
+          <p
+            id="gender-error"
+            className="text-red-500 text-sm flex items-center gap-1"
+            role="alert"
+          >
+            Please select a gender
+          </p>
         )}
       </div>
     </div>
   );
 }
+
 // Step 2: Languages & City
 function Step2({ form }) {
   const { register, formState, setValue, watch } = form;
   const { errors } = formState;
-
+  const [debounceTimer, setDebounceTimer] = useState(null);
   const languages = [
     "Hindi",
     "English",
@@ -480,8 +538,18 @@ function Step2({ form }) {
 
   // 🏙️ City autocomplete logic
   const [query, setQuery] = useState("");
+  const [searchCity,SetSearchCity] = useState(false)
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Watch the form's city value to keep query in sync
+  const formCity = watch("city");
+  
+  useEffect(() => {
+    if (formCity && formCity !== query) {
+      setQuery(formCity);
+    }
+  }, [formCity]);
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -495,7 +563,7 @@ function Step2({ form }) {
         const response = await axios.get(
           "https://wft-geo-db.p.rapidapi.com/v1/geo/cities",
           {
-            params: { namePrefix: query, limit: 6,countryIds:'IN' },
+            params: { namePrefix: query, limit: 6, countryIds: 'IN' },
             headers: {
               "X-RapidAPI-Key": '6fa46a8610mshe02ec2fbdfecb4fp16267djsn02ca1ff6e44f',
               "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com",
@@ -515,10 +583,26 @@ function Step2({ form }) {
   }, [query]);
 
   const handleSelectCity = (city) => {
-    setQuery(city);
     setValue("city", city, { shouldValidate: true });
+    setQuery(city);
     setSuggestions([]);
   };
+
+const handleInputChange = (e) => {
+  const value = e.target.value;
+  setQuery(value); // instantly reflect in UI
+
+  // clear any previous timeout
+  if (debounceTimer) clearTimeout(debounceTimer);
+
+  // set a new timeout to update react-hook-form after delay
+  const newTimer = setTimeout(() => {
+    setValue("city", value, { shouldValidate: true });
+  }, 2000);
+
+  setDebounceTimer(newTimer);
+};
+
 
   return (
     <div className="space-y-8">
@@ -568,30 +652,30 @@ function Step2({ form }) {
         </label>
         {/* City Input */}
         <div className="relative w-full">
-    <input
-      {...register("city", { required: "City is required" })}
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      type="text"
-      placeholder="Type your city..."
-      className="w-full border-2 border-gray-300 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-      autoComplete="off"
-    />
+          <input
+            {...register("city", { required: "City is required" })}
+            value={query}
+            onChange={handleInputChange}
+            type="text"
+            placeholder="Type your city..."
+            className="w-full border-2 border-gray-300 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+            autoComplete="off"
+          />
 
-    {/* Chevron Icon */}
-    <button
-      type="button"
-      onClick={() => setSuggestions([])} // hides suggestion box
-      className="h-full rounded-lg p-3 absolute bg-gray-100 right-0 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-transform duration-300"
-    >
-      <FaChevronUp
-        className={`transform transition-transform duration-300 ${
-          suggestions.length > 0 ? "rotate-180 text-blue-600" : ""
-        }`}
-        size={16}
-      />
-    </button>
-  </div>
+          {/* Chevron Icon */}
+          <button
+            type="button"
+            onClick={() => setSuggestions([])}
+            className="h-full rounded-lg p-3 absolute bg-gray-100 right-0 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-transform duration-300"
+          >
+            <FaChevronUp
+              className={`transform transition-transform duration-300 ${
+                suggestions.length > 0 ? "rotate-180 text-blue-600" : ""
+              }`}
+              size={16}
+            />
+          </button>
+        </div>
         {/* Loading */}
         {loading && (
           <p className="absolute top-full mt-1 text-sm text-gray-500 italic">
@@ -622,11 +706,16 @@ function Step2({ form }) {
   );
 }
 
-// Step 3: Email & Phone
+// Step 3: Email & Phone passwords
 function Step3({ form }) {
-  const { register, formState } = form;
+  const { register, formState, unregister, setValue,getValues } = form;
   const { errors } = formState;
   const { user } = useUser();
+  const [showPassword, setShowPassword] = useState(false);
+if (user?.email) {
+  setValue("email", user.email, { shouldValidate: false });
+}
+
 
   return (
     <div className="space-y-6">
@@ -637,6 +726,7 @@ function Step3({ form }) {
         <p className="text-gray-600">How can we reach you?</p>
       </div>
 
+      {/* EMAIL FIELD */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Email Address
@@ -644,57 +734,76 @@ function Step3({ form }) {
         <input
           {...register("email")}
           type="email"
+          autoComplete="username"
           placeholder="your.email@example.com"
           disabled={!!user?.email}
-          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600"
         />
         {errors.email && (
           <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
         )}
       </div>
 
-      {!user && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Password
-          </label>
-          <input
-            {...register("password")}
-            type="password"
-            placeholder="Create a password"
-            className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-          />
-          {errors.password && (
-            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-          )}
-          <p className="text-xs text-gray-500 mt-1">
-            Must be at least 8 characters, contain a letter, number, and special character
-          </p>
-        </div>
-      )}
-
+          {/* PHONE FIELD */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Phone Number
         </label>
         <div className="flex">
-  <span className="flex items-center justify-center px-3 bg-gray-100 border border-gray-300 rounded-l-lg text-gray-600 text-sm">
-    +91
-  </span>
-  <input
-    {...register("phone")}
-   
-    placeholder="Phone number"
-    className="flex-1 border border-gray-300 rounded-r-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-  />
-</div>
+          <span className="flex items-center justify-center px-3 bg-gray-100 border border-gray-300 rounded-l-lg text-gray-600 text-sm">
+            +91
+          </span>
+          <input
+            {...register("phone")}
+            type="number"
+            placeholder="Phone number"
+            className="flex-1 border border-gray-300 rounded-r-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+          />
+        </div>
 
-        {(errors.phone) && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors.phone?.message}
-          </p>
+        {errors.phone && (
+          <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
         )}
       </div>
+
+      {/* PASSWORD FIELD (Only if user is not logged in yet) */}
+      {!user && (
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Password
+          </label>
+
+          <div className="relative">
+            <input
+              {...register("password")}
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Create a password"
+              className="w-full border-2 border-gray-300 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+            />
+
+            {/* 👁️ Eye Toggle Icon */}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <FaEyeSlash size={24} /> : <FaEye size={24} />}
+            </button>
+          </div>
+
+          {errors.password && (
+            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+          )}
+
+          <p className="text-xs text-gray-500 mt-1">
+            Must be at least 8 characters, contain a letter, number, and special
+            character
+          </p>
+        </div>
+      )}
+
+    
     </div>
   );
 }
@@ -1073,7 +1182,10 @@ function Step6College({ form}) {
 
   // Sync selectedExams with form when it changes
   useEffect(() => {
+    if(JSON.stringify(formExams) !== JSON.stringify(selectedExams) ){
     setValue("examsPreparingFor", selectedExams, { shouldValidate: true });
+    }
+    
   }, [selectedExams, setValue]);
 
   // Filter exams based on search query

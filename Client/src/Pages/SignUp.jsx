@@ -41,40 +41,56 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!email.trim() || !password.trim()) {
-            setError('Email and password are required!');
-            return;
-        } else if (!validateEmail(email)) {
-            setError('Please enter a valid email address!');
-            return;
-        } else if (!validatePassword(password)) {
-            setError('Password must be at least 8 characters long, contain a letter, a number, and a special character.');
-            return;
-        }
-        setError('');
-        setIsSubmitting(true);
-        try {
-            const res = await fetch('/api/users/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-                credentials: 'include'
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setEmail('');
-                setPassword('');
-                await fetchUser(); // Refresh user context
-                navigate('/onboarding');
+    e.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+        setError('Email and password are required!');
+        return;
+    } else if (!validateEmail(email)) {
+        setError('Please enter a valid email address!');
+        return;
+    } else if (!validatePassword(password)) {
+        setError(
+            'Password must be at least 8 characters long, contain a letter, a number, and a special character.'
+        );
+        return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+        const res = await fetch('/api/users/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include',
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            setEmail('');
+            setPassword('');
+            await fetchUser(); // Refresh user context
+
+            // ✅ Redirect with user ID if available
+            if (data?.id) {
+                navigate(`/onboarding/${data.id}`);
             } else {
-                setError(data.message || 'Registration failed');
+                // fallback if backend doesn't send ID
+                navigate('/onboarding');
             }
-        } catch (err) {
-            setError('Network error. Please try again.');
+        } else {
+            setError(data.message || 'Registration failed');
         }
+    } catch (err) {
+        console.error(err);
+        setError('Network error. Please try again.');
+    } finally {
         setIsSubmitting(false);
-    };
+    }
+};
     const googleAuthUrl = 
   process.env.NODE_ENV === "production" 
     ? "https://admeasy.in/auth/google" 

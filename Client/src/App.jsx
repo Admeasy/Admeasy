@@ -138,6 +138,7 @@ function App() {
           }
         />
         <Route path='/onboarding' element={<Onboarding/>}></Route>
+        <Route path='/onboarding/:id' element={<Onboarding/>}></Route>
         <Route path='/admin' element={<Admin />}></Route>
         <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>

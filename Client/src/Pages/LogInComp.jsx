@@ -184,7 +184,7 @@ const googleAuthUrl =
                 </button> */}
                 <div className="mt-4 sm:mt-6 text-center">
                     <span className="text-gray-700 text-sm sm:text-base">Don't have an account? </span>
-                    <span onClick={() => navigate('/onboarding')} className="text-blue-600 hover:underline font-admeasy-semibold cursor-pointer">Create one</span>
+                    <span onClick={()=>setShowLogin(!showLogin)} className="text-blue-600 hover:underline font-admeasy-semibold cursor-pointer">Create one</span>
                 </div>
                 {/* <div className="mt-4 sm:mt-6 text-center">
                     <span className="text-gray-700 text-sm sm:text-base">Want to guide students? </span>
