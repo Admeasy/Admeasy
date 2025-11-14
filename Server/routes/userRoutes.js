@@ -10,6 +10,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db');
 const { verifyAdminToken } = require('../middleware/adminAuth');
+const passport = require('../middleware/passport');
 
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
@@ -30,6 +31,15 @@ function generateRefreshToken(user) {
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '28d' }
     );
+}
+
+// Helper: Get frontend URL for redirects (works for both dev and production)
+function getFrontendUrl() {
+    if (process.env.FRONTEND_URL) {
+        return process.env.FRONTEND_URL;
+    }
+    // Default based on environment
+    return process.env.NODE_ENV === 'production' ? 'https://admeasy.in' : 'http://localhost:5173';
 }
 
 // Helper: check if image is a Google URL and handle accordingly
@@ -64,7 +74,7 @@ router.post('/signup', async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
         }
         const existing = await User.findOne({ email });
         if (existing) {
@@ -263,6 +273,10 @@ router.post('/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
+        // Check if user signed up with Google (no password)
+        if (!user.password) {
+            return res.status(401).json({ success: false, message: 'This account was created with Google. Please sign in with Google.' });
+        }
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -288,6 +302,61 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// GOOGLE OAUTH ROUTES
+// Initiate Google OAuth
+router.get('/auth/google', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({ success: false, message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.' });
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+
+// Google OAuth callback
+router.get('/auth/google/callback', 
+    passport.authenticate('google', { failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed` }),
+    async (req, res) => {
+        try {
+            // Safety check: ensure user is authenticated
+            if (!req.user) {
+                console.error('Google OAuth callback: req.user is undefined');
+                return res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
+            }
+
+            // Generate JWT tokens for the authenticated user
+            const accessToken = generateAccessToken(req.user);
+            const refreshToken = generateRefreshToken(req.user);
+            req.user.refreshToken = refreshToken;
+            await req.user.save();
+
+            // Set cookies
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            });
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
+            });
+
+            // Redirect to frontend
+            const frontendUrl = getFrontendUrl();
+            // Check if user has completed onboarding
+            if (req.user.hasCompletedOnboarding) {
+                res.redirect(`${frontendUrl}/me`);
+            } else {
+                res.redirect(`${frontendUrl}/onboarding`);
+            }
+        } catch (err) {
+            console.error('Google OAuth callback error:', err);
+            res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
+        }
+    }
+);
 
 // LOGOUT
 router.post('/logout', async (req, res) => {
