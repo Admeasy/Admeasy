@@ -24,8 +24,6 @@ if (process.env.NODE_ENV === 'production') {
 const requiredEnvVars = [
   'MONGODB_USERS_URI',
   'SESSION_SECRET',
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
 ];
 const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
 if (missing.length) {
@@ -70,24 +68,6 @@ app.use(session({
 // Initialize Passport and session
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Google OAuth routes
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login', session: true }),
-  async (req, res) => {
-    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' 
-      ? 'https://admeasy.in' 
-      : 'http://localhost:5173');
-    
-    if (req.user && req.user._isNewUser) {
-     return res.redirect(`${frontendUrl}/me`);
-    } else {
-     return res.redirect(`${frontendUrl}/`);
-    }
-  }
-);
 
 // Server uploaded blog images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

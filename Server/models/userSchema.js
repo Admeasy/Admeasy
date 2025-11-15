@@ -30,8 +30,13 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true,
+       required: false, // Optional for Google OAuth users
         select: false // do not return by default
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true // Allows multiple null values
     },
     refreshToken: {
         type: String,

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Logo from '../assets/Admeasy/LOGO.webp'
-import googleIcon from '../assets/Icons/google.svg'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from "lucide-react"
 import { useUser } from '../context/UserContext';
@@ -89,6 +88,7 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
         setError('Network error. Please try again.');
     } finally {
         setIsSubmitting(false);
+<<<<<<< HEAD
     }
 };
     const googleAuthUrl = 
@@ -96,6 +96,9 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
     ? "https://admeasy.in/auth/google" 
     : "http://localhost:5000/auth/google";
 
+=======
+    };
+>>>>>>> 87294b57f28302a8b19ffca59ac6efa5b95fbc32
 
     return (
         <motion.section
@@ -108,8 +111,6 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
         >
             <img src={Logo} className='w-32 mx-auto mb-4' alt="Admeasy Logo" />
             <h1 className="text-[19px] sm:text-4xl md:text-2xl text-center font-admeasy-bold text-tprimary mb-2">Create a New Account</h1>
-            {/* http://localhost:5000/auth/google */}
-            {/* Divider with No OR */}
             <form className="flex flex-col w-full sm:w-2/3 mx-auto" onSubmit={handleSubmit}>
                 {error && (
                     <div className="bg-red-100 text-red-700 px-3 py-2 rounded text-center text-xs sm:text-sm font-semibold">
@@ -125,7 +126,7 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
     font-bold text-gray-700 text-base mt-5
     shadow-[0_4px_0_#b5b5b5,0_4px_6px_rgba(0,0,0,0.2)]
     bg-[#e9e9e9] active:shadow-[inset_0_4px_6px_rgba(0,0,0,0.3)]
-    transition-all duration-150 ease-in-out ${error && (error.includes('Email') || error.includes('email')) ? 'border-red-500' : 'border-gray-300'} focus: focus:ring-2  text-base sm:text-lg`}
+    transition-all duration-150 ease-in-out ${error && (error.includes('Email') || error.includes('email')) ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 text-base sm:text-lg`}
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); }}
                     autoComplete="email"
@@ -172,20 +173,27 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
             </form>
-            {/* If Issue With Google Fixed */}
-             {/* <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
-                onClick={() => window.location.href = googleAuthUrl}> 
-                <img src={googleIcon} className='w-6' alt="Google icon" />
-                Continue with Google
-            </button> */}
-            {/* Issue */}
-                {/* While Issue */}
-                            <button className="bg-primary shadow-3d mx-auto p-2 rounded-xl flex items-center justify-evenly cursor-pointer font-admeasy-semibold transform hover:scale-105 transition-transform duration-200 mt-4 gap-1 text-[14px] lg:text-[17px]"
-                                onClick={() => toast.error('Google login error — please try again later.')}>
-                                <img src={googleIcon} className='w-3 sm:w-5' alt="Google icon" />
-                                Continue with Google
-                            </button>
-
+            <div className="mt-4 flex items-center justify-center">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="px-4 text-gray-500 text-sm">or</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+            </div>
+            <div className="mt-4">
+                <a
+                    href="/api/users/auth/google"
+                    className="flex items-center justify-center gap-3 w-full font-admeasy-semibold bg-white border-2 border-gray-300 text-gray-700 rounded-lg 
+                    text-base px-4 py-3 hover:bg-gray-50 transition-all duration-150 ease-in-out cursor-pointer
+                    shadow-[0_2px_4px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_6px_rgba(0,0,0,0.15)]"
+                >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                </a>
+            </div>
             <div className="mt-4 sm:mt-6 text-center">
                 <span className="text-gray-700 text-sm sm:text-base">Already have an account? </span>
                 <span onClick={()=>setShowLogin(!showLogin)} className="cursor-pointer text-blue-600 hover:underline font-admeasy-semibold">Log In</span>
