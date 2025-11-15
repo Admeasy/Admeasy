@@ -13,6 +13,7 @@ const AdminRoutes = require('./routes/adminRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
 const MongoStore = require('connect-mongo');
+const { adminAuth } = require('./middleware/adminAuth');
 
 const app = express();
 

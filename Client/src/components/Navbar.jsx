@@ -52,6 +52,13 @@ const Navbar = () => {
       >
         Best Mentors
       </NavLink>
+               <NavLink
+        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
+        to="/blog"
+        onClick={() => setIsOpen(false)}
+      >
+        Blogs
+      </NavLink>
       <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/about"
@@ -66,13 +73,7 @@ const Navbar = () => {
       >
         Contact
       </NavLink>
-         <NavLink
-        className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
-        to="/blog"
-        onClick={() => setIsOpen(false)}
-      >
-        Blogs
-      </NavLink>
+
          
     </>
   );

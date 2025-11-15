@@ -91,7 +91,6 @@ const verifyAdminToken = (req, res, next) => {
       username: decoded.username,
       role: decoded.role
     };
-    
     console.log('Admin authenticated:', req.admin.username);
     next();
   } catch (error) {

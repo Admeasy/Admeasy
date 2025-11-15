@@ -1,7 +1,7 @@
 import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation, useParams } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
@@ -16,11 +16,13 @@ import Colleges from './Pages/Colleges'
 import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
+import ResetPassword from './Pages/ResetPassword';
 import Course from './Pages/Course'
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
 import Admin from './Pages/Admin'
+import ForgotPassword from './Pages/ForgotPassword';
 import Onboarding from './Pages/Onboarding';
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
@@ -124,6 +126,9 @@ function App() {
         <Route path='/mentors/login' element={<MentorsLogin/>} />
         <Route path='/policies' element={<PrivacyPolicy />}></Route>
         <Route path='/t&c' element={<TermsAndConditions />}></Route>
+        <Route path='/reset-password/:token' element={<ResetPassword/>}></Route>
+         <Route path='/reset-password' element={<ResetPassword/>}></Route>
+        <Route path='/forgot-password' element={<ForgotPassword/>}></Route>
 {/* We don't need Signup route */}
         {/* <Route path='/signup' element={<SignUp />}></Route> */}
          <Route path='/login' element={<LogIn />}></Route>

@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/userSchema');
+const crypto = require('crypto')
+const nodemailer = require('nodemailer')
 const multer = require('multer');
 const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
@@ -9,7 +11,8 @@ require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db');
-const { verifyAdminToken } = require('../middleware/adminAuth');
+const { verifyAdminToken, adminAuth } = require('../middleware/adminAuth');
+const {forgotPassword,resetPassword} = require('../controllers/userController.js')
 
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
@@ -732,6 +735,8 @@ router.delete('/:userId', async (req, res) => {
     }
 })
 
-
+// RESET PASSWORD
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 module.exports = router;

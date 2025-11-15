@@ -98,6 +98,13 @@ const userSchema = new mongoose.Schema({
     hasCompletedOnboarding: {
         type: Boolean,
         default: false
+    },
+    resetPasswordToken:{
+        type:String,
+        trim:true
+    },
+    resetPasswordExpire:{
+        type:Date
     }
 })
 

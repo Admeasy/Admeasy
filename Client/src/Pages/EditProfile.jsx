@@ -387,28 +387,31 @@ const EditProfile = () => {
   }
 
   return (
-    <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
-      {/* (Mentos Jindagi) Logout Button */}
-      <div className='flex w-full justify-end'> 
-       <button
+   <main className="
+  relative max-w-md mx-auto my-10 p-8 
+  bg-primary rounded-2xl shadow-3d 
+  backdrop-blur-lg border border-white/20
+">
+
+  {/* Logout */}
+  <div className="flex w-full justify-end mb-2">
+    <button
       className="
         group flex items-center justify-start 
         w-[45px] h-[45px] 
         border-none rounded-full cursor-pointer relative overflow-hidden 
-        shadow-[2px_2px_10px_rgba(0,0,0,0.199)]
-        bg-red-500 transition-all duration-300 
+        shadow-[2px_2px_10px_rgba(0,0,0,0.15)]
+        bg-red-500/90 transition-all duration-300 
         active:translate-x-[2px] active:translate-y-[2px]
-        hover:w-[125px] hover:rounded-[40px]"
-        onClick={handleLogout}
+        hover:w-[130px] hover:rounded-[40px]
+      "
+      onClick={handleLogout}
     >
-      {/* Sign (Icon) */}
-      <div
-        className="
-          w-full flex items-center justify-center transition-all duration-300 
-          group-hover:w-[30%] group-hover:pl-5
-        "
-      >
-        <svg viewBox="0 0 512 512" className="w-[17px]">
+      <div className="
+        w-full flex items-center justify-center transition-all duration-300 
+        group-hover:w-[30%] group-hover:pl-5
+      ">
+        <svg viewBox="0 0 512 512" className="w-[18px]">
           <path
             fill="white"
             d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"
@@ -416,155 +419,212 @@ const EditProfile = () => {
         </svg>
       </div>
 
-      {/* Text */}
-      <div
-        className="
-          absolute right-0 w-0 opacity-0 text-white 
-          text-[1.2em] font-semibold transition-all duration-300 
-          group-hover:opacity-100 group-hover:w-[70%] group-hover:pr-[10px]
-        "
-      >
+      <div className="
+        absolute right-0 w-0 opacity-0 text-white 
+        text-[1.1em] font-semibold tracking-wide transition-all duration-300 
+        group-hover:opacity-100 group-hover:w-[65%] group-hover:pr-[14px]
+      ">
         Logout
       </div>
     </button>
+  </div>
+
+  {/* TITLE */}
+  <h2 className="text-3xl font-admeasy-extrabold text-center mb-6 text-tprimary drop-shadow-sm">
+    My Profile
+  </h2>
+
+  <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+    {/* PROFILE IMAGE */}
+    <div className="flex flex-col items-center">
+      <label htmlFor="profile-pic" className="cursor-pointer group">
+        <img
+          src={preview || fallbackProfilePic}
+          alt="Profile Preview"
+          className="
+            w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 
+            group-hover:border-tprimary transition
+            shadow-md group-hover:shadow-lg duration-200
+          "
+          onError={e => e.target.src = fallbackProfilePic}
+        />
+      </label>
+
+      <input
+        id="profile-pic"
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handlePicChange}
+      />
+
+      <span className="text-xs text-gray-600">
+        Click image to change
+      </span>
     </div>
-      <h2 className="text-3xl font-bold text-center mb-8">My Profile</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex flex-col items-center">
-          <label htmlFor="profile-pic" className="cursor-pointer group">
-            <img
-              src={preview || fallbackProfilePic}
-              alt="Profile Preview"
-              className="w-24 h-24 aspect-circle object-cover mb-2 border-2 border-gray-200 group-hover:border-blue-400 transition"
-              onError={e => e.target.src = fallbackProfilePic}
-            />
-          </label>
-          <input
-            id="profile-pic"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePicChange}
-          />
-          <span className="text-xs text-gray-500">Click image to change</span>
-        </div>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Name
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Gender
-          <select
-            name="gender"
-            value={form.gender}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Rather not to say</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Email
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            disabled
-            className="w-full px-3 py-2 rounded-md border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-          />
-        </label>
-        {/* Phone Number */}
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          {"Phone Number (+91)"}
-          <input
-            type="tel"
-            name="phone"
-            value={form.phone}
-            required
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Institute/School Name
-          <input
-            type="text"
-            name="institute"
-            value={form.institute}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Course
-          <select
-            name="course"
-            value={form.course}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value="">Select Course</option>
-            <option value="Class 9th">Class 9th</option>
-            <option value="Class 10th">Class 10th</option>
-            <option value="Class 11th">Class 11th</option>
-            <option value="Class 12th">Class 12th</option>
-            <option value="Diploma">Diploma</option>
-            <option value="Post Diploma">Post Diploma</option>
-            <option value="Graduation">Graduation</option>
-            <option value="Post Graduation">Post Graduation</option>
-            <option value="Doctorate">Doctorate</option>
-          </select>
-        </label>
-        {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' ? (
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Stream/Course Name + Year
-            <span className="w-fit text-xs sm:text-sm text-tsecondary font-medium sm:font-light flex items-start sm:items-center gap-1"><FaInfoCircle className='mt-0.5 sm:mt-0' /> If you're in 11th/12th, enter your Stream only</span>
-            <input
-              type="text"
-              name="streamOrYear"
-              value={form.streamOrYear}
-              onChange={handleChange}
-              required
-              disabled={form.course === 'Class 9th' || form.course === 'Class 10th' || form.course === ''}
-              placeholder="E.g., B.Tech. in Mechanical Engg. 2nd year"
-              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
-          </label>
-        ) : null}
-        <div className="flex gap-4 justify-center mt-4">
-          {/* Save */}
-          <button 
-            type="submit" 
-            className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed" 
-            disabled={isSubmitting || isEmpty}
-          >
-            {isSubmitting ? 'Saving...' : 'Save'}
-          </button>
-          {/* Cancel  */}
-          <button 
-            type="button" 
-            onClick={handleCancel} 
-            className="px-6 py-2 rounded-md border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed transition cursor-pointer" 
-            disabled={isEmpty || isDirty || !isSubmitted}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </main>
+
+    {/* FORM INPUTS */}
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Name
+      <input
+        type="text"
+        name="name"
+        value={form.name}
+        onChange={handleChange}
+        required
+        className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:outline-none focus:ring-2 focus:ring-tprimary
+          transition
+        "
+      />
+    </label>
+
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Gender
+      <select
+        name="gender"
+        value={form.gender}
+        onChange={handleChange}
+        required
+        className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:outline-none focus:ring-2 focus:ring-tprimary
+        "
+      >
+        <option value="">Select Gender</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+        <option value="other">Rather not to say</option>
+      </select>
+    </label>
+
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Email
+      <input
+        type="email"
+        name="email"
+        value={form.email}
+        disabled
+        className="
+          w-full px-3 py-2 rounded-lg border border-gray-200 
+          bg-gray-100 text-gray-400 cursor-not-allowed shadow-sm
+        "
+      />
+    </label>
+
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Phone Number (+91)
+      <input
+        type="tel"
+        name="phone"
+        value={form.phone}
+        required
+        onChange={handleChange}
+        className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:outline-none focus:ring-2 focus:ring-tprimary
+        "
+      />
+    </label>
+
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Institute / School
+      <input
+        type="text"
+        name="institute"
+        value={form.institute}
+        required
+        onChange={handleChange}
+        className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:ring-2 focus:ring-tprimary
+        "
+      />
+    </label>
+
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Course
+      <select
+        name="course"
+        value={form.course}
+        onChange={handleChange}
+        required
+        className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:ring-2 focus:ring-tprimary
+        "
+      >
+        <option value="">Select Course</option>
+        <option value="Class 9th">Class 9th</option>
+        <option value="Class 10th">Class 10th</option>
+        <option value="Class 11th">Class 11th</option>
+        <option value="Class 12th">Class 12th</option>
+        <option value="Diploma">Diploma</option>
+        <option value="Post Diploma">Post Diploma</option>
+        <option value="Graduation">Graduation</option>
+        <option value="Post Graduation">Post Graduation</option>
+        <option value="Doctorate">Doctorate</option>
+      </select>
+    </label>
+
+    {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' && (
+      <label className="flex flex-col gap-1 text-sm font-semibold">
+        Stream / Course Name + Year
+        <input
+          type="text"
+          name="streamOrYear"
+          value={form.streamOrYear}
+          onChange={handleChange}
+          required
+          placeholder="E.g., B.Tech Mechanical — 2nd Year"
+          className="
+            w-full px-3 py-2 rounded-lg border border-gray-300 
+            bg-white/90 shadow-sm
+            focus:ring-2 focus:ring-tprimary
+          "
+        />
+      </label>
+    )}
+
+    {/* BUTTONS */}
+    <div className="flex gap-4 justify-center mt-6">
+      <button
+        type="submit"
+        className="
+          px-6 py-2 rounded-lg font-semibold text-white
+          bg-gradient-to-r from-tprimary to-blue-600
+          shadow-md hover:shadow-lg transition
+          disabled:bg-gray-400 disabled:cursor-not-allowed
+        "
+        disabled={isSubmitting || isEmpty}
+      >
+        {isSubmitting ? "Saving..." : "Save"}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleCancel}
+        className="
+          px-6 py-2 rounded-lg border border-gray-300 bg-white 
+          text-gray-700 font-semibold shadow-sm 
+          hover:bg-gray-100 transition
+          disabled:bg-gray-100 disabled:cursor-not-allowed
+        "
+        disabled={!isDirty}
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
+</main>
+
   );
 }
 
