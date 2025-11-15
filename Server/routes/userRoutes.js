@@ -1,4 +1,5 @@
 const express = require('express');
+const {resetPassword,forgotPassword} = require('../controllers/userController.js')
 const router = express.Router();
 const User = require('../models/userSchema');
 const crypto = require('crypto')
@@ -10,15 +11,9 @@ const path = require('path');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Users } = require('../db');
-<<<<<<< HEAD
-const { verifyAdminToken, adminAuth } = require('../middleware/adminAuth');
-const {forgotPassword,resetPassword} = require('../controllers/userController.js')
-=======
+const { Users } = require('../db.js');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const passport = require('../middleware/passport');
->>>>>>> 87294b57f28302a8b19ffca59ac6efa5b95fbc32
-
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -78,51 +73,17 @@ router.get('/', verifyAdminToken, async (req, res) => {
 
 // SIGN UP
 router.post('/signup', async (req, res) => {
-<<<<<<< HEAD
   try {
     const { email, password } = req.body;
+
+    // Validate
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      });
-=======
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Email and password are required' });
-        }
-        const existing = await User.findOne({ email });
-        if (existing) {
-            return res.status(409).json({ success: false, message: 'Email already registered' });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword });
-
-        // Log in the user by setting cookies
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-        user.refreshToken = refreshToken;
-        await user.save();
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
-        });
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
-        });
-
-        res.status(201).json({ success: true, message: 'User registered successfully' });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
->>>>>>> 87294b57f28302a8b19ffca59ac6efa5b95fbc32
+      return res
+        .status(400)
+        .json({ success: false, message: 'Email and password are required' });
     }
 
+    // Check existing user
     const existing = await User.findOne({ email });
     if (existing) {
       return res
@@ -130,6 +91,7 @@ router.post('/signup', async (req, res) => {
         .json({ success: false, message: 'Email already registered' });
     }
 
+    // Hash password & create user
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ email, password: hashedPassword });
 
@@ -146,6 +108,7 @@ router.post('/signup', async (req, res) => {
       sameSite: 'lax',
       maxAge: 12 * 60 * 60 * 1000, // 12 hours
     });
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -153,15 +116,15 @@ router.post('/signup', async (req, res) => {
       maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
     });
 
-    // returned the ID of user
+    // Response
     return res.status(201).json({
       id: user._id,
       success: true,
       message: 'User registered successfully',
     });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
