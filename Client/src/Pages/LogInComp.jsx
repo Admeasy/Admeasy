@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Logo from '../assets/Admeasy/LOGO.webp'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
@@ -12,7 +13,6 @@ const fadeUpVariant = {
     hidden: { opacity: 0, y: 60 },
     visible: { opacity: 1, y: 0 },
 }
-
 export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

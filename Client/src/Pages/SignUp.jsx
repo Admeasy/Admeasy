@@ -88,18 +88,6 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
         setError('Network error. Please try again.');
     } finally {
         setIsSubmitting(false);
-<<<<<<< HEAD
-    }
-};
-    const googleAuthUrl = 
-  process.env.NODE_ENV === "production" 
-    ? "https://admeasy.in/auth/google" 
-    : "http://localhost:5000/auth/google";
-
-=======
-    };
->>>>>>> 87294b57f28302a8b19ffca59ac6efa5b95fbc32
-
     return (
         <motion.section
             variants={fadeUpVariant}
@@ -200,6 +188,6 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
             </div>
         </motion.section>
     )
-}
+}}}
 
 export default SignUp

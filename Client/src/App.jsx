@@ -18,6 +18,7 @@ import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import ResetPassword from './Pages/ResetPassword';
 import Course from './Pages/Course'
+import Notes from './Pages/Notes';
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
@@ -156,7 +157,8 @@ function App() {
         {/* But sometimes Users mistakenly goes to /Blogs */}
         <Route path='/blogs' element={<Blogs/>}></Route>
         <Route path='/blogs/:id' element={<BlogDetail/>}></Route>
-        
+        {/* Notes */}
+        <Route path='/notes' element={<Notes/>}></Route>
         
         <Route path='/admin/enrollments'element={<Enrollments/>}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
