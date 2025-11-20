@@ -7,7 +7,6 @@ import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
 
 import StudentInfoModal from "./StudentInfoModel";
 
@@ -74,103 +73,122 @@ const CollabBanner = () => {
   };
 
   return (
-    <section className="py-14 px-6 bg-gradient-to-br from-white to-blue-50 relative">
+    <section className="mx-auto w-[90%] rounded-2xl py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-blue-50 to-blue-100 relative">
       {/* Section Heading */}
-      <div className="relative flex flex-col sm:flex-row justify-center items-center mb-10">
+      <div className="relative flex flex-col sm:flex-row justify-center items-center mb-12 md:mb-14 max-w-7xl mx-auto">
         <h2 className="text-xl text-center md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-900">
           Some <span className="text-blue-600">Best Picks✨</span>
         </h2>
         <a
           href="https://forms.gle/zShtayAGBWxthf6z6"
-          className=" sm:absolute right-0 text-sm sm:text-base mt-3 sm:mt-0 px-5 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md hover:shadow-lg hover:scale-105 transition">
+          className="sm:absolute right-0 text-sm sm:text-base mt-4 sm:mt-0 px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold shadow-md hover:shadow-lg hover:scale-105 transition"
+        >
           Get Listed Here
         </a>
       </div>
 
       {/* Custom Navigation Buttons */}
-      <div className="absolute top-1/2 left-2 z-10 transform -translate-y-1/2 cursor-pointer text-blue-600 hover:text-blue-800 transition">
-      <CustomButton ref={prevRef} ><IoIosArrowBack size={28} /></CustomButton>
-        
+      <div className="absolute top-1/2 left-2 sm:left-4 z-10 -translate-y-1/2">
+        <CustomButton
+          ref={prevRef}
+          className="p-3 rounded-full bg-white/80 backdrop-blur-xl border border-gray-200 shadow-lg hover:scale-110 transition"
+        >
+          <IoIosArrowBack size={22} className="text-gray-800" />
+        </CustomButton>
       </div>
-      <div className="absolute top-1/2 right-2 z-10 transform -translate-y-1/2 cursor-pointer text-blue-600 hover:text-blue-800 transition">
-      <CustomButton ref={nextRef}><IoIosArrowForward size={28}  /></CustomButton>
+
+      <div className="absolute top-1/2 right-2 sm:right-4 z-10 -translate-y-1/2">
+        <CustomButton
+          ref={nextRef}
+          className="p-3 rounded-full bg-white/80 backdrop-blur-xl border border-gray-200 shadow-lg hover:scale-110 transition"
+        >
+          <IoIosArrowForward size={22} className="text-gray-800" />
+        </CustomButton>
       </div>
 
       {/* Swiper Carousel */}
-      <Swiper
-        modules={[Autoplay, Navigation, Pagination]}
-        spaceBetween={7}
-        slidesPerView={1}
-        loop={true}
-        autoplay={{ delay: 3000, disableOnInteraction: false }}
-        navigation={{
-          prevEl: prevRef.current,
-          nextEl: nextRef.current,
-        }}
-        className="hover:cursor-grab active:cursor-grabbing"
-        onSwiper={(swiper) => {
-          // Assign navigation after mount
-          setTimeout(() => {
-            if (swiper.params.navigation) {
-              swiper.params.navigation.prevEl = prevRef.current;
-              swiper.params.navigation.nextEl = nextRef.current;
-              swiper.navigation.init();
-              swiper.navigation.update();
-            }
-          });
-        }}
-        breakpoints={{
-          640: { slidesPerView: 1 },
-          768: { slidesPerView: 2 },
-          1024: { slidesPerView: 3 },
-        }}
-      >
-        {Banners.map((banner, index) => (
-          <SwiperSlide key={index}>
-            <div className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto">
-              {/* Image */}
-              <div className="h-40 flex items-center justify-center bg-gray-50">
-                <img
-                  src={banner.imgSrc}
-                  alt={banner.bannerName}
-                  className="rounded-2xl max-h-36 object-contain mx-auto transform group-hover:scale-105 transition duration-500"
-                  draggable="false"
-                />
-              </div>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        <Swiper
+          modules={[Autoplay, Navigation, Pagination]}
+          spaceBetween={16}
+          slidesPerView={1}
+          loop={true}
+          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          navigation={{
+            prevEl: prevRef.current,
+            nextEl: nextRef.current,
+          }}
+          className="hover:cursor-grab active:cursor-grabbing py-4"
+          onSwiper={(swiper) => {
+            setTimeout(() => {
+              if (swiper.params.navigation) {
+                swiper.params.navigation.prevEl = prevRef.current;
+                swiper.params.navigation.nextEl = nextRef.current;
+                swiper.navigation.init();
+                swiper.navigation.update();
+              }
+            });
+          }}
+          breakpoints={{
+            640: { slidesPerView: 1, spaceBetween: 16 },
+            768: { slidesPerView: 2, spaceBetween: 20 },
+            1024: { slidesPerView: 3, spaceBetween: 24 },
+          }}
+        >
+          {Banners.map((banner, index) => (
+            <SwiperSlide key={index}>
+              <div className="group pb-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-full">
+                {/* Image Section */}
+                <div className="p-6 md:p-7 h-44 md:h-48 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 border-b border-gray-200">
+                  <img
+                    src={banner.imgSrc}
+                    alt={banner.bannerName}
+                    className="rounded-xl max-h-40 md:max-h-44 w-auto object-cover transform group-hover:scale-110 transition duration-500"
+                    draggable="false"
+                  />
+                </div>
 
-              {/* Text */}
-              <div className="flex-1 flex flex-col p-5 text-center">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  {banner.Headline}
-                </h3>
-                <p className="text-sm text-gray-600">{banner.Subheadline}</p>
-                <p className="text-sm text-gray-600 mb-4">
-                  {banner.SubheadlineO}
-                </p>
+                {/* Text Section */}
+                <div className="flex-1 flex flex-col px-5 py-6 md:px-6 md:py-7 text-center">
+                  <h3 className="text-lg md:text-xl font-extrabold text-gray-900 mb-3 md:mb-4 leading-snug">
+                    {banner.Headline}
+                  </h3>
 
-                {/* Buttons */}
-                <div className="mt-auto flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={() => handleEnroll(banner)}
-                    className="w-full sm:w-auto cursor-pointer bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2 rounded-xl font-semibold shadow-md hover:shadow-lg hover:scale-105 transition"
-                  >
-                    Enroll Now
-                  </button>
-                  {banner.brochure && (
-                    <a
-                      href={banner.brochure}
-                      download={`${banner.bannerName}-Brochure.pdf`}
-                      className="w-full sm:w-auto cursor-pointer px-5 py-2 rounded-xl bg-blue-100 text-blue-700 font-medium border border-blue-200 hover:bg-blue-200 transition"
+                  <p className="text-sm md:text-base text-gray-600 font-medium tracking-wide mb-2">
+                    {banner.Subheadline}
+                  </p>
+
+                  <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-7 italic">
+                    {banner.SubheadlineO}
+                  </p>
+
+                  {/* Buttons Row */}
+                  <div className="mt-auto flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+                    {/* Enroll Button */}
+                    <button
+                      onClick={() => handleEnroll(banner)}
+                      className="w-full sm:w-auto cursor-pointer bg-gradient-to-r from-red-500 to-red-700 text-white px-6 md:px-7 py-2.5 md:py-3 rounded-xl font-semibold shadow-[0_4px_20px_rgba(255,0,0,0.3)] hover:shadow-[0_6px_28px_rgba(255,0,0,0.4)] hover:scale-[1.04] active:scale-95 transition-all"
                     >
-                      Prospectus
-                    </a>
-                  )}
+                      Enroll Now
+                    </button>
+
+                    {/* Prospectus Button */}
+                    {banner.brochure && (
+                      <a
+                        href={banner.brochure}
+                        download={`${banner.bannerName}-Brochure.pdf`}
+                        className="w-full sm:w-auto cursor-pointer px-6 md:px-7 py-2.5 md:py-3 rounded-xl bg-white text-blue-700 font-semibold border border-blue-300 hover:bg-blue-50 hover:border-blue-400 transition"
+                      >
+                        Prospectus
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
 
       {/* Modal */}
       {isOpen && activeBanner && (
