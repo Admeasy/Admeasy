@@ -186,10 +186,10 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
             const words = nameParts.trim().split(' ').filter(word => {
                 const cleanWord = word.trim().toLowerCase();
                 // Filter out common words and empty words
-                return word.length > 0 && 
-                       !['of', 'for', 'and', 'the', 'a', 'an', 'in', 'at', 'on', 'to', 'with', 'by'].includes(cleanWord);
+                return word.length > 0 &&
+                    !['of', 'for', 'and', 'the', 'a', 'an', 'in', 'at', 'on', 'to', 'with', 'by'].includes(cleanWord);
             });
-            
+
             if (words.length > 0) {
                 const firstLetters = words.map(word => word.charAt(0)).join('');
                 if (firstLetters.length > 0) {
@@ -781,11 +781,10 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         name="affiliation"
                                         value={formData.type === 'Public' ? '' : formData.affiliation}
                                         onChange={handleFormChange}
-                                        className={`w-full p-2 border rounded-lg ${
-                                            formData.type === 'Public' 
-                                                ? 'bg-gray-200 text-gray-500' 
+                                        className={`w-full p-2 border rounded-lg ${formData.type === 'Public'
+                                                ? 'bg-gray-200 text-gray-500'
                                                 : 'bg-white'
-                                        }`}
+                                            }`}
                                         placeholder={formData.type === 'Public' ? 'Not applicable for Public colleges' : 'e.g., AICTE, UGC, State University'}
                                         disabled={formData.type === 'Public'}
                                         required={formData.type !== 'Public'}
@@ -1467,57 +1466,6 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             className="w-full p-2 border rounded-lg bg-white"
                                             required
                                         />
-                                        
-                                        {/* Keywords Section */}
-                                        <div className="space-y-2">
-                                            <label className="block text-sm font-medium text-thead1">Keywords (optional)</label>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Add keyword..."
-                                                    className="flex-1 p-2 border rounded-lg bg-white"
-                                                    onKeyPress={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            e.preventDefault();
-                                                            addStudentKeyword(index, e.target.value);
-                                                            e.target.value = '';
-                                                        }
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        const input = e.target.previousElementSibling;
-                                                        addStudentKeyword(index, input.value);
-                                                        input.value = '';
-                                                    }}
-                                                    className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                                                >
-                                                    Add
-                                                </button>
-                                            </div>
-                                            {/* Display Keywords */}
-                                            {student.keywords && student.keywords.length > 0 && (
-                                                <div className="flex flex-wrap gap-1 mt-2">
-                                                    {student.keywords.map((keyword, keywordIndex) => (
-                                                        <span
-                                                            key={keywordIndex}
-                                                            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-sm rounded-md"
-                                                        >
-                                                            {keyword}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeStudentKeyword(index, keyword)}
-                                                                className="text-blue-500 hover:text-blue-700"
-                                                            >
-                                                                ×
-                                                            </button>
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-
                                     </div>
                                 </div>
                             ))}

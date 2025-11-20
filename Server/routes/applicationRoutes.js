@@ -6,6 +6,7 @@ const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
 const path = require('path');
 const MentorshipRequest = require('../models/mentorshipRequestSchema');
+const Mentor = require('../models/mentorSchema');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const { Applications } = require('../db');
 
@@ -18,7 +19,7 @@ router.get('/', verifyAdminToken, async (req, res) => {
         const collections = await Applications.db.listCollections().toArray();
         const filtered = collections
             .map(col => col.name)
-            .filter(name => name.toLowerCase() !== 'messages');
+            .filter(name => name.toLowerCase() !== 'messages' && name.toLowerCase() !== 'blogs' && name.toLowerCase() !== 'enrollments');
         res.json({ collections: filtered });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch collections', details: err.message });
@@ -33,24 +34,20 @@ router.get('/applications/:collectionName', verifyAdminToken, async (req, res) =
         if (!collectionName || collectionName.toLowerCase() === 'messages') {
             return res.status(400).json({ error: 'Invalid collection name' });
         }
-        console.log('Collection name:', collectionName);
         // Check if collection exists
         const collections = await Applications.db.listCollections().toArray();
         const exists = collections.some(col => col.name === collectionName);
         if (!exists) {
             return res.status(404).json({ error: 'Collection not found' });
         }
-        console.log('Collection exists');
         let Model;
         try {
             Model = Applications.model(collectionName);
         } catch (e) {
             Model = Applications.model(collectionName, new mongoose.Schema({}, { strict: false }), collectionName);
         }
-        console.log('Model:', Model);
         // Add a timeout to the query in case the DB is slow
         const docs = await Model.find();
-        console.log(`Fetched ${docs.length} documents from collection: ${collectionName}`);
         res.json(docs);
     } catch (err) {
         console.error('Error fetching applications:', err);
@@ -58,12 +55,267 @@ router.get('/applications/:collectionName', verifyAdminToken, async (req, res) =
     }
 });
 
+router.post('/schedule', async (req, res) => {
+    try {
+        const r = await fetch('https://script.google.com/macros/s/AKfycby-l-09yN5QJkJhHOlx2jwcXkl8Km-jpisyiZ2KcNpYCjmahO-8MTQlGe0U-FlVxnzfxA/exec', {
+            method: 'POST',
+            body: JSON.stringify(req.body),
+            headers: {
+                "Content-Type": "text/plain",
+            },
+        });
+
+        const data = await r.text();
+        console.log(data)
+
+        if (!r.ok || !data.includes('success')) {
+            res.status(500).json('Failed to schedule an Interview.');
+        }
+
+        res.status(200).json('Scheduled Interview Successfully!');
+    } catch (e) {
+        res.status(500).json(e);
+    }
+})
+
+// More specific routes must come before general routes
+router.post('/mentorship/accept/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const applicant = await MentorshipRequest.findById(id);
+
+        if (!applicant) {
+            return res.status(404).json('Applicant not found!');
+        }
+
+        applicant.isAccepted = true;
+        await applicant.save();
+
+        //Send a mail to the applicant telling them that they are selected and invite them for creating their mentor account
+        const subject = "Your Application for Mentorship has been accepted!";
+        // Extract values for manual interpolation
+        const applicantName = applicant.name || 'Valued Applicant';
+        const applicantId = id.toString();
+        
+        // Email template with placeholders that we'll manually replace
+        const bodyTemplate = `
+        <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                            background: white;
+                            padding: 40px 20px;
+                            line-height: 1.6;
+                        }
+                        .email-container {
+                            max-width: 600px;
+                            margin: 0 auto;
+                            background: #ffffff;
+                            border-radius: 16px;
+                            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+                            overflow: hidden;
+                        }
+                        .header {
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            padding: 40px 30px;
+                            text-align: center;
+                            color: #ffffff;
+                        }
+                        .logo {
+                            width: 80px;
+                            height: 80px;
+                            margin: 0 auto 20px;
+                            background: rgba(255, 255, 255, 0.2);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 36px;
+                            font-weight: bold;
+                        }
+                        .content {
+                            padding: 40px 30px;
+                        }
+                        .title {
+                            font-size: 32px;
+                            font-weight: 700;
+                            color: #2d3748;
+                            margin-bottom: 20px;
+                            text-align: center;
+                        }
+                        .text {
+                            font-size: 16px;
+                            color: #4a5568;
+                            margin-bottom: 30px;
+                            text-align: center;
+                        }
+                        .highlight {
+                            color: #667eea;
+                            font-weight: 600;
+                        }
+                        .cta-section {
+                            text-align: center;
+                            margin: 40px 0;
+                        }
+                        .cta-text {
+                            font-size: 16px;
+                            color: #4a5568;
+                            margin-bottom: 20px;
+                        }
+                        .apply-btn {
+                            display: inline-block;
+                            padding: 16px 40px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: #ffffff;
+                            text-decoration: none;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            transition: transform 0.2s, box-shadow 0.2s;
+                            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                            border: none;
+                            cursor: pointer;
+                        }
+                        .apply-btn:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+                        }
+                        .footer {
+                            background: #f7fafc;
+                            padding: 30px;
+                            border-top: 1px solid #e2e8f0;
+                        }
+                        .footer-text {
+                            font-size: 14px;
+                            color: #718096;
+                            margin-bottom: 15px;
+                            line-height: 1.8;
+                        }
+                        .contact-info {
+                            margin-top: 20px;
+                            padding-top: 20px;
+                            border-top: 1px solid #e2e8f0;
+                        }
+                        .contact-link {
+                            color: #667eea;
+                            text-decoration: none;
+                            font-weight: 600;
+                        }
+                        .contact-link:hover {
+                            text-decoration: underline;
+                        }
+                        .signature {
+                            margin-top: 15px;
+                            font-weight: 600;
+                            color: #2d3748;
+                        }
+                        @media only screen and (max-width: 600px) {
+                            body {
+                                padding: 20px 10px;
+                            }
+                            .content {
+                                padding: 30px 20px;
+                            }
+                            .title {
+                                font-size: 26px;
+                            }
+                            .apply-btn {
+                                padding: 14px 30px;
+                                font-size: 15px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="email-container">
+                        <div class="header">
+                            <h1 class="title" style="color: #ffffff; margin: 0;">Welcome Aboard! 🎉</h1>
+                        </div>
+                        <div class="content">
+                            <p class="text">
+                                Congratulations, <span class="highlight">{{APPLICANT_NAME}}</span>! We're thrilled to welcome you to <strong>Admeasy's Mentor Family</strong>.
+                            </p>
+                            <p class="text">
+                                You're now part of an incredible community of mentors who guide students and help them pursue their dreams. We believe in your potential to make a meaningful impact and help shape the future of our nation.
+                            </p>
+                            <div class="cta-section">
+                                <p class="cta-text">Ready to get started? Create your Admeasy Mentor Profile:</p>
+                                <a href="http://localhost:5173/mentors/register?id={{APPLICANT_ID}}" class="apply-btn">Create Account</a>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            <p class="footer-text">
+                                <strong>Best Regards,</strong><br>
+                                Team Admeasy
+                            </p>
+                            <div class="contact-info">
+                                <p class="footer-text">
+                                    For any help or queries, contact us:<br>
+                                    <a href="tel:+919358691990" class="contact-link">+91 93586 91990</a>
+                                </p>
+                                <p class="signature">
+                                    Meeral Babani<br>
+                                    HR @ Admeasy
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+            </html>`;
+        
+        // Manually interpolate the template by replacing placeholders
+        const body = bodyTemplate
+            .replace(/\{\{APPLICANT_NAME\}\}/g, applicantName)
+            .replace(/\{\{APPLICANT_ID\}\}/g, applicantId);
+        
+        // Ensure body is a primitive string
+        const emailBody = JSON.parse(JSON.stringify(body));
+        
+        // Prepare the payload
+        const payload = {
+            email: applicant.email,
+            subject: subject,
+            body: emailBody,
+            html: emailBody
+        };
+        
+        const response = await fetch(process.env.MAILING_CLIENT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        
+        if (!response.ok) {
+            return res.status(500).json('Internal Server Error (Email not sent)');
+        }
+
+        res.status(200).json('Application Accepted and Invitation sent');
+    } catch (e) {
+        console.error('Error in /mentorship/accept:', e);
+        res.status(500).json('Internal Server Error');
+    }
+})
+
 router.post('/mentorship', upload.single('image'), async (req, res) => {
     try {
+        if (!req.body) {
+            return res.status(400).json('Missing request body');
+        }
         const { name, email, phone, college, course } = req.body;
 
         if (!name || !email || !phone || !college || !course) {
-            res.status(400).json('Missing required fields');
+            return res.status(400).json('Missing required fields');
         }
 
         const id = new mongoose.Types.ObjectId();
@@ -92,15 +344,74 @@ router.post('/mentorship', upload.single('image'), async (req, res) => {
     }
 })
 
+router.post('/mentorship/verify', async (req, res) => {
+    try {
+        if (!req.body || !req.body.id) {
+            console.log(req.body);
+            return res.status(400).json('Missing id in request body');
+        }
+        const { id } = req.body;
+        const applicant = await MentorshipRequest.findById(id);
+        if (!applicant) {
+            return res.status(404).json('Applicant not found');
+        }
+        if (applicant.isAccepted) {
+            res.status(200).json();
+        } else {
+            res.status(401).json('Unauthorized Request');
+        }
+    } catch (e) {
+        console.error('Error in /mentorship/verify:', e);
+        res.status(500).json('Internal Server Error');
+    }
+})
+
+router.post('/mentorship/verify2', async (req, res) => {
+    try {
+        if (!req.body || !req.body.email) {
+            return res.status(400).json('Missing email in request body');
+        }
+        const { email } = req.body;
+        const applicantExists = await MentorshipRequest.findOne({ email: email });
+
+        if (applicantExists) {
+            applicantExists.isAccepted ? res.status(200).json() : res.status(401).json('Unauthorized Access');
+        } else {
+            res.status(404).json('Applicant not found')
+        }
+    } catch (e) {
+        console.error('Error in /mentorship/verify2:', e);
+        res.status(500).json('Internal Server Error');
+    }
+})
+
+//Route for getting image of the applicant
 router.get('/mentorship/:id/pic', async (req, res) => {
     try {
         const { id } = req.params;
         const applicant = await MentorshipRequest.findById(id);
         if (!applicant) {
-            return res.status(404).json('Picture not found');
+            return res.status(404).json('Applicant not found');
         }
         const image = await b2.getDownloadAuthorization(applicant.image);
         res.status(200).json(image.url);
+    } catch (e) {
+        res.status(500).json('Internal Server Error');
+        console.log(e);
+    }
+})
+
+router.delete('/mentorship/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const applicant = await MentorshipRequest.findByIdAndDelete(id);
+        if (!applicant) {
+            return res.status(404).json('Application not found');
+        }
+        if (applicant.image) {
+            await b2.deleteFiles(applicant.image);
+        }
+        res.status(200).json('Application deleted successfully');
     } catch (e) {
         res.status(500).json('Internal Server Error');
         console.log(e);

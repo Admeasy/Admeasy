@@ -4,6 +4,9 @@ import { Eye, EyeOff, X } from "lucide-react";
 import { motion } from "framer-motion";
 import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
 import { Upload, User, BookOpen, GraduationCap, Sparkles, FileText, Calendar } from "lucide-react";
+import { useMentor } from "../context/MentorContext";
+import { useUser } from "../context/UserContext";
+import { useNavigate } from "react-router-dom";
 
 
 // Animation variant
@@ -33,6 +36,9 @@ function MentorsLogin({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { fetchMentor } = useMentor();
+  const { setUser } = useUser();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,35 +55,38 @@ function MentorsLogin({ onLoginSuccess }) {
       const res = await fetch("/api/mentors/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ email: formData.mentorId, password: formData.password }),
         credentials: "include",
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        console.log("✅ Login successful:", data);
-        // show MentorProfile
+        // Fetch mentor data and store in context
+        setUser(null); // ensure user session is cleared
+        await fetchMentor();
+        // Navigate to profile edit page
+        navigate('/me');
+        window.location.reload();
       } else {
-         
         setError(data.message || "Login failed");
       }
     } catch (err) {
-      onLoginSuccess();
+      setError("An error occurred. Please try again.");
+      console.error(err);
     }
 
     setIsSubmitting(false);
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 min-h-screen flex items-center justify-center">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 min-w-screen min-h-screen flex items-center justify-center">
       <motion.section
         variants={fadeUpVariant}
         initial="hidden"
         animate="visible"
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full max-w-md mx-auto p-2 bg-white shadow-lg rounded-2xl"
-      >
+        className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl">
         <div className="flex flex-col items-center">
           <img
             src={mentorsLogo}

@@ -36,7 +36,7 @@ const PrivacyPolicy = () => {
 
         {/* 1. Company Overview */}
         <section className="mb-8">
-          <h3 id='Company-overview' className="text-2xl font-bold mb-2"> 1. Company Overview</h3>
+          <h3 id='Company-overview' className="text-2xl font-admeasy-extrabold mb-3"> 1. Company Overview</h3>
           <p>
             Admeasy is a student-driven educational startup based in Indore, India, operating under the motto
             <strong> "Made for Students, By Students"</strong>. We focus on enhancing the academic experience by providing

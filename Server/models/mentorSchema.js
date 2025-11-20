@@ -4,11 +4,9 @@ const { Admeasy } = require('../db');
 const Schema = new mongoose.Schema({
     image: {
         type: String,
-        required: true
     },
     name: {
         type: String,
-        required: true,
         trim: true
     },
     username: {
@@ -20,20 +18,34 @@ const Schema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    password: {
+        type: String,
+        required: true,
+        trim: true
+    },
     phone: {
         type: Number,
-        required: true,
         trim: true
     },
     college: {
-        type: String,
-        required: true,
-        trim: true
+        name: {
+            type: String,
+            trim: true,
+        },
+        id: {
+            type: String,
+            trim: true,
+        }
     },
     course: {
-        type: String,
-        required: true,
-        trim: true
+        name: {
+            type: String,
+            trim: true
+        },
+        id: {
+            type: String,
+            trim: true
+        }
     },
     tagline: {
         type: String,
@@ -54,7 +66,19 @@ const Schema = new mongoose.Schema({
             trim: true,
             required: true
         }
-    }]
+    }],
+    followers: [{
+        type: String,
+        trim: true
+    }],
+    notesUploaded: {
+        type: String,
+        trim: true,
+    },
+    refreshToken: {
+        type: String,
+        default: null
+    }
 });
 
 module.exports = Admeasy.model('Mentors', Schema);

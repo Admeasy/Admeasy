@@ -4,6 +4,7 @@ import Logo from '../assets/Admeasy/LOGO.webp'
 import googleIcon from '../assets/Icons/google.svg'
 import { motion } from 'framer-motion'
 import { useUser } from '../context/UserContext'
+import { useMentor } from '../context/MentorContext'
 import { FaTimes } from 'react-icons/fa'
 import { MdAlternateEmail } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react"
@@ -22,6 +23,7 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { fetchUser } = useUser();
+    const { setMentor } = useMentor();
 
     const validateEmail = (email) => {
         return /^\S+@\S+\.\S+$/.test(email);
@@ -62,6 +64,7 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
             if (res.ok) {
                 setEmail('');
                 setPassword('');
+                setMentor(null); // ensure mentor session is cleared
                 await fetchUser(); // Refresh user context
                 isOpen ? onClose() : navigate('/me');
                 toast.info("Please Setup Your Profile")
@@ -185,6 +188,10 @@ const googleAuthUrl =
                 <div className="mt-4 sm:mt-6 text-center">
                     <span className="text-gray-700 text-sm sm:text-base">Don't have an account? </span>
                     <span onClick={()=>setShowLogin(!showLogin)} className="text-blue-600 hover:underline font-admeasy-semibold cursor-pointer">Create one</span>
+                </div>
+                <div className="mt-4 sm:mt-6 text-center">
+                    <span className="text-gray-700 text-sm sm:text-base">Are you a Mentor? </span>
+                    <a href='/mentors/login' className="text-blue-600 hover:underline font-admeasy-semibold cursor-pointer">Log In now</a>
                 </div>
                 {/* <div className="mt-4 sm:mt-6 text-center">
                     <span className="text-gray-700 text-sm sm:text-base">Want to guide students? </span>

@@ -261,7 +261,7 @@ export default function Tabs({college = {} }) {
               </div>
             </motion.section>
 
-            <motion.section
+            {college?.vidReview && <motion.section
               variants={fadeUpVariant}
               initial="hidden"
               whileInView="visible"
@@ -288,7 +288,7 @@ export default function Tabs({college = {} }) {
                   allow="autoplay; encrypted-media; picture-in-picture"
                   allowfullscreen className='w-full aspect-video'></embed>
               } */}
-            </motion.section>
+            </motion.section>}
 
             <motion.section
               variants={fadeUpVariant}
@@ -390,7 +390,7 @@ export default function Tabs({college = {} }) {
               )}
             </motion.section>
 
-            <motion.section
+            {college?.moreInfo == null && <motion.section
               variants={fadeUpVariant}
               initial="hidden"
               whileInView="visible"
@@ -417,7 +417,7 @@ export default function Tabs({college = {} }) {
                     <li className="text-center text-lg">No additional information available</li>
                   )}
               </ul>
-            </motion.section>
+            </motion.section>}
 
             <motion.section
               variants={fadeUpVariant}

@@ -74,7 +74,7 @@ const CollabBanner = () => {
   };
 
   return (
-    <section className="py-14 px-6 bg-gradient-to-br from-white to-blue-50 relative">
+    <section className="py-14 px-6 bg-bg relative">
       {/* Section Heading */}
       <div className="relative flex flex-col sm:flex-row justify-center items-center mb-10">
         <h2 className="text-xl text-center md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-900">

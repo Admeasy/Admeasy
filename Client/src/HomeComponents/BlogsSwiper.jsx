@@ -39,6 +39,7 @@ const BlogSwiper = () => {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
+        Loading Blogs
       </div>
     );
   }
@@ -52,7 +53,7 @@ const BlogSwiper = () => {
   }
 
   return (
-    <section className="py-14 px-6 bg-gradient-to-br from-white to-blue-50 relative">
+    <section className="py-14 px-6 bg-bg relative">
       {/* Section Heading */}
       <div className="relative flex flex-col sm:flex-row justify-center items-center mb-10">
         <h2 title="Admeasy Blogs" className="text-xl text-center md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-900">
