@@ -9,6 +9,7 @@ const MentorshipRequest = require('../models/mentorshipRequestSchema');
 const Mentor = require('../models/mentorSchema');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const { Applications } = require('../db');
+const nodemailer = require('nodemailer');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -91,14 +92,30 @@ router.post('/mentorship/accept/:id', async (req, res) => {
         applicant.isAccepted = true;
         await applicant.save();
 
-        //Send a mail to the applicant telling them that they are selected and invite them for creating their mentor account
-        const subject = "Your Application for Mentorship has been accepted!";
         // Extract values for manual interpolation
         const applicantName = applicant.name || 'Valued Applicant';
-        const applicantId = id.toString();
-        
-        // Email template with placeholders that we'll manually replace
-        const bodyTemplate = `
+
+        if (process.env.NODE_ENV === 'production') {
+            accountCreationLink = `https://admeasy.in/mentors/register?id=${id}`;
+        } else {
+            accountCreationLink = `http://localhost:5173/mentors/register?id=${id}`;
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: "smtp.zoho.in",
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.SMTP_EMAIL, // noreply@admeasy.in
+                pass: process.env.SMTP_PASS,
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"Admeasy" <${process.env.SMTP_EMAIL}>`,
+            to: applicant.email,
+            subject: "Your Application for Mentorship has been accepted!",
+            html: `
         <!DOCTYPE html>
             <html lang="en">
                 <head>
@@ -242,14 +259,14 @@ router.post('/mentorship/accept/:id', async (req, res) => {
                         </div>
                         <div class="content">
                             <p class="text">
-                                Congratulations, <span class="highlight">{{APPLICANT_NAME}}</span>! We're thrilled to welcome you to <strong>Admeasy's Mentor Family</strong>.
+                                Congratulations, <span class="highlight">${applicantName}</span>! We're thrilled to welcome you to <strong>Admeasy's Mentor Family</strong>.
                             </p>
                             <p class="text">
                                 You're now part of an incredible community of mentors who guide students and help them pursue their dreams. We believe in your potential to make a meaningful impact and help shape the future of our nation.
                             </p>
                             <div class="cta-section">
                                 <p class="cta-text">Ready to get started? Create your Admeasy Mentor Profile:</p>
-                                <a href="http://localhost:5173/mentors/register?id={{APPLICANT_ID}}" class="apply-btn">Create Account</a>
+                                <a href='${accountCreationLink}' class="apply-btn">Create Account</a>
                             </div>
                         </div>
                         <div class="footer">
@@ -267,38 +284,14 @@ router.post('/mentorship/accept/:id', async (req, res) => {
                                     HR @ Admeasy
                                 </p>
                             </div>
+                            <br/>
+                            <p style="font-size: 12px; color: #999; text-align: center;">
+                            © ${new Date().getFullYear()} Admeasy — Helping Students Make Better Decisions.
+                            </p>
                         </div>
                     </div>
                 </body>
-            </html>`;
-        
-        // Manually interpolate the template by replacing placeholders
-        const body = bodyTemplate
-            .replace(/\{\{APPLICANT_NAME\}\}/g, applicantName)
-            .replace(/\{\{APPLICANT_ID\}\}/g, applicantId);
-        
-        // Ensure body is a primitive string
-        const emailBody = JSON.parse(JSON.stringify(body));
-        
-        // Prepare the payload
-        const payload = {
-            email: applicant.email,
-            subject: subject,
-            body: emailBody,
-            html: emailBody
-        };
-        
-        const response = await fetch(process.env.MAILING_CLIENT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-        
-        if (!response.ok) {
-            return res.status(500).json('Internal Server Error (Email not sent)');
-        }
+            </html>`});
 
         res.status(200).json('Application Accepted and Invitation sent');
     } catch (e) {

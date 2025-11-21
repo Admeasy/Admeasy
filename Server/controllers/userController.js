@@ -30,12 +30,12 @@ const forgotPassword = async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: process.env.SMTP_EMAIL, // support@admeasy.in
+        user: process.env.SMTP_EMAIL, // noreply@admeasy.in
         pass: process.env.SMTP_PASS, 
       },
     });
     await transporter.sendMail({
-      from: `"Admeasy Support" <${process.env.SMTP_EMAIL}>`,
+      from: `"Admeasy" <${process.env.SMTP_EMAIL}>`,
       to: user.email,
       subject: "Admeasy Password Reset",
      html: `

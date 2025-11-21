@@ -9,10 +9,21 @@ const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
 const multer = require('multer');
 const authenticateMentorJWT = require('../middleware/mentorAuth');
+const { verifyAdminToken } = require('../middleware/adminAuth');
 
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+const verifyAdminFromCookie = (req) => {
+    const token = req.cookies?.adminToken;
+    if (!token) return null;
+    try {
+        return jwt.verify(token, process.env.JWT_ADMIN_SECRET);
+    } catch (err) {
+        return null;
+    }
+};
 
 const generateAccessToken = (mentor) => {
     return jwt.sign({ id: mentor._id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '12hr' });
@@ -339,14 +350,34 @@ router.post('/logout', authenticateMentorJWT, async (req, res) => {
     }
 });
 
-router.delete('/:username', authenticateMentorJWT, async (req, res) => {
-    try {
-        const mentor = await Mentor.findOneAndDelete({ username: req.params.username });
-        res.status(200).json(mentor);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json('Internal Server Error');
+router.delete('/:username', async (req, res) => {
+    const admin = verifyAdminFromCookie(req);
+
+    if (admin) {
+        try {
+            const mentor = await Mentor.findOneAndDelete({ username: req.params.username });
+            if (!mentor) {
+                return res.status(404).json({ success: false, message: 'Mentor not found' });
+            }
+            return res.json({ success: true, message: 'Mentor deleted successfully', mentorId: mentor._id });
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
     }
+
+    authenticateMentorJWT(req, res, async () => {
+        try {
+            if (!req.mentor || req.mentor.username !== req.params.username) {
+                return res.status(403).json({ success: false, message: 'Not authorized to delete this mentor' });
+            }
+            await Mentor.findOneAndDelete({ username: req.params.username });
+            res.status(200).json({ success: true, message: 'Mentor deleted successfully' });
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ success: false, message: 'Internal Server Error' });
+        }
+    });
 })
 
 module.exports = router;

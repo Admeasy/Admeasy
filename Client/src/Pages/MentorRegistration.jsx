@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -116,8 +117,8 @@ const MentorRegistration = () => {
             const data = await res.json();
 
             if (res.ok) {
-                console.log("✅ Registration successful:", data);
-                // You can handle success here (e.g., redirect or show success message)
+                toast.success("Account created successfully!");
+                navigate('/mentors/login');
             } else {
                 setError(data.message || "Registration failed");
             }

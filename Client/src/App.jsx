@@ -36,6 +36,7 @@ import Blogs from './Pages/Blogs'
 import Messages from './Pages/Messages'
 import Enrollments from './Pages/Enrollments';
 import NotesPage from './Pages/NotesPage';
+import ManageMentors from './Pages/ManageMentors';
 import { useEffect, useState } from 'react';
 import { useUser } from './context/UserContext';
 import { useMentor } from './context/MentorContext';
@@ -135,7 +136,7 @@ function App() {
       <Routes>
         <Route path='/' element={<Home />}></Route>
         <Route path='/contact' element={<Contact />}></Route>
-        <Route path='/modal' element={<LoginModal />}></Route>
+        {/* <Route path='/modal' element={<LoginModal />}></Route> */}
         <Route path='/about' element={<About />}></Route>
         <Route path='/mentors' element={<Mentors />}></Route>
         <Route path='/colleges' element={<Colleges />}></Route>
@@ -177,6 +178,7 @@ function App() {
         <Route path='/admin/colleges' element={<ManageColleges />}></Route>
         <Route path='/admin/blogs' element={<ManageBlogs />}></Route>
         <Route path='/admin/users' element={<ManageUsers />}></Route>
+        <Route path='/admin/mentors' element={<ManageMentors />}></Route>
         <Route path='/admin/messages' element={<Messages />}></Route>
         {/* The Original Path is Blog */}
         <Route path='/blog' element={<Blogs />}></Route>

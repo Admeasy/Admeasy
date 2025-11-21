@@ -135,6 +135,12 @@ const Admin = () => {
                 <p className="text-gray-600">View and Delete Users</p>
               </div>
             </Link>
+            <Link to="/admin/mentors">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Mentors</h2>
+                <p className="text-gray-600">View all registered mentors</p>
+              </div>
+            </Link>
             <Link to="/admin/applications">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Applications</h2>

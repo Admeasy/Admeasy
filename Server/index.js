@@ -81,8 +81,8 @@ app.use('/api/mentors', MentorRoutes);
 app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
 app.use('/api/messages', MessageRoutes);
-app.use('/api/enrollments', enrollmentsRoute);
-app.use('/api/blog', blogRoute);
+app.use('/api/enrollments', EnrollmentsRoutes);
+app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
 
 // Serve static files from the dist directory (frontend build)
