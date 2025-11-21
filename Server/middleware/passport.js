@@ -1,9 +1,80 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const { Users } = require('../db');
 const User = require('../models/userSchema');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+// Google OAuth Strategy
+// Note: The callback URL should be configured in Google Cloud Console
+// For development: http://localhost:5000/api/users/auth/google/callback
+// For production: https://admeasy.in/api/users/auth/google/callback
+
+// Construct callback URL based on environment
+const getCallbackURL = () => {
+  // In production, use the full URL from FRONTEND_URL or default to admeasy.in
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.FRONTEND_URL) {
+      // Use FRONTEND_URL and construct backend URL (assuming same domain)
+      const url = new URL(process.env.FRONTEND_URL);
+      return `${url.protocol}//${url.host}/api/users/auth/google/callback`;
+    }
+    // Default production URL
+    return 'https://admeasy.in/api/users/auth/google/callback';
+  }
+  // Development - use relative URL which Passport will resolve correctly
+  return '/api/users/auth/google/callback';
+};
+
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn('Warning: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set. Google OAuth will not work.');
+} else {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: getCallbackURL()
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Validate that email exists in profile
+      if (!profile.emails || !profile.emails[0] || !profile.emails[0].value) {
+        return done(new Error('Email not provided by Google'), null);
+      }
+
+      // Check if user already exists with this Google ID
+      let user = await User.findOne({ googleId: profile.id });
+      
+      if (user) {
+        // User exists, return user
+        return done(null, user);
+      }
+      
+      // Check if user exists with this email (for users who signed up with email/password)
+      user = await User.findOne({ email: profile.emails[0].value });
+      
+      if (user) {
+        // Link Google account to existing user
+        user.googleId = profile.id;
+        if (!user.image && profile.photos && profile.photos[0]) {
+          user.image = profile.photos[0].value;
+        }
+        await user.save();
+        return done(null, user);
+      }
+      
+      // Create new user
+      user = new User({
+        googleId: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName || profile.name?.givenName || '',
+        image: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined
+      });
+      
+      await user.save();
+      return done(null, user);
+    } catch (err) {
+      return done(err, null);
+    }
+  }));
+}
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -18,78 +89,4 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: '/auth/google/callback',
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        // Find user by Google email
-        let user = await User.findOne({ email: profile.emails[0].value });
-        let isNewUser = false;
-        if (!user) {
-          // Create new user if not exists
-          const userData = {
-            name: profile.displayName,
-            email: profile.emails[0].value,
-            image: profile.photos[0].value,
-            password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10), // random password, not used
-          };
-          
-          // Extract gender from Google profile if available
-          if (profile._json && profile._json.gender) {
-            const googleGender = profile._json.gender;
-            // Map Google's gender values to our options
-            if (googleGender === 'male') {
-              userData.gender = 'Male';
-            } else if (googleGender === 'female') {
-              userData.gender = 'Female';
-            } else {
-              userData.gender = 'Rather not to say';
-            }
-          }
-          
-          user = await User.create(userData);
-          isNewUser = true;
-        } else {
-          // Update existing user's profile photo and gender if available from Google
-          let needsUpdate = false;
-          
-          // Always update the profile photo with fresh Google URL
-          if (profile.photos && profile.photos[0] && profile.photos[0].value) {
-            user.image = profile.photos[0].value;
-            needsUpdate = true;
-          }
-          
-          // Update gender if not set and available from Google
-          if (!user.gender && profile._json && profile._json.gender) {
-            const googleGender = profile._json.gender;
-            if (googleGender === 'male') {
-              user.gender = 'Male';
-            } else if (googleGender === 'female') {
-              user.gender = 'Female';
-            } else {
-              user.gender = 'Rather not to say';
-            }
-            needsUpdate = true;
-          }
-          
-          // Save user if any updates were made
-          if (needsUpdate) {
-            await user.save();
-          }
-        }
-        // Attach isNewUser to user object for callback
-        user._isNewUser = isNewUser;
-        return done(null, user);
-      } catch (err) {
-        return done(err, null);
-      }
-    }
-  )
-);
-
-module.exports = passport; 
+module.exports = passport;

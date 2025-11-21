@@ -11,16 +11,42 @@ const BlogRoutes = require('./routes/blogRoutes');
 const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
+const NoteRoutes = require('./routes/noteRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
 const MongoStore = require('connect-mongo');
+const { adminAuth } = require('./middleware/adminAuth');
 
 const app = express();
 
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+const requiredEnvVars = [
+  'MONGODB_USERS_URI',
+  'SESSION_SECRET',
+];
+const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
+if (missing.length) {
+  console.error('Missing required environment variables:', missing.join(', '));
+  console.error('Please set them in your .env and restart the server.');
+}
+
 // Enable CORS with credentials
 app.use(cors({
-  origin: process.env.FRONTEND_URL ||'https://admeasy.in', // Your frontend URL
-  credentials: true
+  origin: (origin, callback) => {
+    const allowList = [
+      'https://admeasy.in',
+      'http://localhost:5173',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+    if (!origin || allowList.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
 }));
 
 // Middleware
@@ -34,8 +60,9 @@ app.use(session({
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_USERS_URI }),
   cookie: {
-    secure: false, // set to true if using HTTPS in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
     maxAge: 12 * 60 * 60 * 1000 // 12 hours
   }
 }));
@@ -43,20 +70,6 @@ app.use(session({
 // Initialize Passport and session
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Google OAuth routes
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login', session: true }),
-  async (req, res) => {
-    if (req.user && req.user._isNewUser) {
-     return res.redirect('http://localhost:5173/me');
-    } else {
-     return res.redirect('http://localhost:5173/');
-    }
-  }
-);
 
 // Server uploaded blog images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -68,8 +81,9 @@ app.use('/api/mentors', MentorRoutes);
 app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);
 app.use('/api/messages', MessageRoutes);
-app.use('/api/enrollments', EnrollmentsRoutes);
-app.use('/api/blog', BlogRoutes);
+app.use('/api/enrollments', enrollmentsRoute);
+app.use('/api/blog', blogRoute);
+app.use('/api/notes', NoteRoutes);
 
 // Serve static files from the dist directory (frontend build)
 app.use(express.static(path.join(__dirname, 'dist')));

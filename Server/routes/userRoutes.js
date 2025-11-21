@@ -1,6 +1,9 @@
 const express = require('express');
+const {resetPassword,forgotPassword} = require('../controllers/userController.js')
 const router = express.Router();
 const User = require('../models/userSchema');
+const crypto = require('crypto')
+const nodemailer = require('nodemailer')
 const multer = require('multer');
 const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
@@ -8,9 +11,9 @@ const path = require('path');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Users } = require('../db');
+const { Users } = require('../db.js');
 const { verifyAdminToken } = require('../middleware/adminAuth');
-
+const passport = require('../middleware/passport');
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -30,6 +33,15 @@ function generateRefreshToken(user) {
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '28d' }
     );
+}
+
+// Helper: Get frontend URL for redirects (works for both dev and production)
+function getFrontendUrl() {
+    if (process.env.FRONTEND_URL) {
+        return process.env.FRONTEND_URL;
+    }
+    // Default based on environment
+    return process.env.NODE_ENV === 'production' ? 'https://admeasy.in' : 'http://localhost:5173';
 }
 
 // Helper: check if image is a Google URL and handle accordingly
@@ -61,37 +73,211 @@ router.get('/', verifyAdminToken, async (req, res) => {
 
 // SIGN UP
 router.post('/signup', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Email and password are required' });
+    }
+
+    // Check existing user
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res
+        .status(409)
+        .json({ success: false, message: 'Email already registered' });
+    }
+
+    // Hash password & create user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ email, password: hashedPassword });
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 12 * 60 * 60 * 1000, // 12 hours
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
+    });
+
+    // Response
+    return res.status(201).json({
+      id: user._id,
+      success: true,
+      message: 'User registered successfully',
+    });
+
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Complete onboarding and save user data
+router.post('/onboarding', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+        // get user from token if exists(user might be logged in from signup)
+        let user = null;
+        if (req.cookies['accessToken']) {
+            const token = req.cookies['accessToken'];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id);
+            } catch (jwtErr) {
+                // token invalid,user needs to create account
+            }
         }
-        const existing = await User.findOne({ email });
-        if (existing) {
-            return res.status(409).json({ success: false, message: 'Email already registered' });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword });
 
-        // Log in the user by setting cookies
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-        user.refreshToken = refreshToken;
+        // If user doesn't exist, create new account
+        if (!user) {
+            const { email, password } = req.body;
+            if (!email || !password) {
+                return res.status(400).json({ success: false, message: 'Email and password are required for new accounts' });
+            }
+            
+            const existing = await User.findOne({ email });
+            if (existing) {
+                return res.status(409).json({ success: false, message: 'Email already registered. Please log in first.' });
+            }
+            
+            const hashedPassword = await bcrypt.hash(password, 10);
+            user = new User({ email, password: hashedPassword });
+        }
+
+        // Check if user has already completed onboarding
+        if (user.hasCompletedOnboarding) {
+            return res.status(403).json({ success: false, message: 'Onboarding already completed' });
+        }
+
+        // Extract onboarding data from request body
+        const {
+            name,
+            gender,
+            languages,
+            city,
+            phone,
+            educationType,
+            board,
+            universityName,
+            class: userClass,
+            stream,
+            schoolName,
+            courseLevel,
+            courseDetails,
+            collegeName,
+            examsPreparingFor,
+            reasonForAdmeasy,
+            reasonForAdmeasyInput
+        } = req.body;
+
+        // Update user with onboarding data
+        if (name) user.name = name;
+        if (gender) user.gender = gender;
+        if (languages && Array.isArray(languages)) user.languages = languages;
+        if (city) user.city = city;
+        if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
+        if (educationType) user.educationType = educationType;
+        if (board) user.board = board;
+        if (universityName) user.universityName = universityName;
+        if (userClass) user.class = userClass;
+        if (stream) user.stream = stream;
+        if (schoolName) user.schoolName = schoolName;
+        if (courseLevel) user.courseLevel = courseLevel;
+        if (courseDetails) user.courseDetails = courseDetails;
+        if (collegeName) user.collegeName = collegeName;
+        if (examsPreparingFor && Array.isArray(examsPreparingFor)) user.examsPreparingFor = examsPreparingFor;
+        if (reasonForAdmeasy) user.reasonForAdmeasy = reasonForAdmeasy;
+        if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
+
+        // Set institute and course based on education type
+        if (educationType === 'school' && schoolName) {
+            user.institute = schoolName;
+            if (userClass) {
+                user.course = `Class ${userClass}`;
+                if (stream) {
+                    user.course += ` (${stream})`;
+                }
+            }
+        } else if (educationType === 'college' && collegeName) {
+            user.institute = collegeName;
+            if (courseDetails) {
+                user.course = courseDetails;
+            }
+        }
+
+        // Mark onboarding as completed
+        user.hasCompletedOnboarding = true;
+
+        // Generate tokens if user is new
+        if (!user.refreshToken) {
+            const accessToken = generateAccessToken(user);
+            const refreshToken = generateRefreshToken(user);
+            user.refreshToken = refreshToken;
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            });
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
+            });
+        }
+
         await user.save();
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
-        });
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
-        });
 
-        res.status(201).json({ success: true, message: 'User registered successfully' });
+        res.status(200).json({ success: true, message: 'Onboarding completed successfully', user: await User.findById(user._id).select('-password -refreshToken') });
+    } catch (err) {
+        console.error('Onboarding error:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// CHECK ONBOARDING STATUS - Check if user can access onboarding
+router.get('/onboarding/status', async (req, res) => {
+    try {
+        let user = null;
+        if (req.cookies['accessToken']) {
+            const token = req.cookies['accessToken'];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id).select('hasCompletedOnboarding email');
+            } catch (jwtErr) {
+                // Not logged in, can access onboarding
+                return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+            }
+        }
+
+        if (!user) {
+            // Not logged in, can access onboarding
+            return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+        }
+
+        // If user has completed onboarding, they cannot access it
+        // if (user.hasCompletedOnboarding) {
+        //     return res.json({ success: true, canAccess: false, reason: 'already_completed' });
+        // }
+
+        // User is logged in but hasn't completed onboarding
+        return res.json({ success: true, canAccess: true, reason: 'not_completed' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -107,6 +293,10 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+        // Check if user signed up with Google (no password)
+        if (!user.password) {
+            return res.status(401).json({ success: false, message: 'This account was created with Google. Please sign in with Google.' });
         }
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) {
@@ -133,6 +323,61 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// GOOGLE OAUTH ROUTES
+// Initiate Google OAuth
+router.get('/auth/google', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({ success: false, message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.' });
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+
+// Google OAuth callback
+router.get('/auth/google/callback', 
+    passport.authenticate('google', { failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed` }),
+    async (req, res) => {
+        try {
+            // Safety check: ensure user is authenticated
+            if (!req.user) {
+                console.error('Google OAuth callback: req.user is undefined');
+                return res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
+            }
+
+            // Generate JWT tokens for the authenticated user
+            const accessToken = generateAccessToken(req.user);
+            const refreshToken = generateRefreshToken(req.user);
+            req.user.refreshToken = refreshToken;
+            await req.user.save();
+
+            // Set cookies
+            res.cookie('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            });
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
+            });
+
+            // Redirect to frontend
+            const frontendUrl = getFrontendUrl();
+            // Check if user has completed onboarding
+            if (req.user.hasCompletedOnboarding) {
+                res.redirect(`${frontendUrl}/me`);
+            } else {
+                res.redirect(`${frontendUrl}/onboarding`);
+            }
+        } catch (err) {
+            console.error('Google OAuth callback error:', err);
+            res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
+        }
+    }
+);
 
 // LOGOUT
 router.post('/logout', async (req, res) => {
@@ -304,12 +549,46 @@ router.put('/me', upload.single('image'), async (req, res) => {
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const { name, institute, course, phone, gender } = req.body;
+        const { 
+            name, institute, course, phone, gender,
+            languages, city, educationType, board, universityName,
+            class: userClass, stream, schoolName, courseLevel, courseDetails,
+            collegeName, examsPreparingFor, reasonForAdmeasy, reasonForAdmeasyInput
+        } = req.body;
+        
         if (name) user.name = name;
         if (institute) user.institute = institute;
         if (course) user.course = course;
-        if (phone) user.phone = phone;
+        if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
         if (gender) user.gender = gender;
+        
+        // Onboarding fields - handle JSON strings from FormData
+        if (languages !== undefined) {
+            try {
+                user.languages = typeof languages === 'string' ? JSON.parse(languages) : (Array.isArray(languages) ? languages : []);
+            } catch {
+                user.languages = Array.isArray(languages) ? languages : [];
+            }
+        }
+        if (city !== undefined) user.city = city;
+        if (educationType) user.educationType = educationType;
+        if (board) user.board = board;
+        if (universityName) user.universityName = universityName;
+        if (userClass) user.class = userClass;
+        if (stream) user.stream = stream;
+        if (schoolName) user.schoolName = schoolName;
+        if (courseLevel) user.courseLevel = courseLevel;
+        if (courseDetails) user.courseDetails = courseDetails;
+        if (collegeName) user.collegeName = collegeName;
+        if (examsPreparingFor !== undefined) {
+            try {
+                user.examsPreparingFor = typeof examsPreparingFor === 'string' ? JSON.parse(examsPreparingFor) : (Array.isArray(examsPreparingFor) ? examsPreparingFor : []);
+            } catch {
+                user.examsPreparingFor = Array.isArray(examsPreparingFor) ? examsPreparingFor : [];
+            }
+        }
+        if (reasonForAdmeasy) user.reasonForAdmeasy = reasonForAdmeasy;
+        if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
         // Handle image upload if file provided
         if (req.file) {
             const ext = path.extname(req.file.originalname).toLowerCase();
@@ -527,5 +806,9 @@ router.delete('/:userId', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 })
+
+// RESET PASSWORD
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 module.exports = router;

@@ -8,20 +8,27 @@ import MobileBg from "../assets/Others/login-mb-bg.webp"
 import Ballpit from '../components/Ballpit'
 import Guide from "../assets/Icons/guide.gif"
 import Mentor from "../assets/Icons/Mentor.gif"
-import SignUp from './SignUp'
+import SignUp from './SignUp.jsx'
 import World from "../assets/Icons/World.gif"
 const LogIn = () => {
   const navigate = useNavigate()
   const [showLogin, setShowLogin] = useState(true)
-  const isMobile = window.innerWidth <1024
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const pathname = useLocation();
+
+useEffect(() => {
+  const handleResize = () => setIsMobile(window.innerWidth < 1024);
+  window.addEventListener("resize", handleResize);
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
+
   useEffect(() => {
       window.scrollTo(0, 0);
     }, [pathname]);
     return (
         <>
 
-   <div className="flex justify-center gap-7 md:gap-0 z-20 flex-col lg:flex-row p-6">
+   <div className="flex justify-center gap-4 md:gap-0 z-20 flex-col lg:flex-row p-4 lg:p-6">
   {/* Left Side - Login */}
   <div className=" w-full lg:w-1/3 flex">
 {showLogin ?(
@@ -33,9 +40,9 @@ const LogIn = () => {
   </div>
   {/* Right Side - Hero */}
   <div className="w-full lg:w-[60%]">
-    <div className="cursor-grab active:cursor-grabbing relative overflow-hidden min-h-[400px] md:min-h-[500px] w-full bg-black rounded-2xl shadow-xl">
+    <div className="relative overflow-hidden bg-black rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.35)] ring-1 ring-white/10 min-h-[400px]">
   {isMobile ? (
-   <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <div className="w-full h-[380px] xs:h-[420px] sm:h-[480px] relative">
 <Prism
   animationType="rotate"
   timeScale={0.9} 
