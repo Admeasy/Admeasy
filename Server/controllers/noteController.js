@@ -83,3 +83,4 @@ const updateCounter = async (req, res, field) => {
 exports.likeNote = (req, res) => updateCounter(req, res, 'likes');
 exports.viewNote = (req, res) => updateCounter(req, res, 'views');
 
+

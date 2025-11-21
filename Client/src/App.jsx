@@ -19,6 +19,7 @@ import TermsAndConditions from './Pages/TermsAndConditions'
 import ResetPassword from './Pages/ResetPassword';
 import Course from './Pages/Course'
 import Notes from './Pages/Notes';
+import NotesSearch from './Pages/NotesSearch';
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
@@ -161,6 +162,7 @@ function App() {
         {/* Notes */}
         <Route path='/notes' element={<Notes/>}></Route>
         <Route path="/notes/:id" element={<NotesPage />} />
+        <Route path="/notes-search" element={<NotesSearch />} />
 
         <Route path='/admin/enrollments'element={<Enrollments/>}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>

@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FileText, User, File, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import CourseSearchDropdown from "../components/CourseSearchDropdown";
+import FilterSection from "../components/FilterSection";
+import NotesCard from "../components/NotesCard";
 
 const Notes = () => {
   const navigate = useNavigate();
   
   // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedUniversity, setSelectedUniversity] = useState("all");
   const [selectedProgramme, setSelectedProgramme] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState("all");
@@ -14,26 +16,24 @@ const Notes = () => {
   // Filter options
   const universities = [
     { id: "all", label: "All Universities" },
-    { id: "du", label: "DU" },
-    { id: "christ", label: "Christ University" },
-    { id: "chandigarh", label: "Chandigarh University" },
+    { id: "du", label: "Delhi University" },
+    { id: "mu", label: "Mumbai University" },
+    { id: "davu", label: "Devi Ahilya Vishwavidyalaya" },
+    { id: "rgpv", label: "RGPV Bhopal" },
+    { id: "iit", label: "IIT (All Campuses)" },
+    { id: "iim", label: "IIM (All Campuses)" },
+    { id: "lu", label: "Lucknow University" },
     { id: "manipal", label: "Manipal University" },
-    { id: "amity", label: "Amity University" }
+    { id: "sage", label: "Sage University" },
+    { id: "medicaps", label: "Medicaps University" },
+    { id: "oriental", label: "Oriental University" },
+    { id: "pu", label: "Panjab University" },
   ];
 
   const programmes = [
     { id: "all", label: "All Programmes" },
     { id: "bachelors", label: "Bachelors" },
     { id: "masters", label: "Masters" }
-  ];
-
-  const courses = [
-    { id: "all", label: "All Courses" },
-    { id: "ba", label: "BA" },
-    { id: "bcom", label: "BCom" },
-    { id: "bsc", label: "BSc" },
-    { id: "bba", label: "BBA" },
-    { id: "btech", label: "BTech" }
   ];
 
   // Sample data for testing (fallback when backend has no data)
@@ -53,8 +53,8 @@ const Notes = () => {
       programme: "bachelors",
       course: "bcom",
       isFeatured: true,
-      likes: 0,
-      views: 0,
+      likes: 156,
+      views: 2341,
       publishedAt: new Date().toISOString(),
     },
     {
@@ -72,8 +72,8 @@ const Notes = () => {
       programme: "bachelors",
       course: "btech",
       isFeatured: true,
-      likes: 0,
-      views: 0,
+      likes: 423,
+      views: 5672,
       publishedAt: new Date().toISOString(),
     },
   ];
@@ -99,15 +99,38 @@ const Notes = () => {
         }
         const payload = await response.json();
         if (ignore) return;
-        const data = Array.isArray(payload?.data) ? payload.data : [];
+        let data = Array.isArray(payload?.data) ? payload.data : [];
         // Use sample data if backend returns empty array (for testing)
-        setNotes(data.length > 0 ? data : sampleNotes);
+        if (data.length === 0) {
+          data = sampleNotes;
+        }
+        // Sort notes: most popular first (by likes + views, then by most recent)
+        data.sort((a, b) => {
+          const aPopularity = (a.likes ?? 0) + (a.views ?? 0);
+          const bPopularity = (b.likes ?? 0) + (b.views ?? 0);
+          if (bPopularity !== aPopularity) {
+            return bPopularity - aPopularity;
+          }
+          const aDate = new Date(a.publishedAt || a.createdAt || 0);
+          const bDate = new Date(b.publishedAt || b.createdAt || 0);
+          return bDate - aDate;
+        });
+        setNotes(data);
       } catch (err) {
         if (err.name === "AbortError") return;
         setError(err.message || "Something went wrong while loading notes");
-        // On error, use sample data for testing
         if (!ignore) {
-          setNotes(sampleNotes);
+          const sortedSamples = [...sampleNotes].sort((a, b) => {
+            const aPopularity = (a.likes ?? 0) + (a.views ?? 0);
+            const bPopularity = (b.likes ?? 0) + (b.views ?? 0);
+            if (bPopularity !== aPopularity) {
+              return bPopularity - aPopularity;
+            }
+            const aDate = new Date(a.publishedAt || 0);
+            const bDate = new Date(b.publishedAt || 0);
+            return bDate - aDate;
+          });
+          setNotes(sortedSamples);
         }
       } finally {
         if (!ignore) {
@@ -126,164 +149,58 @@ const Notes = () => {
 
   // Filter notes based on all criteria
   const filteredNotes = useMemo(() => {
-    const query = searchQuery.toLowerCase();
     return notes.filter((note) => {
-      const title = note.title?.toLowerCase() ?? "";
-      const description = note.description?.toLowerCase() ?? "";
-      const uploader = note.uploaderName?.toLowerCase() ?? note.uploader?.toLowerCase() ?? "";
       const noteUniversity = note.university?.toLowerCase() ?? "";
       const noteProgramme = note.programme?.toLowerCase() ?? "";
       const noteCourse = note.course?.toLowerCase() ?? "";
 
-      const matchesSearch =
-        !query || title.includes(query) || description.includes(query) || uploader.includes(query);
       const matchesUniversity =
         selectedUniversity === "all" || noteUniversity === selectedUniversity;
       const matchesProgramme =
         selectedProgramme === "all" || noteProgramme === selectedProgramme;
       const matchesCourse = selectedCourse === "all" || noteCourse === selectedCourse;
       
-      return matchesSearch && matchesUniversity && matchesProgramme && matchesCourse;
+      return matchesUniversity && matchesProgramme && matchesCourse;
     });
-  }, [notes, searchQuery, selectedUniversity, selectedProgramme, selectedCourse]);
+  }, [notes, selectedUniversity, selectedProgramme, selectedCourse]);
 
   const popularNotes = useMemo(() => {
     return notes.filter((note) => note.isFeatured || note.isPopular || (note.likes ?? 0) > 50);
   }, [notes]);
 
-  // Filter Radio Component
-  const FilterSection = ({ title, options, selected, onChange }) => (
-    <div className="mb-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-3">{title}</h3>
-      <div className="flex flex-wrap gap-3">
-        {options.map((option) => (
-          <label
-            key={option.id}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer transition-all border-2 ${
-              selected === option.id
-                ? "bg-[#6C63FF] text-white border-[#6C63FF] shadow-lg"
-                : "bg-white text-gray-700 border-gray-200 hover:border-[#6C63FF] hover:shadow-md"
-            }`}
-          >
-            <input
-              type="radio"
-              name={title}
-              value={option.id}
-              checked={selected === option.id}
-              onChange={() => onChange(option.id)}
-              className="hidden"
-            />
-            <span className="font-medium text-sm">{option.label}</span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
+  // Reset course when programme changes
+  useEffect(() => {
+    if (selectedProgramme !== "all") {
+      setSelectedCourse("all");
+    }
+  }, [selectedProgramme]);
 
-  // Notes Card Component
-  const NotesCard = ({ note, compact = false }) => {
-    const noteId = note._id || note.id;
-    const isFree = note.isFree ?? true;
-    return (
-      <div
-        onClick={() => noteId && navigate(`/notes/${noteId}`)}
-        className={`bg-white cursor-pointer rounded-2xl shadow-3d hover:-translate-y-1 hover:shadow-[0_10px_40px_rgba(0,0,0,0.17)] transition-all border border-gray-100 ${
-          compact ? "p-4 min-w-[320px]" : "p-6 mb-6"
-        }`}
-      >
-        <div className={`flex gap-4 ${compact ? "flex-col" : ""}`}>
-          {/* Thumbnail */}
-          <div className="flex-shrink-0">
-            <div className={`${compact ? "w-full h-32" : "w-24 h-24"} rounded-xl bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center`}>
-              <FileText className={`${compact ? "w-16 h-16" : "w-12 h-12"} text-white drop-shadow-md`} />
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1">
-            <h2 className={`${compact ? "text-lg" : "text-xl"} font-bold text-gray-900 mb-1`}>
-              {note.title}
-            </h2>
-            <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed mb-2">
-              {note.description}
-            </p>
-            
-            {/* Price and Stats */}
-            <div className="flex items-center gap-3 mt-2">
-              <span
-                className={`px-3 py-1 rounded-lg text-xs font-semibold shadow-sm ${
-                  isFree
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-blue-50 text-blue-700 border border-blue-200"
-                }`}
-              >
-                {isFree
-                  ? "FREE"
-                  : typeof note.price === "number"
-                  ? `₹${note.price}`
-                  : "Paid"}
-              </span>
-              <span className="text-xs text-gray-500 flex items-center gap-3">
-                <span>❤️ {note.likes ?? 0}</span>
-                <span className="flex items-center gap-1">👁️ {note.views ?? 0}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        {!compact && (
-          <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-            <div className="flex gap-4 items-center">
-              <div className="flex items-center gap-2 text-white bg-black px-3 py-1.5 rounded-lg">
-                <User className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {note.uploaderName || note.uploader || "Unknown uploader"}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-gray-700">
-                <File className="w-4 h-4" />
-                <span className="font-medium text-sm">
-                  {note.pages ? `${note.pages} pages` : "Pages N/A"}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-sm font-semibold px-3 py-1.5 rounded-lg shadow-3d bg-red-50 text-red-700 border border-red-200">
-              {note.standard || "General"}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // MAIN PAGE
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
+      <div className="w-[90%] lg:w-[95%] mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">
           Notes Library
         </h1>
 
-        {/* Search Bar */}
+        {/* Animated Search Button */}
         <div className="mb-8 max-w-2xl mx-auto">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search notes by title, description, or uploader..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#6C63FF] focus:outline-none shadow-3d text-gray-900 placeholder-gray-400"
-            />
-          </div>
+          <button
+            onClick={() => navigate('/notes-search')}
+            className="w-full relative group"
+          >
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-[#6C63FF] transition-colors" />
+              <div className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 group-hover:border-[#6C63FF] transition-all shadow-lg text-left bg-white">
+                <span className="text-gray-400 animate-pulse">
+                  Search notes by title, course, or tags...
+                </span>
+              </div>
+            </div>
+          </button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-6 shadow-3d mb-8 border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 shadow-lg mb-8 border border-gray-100">
           <FilterSection
             title="Select Your University"
             options={universities}
@@ -296,12 +213,15 @@ const Notes = () => {
             selected={selectedProgramme}
             onChange={setSelectedProgramme}
           />
-          <FilterSection
-            title="Select Course"
-            options={courses}
-            selected={selectedCourse}
-            onChange={setSelectedCourse}
-          />
+          
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Search Course</h3>
+            <CourseSearchDropdown 
+              value={selectedCourse}
+              onChange={setSelectedCourse}
+              programme={selectedProgramme}
+            />
+          </div>
         </div>
 
         {/* Most Popular Slider */}
@@ -324,7 +244,7 @@ const Notes = () => {
             All Notes ({filteredNotes.length})
           </h2>
           {error && (
-            <div className="text-center py-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-3d mb-6">
+            <div className="text-center py-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-lg mb-6">
               <p className="font-semibold mb-2">We couldn&apos;t load the notes.</p>
               <p className="text-sm mb-4">{error}</p>
               <button
@@ -336,11 +256,11 @@ const Notes = () => {
             </div>
           )}
           {loading ? (
-            <div className="text-center py-12 bg-white rounded-2xl shadow-3d">
+            <div className="text-center py-12 bg-white rounded-2xl shadow-lg">
               <p className="text-gray-500 text-lg">Loading notes…</p>
             </div>
           ) : filteredNotes.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl shadow-3d">
+            <div className="text-center py-12 bg-white rounded-2xl shadow-lg">
               <p className="text-gray-500 text-lg">No notes found matching your criteria</p>
             </div>
           ) : (
