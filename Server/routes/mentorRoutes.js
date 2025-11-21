@@ -141,7 +141,13 @@ router.post('/register', async (req, res) => {
         const mentor = new Mentor({ email, password: hashedPassword });
         await mentor.save();
 
-        await MentorshipRequest.findOneAndDelete({ email: email });
+        const response = await fetch('/api/application/mentorship/' + id, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            return res.status(500).json({ success: false, message: 'Failed to delete application' });
+        }
 
         const accessToken = generateAccessToken(mentor);
         const refreshToken = generateRefreshToken(mentor);
