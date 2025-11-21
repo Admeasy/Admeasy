@@ -10,6 +10,7 @@ const blogRoute = require('./routes/blogRoutes');
 const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
+const NoteRoutes = require('./routes/noteRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
 const MongoStore = require('connect-mongo');
@@ -80,6 +81,7 @@ app.use('/api/admin', AdminRoutes);
 app.use('/api/messages', MessageRoutes);
 app.use('/api/enrollments', enrollmentsRoute);
 app.use('/api/blog', blogRoute);
+app.use('/api/notes', NoteRoutes);
 
 // Serve static files from the dist directory (frontend build)
 app.use(express.static(path.join(__dirname, 'dist')));

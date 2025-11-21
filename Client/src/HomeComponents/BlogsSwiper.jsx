@@ -83,7 +83,7 @@ const BlogSwiper = () => {
           prevEl: prevRef.current,
           nextEl: nextRef.current,
         }}
-        className="hover:cursor-grab active:cursor-grabbing"
+        className=" hover:cursor-grab active:cursor-grabbing"
         onSwiper={(swiper) => {
           setTimeout(() => {
             if (swiper.params.navigation) {
@@ -104,7 +104,7 @@ const BlogSwiper = () => {
           <SwiperSlide key={blog._id}>
             <div
               onClick={() => handleClick(blog._id)}
-              className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-max "
+              className="group mb-8 bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-max "
             >
               {/* Image */}
               <div className="h-56 flex items-center justify-center bg-gray-50 overflow-hidden">

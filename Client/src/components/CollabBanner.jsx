@@ -42,7 +42,7 @@ const CollabBanner = () => {
       bannerName: "MGCI",
     },
     {
-      Headline: "Crack JEE & NEET with Udaan — Your Success, Our Mission",
+      Headline: "Crack JEE & NEET with Udaan Your Success, Our Mission",
       Subheadline: "Experienced Faculty | Daily Doubt-Clearing",
       SubheadlineO: "Join Udaan Today!!",
       imgSrc: UdaanBanner,
@@ -60,7 +60,7 @@ const CollabBanner = () => {
     {
       Headline: "Crack JEE/IIT, NEET with Udaan Coaching",
       Subheadline: "Experienced Faculty | Daily Doubt-Clearing",
-      SubheadlineO: "Join Udaan Today — Where Aspirations Take Flight",
+      SubheadlineO: "Join Udaan Today Where Aspirations Take Flight",
       imgSrc: UdaanBannerNeet,
       brochure: false,
       bannerName: "UDAAN",
@@ -73,7 +73,7 @@ const CollabBanner = () => {
   };
 
   return (
-    <section className="mx-auto w-[90%] rounded-2xl py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-blue-50 to-blue-100 relative">
+    <section className=" rounded-2xl py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-blue-50 to-blue-100 relative">
       {/* Section Heading */}
       <div className="relative flex flex-col sm:flex-row justify-center items-center mb-12 md:mb-14 max-w-7xl mx-auto">
         <h2 className="text-xl text-center md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-900">
@@ -107,7 +107,7 @@ const CollabBanner = () => {
       </div>
 
       {/* Swiper Carousel */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+      <div className="mx-auto sm:p-4">
         <Swiper
           modules={[Autoplay, Navigation, Pagination]}
           spaceBetween={16}
@@ -132,12 +132,12 @@ const CollabBanner = () => {
           breakpoints={{
             640: { slidesPerView: 1, spaceBetween: 16 },
             768: { slidesPerView: 2, spaceBetween: 20 },
-            1024: { slidesPerView: 3, spaceBetween: 24 },
+            1024: { slidesPerView: 4, spaceBetween: 24 },
           }}
         >
           {Banners.map((banner, index) => (
             <SwiperSlide key={index}>
-              <div className="group pb-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-full">
+              <div className="mb-6 group bg-white/90 backdrop-blur-md rounded-3xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-200 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-full">
                 {/* Image Section */}
                 <div className="p-6 md:p-7 h-44 md:h-48 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 border-b border-gray-200">
                   <img

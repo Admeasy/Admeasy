@@ -33,6 +33,7 @@ import MentorshipForm from './Pages/MentorshipForm'
 import Blogs from './Pages/Blogs'
 import Messages from './Pages/Messages'
 import Enrollments from './Pages/Enrollments';
+import NotesPage from './Pages/NotesPage';
 import { useEffect, useState } from 'react';
 import { useUser } from './context/UserContext';
 import TextPressure from "../ReactBits/TextPressure/TextPressure"
@@ -159,7 +160,8 @@ function App() {
         <Route path='/blogs/:id' element={<BlogDetail/>}></Route>
         {/* Notes */}
         <Route path='/notes' element={<Notes/>}></Route>
-        
+        <Route path="/notes/:id" element={<NotesPage />} />
+
         <Route path='/admin/enrollments'element={<Enrollments/>}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
         <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
