@@ -39,6 +39,7 @@ const BlogSwiper = () => {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
+        Loading Blogs
       </div>
     );
   }
@@ -52,7 +53,7 @@ const BlogSwiper = () => {
   }
 
   return (
-    <section className="py-14 px-6 bg-gradient-to-br from-white to-blue-50 relative">
+    <section className="py-14 px-6 bg-bg relative">
       {/* Section Heading */}
       <div className="relative flex flex-col sm:flex-row justify-center items-center mb-10">
         <h2 title="Admeasy Blogs" className="text-xl text-center md:text-2xl lg:text-3xl font-admeasy-extrabold text-gray-900">
@@ -83,7 +84,7 @@ const BlogSwiper = () => {
           prevEl: prevRef.current,
           nextEl: nextRef.current,
         }}
-        className="hover:cursor-grab active:cursor-grabbing"
+        className=" hover:cursor-grab active:cursor-grabbing"
         onSwiper={(swiper) => {
           setTimeout(() => {
             if (swiper.params.navigation) {
@@ -104,7 +105,7 @@ const BlogSwiper = () => {
           <SwiperSlide key={blog._id}>
             <div
               onClick={() => handleClick(blog._id)}
-              className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-max "
+              className="group mb-8 bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:-translate-y-2 flex flex-col overflow-hidden max-w-sm mx-auto h-max "
             >
               {/* Image */}
               <div className="h-56 flex items-center justify-center bg-gray-50 overflow-hidden">

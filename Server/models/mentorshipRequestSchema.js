@@ -13,7 +13,7 @@ const Schema = new mongoose.Schema({
         trim: true
     },
     phone: {
-        type: Number,
+        type: String,
         required: true,
     },
     college: {
@@ -29,6 +29,9 @@ const Schema = new mongoose.Schema({
     image: {
         type: String,
         required: true
+    },
+    isAccepted: {
+        type: Boolean
     }
 });
 

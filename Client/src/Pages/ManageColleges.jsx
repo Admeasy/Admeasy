@@ -48,7 +48,7 @@ const Colleges = () => {
                 throw new Error('Failed to fetch colleges')
             }
             const data = await response.json()
-            const colleges = data.colleges||[]
+            const colleges = data.colleges || []
             setColleges(colleges)
         } catch (err) {
             setError(err.message)

@@ -73,7 +73,7 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
             setPassword('');
             await fetchUser(); // Refresh user context
 
-            // ✅ Redirect with user ID if available
+            //  Redirect with user ID if available
             if (data?.id) {
                 navigate(`/onboarding/${data.id}`);
             } else {
@@ -88,6 +88,8 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
         setError('Network error. Please try again.');
     } finally {
         setIsSubmitting(false);
+    }
+}
     return (
         <motion.section
             variants={fadeUpVariant}
@@ -188,6 +190,6 @@ const SignUp = ( {setShowLogin,showLogin} ) => {
             </div>
         </motion.section>
     )
-}}}
+}
 
 export default SignUp

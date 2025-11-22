@@ -71,10 +71,6 @@ const verifyAdminToken = (req, res, next) => {
   try {
     const token = req.cookies.adminToken;
 
-    console.log('=== VERIFY ADMIN TOKEN ===');
-    console.log('Token exists:', !!token);
-    console.log('Cookies:', req.cookies);
-
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -83,7 +79,6 @@ const verifyAdminToken = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
-    console.log('Decoded token:', decoded);
     
     // Set admin info on request
     req.admin = {
@@ -91,7 +86,6 @@ const verifyAdminToken = (req, res, next) => {
       username: decoded.username,
       role: decoded.role
     };
-    console.log('Admin authenticated:', req.admin.username);
     next();
   } catch (error) {
     console.error('Token verification error:', error.message);

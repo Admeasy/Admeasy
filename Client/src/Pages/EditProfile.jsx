@@ -214,12 +214,7 @@ const EditProfile = () => {
     console.log('Submitting form with:', form);
     
     // Validation: all required fields
-    if (!form.name.trim() || 
-    !String(form.phone).trim() || 
-    !form.institute || 
-    !form.course || 
-    !form.gender || 
-    ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
+    if (!form.name.trim() || !form.phone.toString().trim() || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
       toast.error('Please fill all required fields.');
       return;
     }
@@ -246,6 +241,17 @@ const EditProfile = () => {
     if (form.course !== 'Class 9th' && form.course !== 'Class 10th' && form.streamOrYear) {
       courseValue = `${form.course} (${form.streamOrYear})`;
     }
+    // mobile Function
+    if (
+      form.phone.toString().trim().length < 10 ||
+      ["1", "2", "3", "4", "5"].some((digit) =>
+        form.phone.toString().trim().startsWith(digit)
+      )
+    ) {
+      toast.error("Mobile Number Is Invalid");
+      return;
+    }
+
     formData.append('course', courseValue);
     
     console.log('Sending course value:', courseValue);

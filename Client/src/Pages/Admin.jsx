@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaUser, FaLock } from 'react-icons/fa';
+import { FaUser, FaLock, FaSignOutAlt } from 'react-icons/fa';
 import logo from '../assets/Admeasy/LOGO.webp';
 
 const fadeUpVariant = {
@@ -112,8 +112,8 @@ const Admin = () => {
         <div className="max-w-4/5 mx-auto space-y-8">
           <img src={logo} alt="LOGO" className='w-150 aspect-auto mx-auto' />
           <button
-            onClick={handleLogout} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-500 text-white font-semibold absolute top-2 sm:top-5 right-2 sm:right-5 rounded-lg sm:rounded-xl hover:bg-red-600 transition-colors">
-            Logout
+            onClick={handleLogout} className="px-2 sm:px-3 py-1 sm:py-1.5 flex items-center justify-center bg-red-500 text-white font-semibold absolute top-2 sm:top-5 right-2 sm:right-5 rounded-lg sm:rounded-xl hover:bg-red-600 transition-colors">
+            <FaSignOutAlt className="w-5 h-5 mr-2" /> Logout
           </button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,6 +135,12 @@ const Admin = () => {
                 <p className="text-gray-600">View and Delete Users</p>
               </div>
             </Link>
+            <Link to="/admin/mentors">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Mentors</h2>
+                <p className="text-gray-600">View all registered mentors</p>
+              </div>
+            </Link>
             <Link to="/admin/applications">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Applications</h2>
@@ -150,7 +156,7 @@ const Admin = () => {
              <Link to="/admin/enrollments">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Enrollments</h2>
-                <p className="text-gray-600">Studetns Enrolled From the Banner</p>
+                <p className="text-gray-600">Students Enrolled From the Banner</p>
               </div>
             </Link>
           </div>

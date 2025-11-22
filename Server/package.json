@@ -1,6 +1,6 @@
 {
   "name": "admeasy",
-  "version": "0.7",
+  "version": "0.8.1",
   "description": "",
   "repository": {
     "type": "git",
@@ -39,3 +39,5 @@
     "uuid": "^11.1.0"
   }
 }
+
+

@@ -4,11 +4,9 @@ const { Admeasy } = require('../db');
 const Schema = new mongoose.Schema({
     image: {
         type: String,
-        required: true
     },
     name: {
         type: String,
-        required: true,
         trim: true
     },
     username: {
@@ -20,24 +18,66 @@ const Schema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    password: {
+        type: String,
+        required: true,
+        trim: true
+    },
     phone: {
         type: Number,
-        required: true,
         trim: true
     },
     college: {
-        type: String,
-        required: true,
-        trim: true
+        name: {
+            type: String,
+            trim: true,
+        },
+        id: {
+            type: String,
+            trim: true,
+        }
     },
     course: {
+        name: {
+            type: String,
+            trim: true
+        },
+        id: {
+            type: String,
+            trim: true
+        }
+    },
+    tagline: {
         type: String,
-        required: true,
         trim: true
     },
     bio: {
         type: String,
         trim: true
+    },
+    competitiveExamsAttempted: [{
+        name: {
+            type: String,
+            trim: true,
+            required: true
+        },
+        rank: {
+            type: String,
+            trim: true,
+            required: true
+        }
+    }],
+    followers: [{
+        type: String,
+        trim: true
+    }],
+    notesUploaded: {
+        type: String,
+        trim: true,
+    },
+    refreshToken: {
+        type: String,
+        default: null
     }
 });
 

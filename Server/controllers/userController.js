@@ -18,7 +18,11 @@ const forgotPassword = async (req, res) => {
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min expiry
     await user.save();
 
-    const resetURL = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+    if(process.env.NODE_ENV === 'production'){
+      const resetURL = `https://admeasy.in/reset-password/${token}`;
+    }else{
+      const resetURL = `http://localhost:5173/reset-password/${token}`;
+    }
 
     // Send email
     const transporter = nodemailer.createTransport({
@@ -26,12 +30,12 @@ const forgotPassword = async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: process.env.SMTP_EMAIL, // support@admeasy.in
+        user: process.env.SMTP_EMAIL, // noreply@admeasy.in
         pass: process.env.SMTP_PASS, 
       },
     });
     await transporter.sendMail({
-      from: `"Admeasy Support" <${process.env.SMTP_EMAIL}>`,
+      from: `"Admeasy" <${process.env.SMTP_EMAIL}>`,
       to: user.email,
       subject: "Admeasy Password Reset",
      html: `
@@ -62,7 +66,7 @@ const forgotPassword = async (req, res) => {
       </p>
 
       <p style="word-break: break-all; font-size: 13px;">
-        <a href="${resetURL}" style="color: #4e6bff;">${resetURL}</a>
+        <a href="${resetURL}" style="color: #4e6bff;">Click here</a>
       </p>
 
       <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;" />

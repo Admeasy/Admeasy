@@ -20,7 +20,7 @@ const Colleges = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalColleges, setTotalColleges] = useState(0);
-  const limit = 15;
+  const limit = 23;
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -173,7 +173,7 @@ useEffect(() => {
       )}
 
       {/* Cards */}
-      <div className='w-full p-3 flex justify-evenly flex-wrap gap-10 min-h-[400px]'>
+      <div className='w-full p-3 px-5 flex justify-evenly flex-wrap gap-10 min-h-[400px]'>
         {loading ? (
           <div className="w-full flex flex-col justify-center items-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>

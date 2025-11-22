@@ -84,7 +84,7 @@ export default function CollegeCard() {
       className="text-tprimary my-10"
     >
       {/* ===== Heading Section ===== */}
-      <div className="pt-6 bg-gradient-to-b from-sky-50 to-white">
+      <div className="pt-6 bg-bg">
         <div className="w-full mb-10 flex flex-col sm:flex-row items-center justify-center text-center">
           <div>
             <h1 className="flex gap-2 text-2xl sm:text-3xl md:text-4xl font-admeasy-extrabold text-gray-800">
@@ -98,7 +98,7 @@ export default function CollegeCard() {
               </GradientText>
             </h1>
             <p className="text-gray-500 text-sm md:text-base mt-2">
-              Find top-rated institutions near your city with trusted reviews
+              Find top-rated institutions near you with trusted reviews
             </p>
           </div>
         </div>

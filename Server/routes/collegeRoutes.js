@@ -5,6 +5,7 @@ const College = require('../models/collegeSchema');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const BackblazeB2Client = require('../b2Client');
+const b2Client = new BackblazeB2Client();
 const path = require('path');
 const fs = require('fs');
 const fetch = require('node-fetch');
@@ -21,8 +22,6 @@ const upload = multer({
 
 // Helper function to upload files to B2 directly from memory
 async function uploadToB2(files, collegeId) {
-    const b2Client = new BackblazeB2Client();
-
     try {
         // Validate B2_BUCKET_URL
         if (!process.env.B2_BUCKET_URL) {
@@ -68,7 +67,6 @@ async function uploadToB2(files, collegeId) {
 
 // Helper function to upload a single file buffer to B2 at a custom path
 async function uploadSingleToB2(file, collegeId, studentId) {
-    const b2Client = new BackblazeB2Client();
     if (!process.env.B2_BUCKET_URL) {
         throw new Error('B2_BUCKET_URL environment variable is not set');
     }
@@ -357,9 +355,6 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ message: 'College not found' });
         }
 
-        // Initialize B2 client
-        const b2Client = new BackblazeB2Client();
-
         try {
             // Delete all files in the college's gallery folder
             await b2Client.deleteFiles(req.params.id);
@@ -416,9 +411,6 @@ router.get('/gallery/:id', async (req, res) => {
             return res.status(404).json({ message: 'College not found' });
         }
 
-        // Initialize B2 client
-        const b2Client = new BackblazeB2Client();
-
         try {
             // List all files in the college's folder
             const files = await b2Client.listFiles(collegeId);
@@ -453,9 +445,6 @@ router.get('/:collegeId/students', async (req, res) => {
         if (!college) {
             return res.status(404).json({ message: 'College not found' });
         }
-
-        // Initialize B2 client
-        const b2Client = new BackblazeB2Client();
 
         try {
             // List all files in the students folder
