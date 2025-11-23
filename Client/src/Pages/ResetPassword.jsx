@@ -15,9 +15,19 @@ export default function ResetPassword() {
 
   const handleReset = async (e) => {
     e.preventDefault();
-    if (password.length < 8)
-      return toast.error("Password must be at least 8 characters");
-
+    const validatePassword = () => {
+      return (
+        password.length >= 8 &&
+        /\d/.test(password) &&          // Contains number
+        /[^A-Za-z0-9]/.test(password)   // Contains special character
+      );
+    };
+    // Validation
+    if (!validatePassword()){
+    return toast.error("Password needs 8+ chars, a letter, number & special symbol");
+    }
+      
+    console.log(password)
     setLoading(true);
     try {
       const res = await fetch(`/api/users/reset-password/${token}`, {

@@ -22,18 +22,16 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
     const navigate = useNavigate();
     const { fetchUser } = useUser();
     const { setMentor } = useMentor();
-
+    const {user} = useUser()
     const validateEmail = (email) => {
         return /^\S+@\S+\.\S+$/.test(email);
     };
     const [showPassword, setShowPassword] = useState(false);
     const validatePassword = (password) => {
-        // At least 8 characters, one letter, one number, one non-alphanumeric
         return (
             password.length >= 8 &&
-            /[A-Za-z]/.test(password) &&
-            /[0-9]/.test(password) &&
-            /[^A-Za-z0-9]/.test(password)
+            /\d/.test(password) &&          // Contains number
+            /[^A-Za-z0-9]/.test(password)   // Contains special character
         );
     };
 
@@ -64,8 +62,9 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
                 setPassword('');
                 setMentor(null); // ensure mentor session is cleared
                 await fetchUser(); // Refresh user context
-                isOpen ? onClose() : navigate('/me');
-                toast.info("Please Setup Your Profile")
+                toast.info(`You're fine to go!`)
+                navigate('/')
+                
             } else {
                 setError(data.message || 'Login failed');
             }
