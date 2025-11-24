@@ -11,27 +11,30 @@ require('dotenv').config();
 
 // Construct callback URL based on environment
 const getCallbackURL = () => {
+  // Use BACKEND_URL if provided, otherwise construct from environment
+  if (process.env.BACKEND_URL) {
+    return `${process.env.BACKEND_URL}/api/users/auth/google/callback`;
+  }
   // In production, use the full URL from FRONTEND_URL or default to admeasy.in
   if (process.env.NODE_ENV === 'production') {
-    if (process.env.FRONTEND_URL) {
-      // Use FRONTEND_URL and construct backend URL (assuming same domain)
-      const url = new URL(process.env.FRONTEND_URL);
-      return `${url.protocol}//${url.host}/api/users/auth/google/callback`;
-    }
     // Default production URL
     return 'https://admeasy.in/api/users/auth/google/callback';
   }
-  // Development - use relative URL which Passport will resolve correctly
-  return '/api/users/auth/google/callback';
+  // Development - use localhost
+  return 'http://localhost:5000/api/users/auth/google/callback';
 };
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   console.warn('Warning: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set. Google OAuth will not work.');
 } else {
+  const callbackURL = getCallbackURL();
+  console.log('Google OAuth callback URL:', callbackURL);
+  console.log('Make sure this EXACT URL is added to Google Cloud Console authorized redirect URIs');
+  
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: getCallbackURL()
+    callbackURL: callbackURL
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       // Validate that email exists in profile

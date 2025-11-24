@@ -356,15 +356,29 @@ router.post('/logout', authenticateMentorJWT, async (req, res) => {
     }
 });
 
-router.delete('/:username', async (req, res) => {
+router.delete('/:id', async (req, res) => {
     const admin = verifyAdminFromCookie(req);
 
     if (admin) {
         try {
-            const mentor = await Mentor.findOneAndDelete({ username: req.params.username });
+            // Find the mentor first to get the image path
+            const mentor = await Mentor.findById(req.params.id);
             if (!mentor) {
                 return res.status(404).json({ success: false, message: 'Mentor not found' });
             }
+
+            // Delete the mentor's image from B2 if it exists
+            if (mentor.image) {
+                try {
+                    await b2.deleteFile(mentor.image);
+                } catch (b2Error) {
+                    console.error('Error deleting mentor image from B2:', b2Error);
+                    return res.status(500).json({ success: false, message: 'Error deleting mentor image from B2' });
+                }
+            }
+
+            // Delete the mentor from database
+            await Mentor.findByIdAndDelete(req.params.id);
             return res.json({ success: true, message: 'Mentor deleted successfully', mentorId: mentor._id });
         } catch (error) {
             console.log(error);
@@ -374,10 +388,28 @@ router.delete('/:username', async (req, res) => {
 
     authenticateMentorJWT(req, res, async () => {
         try {
-            if (!req.mentor || req.mentor.username !== req.params.username) {
+            if (!req.mentor || req.mentor._id !== req.params.id) {
                 return res.status(403).json({ success: false, message: 'Not authorized to delete this mentor' });
             }
-            await Mentor.findOneAndDelete({ username: req.params.username });
+
+            // Find the mentor first to get the image path
+            const mentor = await Mentor.findById(req.params.id);
+            if (!mentor) {
+                return res.status(404).json({ success: false, message: 'Mentor not found' });
+            }
+
+            // Delete the mentor's image from B2 if it exists
+            if (mentor.image) {
+                try {
+                    await b2.deleteFile(mentor.image);
+                } catch (b2Error) {
+                    console.error('Error deleting mentor image from B2:', b2Error);
+                    return res.status(500).json({ success: false, message: 'Error deleting mentor image from B2' });
+                }
+            }
+
+            // Delete the mentor from database
+            await Mentor.findByIdAndDelete(req.params.id);
             res.status(200).json({ success: true, message: 'Mentor deleted successfully' });
         } catch (error) {
             console.log(error);

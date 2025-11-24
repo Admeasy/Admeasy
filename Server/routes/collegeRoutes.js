@@ -419,8 +419,11 @@ router.get('/gallery/:id', async (req, res) => {
                 return res.json([]);
             }
 
-            // Get authorized URLs for each file
-            const fileUrls = await Promise.all(files.map(async (file) => {
+            // Filter out files with 'students/' in filename before processing
+            const galleryFiles = files.filter(file => !file.fileName.includes('students/'));
+            
+            // Get authorized URLs for each file (excluding student files)
+            const fileUrls = await Promise.all(galleryFiles.map(async (file) => {
                 const auth = await b2Client.getDownloadAuthorization(file.fileName);
                 return auth.url;
             }));

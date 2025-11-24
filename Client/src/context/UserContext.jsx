@@ -37,6 +37,55 @@ export function UserProvider({ children }) {
     if (typeof window === 'undefined') return;
     
     const verifyAuth = async () => {
+      // Check if this is an OAuth redirect
+      const urlParams = new URLSearchParams(window.location.search);
+      const isOAuthSuccess = urlParams.get('oauth_success') === 'true';
+      
+      // If OAuth success, fetch user immediately
+      if (isOAuthSuccess) {
+        // Remove the query parameter from URL
+        window.history.replaceState({}, '', window.location.pathname);
+        
+        try {
+          // Small delay to ensure cookies are set
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Refresh token first
+          await fetch("/api/users/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
+          
+          // Then fetch user data
+          const res = await fetch("/api/users/me", {
+            credentials: "include",
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            let userObj = data.user;
+            const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+            if (imageRes.ok) {
+              const imageUrl = await imageRes.json();
+              userObj.imageUrl = imageUrl;
+            }
+            setUser(userObj);
+          } else {
+            console.error('Failed to fetch user after OAuth');
+            setUser(null);
+            localStorage.removeItem(USER_STORAGE_KEY);
+            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+          }
+        } catch (err) {
+          console.error('OAuth verification failed:', err);
+          setUser(null);
+          localStorage.removeItem(USER_STORAGE_KEY);
+          localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+        }
+        return;
+      }
+      
+      // Normal verification flow
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
       const hasStoredUser = localStorage.getItem(USER_STORAGE_KEY);
       

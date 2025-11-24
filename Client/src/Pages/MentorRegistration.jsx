@@ -33,7 +33,7 @@ const MentorRegistration = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [ params, setParams ] = useSearchParams();
+    const [params, setParams] = useSearchParams();
     const id = params.get('id');
     const navigate = useNavigate();
 
@@ -43,7 +43,7 @@ const MentorRegistration = () => {
                 navigate('/');
                 return;
             }
-            
+
             try {
                 const res = await fetch('/api/apply/mentorship/verify', {
                     method: 'POST',
@@ -51,7 +51,7 @@ const MentorRegistration = () => {
                     body: JSON.stringify({ id }),
                     credentials: 'include'
                 });
-                
+
                 if (!res.ok) {
                     navigate('/');
                     return;
@@ -61,11 +61,11 @@ const MentorRegistration = () => {
                 navigate('/');
             }
         }
-        
+
         verify1();
     }, [id, navigate])
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!formData.email.trim()) {
             setError("Email is required!");
             return;
@@ -79,7 +79,28 @@ const MentorRegistration = () => {
         }
 
         setError("");
-        setStep(2);
+        
+        // Second verification using verify2 route
+        try {
+            const res = await fetch('/api/application/mentorship/verify2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: formData.email }),
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ message: 'Verification failed' }));
+                setError(errorData.message || 'Verification failed. Please check your email.');
+                return;
+            }
+
+            // Verification successful, proceed to step 2
+            setStep(2);
+        } catch (err) {
+            console.error('Verification error:', err);
+            setError("An error occurred during verification. Please try again.");
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -194,8 +215,7 @@ const MentorRegistration = () => {
                                             type="button"
                                             onClick={handleNext}
                                             disabled={isSubmitting}
-                                            className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50"
-                                        >
+                                            className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50">
                                             Next
                                         </button>
                                     </motion.div>

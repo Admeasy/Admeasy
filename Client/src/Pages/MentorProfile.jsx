@@ -191,7 +191,7 @@ export default function MentorProfile() {
         <div className="bg-white rounded-xl shadow-3d p-6 mb-6 relative">
           {currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username) && (
             <button
-              className="group flex items-center justify-start max-[400px]:w-[25px] max-[400px]:h-[25px] w-[45px] h-[45px] border-none rounded-full cursor-pointer absolute max-[400px]:top-2.5 max-[400px]:right-2.5 top-5 right-5 overflow-hidden shadow-[2px_2px_10px_rgba(0,0,0,0.199)] bg-red-500 transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] hover:w-[125px] hover:rounded-[40px]"
+              className="group flex items-center justify-start max-[400px]:w-[25px] max-[400px]:h-[25px] w-[45px] h-[45px] border-none rounded-full cursor-pointer absolute max-[400px]:top-1.75 max-[400px]:right-2.5 top-5 right-5 overflow-hidden shadow-[2px_2px_10px_rgba(0,0,0,0.199)] bg-red-500 transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] hover:w-[125px] hover:rounded-[40px]"
               onClick={handleLogout}>
               {/* Sign (Icon) */}
               <div
