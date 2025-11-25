@@ -159,6 +159,12 @@ const Admin = () => {
                 <p className="text-gray-600">Students Enrolled From the Banner</p>
               </div>
             </Link>
+            <Link to="/admin/notes">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-thead1 mb-4">Manage Notes</h2>
+                <p className="text-gray-600">Review and manage uploaded notes</p>
+              </div>
+            </Link>
           </div>
         </div>
       </motion.div>

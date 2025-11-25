@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useMentor } from '../context/MentorContext';
 import CourseSearchDropdown from "../components/CourseSearchDropdown";
 import FilterSection from "../components/FilterSection";
 import NotesCard from "../components/NotesCard";
 
 const Notes = () => {
   const navigate = useNavigate();
+  const { mentor, isLoading: mentorLoading } = useMentor();
   
   // Filter states
   const [selectedUniversity, setSelectedUniversity] = useState("all");
@@ -182,21 +184,37 @@ const Notes = () => {
           Notes Library
         </h1>
 
-        {/* Animated Search Button */}
+        {/* Search and Add Note Section */}
         <div className="mb-8 max-w-2xl mx-auto">
-          <button
-            onClick={() => navigate('/notes-search')}
-            className="w-full relative group"
-          >
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-[#6C63FF] transition-colors" />
-              <div className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 group-hover:border-[#6C63FF] transition-all shadow-lg text-left bg-white">
-                <span className="text-gray-400 animate-pulse">
-                  Search notes by title, course, or tags...
-                </span>
-              </div>
+          <div className="flex gap-4">
+            {/* Animated Search Button */}
+            <div className="flex-1">
+              <button
+                onClick={() => navigate('/notes-search')}
+                className="w-full relative group"
+              >
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-[#6C63FF] transition-colors" />
+                  <div className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 group-hover:border-[#6C63FF] transition-all shadow-lg text-left bg-white">
+                    <span className="text-gray-400 animate-pulse">
+                      Search notes by title, course, or tags...
+                    </span>
+                  </div>
+                </div>
+              </button>
             </div>
-          </button>
+
+            {/* Add Note Button - Only for Mentors */}
+            {mentor && !mentorLoading && (
+              <button
+                onClick={() => navigate('/add-note')}
+                className="flex items-center gap-2 bg-[#6C63FF] text-white px-6 py-4 rounded-2xl font-semibold shadow-lg hover:bg-[#5a52e8] transition-all duration-200 hover:shadow-xl"
+              >
+                <Plus size={20} />
+                Add Note
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filters */}

@@ -160,7 +160,7 @@ export default function MentorsProfile() {
       const mentorCourseName = typeof mentorCourse === 'object' && mentorCourse !== null
         ? mentorCourse.name || mentorCourse.title
         : mentorCourse;
-      matchedCourse = selectedCollege.courses.find(course =>
+      matchedCourse = selectedCollege.courses.find(course => 
         course.title === mentorCourseName || course.name === mentorCourseName
       );
     }
@@ -207,7 +207,7 @@ export default function MentorsProfile() {
     }
 
     if (name === 'course') {
-      const matchedCourse = selectedCollege?.courses?.find(course =>
+      const matchedCourse = selectedCollege?.courses?.find(course => 
         course.title === value || course.name === value
       );
       setSelectedCourse(matchedCourse || null);
