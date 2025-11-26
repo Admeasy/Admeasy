@@ -47,7 +47,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
-
+import FeedbackStars from './components/FeedbackStars';
 
 // Vartalaap Banner Imgs
 function App() {
@@ -201,6 +201,7 @@ function App() {
       </Routes>
 
       <ScrollUpButton />
+      <FeedbackStars/>
       {showBanner && !isAdminRoute &&
         <MgciBanner
           onClose={() => SetShowBanner(false)}

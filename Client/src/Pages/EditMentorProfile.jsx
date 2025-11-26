@@ -40,7 +40,6 @@ export default function MentorsProfile() {
   useEffect(() => {
     fetchMentor();
   }, [fetchMentor]);
-
   // Populate form when mentor data is available
   useEffect(() => {
     if (mentorData) {
