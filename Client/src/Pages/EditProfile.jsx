@@ -95,7 +95,6 @@ const EditProfile = () => {
 
   useEffect(() => {
     if (user && !hasInitialized) {
-      console.log('Initializing form with user data:', user);
       
       // Determine course and streamOrYear from multiple possible sources
       let courseValue = '';
@@ -105,28 +104,23 @@ const EditProfile = () => {
       if (user.course && user.course.includes('(')) {
         courseValue = user.course.split(' (')[0];
         streamOrYearValue = user.course.split('(')[1].replace(')', '');
-        console.log('Using combined course format:', { courseValue, streamOrYearValue });
       } 
       // Priority 2: Check if user.course exists without combined format
       else if (user.course) {
         courseValue = user.course;
-        console.log('Using simple course format:', courseValue);
       }
       // Priority 3: Fall back to courseLevel from onboarding
       else if (user.courseLevel) {
         courseValue = user.courseLevel;
-        console.log('Using courseLevel from onboarding:', courseValue);
       }
       
       // For streamOrYear, check courseDetails from onboarding if not already set
       if (!streamOrYearValue && user.courseDetails) {
         streamOrYearValue = user.courseDetails;
-        console.log('Using courseDetails for streamOrYear:', streamOrYearValue);
       }
       
       // Determine institute from multiple sources
       const instituteValue = user.institute || user.schoolName || user.collegeName || '';
-      console.log('Institute value:', instituteValue);
       
       setForm({
         name: user.name || '',
@@ -151,12 +145,6 @@ const EditProfile = () => {
         examsPreparingFor: user.examsPreparingFor || [],
         reasonForAdmeasy: user.reasonForAdmeasy || '',
         reasonForAdmeasyInput: user.reasonForAdmeasyInput || ''
-      });
-      
-      console.log('Form initialized with:', {
-        course: courseValue,
-        streamOrYear: streamOrYearValue,
-        institute: instituteValue
       });
       
       setPreview(user.imageUrl || user.image || fallbackProfilePic);

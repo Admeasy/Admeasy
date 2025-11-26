@@ -10,6 +10,7 @@ const b2 = new BackblazeB2Client();
 const multer = require('multer');
 const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
+const fetch = require('node-fetch');
 
 
 const storage = multer.memoryStorage();
@@ -125,7 +126,11 @@ router.get('/:username', async (req, res) => {
 
 router.post('/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { applicantId, email, password } = req.body;
+
+        if (!applicantId) {
+            return res.status(400).json({ success: false, message: 'Applicant ID is required' });
+        }
 
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Email and Password are required' });
@@ -139,16 +144,24 @@ router.post('/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const mentor = new Mentor({ email, password: hashedPassword });
-        await mentor.save();
-
-        const response = await fetch('/api/application/mentorship/' + id, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
-        if (!response.ok) {
+        
+        try {
+            const response = await fetch('http://localhost:5000/api/apply/mentorship/' + applicantId, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to delete application:', response.status, errorText);
+                return res.status(500).json({ success: false, message: 'Failed to delete application' });
+            }
+        } catch (fetchError) {
+            console.error('Error deleting application:', fetchError);
             return res.status(500).json({ success: false, message: 'Failed to delete application' });
         }
-
+        
+        await mentor.save();
         const accessToken = generateAccessToken(mentor);
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
@@ -214,7 +227,7 @@ router.post('/login', async (req, res) => {
     }
 })
 
-router.put('/me/:username', authenticateMentorJWT, upload.single('image'), async (req, res) => {
+router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req, res) => {
     try {
         const { name, username, phone, tagline, bio } = req.body;
         let competitiveExamsAttempted = [];
@@ -261,13 +274,13 @@ router.put('/me/:username', authenticateMentorJWT, upload.single('image'), async
             updateData.competitiveExamsAttempted = competitiveExamsAttempted;
         }
 
-        let mentor = await Mentor.findOneAndUpdate({ username: req.params.username }, updateData, { new: true });
+        let mentor = await Mentor.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
         if (req.file) {
             const extname = path.extname(req.file.originalname).toLowerCase();
-            const fileName = 'mentors/' + req.params.username + extname;
+            const fileName = 'mentors/' + mentor.username + extname;
             await b2.uploadBuffer(req.file.buffer, fileName);
             mentor.image = fileName;
         }

@@ -5,6 +5,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useMentor } from "../context/MentorContext";
+import { useUser } from "../context/UserContext";
 
 // Animation variants
 const fadeUpVariant = {
@@ -36,6 +38,8 @@ const MentorRegistration = () => {
     const [params, setParams] = useSearchParams();
     const id = params.get('id');
     const navigate = useNavigate();
+    const { fetchMentor } = useMentor();
+    const { setUser } = useUser();
 
     useEffect(() => {
         async function verify1() {
@@ -82,16 +86,21 @@ const MentorRegistration = () => {
         
         // Second verification using verify2 route
         try {
-            const res = await fetch('/api/application/mentorship/verify2', {
+            const res = await fetch('/api/apply/mentorship/verify2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email }),
+                body: JSON.stringify({ 
+                    email: formData.email.trim(),
+                    id: id 
+                }),
                 credentials: 'include'
             });
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({ message: 'Verification failed' }));
-                setError(errorData.message || 'Verification failed. Please check your email.');
+                // Handle both object with message property and string responses
+                const errorMessage = typeof errorData === 'string' ? errorData : (errorData?.message || 'Verification failed. Please check your email.');
+                setError(errorMessage);
                 return;
             }
 
@@ -129,6 +138,7 @@ const MentorRegistration = () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    applicantId: id,
                     email: formData.email,
                     password: formData.password,
                 }),
@@ -139,7 +149,28 @@ const MentorRegistration = () => {
 
             if (res.ok) {
                 toast.success("Account created successfully!");
-                navigate('/mentors/login');
+                
+                // Clear any user session to ensure we're in mentor mode
+                setUser(null);
+                
+                // Fetch mentor data and store in context
+                await fetchMentor();
+                
+                // Wait for mentor to be available in localStorage (set by MentorContext)
+                // This ensures the ProtectedRoute will see the mentor in context
+                let attempts = 0;
+                while (attempts < 10) {
+                    const mentorStored = localStorage.getItem('admeasy:mentor');
+                    const roleStored = localStorage.getItem('admeasy:authRole');
+                    if (mentorStored && roleStored === 'mentor') {
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    attempts++;
+                }
+                
+                // Navigate to profile page
+                navigate('/me');
             } else {
                 setError(data.message || "Registration failed");
             }

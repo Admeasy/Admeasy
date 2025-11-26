@@ -373,9 +373,9 @@ router.get('/auth/google/callback',
             const frontendUrl = getFrontendUrl();
             // Check if user has completed onboarding
             if (req.user.hasCompletedOnboarding) {
-                res.redirect(`${frontendUrl}/me/edit`);
+                res.redirect(`${frontendUrl}/me/edit?oauth_success=true`);
             } else {
-                res.redirect(`${frontendUrl}/onboarding`);
+                res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);

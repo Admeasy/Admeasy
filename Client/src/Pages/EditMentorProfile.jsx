@@ -309,7 +309,7 @@ export default function MentorsProfile() {
         payload.append('image', profilePic);
       }
 
-      const response = await fetch(`/api/mentors/me/${mentorData.username}`, {
+      const response = await fetch(`/api/mentors/me/${mentorData._id}`, {
         method: 'PUT',
         credentials: 'include',
         body: payload

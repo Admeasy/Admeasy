@@ -28,8 +28,6 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   console.warn('Warning: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set. Google OAuth will not work.');
 } else {
   const callbackURL = getCallbackURL();
-  console.log('Google OAuth callback URL:', callbackURL);
-  console.log('Make sure this EXACT URL is added to Google Cloud Console authorized redirect URIs');
   
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,

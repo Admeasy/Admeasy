@@ -179,7 +179,7 @@ const JobApplications = () => {
 
     const handleReject = async () => {
         try {
-            const res = await fetch(`/api/apply/mentorship/${selectedApp._id}`, {
+            const res = await fetch(`/api/apply/mentorship/${selectedApp.email}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
