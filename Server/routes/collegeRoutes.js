@@ -418,15 +418,12 @@ router.get('/gallery/:id', async (req, res) => {
             if (!files || files.length === 0) {
                 return res.json([]);
             }
-
-            // Filter out files with 'students/' in filename before processing
-            const galleryFiles = files.filter(file => !file.fileName.includes('students/'));
             
             // Get authorized URLs for each file (excluding student files)
-            const fileUrls = await Promise.all(galleryFiles.map(async (file) => {
+            const fileUrls = await files.map(async (file) => {
                 const auth = await b2Client.getDownloadAuthorization(file.fileName);
                 return auth.url;
-            }));
+            });
 
             res.json(fileUrls);
         } catch (b2Error) {
