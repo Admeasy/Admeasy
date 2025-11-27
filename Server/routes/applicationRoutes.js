@@ -58,6 +58,7 @@ router.get('/applications/:collectionName', verifyAdminToken, async (req, res) =
 
 router.post('/schedule', async (req, res) => {
     try {
+        console.log(req.body);
         const r = await fetch('https://script.google.com/macros/s/AKfycby-l-09yN5QJkJhHOlx2jwcXkl8Km-jpisyiZ2KcNpYCjmahO-8MTQlGe0U-FlVxnzfxA/exec', {
             method: 'POST',
             body: JSON.stringify(req.body),
@@ -70,6 +71,7 @@ router.post('/schedule', async (req, res) => {
         console.log(data)
 
         if (!r.ok || !data.includes('success')) {
+            console.log(r.ok, data)
             res.status(500).json('Failed to schedule an Interview.');
         }
 

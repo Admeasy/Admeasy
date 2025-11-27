@@ -161,10 +161,10 @@ const JobApplications = () => {
                 const errorText = await res.text();
                 throw new Error(errorText || 'Failed to accept application');
             }
-            
+
             // Consume the response body
             await res.json();
-            
+
             closeModal();
             // Use setTimeout to ensure modal closes first, then show toast
             setTimeout(() => {
@@ -179,7 +179,7 @@ const JobApplications = () => {
 
     const handleReject = async () => {
         try {
-            const res = await fetch(`/api/apply/mentorship/${selectedApp.email}`, {
+            const res = await fetch(`/api/apply/mentorship/${selectedApp._id}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -341,21 +341,19 @@ const JobApplications = () => {
                             <button
                                 onClick={() => { setShowInterviewModal(true); setInterviewData({ applicantName: selectedApp.name, applicantEmail: selectedApp.email, startDateTime: '', endDateTime: '', guests: [] }); }}
                                 disabled={selectedApp.isAccepted}
-                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-lg transition-colors ${
-                                    selectedApp.isAccepted 
-                                        ? 'bg-gray-400 cursor-not-allowed' 
+                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-lg transition-colors ${selectedApp.isAccepted
+                                        ? 'bg-gray-400 cursor-not-allowed'
                                         : 'bg-blue-500 hover:bg-blue-700 cursor-pointer'
-                                }`}>
+                                    }`}>
                                 Schedule Interview
                             </button>
                             <button
                                 onClick={handleAccept}
                                 disabled={selectedApp.isAccepted}
-                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-lg transition-colors ${
-                                    selectedApp.isAccepted 
-                                        ? 'bg-gray-400 cursor-not-allowed' 
+                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-lg transition-colors ${selectedApp.isAccepted
+                                        ? 'bg-gray-400 cursor-not-allowed'
                                         : 'bg-green-500 hover:bg-green-700 cursor-pointer'
-                                }`}>
+                                    }`}>
                                 Accept
                             </button>
                             <button
