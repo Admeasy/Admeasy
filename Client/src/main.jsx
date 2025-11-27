@@ -4,7 +4,8 @@ import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom'
 import { UserProvider } from './context/UserContext.jsx'
 import { MentorProvider } from './context/MentorContext.jsx'
-
+import zipyai from 'zipyai'
+zipyai.init("5f4200af")
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <UserProvider>
@@ -13,4 +14,4 @@ createRoot(document.getElementById('root')).render(
       </MentorProvider>
     </UserProvider>
   </BrowserRouter>
-)
+);
