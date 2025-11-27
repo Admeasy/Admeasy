@@ -125,4 +125,3 @@ const noteSchema = new mongoose.Schema(
 );
 
 module.exports = Admeasy.models.Note || Admeasy.model('Note', noteSchema);
-
