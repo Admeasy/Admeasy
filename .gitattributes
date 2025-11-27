@@ -1,0 +1,33 @@
+# Auto normalize text files to LF in repo
+* text=auto eol=lf
+
+# JavaScript, TypeScript, and web files: force LF
+*.js     text eol=lf
+*.jsx    text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.json   text eol=lf
+*.css    text eol=lf
+*.scss   text eol=lf
+*.html   text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.sh     text eol=lf
+
+# Prevent line ending normalization for binary files
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.svg    binary
+*.pdf    binary
+*.zip    binary
+*.mp4    binary
+*.webp   binary
+
+# Handle Windows-specific files (keep CRLF)
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.ps1    text eol=crlf

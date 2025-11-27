@@ -1,0 +1,237 @@
+import { useState, useEffect } from 'react'
+import '../App.css'
+import { motion } from 'framer-motion'
+import Section from '../components/AboutSection'
+import { useLocation } from 'react-router-dom'
+import TextPressure from '../../ReactBits/TextPressure/TextPressure'
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { EffectCards } from 'swiper/modules';
+
+// Swiper styles
+import 'swiper/css';
+import 'swiper/css/effect-cards';
+
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 60 },
+  visible: { opacity: 1, y: 0 },
+}
+
+const About = () => {
+     const location = useLocation();
+useEffect(() => {
+
+    if (location.hash) {
+      // Wait for DOM to render
+      setTimeout(() => {
+        const sectionId = location.hash.replace('#', '');
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 0); // 0ms delay ensures DOM is ready
+    }
+  }, [location]);
+
+
+
+  const [stroke, setStroke] = useState('2px white')
+  const [fSize, setFSize] = useState('2rem')
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth
+      if (width >= 1024) {
+        setStroke('4px white')
+      } else if (width >= 768) {
+        setStroke('3px white')
+      } else {
+        setStroke('2px white')
+      }
+
+      if (width >= 1280) setFSize('6rem')
+      else if (width >= 768) setFSize('4.5rem')
+      else if (width >= 640) setFSize('4rem')
+      else if (width >= 466) setFSize('2.5rem')
+      else if (width > 385) setFSize('2rem')
+      else setFSize('1.8rem')
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const teamMembers = [
+    {
+      emoji: '🧠',
+      name: 'Aadesh Panwar',
+      title: 'Founder & Chief Executive Officer (CEO)',
+      description: 'Manages college partnerships and overall legal operations.',
+    },
+    {
+      emoji: '🎨',
+      name: 'Nitish Kr. Yadav',
+      title: 'Co-founder & Co-Chief Technical Officer (Co-CTO)',
+      description: 'Frontend expert, UI designer',
+    },
+    {
+      emoji: '🛠️',
+      name: 'Ahsan',
+      title: 'Co-founder, Co-CTO & Chief Development Officer (CDO)',
+      description: 'Backend developer, R&D lead, and platform architect.',
+    },
+    {
+      emoji: '📋',
+      name: 'Divya Yadav',
+      title: 'Co-founder & Chief Operations Officer (COO)',
+      description: 'Keeps our day-to-day execution smooth and efficient.',
+    },
+    {
+  emoji: '📣',
+  name: 'Parth Tiwari',
+  title: 'Chief Marketing Officer (CMO)',
+  description: 'Marketing strategist, growth enabler,and brand visibility lead.',
+}
+  ];
+  return (
+    <>
+
+      <div className="w-full min-h-screen bg-white">
+        {/* Header Section */}
+        <div className='w-full h-full'>
+          <motion.header
+            variants={fadeUpVariant}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+            className="w-full h-fit m-auto p-4 sm:p-12 text-center relative">
+            <style>
+              {`
+            @media (max-width: 465px) {
+              .custom-top {
+                top: 6.5rem !important;
+              }
+            }
+          `}
+            </style>
+           {/* Simple Heading */}
+            {/* <h1 className='h-about custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-tprimary tracking-wide lg:tracking-widest z-5 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
+            */}
+
+<div className='h-max relative'>
+  <TextPressure
+    text="About Us!"
+    flex={true}
+    alpha={false}
+    stroke={false}
+    width={true}
+    weight={true}
+    italic={true}
+    textColor="black"
+    strokeColor="#ff0000"
+    minFontSize={16}
+  />
+</div>
+
+            {/* <h1 className='custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1> */}
+          </motion.header>
+        </div>
+        {/* Main Sections */}
+        <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-0 bg-white">
+          <Section>
+            <h2 className="text-2xl md:text-4xl font-semibold">What is Admeasy?</h2>
+            <p className="text-[12px] md:text-2xl text-gray-700 px-4">
+              <strong>Admeasy</strong> is a student-driven educational startup based in Indore, India, operating under the motto
+              <strong> "Made for Students, By Students".</strong> We focus on enhancing the academic experience by providing
+              tailored solutions and resources for students. With a small, dedicated team, we aim to bridge gaps in the
+              higher education sector through innovation and student-centric services.
+            </p>
+          </Section>
+          <Section id='who-We-Are'>
+            <h2 className="text-2xl md:text-4xl font-semibold">Who We Are?</h2>
+            <p className="text-[12px] md:text-2xl text-gray-700 px-4">
+              At <strong>Admeasy</strong>, we’re not just another college admission platform we’re a solution born from frustration.
+              It all started when our founder, <strong> Aadesh Panwar</strong>, completed school and began his college search. Instead of clarity, he found chaos: too many options, too little guidance, and worst of all endless spam calls after signing up on "big" admission websites that sold his personal data to colleges.
+              That’s when the idea for Admeasy was born a platform that connects students with the right colleges <strong> without compromising their privacy</strong>.
+            </p>
+          </Section>
+          <Section className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto text-center">
+              <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
+              Team Members
+              </h2>
+               <div className="flex flex-wrap justify-center gap-6">
+                {teamMembers.map((member, index) => (
+                  <div key={index}
+                    className="flex md:hidden flex-col items-center justify-evenly bg-white p-3 md:gap-2 rounded-2xl shadow hover:shadow-md w-full transition">
+                    <h3 className="text-2xl md:text-3xl font-semibold">{member.emoji}</h3>
+                    <h3 className="text-2xl md:text-3xl font-semibold text-gray-800">
+                      {member.name}
+                    </h3>
+                    <p className="text-sm text-indigo-600 font-medium mb-2">{member.title}</p>
+                    <p className="text-gray-700 text-sm">{member.description}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:flex justify-center gap-6">
+                <Swiper
+        effect={'cards'}
+        grabCursor={true}
+        modules={[EffectCards]}
+        className="w-full sm:w-[360px] h-[460px]"
+      >
+        {teamMembers.map((member, idx) => (
+          <SwiperSlide key={idx}>
+            <div className="bg-white rounded-2xl shadow-3d p-4 flex flex-col items-center justify-center text-center h-full">
+              <div className="text-5xl mb-4">{member.emoji}</div>
+              <h3 className="text-lg font-semibold text-gray-800">{member.name}</h3>
+              <p className="text-sm font-medium text-blue-600 mt-1">{member.title}</p>
+              <p className="text-gray-500 text-sm mt-3">{member.description}</p>
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
+              </div>
+            </div>
+          </Section>
+          <Section className="bg-white py-20 px-2 sm:px-6 lg:px-8 flex items-center justify-center min-h-screen">
+            <div className="max-w-3xl text-center">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-gray-900 mb-8">
+                What Makes Us Different
+              </h2>
+              <ul className="space-y-4 text-[16px] md:text-2xl text-gray-700">
+                <li>
+                  <strong>We never sell your data</strong> ever.
+                </li>
+                <li>
+                  <strong>No spam calls or annoying emails</strong>
+                </li>
+                <li>
+                  <strong>Talk to Mentors For Free</strong> and get real insights!
+                </li>
+                <li>
+                  <strong>Privacy and transparency first</strong> always.
+                </li>
+              </ul>
+            </div>
+          </Section>
+
+          <Section>
+            <h2 className="text-2xl md:text-4xl font-semibold">Our Vision</h2>
+            <p className="text-[14px] md:text-xl lg:text-2xl text-gray-700">
+            <strong> We’re currently focused on scaling across Delhi NCR, Madhya Pradesh, Chhattisgarh, Maharashtra, Uttar Pradesh, Punjab, and Haryana. </strong> So students from every corner can explore real opportunities and make smarter college choices
+           </p>
+          </Section>
+          
+        </main>
+      </div>
+    </>
+  )
+}
+
+export default About

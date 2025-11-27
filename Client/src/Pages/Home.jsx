@@ -1,0 +1,37 @@
+import FrontHome from '../HomeComponents/FrontHome'
+import CollegeCard from '../HomeComponents/CollegeCard'
+import Features from '../HomeComponents/Features'
+import CollabBanner from '../components/CollabBanner'
+import FAQ from '../HomeComponents/FAQ'
+import BlogSwiper from '../HomeComponents/BlogsSwiper'
+import StudentSwiper from '../HomeComponents/StudentSwiper'
+import { useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+const Home = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      setTimeout(() => {
+        const id = location.hash
+        const element = document.querySelector(id);
+        element?.scrollIntoView();
+      }, 0);
+    }
+  }, [location]);
+
+  return (
+    <main>
+      <FrontHome />
+      <StudentSwiper/>
+      <CollabBanner/>
+      <CollegeCard />
+      <BlogSwiper/>
+      <Features />
+      <FAQ />
+    </main>
+
+  )
+}
+
+export default Home
