@@ -24,7 +24,7 @@ const ManageMentors = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [deletingMentorUsername, setDeletingMentorUsername] = useState(null);
+  const [deletingMentorId, setDeletingMentorId] = useState(null);
   const [unlockedImages, setUnlockedImages] = useState({});
   const [unlockingImage, setUnlockingImage] = useState(null);
 
@@ -77,16 +77,16 @@ const ManageMentors = () => {
     setSelectedMentor(null);
   };
 
-  const handleDelete = async (username) => {
-    if (!username) {
-      showError('Mentor username is missing');
+  const handleDelete = async (mentorId) => {
+    if (!mentorId) {
+      showError('Mentor ID is missing');
       return;
     }
 
     if (!window.confirm('Are you sure you want to delete this mentor?')) return;
-    setDeletingMentorUsername(username);
+    setDeletingMentorId(mentorId);
     try {
-      const res = await fetch(`/api/mentors/${encodeURIComponent(username)}`, {
+      const res = await fetch(`/api/mentors/${encodeURIComponent(mentorId)}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -95,14 +95,14 @@ const ManageMentors = () => {
         throw new Error(errData.message || 'Failed to delete mentor');
       }
       toast.success('Mentor deleted successfully');
-      setMentors((prev) => prev.filter((mentor) => mentor.username !== username));
-      if (selectedMentor && selectedMentor.username === username) {
+      setMentors((prev) => prev.filter((mentor) => mentor._id !== mentorId));
+      if (selectedMentor && selectedMentor._id === mentorId) {
         closeModal();
       }
     } catch (err) {
       showError(err.message || 'Failed to delete mentor');
     } finally {
-      setDeletingMentorUsername(null);
+      setDeletingMentorId(null);
     }
   };
 
@@ -210,16 +210,16 @@ const ManageMentors = () => {
                 </div>
               </div>
               <button
-                className={`w-9/10 mx-auto mb-3 px-3 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center disabled:bg-gray-400 ${deletingMentorUsername === mentor.username ? 'cursor-not-allowed' : ''}`}
+                className={`w-9/10 mx-auto mb-3 px-3 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center disabled:bg-gray-400 ${deletingMentorId === mentor._id ? 'cursor-not-allowed' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(mentor.username);
+                  handleDelete(mentor._id);
                 }}
-                disabled={deletingMentorUsername === mentor.username}
+                disabled={deletingMentorId === mentor._id}
                 title="Delete mentor"
               >
                 <FaTrash className="mr-2" />
-                {deletingMentorUsername === mentor.username ? 'Deleting...' : 'Delete'}
+                {deletingMentorId === mentor._id ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           ))}
@@ -239,9 +239,9 @@ const ManageMentors = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-thead1">Mentor Details</h2>
               <div className="flex items-center gap-4">
                 <button
-                  className={`px-3 py-2 rounded-lg text-white transition-colors flex items-center justify-center ${deletingMentorUsername === selectedMentor.username ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
-                  onClick={() => handleDelete(selectedMentor.username)}
-                  disabled={deletingMentorUsername === selectedMentor.username}
+                  className={`px-3 py-2 rounded-lg text-white transition-colors flex items-center justify-center ${deletingMentorId === selectedMentor._id ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
+                  onClick={() => handleDelete(selectedMentor._id)}
+                  disabled={deletingMentorId === selectedMentor._id}
                   title="Delete mentor"
                 >
                   <FaTrash className="mr-2" />

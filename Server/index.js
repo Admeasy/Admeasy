@@ -39,7 +39,6 @@ app.use(cors({
     const allowList = [
       'https://admeasy.in',
       'http://localhost:5173',
-      process.env.FRONTEND_URL,
     ].filter(Boolean);
     if (!origin || allowList.includes(origin)) {
       return callback(null, true);

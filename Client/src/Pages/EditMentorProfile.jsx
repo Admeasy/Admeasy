@@ -253,7 +253,7 @@ export default function MentorsProfile() {
   const removeExam = (index) => {
     setExams(exams.filter((_, i) => i !== index));
   };
-
+  // Form Handler
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -309,7 +309,7 @@ export default function MentorsProfile() {
         payload.append('image', profilePic);
       }
 
-      const response = await fetch(`/api/mentors/me/${mentorData.username}`, {
+      const response = await fetch(`/api/mentors/me/${mentorData._id}`, {
         method: 'PUT',
         credentials: 'include',
         body: payload
@@ -416,7 +416,7 @@ export default function MentorsProfile() {
             </label>
             <SearchableSelect
               name="college"
-            value={formData.college?.name || ''}
+              value={formData.college?.name || ''}
               onChange={handleInputChange}
               options={colleges}
               placeholder="Search and select college"
@@ -437,7 +437,7 @@ export default function MentorsProfile() {
               onChange={handleInputChange}
               options={selectedCollege?.courses || []}
               placeholder={selectedCollege ? "Search and select course" : "Select a college first"}
-              disabled={!selectedCollege}
+              
               getOptionLabel={(course) => course.title || course.name || ''}
               getOptionValue={(course) => course._id || course.id || ''}
             />

@@ -10,6 +10,7 @@ const b2 = new BackblazeB2Client();
 const multer = require('multer');
 const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
+const fetch = require('node-fetch');
 
 
 const storage = multer.memoryStorage();
@@ -84,9 +85,9 @@ router.get('/me/pic', authenticateMentorJWT, async (req, res) => {
 });
 
 // GET MENTOR PROFILE PICTURE BY USERNAME (must be before /:username route)
-router.get('/:username/pic', async (req, res) => {
+router.get('/:id/pic', async (req, res) => {
     try {
-        const mentor = await Mentor.findOne({ username: req.params.username });
+        const mentor = await Mentor.findById(req.params.id);
         if (!mentor || !mentor.image) {
             return res.json(null);
         }
@@ -125,7 +126,11 @@ router.get('/:username', async (req, res) => {
 
 router.post('/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { applicantId, email, password } = req.body;
+
+        if (!applicantId) {
+            return res.status(400).json({ success: false, message: 'Applicant ID is required' });
+        }
 
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Email and Password are required' });
@@ -139,16 +144,24 @@ router.post('/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const mentor = new Mentor({ email, password: hashedPassword });
-        await mentor.save();
-
-        const response = await fetch('/api/application/mentorship/' + id, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
-        if (!response.ok) {
+        
+        try {
+            const response = await fetch('http://localhost:5000/api/apply/mentorship/' + applicantId, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to delete application:', response.status, errorText);
+                return res.status(500).json({ success: false, message: 'Failed to delete application' });
+            }
+        } catch (fetchError) {
+            console.error('Error deleting application:', fetchError);
             return res.status(500).json({ success: false, message: 'Failed to delete application' });
         }
-
+        
+        await mentor.save();
         const accessToken = generateAccessToken(mentor);
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
@@ -214,7 +227,7 @@ router.post('/login', async (req, res) => {
     }
 })
 
-router.put('/me/:username', authenticateMentorJWT, upload.single('image'), async (req, res) => {
+router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req, res) => {
     try {
         const { name, username, phone, tagline, bio } = req.body;
         let competitiveExamsAttempted = [];
@@ -261,13 +274,13 @@ router.put('/me/:username', authenticateMentorJWT, upload.single('image'), async
             updateData.competitiveExamsAttempted = competitiveExamsAttempted;
         }
 
-        let mentor = await Mentor.findOneAndUpdate({ username: req.params.username }, updateData, { new: true });
+        let mentor = await Mentor.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
         if (req.file) {
             const extname = path.extname(req.file.originalname).toLowerCase();
-            const fileName = 'mentors/' + req.params.username + extname;
+            const fileName = 'mentors/' + mentor.username + extname;
             await b2.uploadBuffer(req.file.buffer, fileName);
             mentor.image = fileName;
         }
@@ -356,15 +369,29 @@ router.post('/logout', authenticateMentorJWT, async (req, res) => {
     }
 });
 
-router.delete('/:username', async (req, res) => {
+router.delete('/:id', async (req, res) => {
     const admin = verifyAdminFromCookie(req);
 
     if (admin) {
         try {
-            const mentor = await Mentor.findOneAndDelete({ username: req.params.username });
+            // Find the mentor first to get the image path
+            const mentor = await Mentor.findById(req.params.id);
             if (!mentor) {
                 return res.status(404).json({ success: false, message: 'Mentor not found' });
             }
+
+            // Delete the mentor's image from B2 if it exists
+            if (mentor.image) {
+                try {
+                    await b2.deleteFile(mentor.image);
+                } catch (b2Error) {
+                    console.error('Error deleting mentor image from B2:', b2Error);
+                    return res.status(500).json({ success: false, message: 'Error deleting mentor image from B2' });
+                }
+            }
+
+            // Delete the mentor from database
+            await Mentor.findByIdAndDelete(req.params.id);
             return res.json({ success: true, message: 'Mentor deleted successfully', mentorId: mentor._id });
         } catch (error) {
             console.log(error);
@@ -374,10 +401,28 @@ router.delete('/:username', async (req, res) => {
 
     authenticateMentorJWT(req, res, async () => {
         try {
-            if (!req.mentor || req.mentor.username !== req.params.username) {
+            if (!req.mentor || req.mentor._id !== req.params.id) {
                 return res.status(403).json({ success: false, message: 'Not authorized to delete this mentor' });
             }
-            await Mentor.findOneAndDelete({ username: req.params.username });
+
+            // Find the mentor first to get the image path
+            const mentor = await Mentor.findById(req.params.id);
+            if (!mentor) {
+                return res.status(404).json({ success: false, message: 'Mentor not found' });
+            }
+
+            // Delete the mentor's image from B2 if it exists
+            if (mentor.image) {
+                try {
+                    await b2.deleteFile(mentor.image);
+                } catch (b2Error) {
+                    console.error('Error deleting mentor image from B2:', b2Error);
+                    return res.status(500).json({ success: false, message: 'Error deleting mentor image from B2' });
+                }
+            }
+
+            // Delete the mentor from database
+            await Mentor.findByIdAndDelete(req.params.id);
             res.status(200).json({ success: true, message: 'Mentor deleted successfully' });
         } catch (error) {
             console.log(error);

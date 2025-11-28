@@ -86,8 +86,8 @@ const Mentors = () => {
         }
     }
 
-    async function fetchMentorImageUrl(username) {
-        const res = await fetch(`/api/mentors/${username}/pic`);
+    async function fetchMentorImageUrl(id) {
+        const res = await fetch(`/api/mentors/${id}/pic`);
         const url = await res.json();
 
         return url;
@@ -129,7 +129,7 @@ const Mentors = () => {
 
                 const mentorsWithLogos = await Promise.all(
                     mentorsFromDB.map(async (mentor) => {
-                        const image = await fetchMentorImageUrl(mentor.username);
+                        const image = await fetchMentorImageUrl(mentor._id);
                         const college = typeof mentor.college === 'object' && mentor.college !== null
                           ? mentor.college
                           : (mentor.college ? JSON.parse(mentor.college) : null);

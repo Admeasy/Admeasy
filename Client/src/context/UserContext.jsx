@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const UserContext = createContext();
 
@@ -31,12 +32,115 @@ function getInitialUser() {
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(getInitialUser); // user object: { name, email, image, ... }
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Verify authentication with server on mount if localStorage has data
+  // Verify authentication with server on mount and when location changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const verifyAuth = async () => {
+      // Check if this is an OAuth redirect - check both location.search and window.location.search
+      const searchParams = location.search || window.location.search;
+      const urlParams = new URLSearchParams(searchParams);
+      const oauthSuccessParam = urlParams.get('oauth_success');
+      const isOAuthSuccess = oauthSuccessParam === 'true';
+      
+      // If OAuth success, fetch user immediately
+      if (isOAuthSuccess) {
+        // Store the intended path and set OAuth flag
+        const intendedPath = location.pathname;
+        sessionStorage.setItem('oauth_in_progress', 'true');
+        sessionStorage.setItem('oauth_intended_path', intendedPath);
+        
+        // Remove the query parameter from URL (but keep the pathname)
+        navigate(intendedPath, { replace: true });
+        
+        // Retry function to fetch user data
+        const fetchUserWithRetry = async (retries = 3, delay = 500) => {
+          for (let i = 0; i < retries; i++) {
+            try {
+              // Wait before each attempt (longer delay for first attempt)
+              if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+              } else {
+                // First attempt: wait a bit longer to ensure cookies are set
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+              
+              // Try to refresh token first (optional - tokens are fresh but this ensures they're valid)
+              try {
+                const refreshRes = await fetch("/api/users/refresh", {
+                  method: "POST",
+                  credentials: "include",
+                });
+                if (!refreshRes.ok) {
+                  const refreshError = await refreshRes.json().catch(() => ({}));
+                  console.warn(`Token refresh failed (attempt ${i + 1}):`, refreshError);
+                  // Continue anyway - tokens might still be valid
+                }
+              } catch (refreshErr) {
+                console.warn(`Token refresh error (attempt ${i + 1}, non-fatal):`, refreshErr);
+              }
+              
+              // Fetch user data directly (tokens should be in cookies)
+              const res = await fetch("/api/users/me", {
+                credentials: "include",
+              });
+              
+              if (res.ok) {
+                const data = await res.json();
+                let userObj = data.user;
+                
+                // Fetch profile picture
+                try {
+                  const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+                  if (imageRes.ok) {
+                    const imageUrl = await imageRes.json();
+                    userObj.imageUrl = imageUrl;
+                  }
+                } catch (imageErr) {
+                  console.warn('Failed to fetch profile picture:', imageErr);
+                }
+                
+                setUser(userObj);
+                // Navigation will be handled by the useEffect that watches for user changes
+                return true; // Success
+              } else {
+                const errorData = await res.json().catch(() => ({}));
+                console.warn(`Failed to fetch user (attempt ${i + 1}/${retries}):`, res.status, errorData);
+                
+                // If it's the last attempt, give up
+                if (i === retries - 1) {
+                  console.error('All retry attempts failed to fetch user after OAuth');
+                  setUser(null);
+                  localStorage.removeItem(USER_STORAGE_KEY);
+                  localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+                  return false;
+                }
+              }
+            } catch (err) {
+              console.warn(`Error fetching user (attempt ${i + 1}/${retries}):`, err);
+              
+              // If it's the last attempt, give up
+              if (i === retries - 1) {
+                console.error('OAuth verification failed after all retries:', err);
+                setUser(null);
+                localStorage.removeItem(USER_STORAGE_KEY);
+                localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+                return false;
+              }
+            }
+          }
+          return false;
+        };
+        
+        // Start the retry process
+        await fetchUserWithRetry();
+        return;
+      }
+      
+      // Normal verification flow
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
       const hasStoredUser = localStorage.getItem(USER_STORAGE_KEY);
       
@@ -76,7 +180,30 @@ export function UserProvider({ children }) {
     };
 
     verifyAuth();
-  }, []); // Only run on mount
+  }, [location]); // Run on mount and when location changes
+
+  // Handle navigation after OAuth user is set
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Check if we just completed OAuth and user is now set
+    // Look for oauth_success in sessionStorage as a flag
+    const oauthInProgress = sessionStorage.getItem('oauth_in_progress');
+    const intendedPath = sessionStorage.getItem('oauth_intended_path');
+    
+    if (oauthInProgress === 'true' && user && intendedPath) {
+      // Clear the flags
+      sessionStorage.removeItem('oauth_in_progress');
+      sessionStorage.removeItem('oauth_intended_path');
+      
+      // Navigate to intended path if we're not already there
+      if (location.pathname !== intendedPath) {
+        setTimeout(() => {
+          navigate(intendedPath, { replace: true });
+        }, 50);
+      }
+    }
+  }, [user, location.pathname, navigate]);
 
   // Sync state across tabs when localStorage changes
   useEffect(() => {

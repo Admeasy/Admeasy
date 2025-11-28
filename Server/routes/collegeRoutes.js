@@ -418,12 +418,12 @@ router.get('/gallery/:id', async (req, res) => {
             if (!files || files.length === 0) {
                 return res.json([]);
             }
-
-            // Get authorized URLs for each file
-            const fileUrls = await Promise.all(files.map(async (file) => {
+            
+            // Get authorized URLs for each file (excluding student files)
+            const fileUrls = await files.map(async (file) => {
                 const auth = await b2Client.getDownloadAuthorization(file.fileName);
                 return auth.url;
-            }));
+            });
 
             res.json(fileUrls);
         } catch (b2Error) {
