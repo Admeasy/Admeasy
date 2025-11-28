@@ -85,9 +85,9 @@ router.get('/me/pic', authenticateMentorJWT, async (req, res) => {
 });
 
 // GET MENTOR PROFILE PICTURE BY USERNAME (must be before /:username route)
-router.get('/:username/pic', async (req, res) => {
+router.get('/:id/pic', async (req, res) => {
     try {
-        const mentor = await Mentor.findOne({ username: req.params.username });
+        const mentor = await Mentor.findById(req.params.id);
         if (!mentor || !mentor.image) {
             return res.json(null);
         }

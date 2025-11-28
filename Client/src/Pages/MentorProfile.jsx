@@ -76,7 +76,7 @@ export default function MentorProfile() {
           // Fetch profile image if available
           if (mentorData.image) {
             try {
-              const imageRes = await fetch(`/api/mentors/${username}/pic`);
+              const imageRes = await fetch(`/api/mentors/${mentorData._id}/pic`);
               if (imageRes.ok) {
                 const imageUrl = await imageRes.json();
                 if (imageUrl) {
