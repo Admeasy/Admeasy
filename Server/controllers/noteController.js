@@ -3,9 +3,6 @@ const Note = require('../models/noteSchema');
 const BackblazeB2Client = require('../b2Client');
 
 const b2Client = new BackblazeB2Client();
-const BackblazeB2Client = require('../b2Client');
-
-const b2Client = new BackblazeB2Client();
 
 const buildFilter = ({ search, university, programme, course }) => {
   const filter = { status: 'published' };
