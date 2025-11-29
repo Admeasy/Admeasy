@@ -4,7 +4,7 @@ import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
 import { Edit, MapPin, GraduationCap, Award, MessagesSquare } from 'lucide-react';
 import { toast } from 'react-toastify';
-
+import LoadingButton from '../components/LoadingButton';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function MentorProfile() {
@@ -148,7 +148,7 @@ export default function MentorProfile() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600"> <LoadingButton/> Loading profile...</p>
         </div>
       </div>
     );
