@@ -46,7 +46,7 @@ const BlogDetail = () => {
           <p className="text-red-500 text-lg mb-4">{error || 'Blog not found'}</p>
           <button
             onClick={() => navigate('/blogs')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="cursor-pointer px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
           >
             Back to Blogs
           </button>
@@ -72,11 +72,11 @@ const BlogDetail = () => {
           {/* Thumbnail */}
           <div className="w-full p-3 sm:h-96 overflow-hidden flex justify-center">
             <img
-              src={`https://admeasy.in${blog.Thumbnail}`}
+              src={`${blog.Thumbnail}`}
               alt={blog.Title}
               className=" object-cover rounded-2xl"
               onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/800x400?text=Blog+Image';
+                e.target.src ='https://placehold.co/144x144?text=No+Image';
               }}
             />
           </div>

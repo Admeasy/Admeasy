@@ -77,11 +77,11 @@ const Blogs = () => {
           <div className="p-1 flex-shrink-0">
             <img
               draggable="false"
-              src={`https://admeasy.in${blog.Thumbnail}`}
+              src={`${blog.Thumbnail}`}
               alt={blog.Title}
               className="w-50 h-full object-cover rounded-l-2xl"
               onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/144?text=No+Image';
+                e.target.src = 'https://placehold.co/144x144/EEE/AAA?text=No+Image';
               }}
             />
           </div>
