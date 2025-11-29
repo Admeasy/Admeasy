@@ -82,7 +82,7 @@ function MentorsLogin({ onLoginSuccess }) {
         // Navigate to profile edit page
         navigate('/me');
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || "Invalid username or password");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");

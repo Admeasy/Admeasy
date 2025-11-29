@@ -22,6 +22,7 @@ import ResetPassword from './Pages/ResetPassword';
 import Course from './Pages/Course'
 import Notes from './Pages/Notes';
 import NotesSearch from './Pages/NotesSearch';
+import AddNote from './Pages/AddNote';
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
@@ -45,9 +46,10 @@ import TextPressure from "../ReactBits/TextPressure/TextPressure"
 import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
+import ManageNotes from './Pages/ManageNotes';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
-
+import FeedbackStars from './components/FeedbackStars';
 
 // Vartalaap Banner Imgs
 function App() {
@@ -191,16 +193,19 @@ function App() {
         <Route path='/notes' element={<Notes/>}></Route>
         <Route path="/notes/:id" element={<NotesPage />} />
         <Route path="/notes-search" element={<NotesSearch />} />
+        <Route path="/add-note" element={<AddNote />} />
 
         <Route path='/admin/enrollments'element={<Enrollments/>}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
         <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
+        <Route path='/admin/notes' element={<ManageNotes />}></Route>
 
         {/* 404 Slap */}
         <Route path='*' element={<NotFound />} />
       </Routes>
 
       <ScrollUpButton />
+      <FeedbackStars/>
       {showBanner && !isAdminRoute &&
         <MgciBanner
           onClose={() => SetShowBanner(false)}
