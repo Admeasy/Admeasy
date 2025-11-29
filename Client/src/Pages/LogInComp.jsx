@@ -10,6 +10,7 @@ import { MdAlternateEmail } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react"
 import { MdLockOutline } from "react-icons/md";
 import { toast } from 'react-toastify'
+import LoadingButton from '../components/LoadingButton'
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 60 },
     visible: { opacity: 1, y: 0 },
@@ -51,6 +52,7 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
         }
         setError('');
         setIsSubmitting(true);
+
         try {
             const res = await fetch('/api/users/login', {
                 method: 'POST',
@@ -64,7 +66,7 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
                 setPassword('');
                 setMentor(null); // ensure mentor session is cleared
                 await fetchUser(); // Refresh user context
-                isOpen ? onClose() : navigate('/me');
+                navigate('/me/edit');
                 toast.info("Please Setup Your Profile")
             } else {
                 setError(data.message || 'Login failed');
@@ -155,11 +157,8 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
     Forgot Password?
   </Link>
 </div>
-                    {/* <div className="flex justify-end">
-                    <Link to="/forgot-password" className="text-blue-600 hover:underline text-sm">Forgot password?</Link>
-                </div> */}
                 <div className='w-full text-center'>
-                    <button
+                    {isSubmitting ?<LoadingButton text={'Logging In...'} variant={'blue'}/> :<button
                         type="submit"
                         className=" font-admeasy-bold font-inherit bg-[#f0f0f0] border-0 text-[#242424] rounded-lg
         text-[1.35rem] px-4 sm:px-6 md:px-8 lg:px-12 py-[0.375em] font-semibold 
@@ -171,8 +170,9 @@ export default function LogInComp({ isOpen, onClose,showLogin,setShowLogin}) {
       "
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? 'Logging In...' : 'Log In'}
-                    </button>
+                        Log In
+                    </button> }
+                    
                     </div>
                 </form>
                 <div className="mt-4 flex items-center justify-center">

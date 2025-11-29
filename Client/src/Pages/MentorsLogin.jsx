@@ -69,7 +69,7 @@ function MentorsLogin({ onLoginSuccess }) {
         navigate('/me');
         window.location.reload();
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || "Invalid username or password");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");

@@ -185,8 +185,8 @@ const Notes = () => {
         </h1>
 
         {/* Search and Add Note Section */}
-        <div className="mb-8 max-w-2xl mx-auto">
-          <div className="flex gap-4">
+        <div className="mb-8  max-w-2xl mx-auto">
+          <div className="flex flex-col sm:flex-row gap-4">
             {/* Animated Search Button */}
             <div className="flex-1">
               <button
@@ -205,6 +205,7 @@ const Notes = () => {
             </div>
 
             {/* Add Note Button - Only for Mentors */}
+            <div className="w-full sm:w-max flex justify-center">
             {mentor && !mentorLoading && (
               <button
                 onClick={() => navigate('/add-note')}
@@ -214,6 +215,7 @@ const Notes = () => {
                 Add Note
               </button>
             )}
+            </div>
           </div>
         </div>
 
