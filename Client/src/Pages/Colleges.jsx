@@ -6,6 +6,7 @@ import SearchLogo from '../assets/Others/Search-logo.webp'
 import { motion } from 'framer-motion'
 import { FaShareAlt } from "react-icons/fa";
 import SharePopUp from '../components/SharePopUp';
+import SEO from '../components/SEO';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -147,6 +148,12 @@ useEffect(() => {
 
   return (
     <>
+      <SEO
+        title="Colleges in India - Search & Compare | Admeasy"
+        description="Search and compare top colleges in India. Find detailed information about IITs, IIMs, DU colleges, engineering colleges, medical colleges and more."
+        keywords="colleges in India, IIT colleges, IIM colleges, DU colleges, engineering colleges, medical colleges, college search, college comparison"
+        url="https://admeasy.in/colleges"
+      />
       {/* Search bar */}
       <div className="w-full m-0 my-4 p-4 flex items-center justify-center relative">
         <input

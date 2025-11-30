@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FileText, User, File, Download, Share2, Eye, Heart, ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 
 const NotesPage = () => {
   const { id } = useParams();
@@ -124,6 +125,48 @@ const NotesPage = () => {
     };
   }, [id]);
 
+  // Add structured data for note
+  useEffect(() => {
+    if (note) {
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": note.title,
+        "description": note.description,
+        "educationalLevel": note.standard,
+        "learningResourceType": "Study Notes",
+        "author": {
+          "@type": "Person",
+          "name": note.uploaderName
+        },
+        "provider": {
+          "@type": "Organization",
+          "name": "Admeasy"
+        },
+        "inLanguage": "en",
+        "isAccessibleForFree": note.isFree || false,
+        "offers": note.isFree ? undefined : {
+          "@type": "Offer",
+          "price": note.price || 0,
+          "priceCurrency": "INR"
+        }
+      };
+      
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      script.id = 'note-structured-data';
+      document.head.appendChild(script);
+      
+      return () => {
+        const existingScript = document.getElementById('note-structured-data');
+        if (existingScript) {
+          document.head.removeChild(existingScript);
+        }
+      };
+    }
+  }, [note]);
+
   const handleDownload = () => {
     if (!note?.fileUrl) {
       alert("Download link is not available yet.");
@@ -193,6 +236,12 @@ const NotesPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
+      <SEO
+        title={note ? `${note.title} - Study Notes | Admeasy` : 'Study Notes | Admeasy'}
+        description={note?.description || 'Access premium study notes for your courses'}
+        keywords={`${note?.title || ''}, ${note?.standard || ''}, study notes, ${note?.course || ''}, ${note?.university || ''}`}
+        url={`https://admeasy.in/notes/${id}`}
+      />
       {/* Back Button */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">

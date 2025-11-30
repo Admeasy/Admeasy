@@ -5,6 +5,7 @@ import { useMentor } from '../context/MentorContext';
 import CourseSearchDropdown from "../components/CourseSearchDropdown";
 import FilterSection from "../components/FilterSection";
 import NotesCard from "../components/NotesCard";
+import SEO from "../components/SEO";
 
 const Notes = () => {
   const navigate = useNavigate();
@@ -179,6 +180,12 @@ const Notes = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
+      <SEO
+        title="Study Notes Library - Premium Notes for Students | Admeasy"
+        description="Access premium study notes for CA Foundation, JEE, NEET, and university courses. Download notes from verified mentors and excel in your exams."
+        keywords="study notes, CA Foundation notes, JEE notes, NEET notes, university notes, exam preparation, study materials"
+        url="https://admeasy.in/notes"
+      />
       <div className="w-[90%] lg:w-[95%] mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">
           Notes Library
