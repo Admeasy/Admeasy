@@ -58,6 +58,7 @@ router.get('/applications/:collectionName', verifyAdminToken, async (req, res) =
 
 router.post('/schedule', async (req, res) => {
     try {
+        console.log(req.body);
         const r = await fetch('https://script.google.com/macros/s/AKfycby-l-09yN5QJkJhHOlx2jwcXkl8Km-jpisyiZ2KcNpYCjmahO-8MTQlGe0U-FlVxnzfxA/exec', {
             method: 'POST',
             body: JSON.stringify(req.body),
@@ -70,6 +71,7 @@ router.post('/schedule', async (req, res) => {
         console.log(data)
 
         if (!r.ok || !data.includes('success')) {
+            console.log(r.ok, data)
             res.status(500).json('Failed to schedule an Interview.');
         }
 
@@ -361,20 +363,30 @@ router.post('/mentorship/verify', async (req, res) => {
 
 router.post('/mentorship/verify2', async (req, res) => {
     try {
-        if (!req.body || !req.body.email) {
-            return res.status(400).json('Missing email in request body');
+        if (!req.body || !req.body.email || !req.body.id) {
+            return res.status(400).json({ message: 'Missing email or id in request body' });
         }
-        const { email } = req.body;
-        const applicantExists = await MentorshipRequest.findOne({ email: email });
+        const { email, id } = req.body;
+        
+        // Find applicant by id first
+        const applicant = await MentorshipRequest.findById(id);
+        if (!applicant) {
+            return res.status(404).json({ message: 'Applicant not found' });
+        }
 
-        if (applicantExists) {
-            applicantExists.isAccepted ? res.status(200).json() : res.status(401).json('Unauthorized Access');
-        } else {
-            res.status(404).json('Applicant not found')
+        // Check if applicant is accepted
+        if (!applicant.isAccepted) {
+            return res.status(401).json({ message: 'Unauthorized Access' });
         }
+        
+        if (email !== applicant.email) {
+            return res.status(403).json({ message: 'Email does not match the application' });
+        }
+
+        res.status(200).json({ message: 'Verification successful' });
     } catch (e) {
         console.error('Error in /mentorship/verify2:', e);
-        res.status(500).json('Internal Server Error');
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 })
 

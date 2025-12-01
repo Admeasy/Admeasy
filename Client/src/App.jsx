@@ -49,7 +49,6 @@ import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
-import AuthPage from './components/AuthPage';
 
 // Vartalaap Banner Imgs
 function App() {

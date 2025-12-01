@@ -5,6 +5,7 @@ import { useUser } from '../context/UserContext';
 import { Edit, MapPin, GraduationCap, Award, MessagesSquare } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LoadingButton from '../components/LoadingButton';
+import SEO from '../components/SEO';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function MentorProfile() {
@@ -76,9 +77,10 @@ export default function MentorProfile() {
           // Fetch profile image if available
           if (mentorData.image) {
             try {
-              const imageRes = await fetch(`/api/mentors/${username}/pic`);
+              const imageRes = await fetch(`/api/mentors/${mentorData._id}/pic`);
               if (imageRes.ok) {
                 const imageUrl = await imageRes.json();
+                console.log(imageUrl);
                 if (imageUrl) {
                   setProfileImageUrl(imageUrl);
                 } else {
@@ -173,7 +175,6 @@ export default function MentorProfile() {
 
   // Extract exams array
   const exams = mentor.competitiveExamsAttempted || [];
-  const examCount = Array.isArray(exams) ? exams.length : 0;
   const examList = Array.isArray(exams)
     ? exams.map(exam => {
       if (typeof exam === 'string') {
@@ -183,15 +184,60 @@ export default function MentorProfile() {
     }).filter(exam => exam.name)
     : [];
 
+  // Prepare data for SEO
+  const courseData = mentor.course && (typeof mentor.course === 'object' && mentor.course !== null
+    ? mentor.course
+    : (mentor.course ? (() => {
+        try {
+          return JSON.parse(mentor.course);
+        } catch {
+          return null;
+        }
+      })() : null));
+  const collegeData = mentor.college && (typeof mentor.college === 'object' && mentor.college !== null
+    ? mentor.college
+    : (mentor.college ? (() => {
+        try {
+          return JSON.parse(mentor.college);
+        } catch {
+          return null;
+        }
+      })() : null));
+  
+  const mentorName = mentor.name || mentor.username || 'Mentor';
+  const mentorTitle = `${mentorName} | Mentor @ Admeasy`;
+  const mentorDescription = mentor.tagline 
+    ? `${mentor.tagline}${collegeData ? ` - Mentor at ${collegeData.name}` : ''}${courseData ? ` specializing in ${courseData.name || courseData.title}` : ''}. Connect with verified mentors on Admeasy.`
+    : `Connect with ${mentorName}${collegeData ? ` from ${collegeData.name}` : ''}${courseData ? ` - ${courseData.name || courseData.title} mentor` : ''}. Get real insights and guidance from verified mentors on Admeasy.`;
+  
+  const mentorKeywords = [
+    mentorName,
+    mentor.username,
+    'mentor',
+    'admeasy',
+    collegeData?.name,
+    courseData?.name || courseData?.title,
+    ...(examList.map(exam => exam.name))
+  ].filter(Boolean).join(', ');
+  
+  const mentorImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';
+  const mentorUrl = `https://admeasy.in/mentors/${mentor.username || mentor._id}`;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
+      <SEO
+        title={mentorTitle}
+        description={mentorDescription}
+        keywords={mentorKeywords}
+        image={mentorImage}
+        url={mentorUrl} />
       {/* Main Profile Container */}
       <div className="max-w-4xl mx-auto px-4 pt-8">
         {/* Profile Header - Instagram Style */}
         <div className="bg-white rounded-xl shadow-3d p-6 mb-6 relative">
-          {currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username) && (
+          {currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username) && (!window.location.href.toString().includes('/mentors')) && (
             <button
-              className="group flex items-center justify-start max-[400px]:w-[25px] max-[400px]:h-[25px] w-[45px] h-[45px] border-none rounded-full cursor-pointer absolute max-[400px]:top-2.5 max-[400px]:right-2.5 top-5 right-5 overflow-hidden shadow-[2px_2px_10px_rgba(0,0,0,0.199)] bg-red-500 transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] hover:w-[125px] hover:rounded-[40px]"
+              className="group flex items-center justify-start max-[400px]:w-[25px] max-[400px]:h-[25px] w-[45px] h-[45px] border-none rounded-full cursor-pointer absolute max-[400px]:top-1.75 max-[400px]:right-2.5 top-5 right-5 overflow-hidden shadow-[2px_2px_10px_rgba(0,0,0,0.199)] bg-red-500 transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] hover:w-[125px] hover:rounded-[40px]"
               onClick={handleLogout}>
               {/* Sign (Icon) */}
               <div

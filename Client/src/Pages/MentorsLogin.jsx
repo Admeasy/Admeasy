@@ -36,7 +36,7 @@ function MentorsLogin({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const { fetchMentor } = useMentor();
+  const { fetchMentor, mentor } = useMentor();
   const { setUser } = useUser();
   const navigate = useNavigate();
 
@@ -65,9 +65,22 @@ function MentorsLogin({ onLoginSuccess }) {
         // Fetch mentor data and store in context
         setUser(null); // ensure user session is cleared
         await fetchMentor();
+        
+        // Wait for mentor to be available in localStorage (set by MentorContext)
+        // This ensures the ProtectedRoute will see the mentor in context
+        let attempts = 0;
+        while (attempts < 10) {
+          const mentorStored = localStorage.getItem('admeasy:mentor');
+          const roleStored = localStorage.getItem('admeasy:authRole');
+          if (mentorStored && roleStored === 'mentor') {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 50));
+          attempts++;
+        }
+        
         // Navigate to profile edit page
         navigate('/me');
-        window.location.reload();
       } else {
         setError(data.message || "Invalid username or password");
       }

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import Envelope from '../assets/Icons/envelope.svg'
 import Phone from '../assets/Icons/phone.svg'
 import WA from '../assets/Icons/wa.webp'
+import SEO from '../components/SEO'
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -16,6 +17,12 @@ const Contact = () => {
   
   return (
     <>
+    <SEO
+      title="Contact Us - Get in Touch | Admeasy"
+      description="Have questions? Contact Admeasy for support, partnerships, or inquiries. We're here to help you with college admissions and education guidance."
+      keywords="contact admeasy, support, help, college admissions help, education support"
+      url="https://admeasy.in/contact"
+    />
     <motion.section
       variants={fadeUpVariant}
       initial="hidden"

@@ -12,6 +12,7 @@ const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NoteRoutes = require('./routes/noteRoutes');
+const SitemapRoutes = require('./routes/sitemapRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
 const MongoStore = require('connect-mongo');
@@ -39,7 +40,6 @@ app.use(cors({
     const allowList = [
       'https://admeasy.in',
       'http://localhost:5173',
-      process.env.FRONTEND_URL,
     ].filter(Boolean);
     if (!origin || allowList.includes(origin)) {
       return callback(null, true);
@@ -84,6 +84,9 @@ app.use('/api/messages', MessageRoutes);
 app.use('/api/enrollments', EnrollmentsRoutes);
 app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
+
+// Sitemap Route (before static file serving)
+app.use('/', SitemapRoutes);
 
 // Serve static files from the dist directory (frontend build)
 app.use(express.static(path.join(__dirname, 'dist')));

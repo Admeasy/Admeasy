@@ -7,6 +7,7 @@ import ButtonIcon from '../components/ButtonIcon';
 import { useUser } from "../context/UserContext";
 import LogIn from "./LogIn"
 import { toast } from 'react-toastify';
+import SEO from '../components/SEO';
 
 const fadeUpVariant = {
     hidden: { opacity: 0, y: 100 },
@@ -86,8 +87,8 @@ const Mentors = () => {
         }
     }
 
-    async function fetchMentorImageUrl(username) {
-        const res = await fetch(`/api/mentors/${username}/pic`);
+    async function fetchMentorImageUrl(id) {
+        const res = await fetch(`/api/mentors/${id}/pic`);
         const url = await res.json();
 
         return url;
@@ -129,7 +130,7 @@ const Mentors = () => {
 
                 const mentorsWithLogos = await Promise.all(
                     mentorsFromDB.map(async (mentor) => {
-                        const image = await fetchMentorImageUrl(mentor.username);
+                        const image = await fetchMentorImageUrl(mentor._id);
                         const college = typeof mentor.college === 'object' && mentor.college !== null
                           ? mentor.college
                           : (mentor.college ? JSON.parse(mentor.college) : null);
@@ -221,6 +222,12 @@ const Mentors = () => {
 
     return (
         <>
+            <SEO
+                title="Mentors - Connect with Verified Mentors | Admeasy"
+                description="Connect with verified mentors from top colleges. Get guidance on college admissions, courses, and career advice from experienced mentors."
+                keywords="mentors, college mentors, admission guidance, career counseling, student mentors, education mentors"
+                url="https://admeasy.in/mentors"
+            />
             <header className="w-full m-0 my-4 p-4 flex items-center justify-center">
                 <input
                     name='search'

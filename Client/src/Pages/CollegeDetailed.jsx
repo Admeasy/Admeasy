@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FaCalendarAlt } from "react-icons/fa";
 import { FaBriefcase, FaBuilding, FaLocationDot, FaStar } from "react-icons/fa6";
 import Tabs from '../components/Tabs';
+import SEO from '../components/SEO';
 
 
 const InfoPod = ({ Icon, value }) => {
@@ -33,9 +34,10 @@ const CollegeDetailed = () => {
   const [error, setError] = useState(null);
   const { id } = useParams();
   const [tabs,SetTabs] = useState(0)
+  
   useEffect(() => {
     window.scrollTo(0, 0);
-  },);
+  }, []);
 
   useEffect(() => {
     const fetchCollege = async () => {
@@ -56,6 +58,58 @@ const CollegeDetailed = () => {
 
     fetchCollege();
   }, [id]);
+
+  // Add structured data for college
+  useEffect(() => {
+    if (!college) {
+      // Clean up any existing script if college is null
+      const existingScript = document.getElementById('college-structured-data');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+      return;
+    }
+
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": college.name,
+      "description": college.desc,
+      "url": college.website,
+      "logo": college.logo,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": college.location
+      },
+      "foundingDate": college.establishedYear?.toString(),
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": college.rating?.overall || 0,
+        "bestRating": "5",
+        "worstRating": "0",
+        "ratingCount": "1"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": college.contact?.email,
+        "telephone": college.contact?.phone,
+        "contactType": "Admissions"
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(structuredData);
+    script.id = 'college-structured-data';
+    document.head.appendChild(script);
+    
+    return () => {
+      const existingScript = document.getElementById('college-structured-data');
+      if (existingScript) {
+        document.head.removeChild(existingScript);
+      }
+    };
+  }, [college]);
 
   if (loading) {
     return (
@@ -101,6 +155,13 @@ const CollegeDetailed = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title={`${college?.name || 'College'} - College Details | Admeasy`}
+        description={college?.desc || `Complete information about ${college?.name || 'this college'} including courses, fees, placements, and more.`}
+        keywords={`${college?.name}, ${college?.location}, college, ${college?.type || ''} college, admissions, courses, placements, ${college?.keywords?.join(', ') || ''}`}
+        image={college?.logo || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp'}
+        url={`https://admeasy.in/colleges/${id}`}
+      />
       {/* Hero Section */}
       <motion.header
         variants={fadeUpVariant}

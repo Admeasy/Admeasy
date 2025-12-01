@@ -139,7 +139,7 @@ const Navbar = () => {
       <div className="max-[889px]:flex hidden items-center max-[323px]:gap-1 gap-2">
         {loggedInAccount ? (
           <Link
-            to={isUserAccount ? "/me" : "me/edit"}
+            to={isUserAccount ? '/me/edit' : '/me'}
             className="max-[899px]:flex hidden items-center justify-center gap-2 py-2 cursor-pointer"
             onClick={() => setIsOpen(false)}
           >
@@ -154,7 +154,7 @@ const Navbar = () => {
                   )
               }
               alt="Profile"
-              className="aspect-square w-9 h-9 object-contain"
+              className="aspect-square w-9 h-9 rounded-full object-contain"
               onError={handleImageError}
             />
           </Link>

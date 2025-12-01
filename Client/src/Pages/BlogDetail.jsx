@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaClock, FaUser, FaFolder } from 'react-icons/fa';
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import SEO from '../components/SEO';
+
 const BlogDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -55,8 +57,64 @@ const BlogDetail = () => {
     );
   }
 
+  // Add structured data for blog article
+  useEffect(() => {
+    if (blog) {
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": blog.Title,
+        "description": blog.content?.replace(/<[^>]*>/g, '').substring(0, 200) || blog.Title,
+        "image": blog.Thumbnail,
+        "author": {
+          "@type": "Person",
+          "name": blog.Author
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Admeasy",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://admeasy.in/src/assets/Admeasy/LOGO.webp"
+          }
+        },
+        "datePublished": blog.createdAt,
+        "dateModified": blog.updatedAt || blog.createdAt,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `https://admeasy.in/blog/${id}`
+        },
+        "articleSection": blog.category,
+        "wordCount": blog.content?.replace(/<[^>]*>/g, '').split(' ').length || 0
+      };
+      
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      script.id = 'blog-structured-data';
+      document.head.appendChild(script);
+      
+      return () => {
+        const existingScript = document.getElementById('blog-structured-data');
+        if (existingScript) {
+          document.head.removeChild(existingScript);
+        }
+      };
+    }
+  }, [blog, id]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <SEO
+        title={blog?.Title || 'Blog Post'}
+        description={blog?.content?.replace(/<[^>]*>/g, '').substring(0, 160) || blog?.Title || 'Read our latest blog post'}
+        keywords={`${blog?.category || ''}, education, college admissions, ${blog?.Title || ''}`}
+        image={blog?.Thumbnail || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp'}
+        url={`https://admeasy.in/blog/${id}`}
+        type="article"
+        publishedTime={blog?.createdAt}
+        modifiedTime={blog?.updatedAt || blog?.createdAt}
+      />
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
         <button

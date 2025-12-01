@@ -6,7 +6,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const upload = require('../middleware/multer')
-const uploadToCloudinary = require('../Utils/UploadToCloudinary')
+const uploadToCloudinary = require('../utils/uploadToCloudinary')
 
 // ✅ Get all blogs (public)
 
