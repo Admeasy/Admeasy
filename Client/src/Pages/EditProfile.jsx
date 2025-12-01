@@ -5,7 +5,7 @@ import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext'
-
+import LoadingButton from '../components/LoadingButton';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 // Utility function to check if user profile is complete
@@ -589,18 +589,15 @@ const EditProfile = () => {
 
     {/* BUTTONS */}
     <div className="flex gap-4 justify-center mt-6">
-      <button
+    
+        {isSubmitting ? <LoadingButton text={'Saving'} variant={'blue'}/> :   
+        <button
         type="submit"
-        className="
-          px-6 py-2 rounded-lg font-semibold text-white
-          bg-gradient-to-r from-tprimary to-blue-600
-          shadow-md hover:shadow-lg transition
-          disabled:bg-gray-400 disabled:cursor-not-allowed
-        "
-        disabled={isSubmitting || isEmpty}
-      >
-        {isSubmitting ? "Saving..." : "Save"}
-      </button>
+        className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+        disabled={isSubmitting || isEmpty}>
+          Save
+          </button>
+          }
 
       <button
         type="button"

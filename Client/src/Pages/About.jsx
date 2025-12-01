@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom'
 import TextPressure from '../../ReactBits/TextPressure/TextPressure'
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCards } from 'swiper/modules';
+import SEO from '../components/SEO';
 
 // Swiper styles
 import 'swiper/css';
@@ -99,7 +100,12 @@ useEffect(() => {
   ];
   return (
     <>
-
+      <SEO
+        title="About Us - Admeasy Team & Mission"
+        description="Learn about Admeasy's mission to revolutionize college admissions in India. Meet our team dedicated to helping students find their dream colleges."
+        keywords="about admeasy, team, mission, college admissions platform, education technology"
+        url="https://admeasy.in/about"
+      />
       <div className="w-full min-h-screen bg-white">
         {/* Header Section */}
         <div className='w-full h-full'>

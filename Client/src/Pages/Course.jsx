@@ -6,6 +6,7 @@ import { FaStar } from "react-icons/fa";
 import Section from '../components/Section'
 import { motion } from 'framer-motion';
 import { useParams, useLocation } from 'react-router-dom';
+import SEO from '../components/SEO';
 
 
 const fadeUpVariant = {
@@ -93,8 +94,64 @@ const Course = () => {
     );
   }
 
+  // Add structured data for course
+  useEffect(() => {
+    if (college && course) {
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": course.title,
+        "description": course.desc || course.introDesc || `Learn ${course.title} at ${college.name}`,
+        "provider": {
+          "@type": "EducationalOrganization",
+          "name": college.name,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": college.location
+          },
+          "url": college.website
+        },
+        "courseCode": courseId,
+        "educationalLevel": course.title,
+        "timeRequired": `P${course.duration}Y`,
+        "aggregateRating": course.rating ? {
+          "@type": "AggregateRating",
+          "ratingValue": course.rating,
+          "bestRating": "5",
+          "worstRating": "0"
+        } : undefined,
+        "offers": {
+          "@type": "Offer",
+          "price": (course.feeStructure?.feePerSemester * 2 * course.duration) || 0,
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock"
+        }
+      };
+      
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      script.id = 'course-structured-data';
+      document.head.appendChild(script);
+      
+      return () => {
+        const existingScript = document.getElementById('course-structured-data');
+        if (existingScript) {
+          document.head.removeChild(existingScript);
+        }
+      };
+    }
+  }, [college, course, courseId]);
+
   return (
     <main className='w-full min-h-screen'>
+      <SEO
+        title={`${course?.title || 'Course'} at ${college?.name || 'College'} - Course Details | Admeasy`}
+        description={course?.desc || course?.introDesc || `Complete information about ${course?.title || 'this course'} at ${college?.name || 'this college'} including eligibility, fees, scholarships, and more.`}
+        keywords={`${course?.title || ''}, ${college?.name || ''}, ${college?.location || ''}, course, ${college?.type || ''} college, admissions, eligibility, fees, scholarships, ${college?.keywords?.join(', ') || ''}`}
+        image={college?.logo || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp'}
+        url={`https://admeasy.in/colleges/${collegeId}/courses/${courseId}`}
+      />
       <motion.header
         variants={fadeUpVariant}
         initial="hidden"

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import SEO from '../components/SEO';
+
 const Blogs = () => {
   const [blogs, setBlogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +69,12 @@ const Blogs = () => {
 
   return (
     <div className="p-6 flex justify-center flex-wrap gap-6">
+      <SEO
+        title="Blog - Education & College Admissions | Admeasy"
+        description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
+        keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+        url="https://admeasy.in/blog"
+      />
       {blogs.map((blog) => (
         <div
           key={blog._id}
@@ -77,11 +85,11 @@ const Blogs = () => {
           <div className="p-1 flex-shrink-0">
             <img
               draggable="false"
-              src={`https://admeasy.in${blog.Thumbnail}`}
+              src={`${blog.Thumbnail}`}
               alt={blog.Title}
               className="w-50 h-full object-cover rounded-l-2xl"
               onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/144?text=No+Image';
+                e.target.src = 'https://placehold.co/144x144/EEE/AAA?text=No+Image';
               }}
             />
           </div>

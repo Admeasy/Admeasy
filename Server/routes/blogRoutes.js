@@ -5,39 +5,11 @@ const { verifyAdminToken } = require("../middleware/adminAuth");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
-// 📂 Ensure uploads folder exists
-const uploadDir = path.join(__dirname, "../uploads/blogs");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// ⚙️ Multer config (store images in /uploads/blogs)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + ext;
-    cb(null, uniqueName);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB limit
-  fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only JPG, PNG, WEBP allowed."));
-    }
-  },
-});
+const upload = require('../middleware/multer')
+const uploadToCloudinary = require('../utils/uploadToCloudinary')
 
 // ✅ Get all blogs (public)
+
 router.get("/", async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
@@ -69,7 +41,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // ✅ Create blog (admin only, with image upload)
-router.post("/", verifyAdminToken, upload.single("Thumbnail"), async (req, res) => {
+  router.post("/", verifyAdminToken, upload.single("Thumbnail"), async (req, res) => {
   try {
     console.log("=== CREATE BLOG REQUEST ===");
     console.log("Body:", req.body);
@@ -77,25 +49,12 @@ router.post("/", verifyAdminToken, upload.single("Thumbnail"), async (req, res) 
     console.log("Admin:", req.admin);
 
     const { Author, Title, content, category, readingTime } = req.body;
-
-    // Validate required fields
-    const missingFields = [];
-    if (!Author) missingFields.push("Author");
-    if (!Title) missingFields.push("Title");
-    if (!content) missingFields.push("content");
-    if (!category) missingFields.push("category");
-    if (!readingTime) missingFields.push("readingTime");
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missingFields.join(", ")}` 
-      });
+    if(!req.file){
+      return res.status(400).json({message : "Thumbnail is required"})
     }
 
-    // Check if thumbnail was uploaded
-    if (!req.file) {
-      return res.status(400).json({ message: "Thumbnail is required" });
-    }
+    // Upload to Cloudinary
+    const cloudUrl = await uploadToCloudinary(req.file.path,'blog_thumbnails')
 
     const blog = new Blog({
       Author,
@@ -103,12 +62,13 @@ router.post("/", verifyAdminToken, upload.single("Thumbnail"), async (req, res) 
       content,
       category,
       readingTime: Number(readingTime),
-      Thumbnail: `/uploads/blogs/${req.file.filename}`,
+      Thumbnail: cloudUrl,
       createdBy: req.admin._id,
     });
-
+    // saving to database
     await blog.save();
-    console.log("Blog created successfully:", blog._id);
+
+    console.log("Blog created successfully:", blog);
     res.json({ message: "Blog created successfully!", blog });
   } catch (e) {
     console.error("Error creating blog:", e);
@@ -117,7 +77,7 @@ router.post("/", verifyAdminToken, upload.single("Thumbnail"), async (req, res) 
 });
 
 // ✅ Update blog (admin only, with optional image upload)
-router.put("/:id", verifyAdminToken, upload.single("Thumbnail"), async (req, res) => {
+  router.put("/:id", verifyAdminToken, upload.single("Thumbnail"), async (req, res) => {
   try {
     console.log("=== UPDATE BLOG REQUEST ===");
     console.log("Body:", req.body);
@@ -131,37 +91,28 @@ router.put("/:id", verifyAdminToken, upload.single("Thumbnail"), async (req, res
     if (!existingBlog) {
       return res.status(404).json({ message: "Blog not found" });
     }
+    
+    let newThumbnail = existingBlog.Thumbnail
 
-    const updateData = {
+    // If new thumbnail uploaded, update it
+    if (req.file) {
+      newThumbnail = await uploadToCloudinary(req.file.path,"blog_thumbnails")
+    }
+
+      const updateData = await Blog.findByIdAndUpdate(
+        id,
+    {
       Author,
       Title,
       content,
       category,
       readingTime: Number(readingTime),
+      Thumbnail: newThumbnail,
       updatedBy: req.admin._id,
-    };
-
-    // If new thumbnail uploaded, update it
-    if (req.file) {
-      updateData.Thumbnail = `/uploads/blogs/${req.file.filename}`;
-      
-      // Delete old thumbnail
-      if (existingBlog.Thumbnail) {
-        const oldPath = path.join(__dirname, "..", existingBlog.Thumbnail);
-        if (fs.existsSync(oldPath)) {
-          try {
-            fs.unlinkSync(oldPath);
-            console.log("Deleted old thumbnail:", oldPath);
-          } catch (err) {
-            console.error("Error deleting old thumbnail:", err);
-          }
-        }
-      }
-    }
-
-    const updatedBlog = await Blog.findByIdAndUpdate(id, updateData, { new: true });
-    console.log("Blog updated successfully:", updatedBlog._id);
-    res.json({ message: "Blog updated successfully!", blog: updatedBlog });
+    },
+    {new:true}
+  );
+  res.json({message:"Blog Updated Successfully!", blog: updateData})
   } catch (e) {
     console.error("Error updating blog:", e);
     res.status(500).json({ message: e.message || "Internal Server Error" });
@@ -178,20 +129,6 @@ router.delete("/:id", verifyAdminToken, async (req, res) => {
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }
-
-    // Delete thumbnail file if exists
-    if (blog.Thumbnail) {
-      const filePath = path.join(__dirname, "..", blog.Thumbnail);
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-          console.log("Deleted thumbnail:", filePath);
-        } catch (err) {
-          console.error("Error deleting thumbnail:", err);
-        }
-      }
-    }
-
     await Blog.findByIdAndDelete(id);
     console.log("Blog deleted successfully:", id);
     res.json({ message: "Blog deleted successfully" });

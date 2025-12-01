@@ -50,7 +50,6 @@ import ManageNotes from './Pages/ManageNotes';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
 
-
 // Vartalaap Banner Imgs
 function App() {
   const location = useLocation();
@@ -154,8 +153,7 @@ function App() {
          <Route path='/reset-password' element={<ResetPassword/>}></Route>
         <Route path='/forgot-password' element={<ForgotPassword/>}></Route>
         {/* We don't need Signup route */}
-        <Route path='/signup' element={<SignUp />}></Route>
-        <Route path='/login' element={<LogIn />}></Route>
+        <Route path='/login' element={<AuthPage/>}></Route>
 
         {/* If user Only then /me accessible */}
         <Route
