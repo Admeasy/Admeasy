@@ -49,7 +49,7 @@ import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
-import FeedbackStars from './components/FeedbackStars';
+import AuthPage from './components/AuthPage';
 
 // Vartalaap Banner Imgs
 function App() {
@@ -154,8 +154,7 @@ function App() {
          <Route path='/reset-password' element={<ResetPassword/>}></Route>
         <Route path='/forgot-password' element={<ForgotPassword/>}></Route>
         {/* We don't need Signup route */}
-        <Route path='/signup' element={<SignUp />}></Route>
-        <Route path='/login' element={<LogIn />}></Route>
+        <Route path='/login' element={<AuthPage/>}></Route>
 
         {/* If user Only then /me accessible */}
         <Route
@@ -205,7 +204,6 @@ function App() {
       </Routes>
 
       <ScrollUpButton />
-      <FeedbackStars/>
       {showBanner && !isAdminRoute &&
         <MgciBanner
           onClose={() => SetShowBanner(false)}

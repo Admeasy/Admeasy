@@ -32,9 +32,9 @@ const LogIn = () => {
         {/* Left Side - Login */}
         <div className=" w-full lg:w-1/3 flex">
           {showLogin ? (
-            <LogInComp setShowLogin={setShowLogin} showLogin={showLogin} />
-          ) : (
             <SignUp setShowLogin={setShowLogin} showLogin={showLogin} />
+          ) : (
+            <LogInComp setShowLogin={setShowLogin} showLogin={showLogin} />
           )}
 
         </div>

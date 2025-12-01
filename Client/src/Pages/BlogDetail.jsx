@@ -88,7 +88,7 @@ const BlogDetail = () => {
             </span>
 
             {/* Title */}
-            <h1 className="text-1xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+            <h1 title={blog.Title} className="text-1xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4">
               {blog.Title}
             </h1>
 
@@ -96,7 +96,7 @@ const BlogDetail = () => {
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600 mb-8 pb-6 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <FaUser className="text-indigo-600" />
-                <span className="font-medium">{blog.Author}</span>
+                <strong className="font-medium">{blog.Author}</strong>
               </div>
               <div className="flex items-center gap-2">
                 <FaClock className="text-indigo-600" />
@@ -104,7 +104,7 @@ const BlogDetail = () => {
               </div>
               <div className="flex items-center gap-2">
                 <FaFolder className="text-indigo-600" />
-                <span>{blog.category}</span>
+                <strong>{blog.category}</strong>
               </div>
             </div>
 
