@@ -297,12 +297,12 @@ const Mentors = () => {
                                     <div className='absolute bottom-2.5 cursor-pointer' onClick={(e) => {
                                         e.stopPropagation(); // Prevent card click when clicking Chat Now button
                                         if (user) {
-                                            const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${mentor.name} from ${mentor.college} to gain some real insights and perspective!`;
-                                            const encodedMessage = encodeURIComponent(message);
-                                            window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
+                                            // Navigate to chat page with mentor ID or username
+                                            const mentorIdentifier = mentor._id || mentor.username;
+                                            navigate(`/chats/${mentorIdentifier}`);
                                         } else {
                                             navigate('/login')
-                                            toast.dark('Login to get real insights from alumni', {
+                                            toast.dark('Login to start chatting with mentors', {
                                                 position: 'top-center',
                                             });
                                         }

@@ -38,10 +38,15 @@ import Blogs from './Pages/Blogs'
 import Messages from './Pages/Messages'
 import Enrollments from './Pages/Enrollments';
 import NotesPage from './Pages/NotesPage';
+import Chat from './Pages/Chat';
+import Chats from './Pages/Chats';
+import MentorChats from './Pages/MentorChats';
+import MentorChat from './Pages/MentorChat';
 import ManageMentors from './Pages/ManageMentors';
 import { useEffect, useState } from 'react';
 import { useUser } from './context/UserContext';
 import { useMentor } from './context/MentorContext';
+import { SocketProvider } from './context/SocketContext';
 import TextPressure from "../ReactBits/TextPressure/TextPressure"
 import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -147,6 +152,40 @@ function App() {
         <Route path='/mentors/register' element={<MentorRegistration />}></Route>
         <Route path='/mentors/login' element={<MentorsLogin />}></Route>
         <Route path='/mentors/:username' element={<MentorProfile />}></Route>
+        {/* User Chat Routes - Protected for users only */}
+        <Route
+          path="/chats"
+          element={
+            <ProtectedRoute user={true}>
+              <Chats />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chats/:mentorId"
+          element={
+            <ProtectedRoute user={true}>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
+        {/* Mentor Chat Routes */}
+        <Route
+          path="/mentor/chats"
+          element={
+            <ProtectedRoute mentor={true}>
+              <MentorChats />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mentor/chats/:userId"
+          element={
+            <ProtectedRoute mentor={true}>
+              <MentorChat />
+            </ProtectedRoute>
+          }
+        />
         <Route path='/policies' element={<PrivacyPolicy />}></Route>
         <Route path='/t&c' element={<TermsAndConditions />}></Route>
         <Route path='/reset-password/:token' element={<ResetPassword/>}></Route>

@@ -60,6 +60,25 @@ const Navbar = () => {
       >
         Mentors
       </NavLink>
+      {/* Chat link only for users, Messages link only for mentors */}
+      {isUserAccount && (
+        <NavLink
+          className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
+          to="/chats"
+          onClick={() => setIsOpen(false)}
+        >
+          Chat
+        </NavLink>
+      )}
+      {!isUserAccount && mentor && (
+        <NavLink
+          className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
+          to="/mentor/chats"
+          onClick={() => setIsOpen(false)}
+        >
+          Messages
+        </NavLink>
+      )}
       <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/blog"
@@ -67,7 +86,7 @@ const Navbar = () => {
       >
         Blogs
       </NavLink>
-               <NavLink
+      <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/about"
         onClick={() => setIsOpen(false)}

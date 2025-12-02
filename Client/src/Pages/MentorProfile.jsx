@@ -333,26 +333,17 @@ export default function MentorProfile() {
               )}
             </div>
           </div>
-          {/* Follow Button */}
-          {currentMentor && (currentMentor._id !== mentor._id && currentMentor.username !== mentor.username) || !currentMentor && (
+          {/* Chat Button - Only for users, not mentors */}
+          {user && !currentMentor && (
             <button
               onClick={(e) => {
-                if (!user) {
-                  e.preventDefault();
-                  toast.info('Please login first to contact the mentor');
-                  navigate('/login');
-                } else {
-                  const collegeData = typeof mentor.college === 'object' && mentor.college !== null
-                    ? mentor.college
-                    : (mentor.college ? JSON.parse(mentor.college) : null);
-                  const collegeName = collegeData?.name || mentor.college || '';
-                  window.open(`https://wa.me/919243299145?text=Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${mentor.name} from ${collegeName} to gain some real insights and perspective!`, '_blank');
-                }
+                // Navigate to chat with this mentor
+                navigate(`/chats/${mentor._id}`);
               }}
               className="w-full inline-flex justify-center items-center gap-2 mt-4 px-4 py-2 bg-thead1 border border-gray-300 rounded-lg text-sm font-semibold text-primary hover:bg-thead2 transition-colors"
             >
               <MessagesSquare size={18} />
-              Chat Now
+              Start Chat
             </button>
           )}
           {/* Edit Profile Button */}
