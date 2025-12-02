@@ -6,7 +6,10 @@ import { useMentor } from '../context/MentorContext';
 import { toast } from 'react-toastify';
 import SearchableSelect from '../components/SearchableSelect';
 import LoadingButton from '../components/LoadingButton';
+import { useNavigate } from 'react-router-dom';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+
 
 // Crop helper function
 const createImage = (url) =>
@@ -58,6 +61,7 @@ async function getCroppedImg(imageSrc, pixelCrop, rotation = 0) {
 }
 
 export default function MentorsProfile() {
+  const navigate = useNavigate()
   const { mentor, fetchMentor } = useMentor();
   const mentorData = useMemo(() => mentor, [mentor]);
 
@@ -329,6 +333,7 @@ export default function MentorsProfile() {
       }
 
       await fetchMentor();
+      navigate('/')
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update mentor profile:', error);

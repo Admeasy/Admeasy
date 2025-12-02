@@ -164,6 +164,17 @@ function MentorsLogin({ onLoginSuccess }) {
         </button>
         }
           </form>
+        <p className="mt-4 text-sm text-gray-600">
+          Not a mentor?{" "}
+          <span
+            onClick={() => navigate('/careers/mentorship/apply')}
+            className="font-semibold text-purple-700 hover:text-purple-900 cursor-pointer 
+               underline underline-offset-4 decoration-purple-400 
+               hover:decoration-purple-700 transition-all"
+          >
+            Apply for mentorship
+          </span>
+        </p>
         </div>
       </motion.section>
   );

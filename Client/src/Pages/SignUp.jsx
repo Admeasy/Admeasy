@@ -1,24 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
-import { Eye, EyeOff } from 'lucide-react';
-import { useMentor } from "../context/MentorContext";
-import { MdAlternateEmail, MdLockOutline } from 'react-icons/md';
-import { motion } from 'framer-motion';
+import { Eye, EyeOff } from "lucide-react";
+import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
+import { motion } from "framer-motion";
 import LoadingButton from "../components/LoadingButton";
-import Logo from '../assets/Admeasy/LOGO.webp';
-import MentorsLogo from '../assets/Admeasy/MentorsLoginLogo.webp';
+import Logo from "../assets/Admeasy/LOGO.webp";
+
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
 };
 
 const Signup = ({ setAuthMode }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
   const { fetchUser } = useUser();
 
@@ -31,48 +31,48 @@ const Signup = ({ setAuthMode }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (!email.trim() || !password.trim()) {
-      setError('Email and password are required!');
-      return;
-    } else if (!validateEmail(email)) {
-      setError('Please enter a valid email address!');
-      return;
-    } else if (!validatePassword(password)) {
-      setError(
-        'Password must be at least 8 characters long, contain a letter, a number, and a special character.'
+    if (!email.trim() || !password.trim())
+      return setError("Email and password are required!");
+
+    if (!validateEmail(email))
+      return setError("Please enter a valid email address!");
+
+    if (!validatePassword(password))
+      return setError(
+        "Password must be at least 8 characters, with letters, numbers & special characters."
       );
-      return;
-    }
 
-    setError('');
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/users/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/users/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: 'include',
+        credentials: "include",
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        setEmail('');
-        setPassword('');
-        await fetchUser();
-        toast.success('Account created successfully!');
-        if (data?.id) {
-          navigate(`/onboarding/${data.id}`);
-        } else {
-          navigate('/onboarding');
-        }
-      } else {
-        setError(data.message || 'Registration failed');
+      if (!res.ok) {
+        setError(data.message || "Registration failed!");
+        return;
       }
+
+      // Signup succeeded
+      toast.success("Account created successfully! 🎉");
+
+      setEmail("");
+      setPassword("");
+
+      // delay user fetch to avoid 401 glitch
+      setTimeout(() => fetchUser(), 200);
+
+      navigate(`/onboarding/${data?.id || ""}`);
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError("Network error. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -83,11 +83,12 @@ const Signup = ({ setAuthMode }) => {
       variants={fadeUpVariant}
       initial="hidden"
       animate="visible"
-      transition={{ duration: 0.8, ease: 'easeOut' }}
-      className="w-full mx-auto p-6 bg-white shadow-2xl rounded-2xl">
-        
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="w-full mx-auto p-6 bg-white shadow-2xl rounded-2xl"
+    >
       <img src={Logo} className="w-32 mx-auto mb-4" alt="Admeasy Logo" />
-      <h1 className="text-xl md:text-2xl font-admeasy-bold text-center text-gray-800 mb-2">
+
+      <h1 className="text-xl md:text-2xl font-admeasy-bold text-center text-gray-800 mb-3">
         Create a New Account
       </h1>
 
@@ -104,12 +105,9 @@ const Signup = ({ setAuthMode }) => {
           <input
             type="email"
             placeholder="Email"
-            className="pl-10 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
+            className="pl-11 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
             value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError('');
-            }}
+            onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
             disabled={isSubmitting}
           />
@@ -119,37 +117,34 @@ const Signup = ({ setAuthMode }) => {
         <div className="relative flex items-center mb-4">
           <MdLockOutline className="absolute left-3 text-gray-400 text-2xl" />
           <input
-            type={showPassword ? 'text' : 'password'}
+            type={showPassword ? "text" : "password"}
             placeholder="Password"
-            className="pl-10 pr-12 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
+            className="pl-11 pr-12 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError('');
-            }}
+            onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
             disabled={isSubmitting}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 text-gray-400 hover:text-black cursor-pointer"
+            className="absolute right-4 text-gray-400 hover:text-black"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
 
-        {/* Submit Button */}
-        {isSubmitting ? <LoadingButton text={"Creating Account..."} variant={'blue'}/>
-        :   <button
-          type="submit"
-          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          disabled={isSubmitting}
-        >
-          Create Account
-        </button>
-        }
-      
+        {/* Submit */}
+        {isSubmitting ? (
+          <LoadingButton text={"Creating Account..."} variant={'blue'} />
+        ) : (
+          <button
+            type="submit"
+            className="w-full inline-flex items-center justify-center px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+          >
+            Create Account
+          </button>
+        )}
       </form>
 
       {/* Divider */}
@@ -163,7 +158,7 @@ const Signup = ({ setAuthMode }) => {
       <div className="mt-6">
         <a
           href="/api/users/auth/google"
-          className="flex items-center justify-center gap-3 w-full bg-white border-2 border-gray-300 text-gray-700 rounded-full text-base px-4 py-3 hover:bg-gray-50 transition-all shadow-md hover:shadow-lg"
+          className="flex items-center justify-center gap-3 w-full bg-white border-2 border-gray-300 text-gray-700 rounded-full text-base px-4 py-3 hover:bg-gray-50 shadow-md hover:shadow-lg transition-all"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -191,8 +186,8 @@ const Signup = ({ setAuthMode }) => {
       <div className="mt-6 text-center">
         <span className="text-gray-700 text-sm">Already have an account? </span>
         <button
-          onClick={() => setAuthMode('login')}
-          className="text-blue-600 hover:underline font-semibold cursor-pointer"
+          onClick={() => setAuthMode("login")}
+          className="text-blue-600 hover:underline font-semibold"
         >
           Log In
         </button>
@@ -200,4 +195,5 @@ const Signup = ({ setAuthMode }) => {
     </motion.section>
   );
 };
-export default Signup
+
+export default Signup;
