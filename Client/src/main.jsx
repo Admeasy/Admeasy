@@ -4,19 +4,17 @@ import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom'
 import { UserProvider } from './context/UserContext.jsx'
 import { MentorProvider } from './context/MentorContext.jsx'
-import { HelmetProvider } from 'react-helmet-async'
-import zipyai from 'zipyai'
+import { SocketProvider } from './context/SocketContext.jsx'
 
-zipyai.init("5f4200af");
 
 createRoot(document.getElementById('root')).render(
-  <HelmetProvider>
-    <BrowserRouter>
-      <UserProvider>
-        <MentorProvider>
+  <BrowserRouter>
+    <UserProvider>
+      <MentorProvider>
+        <SocketProvider>
           <App />
-        </MentorProvider>
-      </UserProvider>
-    </BrowserRouter>
-  </HelmetProvider>
-);
+        </SocketProvider>
+      </MentorProvider>
+    </UserProvider>
+  </BrowserRouter>
+)

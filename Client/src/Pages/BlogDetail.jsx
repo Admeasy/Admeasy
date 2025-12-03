@@ -12,9 +12,9 @@ const BlogDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(()=>{
-    window.scrollTo(0,0)
-  },[navigate])
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     fetchBlog();
@@ -32,6 +32,44 @@ const BlogDetail = () => {
       setIsLoading(false);
     }
   };
+
+  // Add structured data for blog article
+  useEffect(() => {
+    if (!blog) return;
+
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: blog.Title,
+      description: blog.content?.replace(/<[^>]*>/g, '').substring(0, 200) || blog.Title,
+      image: blog.Thumbnail,
+      author: { "@type": "Person", name: blog.Author },
+      publisher: {
+        "@type": "Organization",
+        name: "Admeasy",
+        logo: { "@type": "ImageObject", url: "https://admeasy.in/src/assets/Admeasy/LOGO.webp" }
+      },
+      datePublished: blog.createdAt,
+      dateModified: blog.updatedAt || blog.createdAt,
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": `https://admeasy.in/blog/${id}`
+      },
+      articleSection: blog.category,
+      wordCount: blog.content?.replace(/<[^>]*>/g, '').split(" ").length || 0
+    };
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify(structuredData);
+    script.id = "blog-structured-data";
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.getElementById("blog-structured-data");
+      if (existingScript) document.head.removeChild(existingScript);
+    };
+  }, [blog, id]);
 
   if (isLoading) {
     return (
@@ -56,52 +94,6 @@ const BlogDetail = () => {
       </div>
     );
   }
-
-  // Add structured data for blog article
-  useEffect(() => {
-    if (blog) {
-      const structuredData = {
-        "@context": "https://schema.org",
-        "@type": "BlogPosting",
-        "headline": blog.Title,
-        "description": blog.content?.replace(/<[^>]*>/g, '').substring(0, 200) || blog.Title,
-        "image": blog.Thumbnail,
-        "author": {
-          "@type": "Person",
-          "name": blog.Author
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Admeasy",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://admeasy.in/src/assets/Admeasy/LOGO.webp"
-          }
-        },
-        "datePublished": blog.createdAt,
-        "dateModified": blog.updatedAt || blog.createdAt,
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": `https://admeasy.in/blog/${id}`
-        },
-        "articleSection": blog.category,
-        "wordCount": blog.content?.replace(/<[^>]*>/g, '').split(' ').length || 0
-      };
-      
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.text = JSON.stringify(structuredData);
-      script.id = 'blog-structured-data';
-      document.head.appendChild(script);
-      
-      return () => {
-        const existingScript = document.getElementById('blog-structured-data');
-        if (existingScript) {
-          document.head.removeChild(existingScript);
-        }
-      };
-    }
-  }, [blog, id]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -132,9 +124,9 @@ const BlogDetail = () => {
             <img
               src={`${blog.Thumbnail}`}
               alt={blog.Title}
-              className=" object-cover rounded-2xl"
+              className="object-cover rounded-2xl"
               onError={(e) => {
-                e.target.src ='https://placehold.co/144x144?text=No+Image';
+                e.target.src = 'https://placehold.co/144x144?text=No+Image';
               }}
             />
           </div>
@@ -169,7 +161,6 @@ const BlogDetail = () => {
             {/* Blog Content */}
             <div className="prose prose-lg max-w-none">
               <div
-              
                 className="blog-content"
                 dangerouslySetInnerHTML={{ __html: blog.content }}
               ></div>
