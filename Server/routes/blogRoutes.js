@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Blog = require("../models/BlogSchema");
+const Blog = require("../models/blogSchema");
 const { verifyAdminToken } = require("../middleware/adminAuth");
 const multer = require("multer");
 const path = require("path");

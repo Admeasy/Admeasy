@@ -1,11 +1,11 @@
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from 'react-helmet';
 
 const SEO = ({ 
   title = 'Admeasy - Find Your Dream College', 
   description = 'Discover top colleges in India, connect with verified mentors, and access premium study notes. Your complete guide to college admissions and academic success.',
   keywords = 'colleges, admissions, mentors, study notes, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search India',
   image = 'https://admeasy.in/src/assets/Admeasy/LOGO.webp',
-  url = 'https://admeasy.in',
+  url = window.location.href,
   type = 'website',
   author = 'Admeasy',
   publishedTime = null,

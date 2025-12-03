@@ -14,9 +14,9 @@ const Blogs = () => {
     fetchBlogs();
   }, []);
 
-  useEffect(()=>{
-    window.scrollTo(0,0)
-  },[navigate])
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [navigate])
 
   const fetchBlogs = async () => {
     try {
@@ -70,7 +70,7 @@ const Blogs = () => {
   return (
     <div className="p-6 flex justify-center flex-wrap gap-6">
       <SEO
-        title="Blog - Education & College Admissions | Admeasy"
+        title="Blogs - Education & College Admissions | Admeasy"
         description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
         keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
         url="https://admeasy.in/blog"
@@ -111,7 +111,7 @@ const Blogs = () => {
               {/* Left: Author Info */}
               <div className="flex items-center space-x-2">
                 <span className="font-medium text-gray-700">
-                 <strong> Author: {blog.Author}</strong>
+                  <strong> Author: {blog.Author}</strong>
                 </span>
               </div>
 
