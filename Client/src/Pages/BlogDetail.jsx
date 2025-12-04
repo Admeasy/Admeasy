@@ -12,9 +12,9 @@ const BlogDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(()=>{
-    window.scrollTo(0,0)
-  },[navigate])
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     fetchBlog();
@@ -32,6 +32,44 @@ const BlogDetail = () => {
       setIsLoading(false);
     }
   };
+
+  // Add structured data for blog article
+  useEffect(() => {
+    if (!blog) return;
+
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: blog.Title,
+      description: blog.content?.replace(/<[^>]*>/g, '').substring(0, 200) || blog.Title,
+      image: blog.Thumbnail,
+      author: { "@type": "Person", name: blog.Author },
+      publisher: {
+        "@type": "Organization",
+        name: "Admeasy",
+        logo: { "@type": "ImageObject", url: "https://admeasy.in/src/assets/Admeasy/LOGO.webp" }
+      },
+      datePublished: blog.createdAt,
+      dateModified: blog.updatedAt || blog.createdAt,
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": `https://admeasy.in/blog/${id}`
+      },
+      articleSection: blog.category,
+      wordCount: blog.content?.replace(/<[^>]*>/g, '').split(" ").length || 0
+    };
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify(structuredData);
+    script.id = "blog-structured-data";
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.getElementById("blog-structured-data");
+      if (existingScript) document.head.removeChild(existingScript);
+    };
+  }, [blog, id]);
 
   if (isLoading) {
     return (
@@ -56,52 +94,6 @@ const BlogDetail = () => {
       </div>
     );
   }
-
-  // Add structured data for blog article
-  useEffect(() => {
-    if (blog) {
-      const structuredData = {
-        "@context": "https://schema.org",
-        "@type": "BlogPosting",
-        "headline": blog.Title,
-        "description": blog.content?.replace(/<[^>]*>/g, '').substring(0, 200) || blog.Title,
-        "image": blog.Thumbnail,
-        "author": {
-          "@type": "Person",
-          "name": blog.Author
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Admeasy",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://admeasy.in/src/assets/Admeasy/LOGO.webp"
-          }
-        },
-        "datePublished": blog.createdAt,
-        "dateModified": blog.updatedAt || blog.createdAt,
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": `https://admeasy.in/blog/${id}`
-        },
-        "articleSection": blog.category,
-        "wordCount": blog.content?.replace(/<[^>]*>/g, '').split(' ').length || 0
-      };
-      
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.text = JSON.stringify(structuredData);
-      script.id = 'blog-structured-data';
-      document.head.appendChild(script);
-      
-      return () => {
-        const existingScript = document.getElementById('blog-structured-data');
-        if (existingScript) {
-          document.head.removeChild(existingScript);
-        }
-      };
-    }
-  }, [blog, id]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -132,9 +124,9 @@ const BlogDetail = () => {
             <img
               src={`${blog.Thumbnail}`}
               alt={blog.Title}
-              className=" object-cover rounded-2xl"
+              className="object-cover rounded-2xl"
               onError={(e) => {
-                e.target.src ='https://placehold.co/144x144?text=No+Image';
+                e.target.src = 'https://placehold.co/144x144?text=No+Image';
               }}
             />
           </div>
@@ -146,7 +138,7 @@ const BlogDetail = () => {
             </span>
 
             {/* Title */}
-            <h1 className="text-1xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+            <h1 title={blog.Title} className="text-1xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-4">
               {blog.Title}
             </h1>
 
@@ -154,7 +146,7 @@ const BlogDetail = () => {
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600 mb-8 pb-6 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <FaUser className="text-indigo-600" />
-                <span className="font-medium">{blog.Author}</span>
+                <strong className="font-medium">{blog.Author}</strong>
               </div>
               <div className="flex items-center gap-2">
                 <FaClock className="text-indigo-600" />
@@ -162,14 +154,13 @@ const BlogDetail = () => {
               </div>
               <div className="flex items-center gap-2">
                 <FaFolder className="text-indigo-600" />
-                <span>{blog.category}</span>
+                <strong>{blog.category}</strong>
               </div>
             </div>
 
             {/* Blog Content */}
             <div className="prose prose-lg max-w-none">
               <div
-              
                 className="blog-content"
                 dangerouslySetInnerHTML={{ __html: blog.content }}
               ></div>

@@ -13,6 +13,7 @@ import "swiper/css/navigation";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from 'react-router-dom'
 import { useUser } from "../context/UserContext";
+import { useMentor } from "../context/MentorContext";
 import ButtonIcon from "../components/ButtonIcon";
 import { toast } from "react-toastify";
 
@@ -33,6 +34,7 @@ export default function StudentSwiper() {
   const [error, setError] = useState(null);
   const [students, setStudents] = useState([]);
   const { user } = useUser();
+  const {mentor} = useMentor()
   const [showLogin, setShowLogin] = useState(false);
 function shuffleArray(array) {
   const arr = [...array];
@@ -211,22 +213,39 @@ function shuffleArray(array) {
                       {student.course}
                     </span>
                     <div className='cursor-pointer absolute bottom-2 left-1/2 -translate-x-1/2'>
-                      <ButtonIcon text={'Chat Now'} onClick={(e) => {
-                        e.stopPropagation();
-                        if (user) {
-                          const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${student.college} to gain some real insights and perspective!`;
-                          const encodedMessage = encodeURIComponent(message);
-                          window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
-                        } else {
-                          navigate('/login')
+                      <ButtonIcon
+                        text={"Chat Now"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          // ▶️ If USER or MENTOR is logged in → allow chat
+                          if (user || mentor) {
+                            const sender = user || mentor; // whichever is logged in
+
+                            const message = `Hey Team Admeasy!\nI'm ${sender.name}, ${sender.course ? `a ${sender.course} student` : "a mentor"
+                              } from ${sender.institute || "Admeasy"}. I'd love to connect with ${student.name
+                              } from ${student.college} to gain some real insights!`;
+
+                            const encodedMessage = encodeURIComponent(message);
+                            window.open(
+                              `https://wa.me/919243299145?text=${encodedMessage}`,
+                              "_blank"
+                            );
+                            return;
+                          }
+
+                          // ▶️ If not authorized → login page
+                          navigate("/login");
+
                           setTimeout(() => {
-                            if(!user){
-                            toast.dark('Login to get real insights from alumni',{
-                              position: 'top-center'
-                            })}
+                            if (!user && !mentor) {
+                              toast.dark("Login to get real insights from alumni", {
+                                position: "top-center",
+                              });
+                            }
                           }, 1);
-                        }
-                      }} />
+                        }}
+                      />
                     </div>
                   </div>
                 </div>

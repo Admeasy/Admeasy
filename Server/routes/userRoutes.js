@@ -816,4 +816,66 @@ router.delete('/:userId', async (req, res) => {
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 
+// GET USER BY ID (for mentors who have chats with the user, or users viewing their own profile)
+router.get('/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const token = req.cookies['accessToken'];
+        
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+        
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        } catch (err) {
+            return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+        }
+        
+        // Check if this is a mentor by checking if there's a mentor with this ID
+        const Mentor = require('../models/mentorSchema');
+        const mentor = await Mentor.findById(decoded.id);
+        
+        if (mentor) {
+            // It's a mentor - verify they have a chat with this user
+            const Chat = require('../models/chatSchema');
+            const chat = await Chat.findOne({
+                userId,
+                mentorId: decoded.id,
+                isActive: true
+            });
+            
+            if (!chat) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'You can only view details of users you have chats with' 
+                });
+            }
+        } else {
+            // It's a regular user - they can only view their own profile
+            if (decoded.id !== userId) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'You can only view your own profile' 
+                });
+            }
+        }
+        
+        // Find the user
+        const user = await User.findById(userId).select('-password -refreshToken');
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        
+        // Process image if needed
+        const processedUser = await processUserImage(user.toObject());
+        
+        res.json(processedUser);
+    } catch (err) {
+        console.error('Error fetching user:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;

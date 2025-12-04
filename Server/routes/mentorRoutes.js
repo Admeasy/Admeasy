@@ -4,17 +4,11 @@ const Mentor = require('../models/mentorSchema');
 const MentorshipRequest = require('../models/mentorshipRequestSchema');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const path = require('path');
-const BackblazeB2Client = require('../b2Client');
-const b2 = new BackblazeB2Client();
-const multer = require('multer');
 const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
-
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = require('../middleware/multer');
+const uploadToCloudinary = require('../Utils/uploadToCloudinary');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -34,6 +28,7 @@ const generateRefreshToken = (mentor) => {
     return jwt.sign({ id: mentor._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '28d' });
 }
 
+// GET ALL MENTORS
 router.get('/', async (req, res) => {
     try {
         const mentors = await Mentor.find();
@@ -65,26 +60,14 @@ router.get('/me/pic', authenticateMentorJWT, async (req, res) => {
             return res.json(null);
         }
 
-        // It's a Backblaze file, get authorized URL
-        try {
-            const files = await b2.listFiles(mentor.image);
-            if (!files || files.length === 0) {
-                // No image found in Backblaze
-                return res.json(null);
-            }
-            const fileName = files[0].fileName;
-            const auth = await b2.getDownloadAuthorization(fileName);
-            res.json(auth.url);
-        } catch (err) {
-            console.error('Error getting mentor image from B2:', err);
-            return res.json(null);
-        }
+        // Return Cloudinary URL directly
+        res.json(mentor.image);
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// GET MENTOR PROFILE PICTURE BY USERNAME (must be before /:username route)
+// GET MENTOR PROFILE PICTURE BY ID
 router.get('/:id/pic', async (req, res) => {
     try {
         const mentor = await Mentor.findById(req.params.id);
@@ -92,26 +75,29 @@ router.get('/:id/pic', async (req, res) => {
             return res.json(null);
         }
 
-        // It's a Backblaze file, get authorized URL
-        try {
-            const files = await b2.listFiles(mentor.image);
-            if (!files || files.length === 0) {
-                // No image found in Backblaze
-                return res.json(null);
-            }
-            const fileName = files[0].fileName;
-            const auth = await b2.getDownloadAuthorization(fileName);
-            res.json(auth.url);
-        } catch (err) {
-            console.error('Error getting mentor image from B2:', err);
-            return res.json(null);
-        }
+        // Return Cloudinary URL directly
+        res.json(mentor.image);
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
+// GET MENTOR BY ID (must be before /:username route to avoid conflicts)
+router.get('/id/:id', async (req, res) => {
+    try {
+        const mentor = await Mentor.findById(req.params.id);
+        if (!mentor) {
+            return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+        res.status(200).json(mentor);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+// GET MENTOR BY USERNAME
 router.get('/:username', async (req, res) => {
     try {
         const mentor = await Mentor.findOne({ username: req.params.username });
@@ -125,6 +111,7 @@ router.get('/:username', async (req, res) => {
     }
 })
 
+// REGISTER MENTOR
 router.post('/register', async (req, res) => {
     try {
         const { applicantId, email, password } = req.body;
@@ -145,13 +132,13 @@ router.post('/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const mentor = new Mentor({ email, password: hashedPassword });
-        
+
         try {
             const response = await fetch('http://localhost:5000/api/apply/mentorship/' + applicantId, {
                 method: 'DELETE',
                 credentials: 'include'
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Failed to delete application:', response.status, errorText);
@@ -161,7 +148,7 @@ router.post('/register', async (req, res) => {
             console.error('Error deleting application:', fetchError);
             return res.status(500).json({ success: false, message: 'Failed to delete application' });
         }
-        
+
         await mentor.save();
         const accessToken = generateAccessToken(mentor);
         const refreshToken = generateRefreshToken(mentor);
@@ -186,6 +173,7 @@ router.post('/register', async (req, res) => {
     }
 })
 
+// LOGIN MENTOR
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -228,8 +216,13 @@ router.post('/login', async (req, res) => {
     }
 })
 
+// UPDATE MENTOR PROFILE (with image upload to Cloudinary)
 router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req, res) => {
     try {
+        console.log("=== UPDATE MENTOR REQUEST ===");
+        console.log("Body:", req.body);
+        console.log("File:", req.file);
+
         const { name, username, phone, tagline, bio } = req.body;
         let competitiveExamsAttempted = [];
         if (req.body.competitiveExamsAttempted) {
@@ -264,6 +257,12 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
             }
         }
 
+        // Find existing mentor
+        const existingMentor = await Mentor.findById(req.params.id);
+        if (!existingMentor) {
+            return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+
         const updateData = { name, username, phone, tagline, bio };
         if (college) {
             updateData.college = college;
@@ -275,20 +274,25 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
             updateData.competitiveExamsAttempted = competitiveExamsAttempted;
         }
 
-        let mentor = await Mentor.findByIdAndUpdate(req.params.id, updateData, { new: true });
-        if (!mentor) {
-            return res.status(404).json({ success: false, message: 'Mentor not found' });
-        }
+        // Handle image upload to Cloudinary
         if (req.file) {
-            const extname = path.extname(req.file.originalname).toLowerCase();
-            const fileName = 'mentors/' + mentor.username + extname;
-            await b2.uploadBuffer(req.file.buffer, fileName);
-            mentor.image = fileName;
+            try {
+                console.log("Uploading image to Cloudinary:", req.file.path);
+                const cloudUrl = await uploadToCloudinary(req.file.path, 'mentor_profiles');
+                updateData.image = cloudUrl;
+                console.log("Image uploaded to Cloudinary:", cloudUrl);
+            } catch (uploadError) {
+                console.error('Error uploading to Cloudinary:', uploadError);
+                return res.status(500).json({ success: false, message: 'Error uploading image' });
+            }
         }
-        await mentor.save();
-        res.status(200).json({ success: true, message: 'Mentor updated successfully' });
+
+        const mentor = await Mentor.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+        console.log("Mentor updated successfully");
+        res.status(200).json({ success: true, message: 'Mentor updated successfully', mentor });
     } catch (error) {
-        console.log(error);
+        console.error("Error updating mentor:", error);
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 })
@@ -345,51 +349,45 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
+// LOGOUT MENTOR
 router.post('/logout', authenticateMentorJWT, async (req, res) => {
     try {
-        req.logout(function (err) {
-            if (err) {
-                return res.status(500).json({ success: false, message: err.message });
-            }
-            // Clear cookies as before
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            });
-            res.json({ success: true, message: 'Logged out' });
+        // Clear refresh token from database
+        await Mentor.findByIdAndUpdate(req.mentor.id, { refreshToken: null });
+
+        // Clear cookies
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
         });
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+        });
+        res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
         console.log(err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
+// DELETE MENTOR
 router.delete('/:id', async (req, res) => {
     const admin = verifyAdminFromCookie(req);
 
     if (admin) {
         try {
-            // Find the mentor first to get the image path
+            // Find the mentor first
             const mentor = await Mentor.findById(req.params.id);
             if (!mentor) {
                 return res.status(404).json({ success: false, message: 'Mentor not found' });
             }
 
-            // Delete the mentor's image from B2 if it exists
-            if (mentor.image) {
-                try {
-                    await b2.deleteFile(mentor.image);
-                } catch (b2Error) {
-                    console.error('Error deleting mentor image from B2:', b2Error);
-                    return res.status(500).json({ success: false, message: 'Error deleting mentor image from B2' });
-                }
-            }
+            // Note: Cloudinary URLs don't need to be manually deleted
+            // If you want to delete from Cloudinary, you'd need to extract the public_id
+            // and use cloudinary.uploader.destroy(public_id)
 
             // Delete the mentor from database
             await Mentor.findByIdAndDelete(req.params.id);
@@ -402,24 +400,14 @@ router.delete('/:id', async (req, res) => {
 
     authenticateMentorJWT(req, res, async () => {
         try {
-            if (!req.mentor || req.mentor._id !== req.params.id) {
+            if (!req.mentor || req.mentor.id !== req.params.id) {
                 return res.status(403).json({ success: false, message: 'Not authorized to delete this mentor' });
             }
 
-            // Find the mentor first to get the image path
+            // Find the mentor first
             const mentor = await Mentor.findById(req.params.id);
             if (!mentor) {
                 return res.status(404).json({ success: false, message: 'Mentor not found' });
-            }
-
-            // Delete the mentor's image from B2 if it exists
-            if (mentor.image) {
-                try {
-                    await b2.deleteFile(mentor.image);
-                } catch (b2Error) {
-                    console.error('Error deleting mentor image from B2:', b2Error);
-                    return res.status(500).json({ success: false, message: 'Error deleting mentor image from B2' });
-                }
             }
 
             // Delete the mentor from database

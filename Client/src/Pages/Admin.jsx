@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUser, FaLock, FaSignOutAlt } from 'react-icons/fa';
 import logo from '../assets/Admeasy/LOGO.webp';
+import SEO from '../components/SEO';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -109,6 +110,7 @@ const Admin = () => {
         animate="visible"
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="min-h-screen p-8">
+          <SEO title="Admin Dashboard" description="Admin Dashboard" />
         <div className="max-w-4/5 mx-auto space-y-8">
           <img src={logo} alt="LOGO" className='w-150 aspect-auto mx-auto' />
           <button

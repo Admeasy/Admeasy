@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-const ProtectedRoute = ({ user, children }) => {
+const ProtectedRoute = ({ user, mentor, children }) => {
   const location = useLocation();
   
   // Check if OAuth is in progress - check both sessionStorage and URL parameter
@@ -21,11 +21,23 @@ const ProtectedRoute = ({ user, children }) => {
     }
   }
   
-  if (!user && !oauthInProgress) {
-      toast.info('Please Login to setup a profile',{
-        toastId :'login-warning'
-      }) 
-        return <Navigate to="/login" replace />
+  // Handle different types of protection
+  if (mentor === true) {
+    // This route requires mentor authentication
+    if (user && oauthInProgress) {
+      toast.info('Please login as a mentor', {
+        toastId: 'mentor-login-warning'
+      });
+      return <Navigate to="/mentors/login" replace />;
+    }
+  } else {
+    // Regular user protection
+    if (!user && !oauthInProgress) {
+      toast.info('Please Login to setup a profile', {
+        toastId: 'login-warning'
+      });
+      return <Navigate to="/login" replace />;
+    }
   }
   return children;
 };

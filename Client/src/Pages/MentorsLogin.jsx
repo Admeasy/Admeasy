@@ -7,7 +7,7 @@ import { Upload, User, BookOpen, GraduationCap, Sparkles, FileText, Calendar } f
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
-
+import LoadingButton from "../components/LoadingButton";
 
 // Animation variant
 const fadeUpVariant = {
@@ -85,7 +85,7 @@ function MentorsLogin({ onLoginSuccess }) {
         setError(data.message || "Invalid username or password");
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(err.message || "An error occurred. Please try again.");
       console.error(err);
     }
 
@@ -93,7 +93,6 @@ function MentorsLogin({ onLoginSuccess }) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 min-w-screen min-h-screen flex items-center justify-center">
       <motion.section
         variants={fadeUpVariant}
         initial="hidden"
@@ -121,7 +120,7 @@ function MentorsLogin({ onLoginSuccess }) {
               <input
                 type="text"
                 name="mentorId"
-                placeholder="Mentor ID"
+                placeholder="Email"
                 className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
                 value={formData.mentorId}
                 onChange={(e) =>
@@ -155,17 +154,29 @@ function MentorsLogin({ onLoginSuccess }) {
             </div>
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50"
-            >
-              {isSubmitting ? "Logging In..." : "Login"}
-            </button>
+            {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'pruple'}/>
+        :   <button
+          type="submit"
+          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-purple-900 hover:bg-purple-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+          disabled={isSubmitting}
+        >
+          Log In
+        </button>
+        }
           </form>
+        <p className="mt-4 text-sm text-gray-600">
+          Not a mentor?{" "}
+          <span
+            onClick={() => navigate('/careers/mentorship/apply')}
+            className="font-semibold text-purple-700 hover:text-purple-900 cursor-pointer 
+               underline underline-offset-4 decoration-purple-400 
+               hover:decoration-purple-700 transition-all"
+          >
+            Apply for mentorship
+          </span>
+        </p>
         </div>
       </motion.section>
-    </div>
   );
 }
 
