@@ -6,8 +6,19 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const upload = require('../middleware/multer')
-const uploadToCloudinary = require('../Utils/uploadToCloudinary')
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary')
 
+
+const getPublicIdFromUrl = (imageUrl) => {
+    const parts = imageUrl.split('/upload/');
+    if (parts.length < 2) {
+        return null; // Not a valid Cloudinary URL format
+    }
+    const publicIdWithExtension = parts[1];
+    const extensionName = path.extname(publicIdWithExtension);
+    const publicId = publicIdWithExtension.replace(extensionName, '');
+    return publicId;
+};
 // ✅ Get all blogs (public)
 
 router.get("/", async (req, res) => {
@@ -130,6 +141,10 @@ router.delete("/:id", verifyAdminToken, async (req, res) => {
       return res.status(404).json({ message: "Blog not found" });
     }
     await Blog.findByIdAndDelete(id);
+    if (blog.Thumbnail) {
+      const publicId = getPublicIdFromUrl(blog.Thumbnail);
+      await deleteFromCloudinary(publicId);
+    }
     console.log("Blog deleted successfully:", id);
     res.json({ message: "Blog deleted successfully" });
   } catch (e) {

@@ -55,13 +55,8 @@ const Schema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    competitiveExamsAttempted: [{
+    competitiveExamsCleared: [{
         name: {
-            type: String,
-            trim: true,
-            required: true
-        },
-        rank: {
             type: String,
             trim: true,
             required: true

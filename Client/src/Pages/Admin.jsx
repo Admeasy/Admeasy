@@ -110,7 +110,7 @@ const Admin = () => {
         animate="visible"
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="min-h-screen p-8">
-          <SEO title="Admin Dashboard" description="Admin Dashboard" />
+          <SEO title="Admin Dashboard | Admeasy" description="Admin Dashboard" />
         <div className="max-w-4/5 mx-auto space-y-8">
           <img src={logo} alt="LOGO" className='w-150 aspect-auto mx-auto' />
           <button

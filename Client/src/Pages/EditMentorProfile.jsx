@@ -93,6 +93,16 @@ export default function MentorsProfile() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
+  useEffect(() => {
+    async function fetchColleges() {
+      const response = await fetch('/api/colleges');
+      const data = await response.json();
+      setColleges(data);
+    }
+    fetchColleges();
+  }, [])
+  
+
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
@@ -195,12 +205,10 @@ export default function MentorsProfile() {
         setPreview(fallbackProfilePic);
       }
 
-      if (mentorData.competitiveExamsAttempted && Array.isArray(mentorData.competitiveExamsAttempted)) {
-        const examObjects = mentorData.competitiveExamsAttempted.map(exam => {
-          if (typeof exam === 'string') {
-            return { name: exam, rank: '' };
-          }
-          return { name: exam.name || '', rank: exam.rank || '' };
+      const competitiveExams = mentorData.competitiveExamsCleared;
+      if (competitiveExams && Array.isArray(competitiveExams)) {
+        const examObjects = competitiveExams.map(exam => {
+          return { name: exam.name || '' };
         });
         setExams(examObjects);
       }
@@ -243,7 +251,7 @@ export default function MentorsProfile() {
   };
 
   const addExam = () => {
-    setExams([...exams, { name: '', rank: '' }]);
+    setExams([...exams, { name: '' }]);
   };
 
   const updateExam = (index, field, value) => {
@@ -303,11 +311,10 @@ export default function MentorsProfile() {
         const validExams = exams
           .filter(exam => exam.name && exam.name.trim())
           .map(exam => ({
-            name: exam.name.trim(),
-            rank: exam.rank ? exam.rank.trim() : ''
+            name: exam.name.trim()
           }));
         if (validExams.length > 0) {
-          payload.append('competitiveExamsAttempted', JSON.stringify(validExams));
+          payload.append('competitiveExamsCleared', JSON.stringify(validExams));
         }
       }
 
@@ -472,15 +479,6 @@ export default function MentorsProfile() {
                         onChange={(e) => updateExam(index, 'name', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         placeholder="Exam name (e.g., JEE, NEET)"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={exam.rank}
-                        onChange={(e) => updateExam(index, 'rank', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="Rank (e.g., AIR 150)"
                       />
                     </div>
                     <button

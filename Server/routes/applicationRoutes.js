@@ -5,6 +5,7 @@ const multer = require('multer');
 const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
 const path = require('path');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 const MentorshipRequest = require('../models/mentorshipRequestSchema');
 const Mentor = require('../models/mentorSchema');
 const { verifyAdminToken } = require('../middleware/adminAuth');
@@ -13,6 +14,17 @@ const nodemailer = require('nodemailer');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+const getPublicIdFromUrl = (imageUrl) => {
+    const parts = imageUrl.split('/upload/');
+    if (parts.length < 2) {
+        return null; // Not a valid Cloudinary URL format
+    }
+    const publicIdWithExtension = parts[1];
+    const extensionName = path.extname(publicIdWithExtension);
+    const publicId = publicIdWithExtension.replace(extensionName, '');
+    return publicId;
+};
 
 // Get all collection names in Applications DB except 'messages'
 router.get('/', verifyAdminToken, async (req, res) => {
@@ -313,6 +325,30 @@ router.post('/mentorship', upload.single('image'), async (req, res) => {
             return res.status(400).json('Missing required fields');
         }
 
+        // Check if applicant already exists in mentorship requests
+        const existingApplication = await MentorshipRequest.findOne({
+            $or: [
+                { email: email },
+                { phone: phone }
+            ]
+        });
+        if (existingApplication) {
+            console.log(existingApplication.name);
+            return res.status(409).json('Applicant already exists');
+        }
+
+        // Check if applicant is already a mentor
+        const existingMentor = await Mentor.findOne({
+            $or: [
+                { email: email },
+                { phone: phone }
+            ]
+        });
+        if (existingMentor) {
+            console.log(existingMentor);
+            return res.status(403).json('Mentor already exists');
+        }
+
         const id = new mongoose.Types.ObjectId();
 
         const applicant = new MentorshipRequest({
@@ -324,11 +360,22 @@ router.post('/mentorship', upload.single('image'), async (req, res) => {
             course: course
         });
 
+        // Handle image upload to Cloudinary
         if (req.file) {
-            const ext = path.extname(req.file.originalname).toLowerCase();
-            const fileName = 'applications/mentors/' + id + ext;
-            await b2.uploadBuffer(req.file.buffer, fileName);
-            applicant.image = fileName;
+            try {
+                // When using memoryStorage, req.file.buffer exists instead of req.file.path
+                const fileInput = req.file.buffer || req.file.path;
+                console.log("Uploading image to Cloudinary:", req.file.originalname);
+                const cloudUrl = await uploadToCloudinary(fileInput, 'applications/mentorship');
+                applicant.image = cloudUrl;
+                console.log("Image uploaded to Cloudinary:", cloudUrl);
+            } catch (uploadError) {
+                console.error('Error uploading to Cloudinary:', uploadError);
+                return res.status(500).json({ success: false, message: 'Error uploading image' });
+            }
+        } else {
+            // If no file is provided, return error since image is required
+            return res.status(400).json({ success: false, message: 'Image is required' });
         }
 
         await applicant.save();
@@ -367,7 +414,7 @@ router.post('/mentorship/verify2', async (req, res) => {
             return res.status(400).json({ message: 'Missing email or id in request body' });
         }
         const { email, id } = req.body;
-        
+
         // Find applicant by id first
         const applicant = await MentorshipRequest.findById(id);
         if (!applicant) {
@@ -378,7 +425,7 @@ router.post('/mentorship/verify2', async (req, res) => {
         if (!applicant.isAccepted) {
             return res.status(401).json({ message: 'Unauthorized Access' });
         }
-        
+
         if (email !== applicant.email) {
             return res.status(403).json({ message: 'Email does not match the application' });
         }
@@ -398,8 +445,7 @@ router.get('/mentorship/:id/pic', async (req, res) => {
         if (!applicant) {
             return res.status(404).json('Applicant not found');
         }
-        const image = await b2.getDownloadAuthorization(applicant.image);
-        res.status(200).json(image.url);
+        res.status(200).json(applicant.image);
     } catch (e) {
         res.status(500).json('Internal Server Error');
         console.log(e);
@@ -414,7 +460,8 @@ router.delete('/mentorship/:id', async (req, res) => {
             return res.status(404).json('Application not found');
         }
         if (applicant.image) {
-            await b2.deleteFiles(applicant.image);
+            const publicId = getPublicIdFromUrl(applicant.image);
+            await deleteFromCloudinary(publicId);
         }
         res.status(200).json('Application deleted successfully');
     } catch (e) {

@@ -108,7 +108,10 @@ const MentorshipForm = () => {
                 setPreview("")
                 setAgreedToTerms(false)
                 if (fileInputRef.current) fileInputRef.current.value = "";
-
+            } else if (res.status === 409) {
+                toast.error('Applicant already exists');
+            } else if (res.status === 403) {
+                toast.error('Mentor already exists');
             } else {
                 toast.error('An Error Occurred!');
             }
