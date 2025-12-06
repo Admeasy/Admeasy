@@ -1,4 +1,4 @@
-const cloudinary = require("../config/cloudinary");
+const cloudinary = require("../config/Cloudinary");
 const fs = require("fs");
 
 async function uploadToCloudinary(localFilePath, folder) {

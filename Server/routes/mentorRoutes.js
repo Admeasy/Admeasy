@@ -8,7 +8,7 @@ const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
-const uploadToCloudinary = require('../Utils/uploadToCloudinary');
+const uploadToCloudinary = require('../utils/UploadToCloudinary');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
