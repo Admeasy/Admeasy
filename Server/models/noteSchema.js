@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+const {Admeasy} = require('../db')
 const noteSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -55,6 +55,14 @@ const noteSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  cloudinaryPublicId: String, 
+
+  // OPTIONAL PREVIEW IMAGE (IF NOT PROVIDED, SHOW PDF PREVIEW PAGES)
+  previewImages: {
+    type: [String],
+    default: []
+  },
+
   uploader: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Mentor',
@@ -64,6 +72,7 @@ const noteSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+
   status: {
     type: String,
     enum: ['draft', 'pending', 'published', 'rejected'],
@@ -100,4 +109,4 @@ noteSchema.index({
   tags: 'text'
 });
 
-module.exports = mongoose.model('Note', noteSchema);
+module.exports = Admeasy.model('Note', noteSchema);
