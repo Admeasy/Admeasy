@@ -81,4 +81,4 @@ const Schema = new mongoose.Schema({
     }
 });
 
-module.exports = Admeasy.model('Mentors', Schema);
+module.exports = Admeasy.model('Mentor', Schema);
