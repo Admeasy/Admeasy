@@ -1,6 +1,6 @@
 {
   "name": "admeasy",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "",
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
     "backblaze-b2": "^1.7.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -36,6 +37,8 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "querystring": "^0.2.1",
+    "redis": "^5.10.0",
+    "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
   }
 }

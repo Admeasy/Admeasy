@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FileText, User, File, Download, Share2, Eye, Heart, ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 
 const NotesPage = () => {
   const { id } = useParams();
@@ -22,7 +23,7 @@ const NotesPage = () => {
       uploader: "Nitish Kumar",
       standard: "CA Foundation",
       pages: 245,
-      isFree: true,
+    isFree: true,
       price: 0,
       university: "du",
       programme: "bachelors",
@@ -124,6 +125,48 @@ const NotesPage = () => {
     };
   }, [id]);
 
+  // Add structured data for note
+  useEffect(() => {
+    if (note) {
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": note.title,
+        "description": note.description,
+        "educationalLevel": note.standard,
+        "learningResourceType": "Study Notes",
+        "author": {
+          "@type": "Person",
+          "name": note.uploaderName
+        },
+        "provider": {
+          "@type": "Organization",
+          "name": "Admeasy"
+        },
+        "inLanguage": "en",
+        "isAccessibleForFree": note.isFree || false,
+        "offers": note.isFree ? undefined : {
+          "@type": "Offer",
+          "price": note.price || 0,
+          "priceCurrency": "INR"
+        }
+      };
+      
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      script.id = 'note-structured-data';
+      document.head.appendChild(script);
+      
+      return () => {
+        const existingScript = document.getElementById('note-structured-data');
+        if (existingScript) {
+          document.head.removeChild(existingScript);
+        }
+      };
+    }
+  }, [note]);
+
   const handleDownload = () => {
     if (!note?.fileUrl) {
       alert("Download link is not available yet.");
@@ -135,8 +178,8 @@ const NotesPage = () => {
   const handleShare = () => {
     if (!note) return;
     const shareData = {
-      title: note.title,
-      text: note.description,
+        title: note.title,
+        text: note.description,
       url: window.location.href,
     };
 
@@ -193,6 +236,12 @@ const NotesPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
+      <SEO
+        title={note ? `${note.title} - Study Notes | Admeasy` : 'Study Notes | Admeasy'}
+        description={note?.description || 'Access premium study notes for your courses'}
+        keywords={`${note?.title || ''}, ${note?.standard || ''}, study notes, ${note?.course || ''}, ${note?.university || ''}`}
+        url={`https://admeasy.in/notes/${id}`}
+      />
       {/* Back Button */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -234,37 +283,37 @@ const NotesPage = () => {
           </div>
         ) : (
           <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Heart className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(note.likes)}</p>
-                    <p className="text-sm text-gray-600">likes</p>
-                  </div>
-                </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="bg-pink-50 rounded-2xl p-5 border border-pink-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
+                <Heart className="w-6 h-6 text-pink-600 fill-pink-500" />
               </div>
-
-              <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Eye className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(note.views)}</p>
-                    <p className="text-sm text-gray-600">views</p>
-                  </div>
-                </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{formatNumber(note.likes)}</p>
+                <p className="text-base text-gray-600">likes</p>
               </div>
             </div>
+          </div>
 
-            {/* Main Content Card */}
-            <div className="bg-white rounded-2xl shadow-3d border border-gray-100 p-6 mb-6">
-              {/* Title Section */}
-              <div className="mb-4">
+          <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <Eye className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{formatNumber(note.views)}</p>
+                <p className="text-base text-gray-600">views</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Card */}
+        <div className="bg-white rounded-2xl shadow-3d border border-gray-100 p-6 mb-6">
+          {/* Title Section */}
+          <div className="mb-4">
                 <div className="flex flex-wrap gap-2 mb-3">
                   <span
                     className={`px-3 py-1 rounded-lg text-xs font-semibold ${
@@ -281,38 +330,38 @@ const NotesPage = () => {
                     </span>
                   )}
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{note.title}</h1>
-                <p className="text-gray-600 leading-relaxed">{note.description}</p>
-              </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{note.title}</h1>
+            <p className="text-gray-600 leading-relaxed">{note.description}</p>
+          </div>
 
-              {/* Uploader Info */}
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div>
+          {/* Uploader Info */}
+          <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <div>
                   <p className="font-bold text-gray-900">{uploaderName}</p>
                   <p className="text-sm text-gray-500">Uploaded • {uploadedOn}</p>
-                </div>
-              </div>
+            </div>
+          </div>
 
-              {/* Action Buttons */}
+          {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg hover:shadow-xl"
-                >
-                  <Download className="w-5 h-5" />
-                  Download
-                </button>
+            <button
+              onClick={handleDownload}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg hover:shadow-xl"
+            >
+              <Download className="w-5 h-5" />
+              Download
+            </button>
 
-                <button
-                  onClick={handleShare}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all border-2 border-gray-300"
-                >
-                  <Share2 className="w-5 h-5" />
-                  Share
-                </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all border-2 border-gray-300"
+            >
+              <Share2 className="w-5 h-5" />
+              Share
+            </button>
 
                 <button
                   onClick={handleLike}
@@ -326,9 +375,9 @@ const NotesPage = () => {
                   <Heart className={`w-5 h-5 ${liked ? "fill-pink-500 text-pink-500" : "text-pink-500"}`} />
                   {liked ? "Liked" : isLiking ? "Liking…" : "Like"}
                 </button>
-              </div>
+          </div>
 
-              {/* Note Details */}
+          {/* Note Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl">
                 {[
                   { label: "University", value: note.university ? note.university.toUpperCase() : "Not shared" },
@@ -339,34 +388,34 @@ const NotesPage = () => {
                   <div key={detail.label}>
                     <p className="text-sm text-gray-600 mb-1">{detail.label}</p>
                     <p className="font-semibold text-gray-900">{detail.value}</p>
-                  </div>
-                ))}
-              </div>
             </div>
+                ))}
+          </div>
+        </div>
 
-            {/* Preview Section */}
-            <div className="bg-white rounded-2xl shadow-3d border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Preview</h2>
-              
+        {/* Preview Section */}
+        <div className="bg-white rounded-2xl shadow-3d border border-gray-100 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Preview</h2>
+          
               {previewPages.length === 0 ? (
                 <div className="text-center text-gray-500 py-10 border border-dashed border-gray-200 rounded-xl">
                   Preview pages will appear here once uploaded.
                 </div>
               ) : (
-                <div className="space-y-6">
+          <div className="space-y-6">
                   {previewPages.map((page, idx) => (
                     <div
                       key={page._id || page.pageNumber || idx}
                       className="border border-gray-200 rounded-xl overflow-hidden"
                     >
-                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
                         <p className="text-sm font-medium text-gray-700">
                           Page {page.pageNumber ?? idx + 1}
                         </p>
                         <p className="text-xs text-gray-500">
                           {(page.pageNumber ?? idx + 1)}/{note.pages || previewPages.length}
                         </p>
-                      </div>
+                </div>
                       {page.previewUrl ? (
                         <img
                           src={page.previewUrl}
@@ -376,17 +425,17 @@ const NotesPage = () => {
                         />
                       ) : (
                         <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 min-h-[300px] flex items-center justify-center">
-                          <div className="text-center">
-                            <FileText className="w-20 h-20 text-gray-300 mx-auto mb-3" />
+                  <div className="text-center">
+                    <FileText className="w-20 h-20 text-gray-300 mx-auto mb-3" />
                             <p className="text-gray-500">Preview not available for this page yet.</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  </div>
                 </div>
+                      )}
+              </div>
+            ))}
+          </div>
               )}
-            </div>
+        </div>
           </>
         )}
       </div>

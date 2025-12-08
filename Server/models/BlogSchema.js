@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { Applications } = require('../db');
 
-const BlogSchema = new mongoose.Schema(
+const blogSchema = new mongoose.Schema(
   {
     Author: {
       type: String,
@@ -43,4 +43,4 @@ const BlogSchema = new mongoose.Schema(
   }
 );
 
-module.exports = Applications.model("Blog", BlogSchema);
+module.exports = Applications.models.Blogs || Applications.model("Blogs", blogSchema);

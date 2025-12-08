@@ -21,6 +21,8 @@ import TermsAndConditions from './Pages/TermsAndConditions'
 import ResetPassword from './Pages/ResetPassword';
 import Course from './Pages/Course'
 import Notes from './Pages/Notes';
+import NotesSearch from './Pages/NotesSearch';
+import AddNote from './Pages/AddNote';
 import SignUp from './Pages/SignUp'
 import LogIn from './Pages/LogIn'
 import Profile from './Pages/EditProfile'
@@ -36,18 +38,23 @@ import Blogs from './Pages/Blogs'
 import Messages from './Pages/Messages'
 import Enrollments from './Pages/Enrollments';
 import NotesPage from './Pages/NotesPage';
+import Chat from './Pages/Chat';
+import Chats from './Pages/Chats';
+import MentorChats from './Pages/MentorChats';
+import MentorChat from './Pages/MentorChat';
 import ManageMentors from './Pages/ManageMentors';
 import { useEffect, useState } from 'react';
 import { useUser } from './context/UserContext';
 import { useMentor } from './context/MentorContext';
+import { SocketProvider } from './context/SocketContext';
 import TextPressure from "../ReactBits/TextPressure/TextPressure"
 import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
+import ManageNotes from './Pages/ManageNotes';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
-
-
+import AuthPage from './components/AuthPage';
 // Vartalaap Banner Imgs
 function App() {
   const location = useLocation();
@@ -145,14 +152,47 @@ function App() {
         <Route path='/mentors/register' element={<MentorRegistration />}></Route>
         <Route path='/mentors/login' element={<MentorsLogin />}></Route>
         <Route path='/mentors/:username' element={<MentorProfile />}></Route>
+        {/* User Chat Routes - Protected for users only */}
+        <Route
+          path="/chats"
+          element={
+            <ProtectedRoute user={true}>
+              <Chats />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chats/:mentorId"
+          element={
+            <ProtectedRoute user={true}>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
+        {/* Mentor Chat Routes */}
+        <Route
+          path="/mentor/chats"
+          element={
+            <ProtectedRoute mentor={true}>
+              <MentorChats />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mentor/chats/:userId"
+          element={
+            <ProtectedRoute mentor={true}>
+              <MentorChat />
+            </ProtectedRoute>
+          }
+        />
         <Route path='/policies' element={<PrivacyPolicy />}></Route>
         <Route path='/t&c' element={<TermsAndConditions />}></Route>
         <Route path='/reset-password/:token' element={<ResetPassword/>}></Route>
          <Route path='/reset-password' element={<ResetPassword/>}></Route>
         <Route path='/forgot-password' element={<ForgotPassword/>}></Route>
         {/* We don't need Signup route */}
-        <Route path='/signup' element={<SignUp />}></Route>
-        <Route path='/login' element={<LogIn />}></Route>
+        <Route path='/login' element={<AuthPage/>}></Route>
 
         {/* If user Only then /me accessible */}
         <Route
@@ -189,10 +229,13 @@ function App() {
         {/* Notes */}
         <Route path='/notes' element={<Notes/>}></Route>
         <Route path="/notes/:id" element={<NotesPage />} />
+        <Route path="/notes-search" element={<NotesSearch />} />
+        <Route path="/add-note" element={<AddNote />} />
 
         <Route path='/admin/enrollments'element={<Enrollments/>}></Route>
         <Route path='/admin/applications' element={<ManageApplications />}></Route>
         <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
+        <Route path='/admin/notes' element={<ManageNotes />}></Route>
 
         {/* 404 Slap */}
         <Route path='*' element={<NotFound />} />

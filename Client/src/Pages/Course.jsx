@@ -6,7 +6,7 @@ import { FaStar } from "react-icons/fa";
 import Section from '../components/Section'
 import { motion } from 'framer-motion';
 import { useParams, useLocation } from 'react-router-dom';
-
+import SEO from '../components/SEO';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -26,8 +26,6 @@ const Course = () => {
   }, []);
 
   useEffect(() => {
-    // Process URL parameters
-
     if (!collegeId || !courseId) {
       setError('Missing required parameters: collegeId or courseId');
       setLoading(false);
@@ -36,7 +34,6 @@ const Course = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch college data
         const collegeResponse = await fetch(`/api/colleges/${collegeId}`);
         if (!collegeResponse.ok) {
           throw new Error(`Failed to fetch college data (${collegeResponse.status})`);
@@ -44,7 +41,6 @@ const Course = () => {
         const collegeData = await collegeResponse.json();
         setCollege(collegeData);
 
-        // Fetch course data
         const courseResponse = await fetch(`/api/colleges/${collegeId}/courses/${courseId}`);
         if (!courseResponse.ok) {
           throw new Error(`Failed to fetch course data (${courseResponse.status})`);
@@ -63,6 +59,56 @@ const Course = () => {
     fetchData();
   }, [collegeId, courseId, location]);
 
+  // Moved structured data setup before returns!
+  useEffect(() => {
+    if (college && course) {
+      const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": course.title,
+        "description": course.desc || course.introDesc || `Learn ${course.title} at ${college.name}`,
+        "provider": {
+          "@type": "EducationalOrganization",
+          "name": college.name,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": college.location
+          },
+          "url": college.website
+        },
+        "courseCode": courseId,
+        "educationalLevel": course.title,
+        "timeRequired": `P${course.duration}Y`,
+        "aggregateRating": course.rating ? {
+          "@type": "AggregateRating",
+          "ratingValue": course.rating,
+          "bestRating": "5",
+          "worstRating": "0"
+        } : undefined,
+        "offers": {
+          "@type": "Offer",
+          "price": (course.feeStructure?.feePerSemester * 2 * course.duration) || 0,
+          "priceCurrency": "INR",
+          "availability": "https://schema.org/InStock"
+        }
+      };
+
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(structuredData);
+      script.id = 'course-structured-data';
+      document.head.appendChild(script);
+
+      return () => {
+        const existingScript = document.getElementById('course-structured-data');
+        if (existingScript) {
+          document.head.removeChild(existingScript);
+        }
+      };
+    }
+  }, [college, course, courseId]);
+
+  // Early returns below, after all hooks.
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -95,6 +141,13 @@ const Course = () => {
 
   return (
     <main className='w-full min-h-screen'>
+      <SEO
+        title={`${course?.title || 'Course'} at ${college?.name || 'College'} - Course Details | Admeasy`}
+        description={course?.desc || course?.introDesc || `Complete information about ${course?.title || 'this course'} at ${college?.name || 'this college'} including eligibility, fees, scholarships, and more.`}
+        keywords={`${course?.title || ''}, ${college?.name || ''}, ${college?.location || ''}, course, ${college?.type || ''} college, admissions, eligibility, fees, scholarships, ${college?.keywords?.join(', ') || ''}`}
+        image={college?.logo || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp'}
+        url={`https://admeasy.in/colleges/${collegeId}/courses/${courseId}`}
+      />
       <motion.header
         variants={fadeUpVariant}
         initial="hidden"
@@ -197,7 +250,7 @@ const Course = () => {
                   course.feeStructure.additionals.map((feeObj, index) => {
                     const title = feeObj.title || Object.values(feeObj)[0];
                     const amount = feeObj.amount || Object.values(feeObj)[1];
-                    
+
                     // Convert value to number and handle invalid cases
                     const feeValue = parseFloat(amount);
                     if (!feeValue || isNaN(feeValue)) return null;
@@ -215,7 +268,7 @@ const Course = () => {
                       </tr>
                     );
                   })
-                ) : (' ')}
+                ) : ('')}
               </tbody>
               <tfoot className='bg-gray-300 text-gray-700 font-semibold'>
                 <tr>
@@ -225,14 +278,14 @@ const Course = () => {
                       const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
                       const additionalsTotal = course.feeStructure?.additionals
                         ? course.feeStructure.additionals.reduce((sum, feeObj) => {
-                            const amount = feeObj.amount || Object.values(feeObj)[1];
-                            const feeValue = parseFloat(amount);
-                            if (!feeValue || isNaN(feeValue)) return sum;
-                            
-                            const title = feeObj.title || Object.values(feeObj)[0];
-                            const isOneTime = title.toLowerCase().includes('one time');
-                            return sum + (isOneTime ? feeValue : feeValue * course.duration);
-                          }, 0)
+                          const amount = feeObj.amount || Object.values(feeObj)[1];
+                          const feeValue = parseFloat(amount);
+                          if (!feeValue || isNaN(feeValue)) return sum;
+
+                          const title = feeObj.title || Object.values(feeObj)[0];
+                          const isOneTime = title.toLowerCase().includes('one time');
+                          return sum + (isOneTime ? feeValue : feeValue * course.duration);
+                        }, 0)
                         : 0;
                       return (tuitionTotal + additionalsTotal).toLocaleString();
                     })()}

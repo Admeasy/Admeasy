@@ -111,11 +111,11 @@ const BlogSwiper = () => {
               <div className="h-56 flex items-center justify-center bg-gray-50 overflow-hidden">
                 <img
                   draggable="false"
-                  src={`https://admeasy.in${blog.Thumbnail}`}
+                  src={`${blog.Thumbnail}`}
                   alt={blog.Title}
                   className="w-full h-full object-cover transform group-hover:scale-105 transition duration-500"
                   onError={(e) => {
-                    e.target.src = "https://via.placeholder.com/400x250?text=No+Image";
+                    e.target.src = "https://placehold.co/144x144?text=No+Image";
                   }}
                 />
               </div>

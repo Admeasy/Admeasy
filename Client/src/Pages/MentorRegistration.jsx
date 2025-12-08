@@ -5,6 +5,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useMentor } from "../context/MentorContext";
+import { useUser } from "../context/UserContext";
 
 // Animation variants
 const fadeUpVariant = {
@@ -33,9 +35,11 @@ const MentorRegistration = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [ params, setParams ] = useSearchParams();
+    const [params, setParams] = useSearchParams();
     const id = params.get('id');
     const navigate = useNavigate();
+    const { fetchMentor } = useMentor();
+    const { setUser } = useUser();
 
     useEffect(() => {
         async function verify1() {
@@ -43,7 +47,7 @@ const MentorRegistration = () => {
                 navigate('/');
                 return;
             }
-            
+
             try {
                 const res = await fetch('/api/apply/mentorship/verify', {
                     method: 'POST',
@@ -51,7 +55,7 @@ const MentorRegistration = () => {
                     body: JSON.stringify({ id }),
                     credentials: 'include'
                 });
-                
+
                 if (!res.ok) {
                     navigate('/');
                     return;
@@ -61,11 +65,11 @@ const MentorRegistration = () => {
                 navigate('/');
             }
         }
-        
+
         verify1();
     }, [id, navigate])
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!formData.email.trim()) {
             setError("Email is required!");
             return;
@@ -79,7 +83,33 @@ const MentorRegistration = () => {
         }
 
         setError("");
-        setStep(2);
+        
+        // Second verification using verify2 route
+        try {
+            const res = await fetch('/api/apply/mentorship/verify2', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    email: formData.email.trim(),
+                    id: id 
+                }),
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ message: 'Verification failed' }));
+                // Handle both object with message property and string responses
+                const errorMessage = typeof errorData === 'string' ? errorData : (errorData?.message || 'Verification failed. Please check your email.');
+                setError(errorMessage);
+                return;
+            }
+
+            // Verification successful, proceed to step 2
+            setStep(2);
+        } catch (err) {
+            console.error('Verification error:', err);
+            setError("An error occurred during verification. Please try again.");
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -108,6 +138,7 @@ const MentorRegistration = () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    applicantId: id,
                     email: formData.email,
                     password: formData.password,
                 }),
@@ -118,7 +149,28 @@ const MentorRegistration = () => {
 
             if (res.ok) {
                 toast.success("Account created successfully!");
-                navigate('/mentors/login');
+                
+                // Clear any user session to ensure we're in mentor mode
+                setUser(null);
+                
+                // Fetch mentor data and store in context
+                await fetchMentor();
+                
+                // Wait for mentor to be available in localStorage (set by MentorContext)
+                // This ensures the ProtectedRoute will see the mentor in context
+                let attempts = 0;
+                while (attempts < 10) {
+                    const mentorStored = localStorage.getItem('admeasy:mentor');
+                    const roleStored = localStorage.getItem('admeasy:authRole');
+                    if (mentorStored && roleStored === 'mentor') {
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    attempts++;
+                }
+                
+                // Navigate to profile page
+                navigate('/me');
             } else {
                 setError(data.message || "Registration failed");
             }
@@ -194,8 +246,7 @@ const MentorRegistration = () => {
                                             type="button"
                                             onClick={handleNext}
                                             disabled={isSubmitting}
-                                            className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50"
-                                        >
+                                            className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50">
                                             Next
                                         </button>
                                     </motion.div>

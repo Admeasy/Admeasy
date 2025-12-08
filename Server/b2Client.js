@@ -165,6 +165,34 @@ class BackblazeB2Client {
         }
     }
 
+    async deleteFile(fileName) {
+        await this.ensureAuthorized();
+        try {
+            // List files with the exact fileName as prefix
+            const files = await this.listFiles(fileName);
+            
+            // Find the exact match (in case there are multiple versions)
+            const exactMatch = files.find(file => file.fileName === fileName);
+            
+            if (!exactMatch) {
+                console.log(`File '${fileName}' not found in B2`);
+                return false;
+            }
+            
+            // Delete the file
+            await this.b2.deleteFileVersion({
+                fileId: exactMatch.fileId,
+                fileName: exactMatch.fileName
+            });
+            
+            console.log(`Successfully deleted file '${fileName}' from B2`);
+            return true;
+        } catch (error) {
+            console.error(`Error deleting file '${fileName}':`, error);
+            throw new Error(`Error deleting file '${fileName}': ${error.message}`);
+        }
+    }
+
     async deleteFiles(prefix) {
         await this.ensureAuthorized();
         try {

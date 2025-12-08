@@ -44,7 +44,7 @@ export default function ForgotPassword() {
       initial="hidden"
       animate="visible"
       transition={{ duration: 0.9, ease: "easeOut" }}
-      className="w-full max-w-md mx-auto p-6 bg-white shadow-3d rounded-2xl mt-10"
+      className="w-full max-w-md mb-8 mx-auto p-6 bg-white shadow-3d rounded-2xl mt-10"
     >
       <img src={Logo} alt="Admeasy" className="w-32 mx-auto mb-4" />
       <h1 className="text-2xl font-admeasy-bold text-center text-tprimary mb-2">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import SEO from '../components/SEO'
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -97,17 +98,20 @@ const MentorshipForm = () => {
                 navigate('/')
                 toast.success('Application submitted successfully. We will contact you shortly.')
                 setForm({
-                    name:"",
-                    email:"",
-                    phone:"",
-                    college:"",
-                    course:""
+                    name: "",
+                    email: "",
+                    phone: "",
+                    college: "",
+                    course: ""
                 });
                 setProfilePic(null)
                 setPreview("")
                 setAgreedToTerms(false)
-                if(fileInputRef.current) fileInputRef.current.value = "";
-            
+                if (fileInputRef.current) fileInputRef.current.value = "";
+            } else if (res.status === 409) {
+                toast.error('Applicant already exists');
+            } else if (res.status === 403) {
+                toast.error('Mentor already exists');
             } else {
                 toast.error('An Error Occurred!');
             }
@@ -126,32 +130,36 @@ const MentorshipForm = () => {
     return (
         <main className="relative max-w-lg mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
             <h2 className="text-3xl font-bold text-center mb-8">Apply for Mentorship</h2>
-
+            <SEO
+                title="Apply for Mentorship at Admeasy | Admeasy"
+                description="Want to guide students in their college admissions and career choices and earn a passive income? Apply for mentorship at Admeasy."
+                keywords="apply for mentorship, mentorship, admeasy, mentorship at admeasy, earn money, passive income, guide students, college admissions, career choices"
+                url="https://admeasy.in/careers/mentorship/apply"/>
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 {/* Image Upload Section */}
                 <div className="flex flex-col gap-2 items-center">
                     <span className="text-sm font-medium mt-2">
                         {preview ? 'Click to change image' : 'Upload your profile picture'}
                     </span>
-                                         <div
-                         className={`w-full h-48 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors ${isDragOver
-                                 ? 'border-blue-400 bg-blue-50'
-                                 : 'border-gray-300 hover:border-blue-400'
-                             }`}
+                    <div
+                        className={`w-full h-48 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors ${isDragOver
+                            ? 'border-blue-400 bg-blue-50'
+                            : 'border-gray-300 hover:border-blue-400'
+                            }`}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         onClick={() => fileInputRef.current?.click()}
                     >
-                                                 {preview ? (
-                             <div className="w-full h-full p-1 flex items-center justify-center">
-                                 <img
-                                     src={preview}
-                                     alt="Profile Preview"
-                                     className="max-w-full max-h-full object-contain"
-                                 />
-                             </div>
-                         ) : (
+                        {preview ? (
+                            <div className="w-full h-full p-1 flex items-center justify-center">
+                                <img
+                                    src={preview}
+                                    alt="Profile Preview"
+                                    className="max-w-full max-h-full object-contain"
+                                />
+                            </div>
+                        ) : (
                             <div className="text-center">
                                 <div className="text-gray-400 mb-2">
                                     <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,7 +264,7 @@ const MentorshipForm = () => {
                     <label htmlFor="terms" className="text-sm text-gray-700">
                         I agree to the&nbsp;
                         <p
-                            onClick={()=> navigate('/t&c')}
+                            onClick={() => navigate('/t&c')}
                             className="text-blue-600 hover:underline inline-block cursor-pointer"
                         >
                             Terms and Conditions
@@ -283,7 +291,7 @@ const MentorshipForm = () => {
                     </button>
                 </div>
             </form>
-            
+
         </main>
     )
 }

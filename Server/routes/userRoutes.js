@@ -1,5 +1,5 @@
 const express = require('express');
-const {resetPassword,forgotPassword} = require('../controllers/userController.js')
+const { resetPassword, forgotPassword } = require('../controllers/userController.js')
 const router = express.Router();
 const User = require('../models/userSchema');
 const crypto = require('crypto')
@@ -73,59 +73,59 @@ router.get('/', verifyAdminToken, async (req, res) => {
 
 // SIGN UP
 router.post('/signup', async (req, res) => {
-  try {
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-    // Validate
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Email and password are required' });
+        // Validate
+        if (!email || !password) {
+            return res
+                .status(400)
+                .json({ success: false, message: 'Email and password are required' });
+        }
+
+        // Check existing user
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res
+                .status(409)
+                .json({ success: false, message: 'Email already registered' });
+        }
+
+        // Hash password & create user
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ email, password: hashedPassword });
+
+        // Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        // Set cookies
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 12 * 60 * 60 * 1000, // 12 hours
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
+        });
+
+        // Response
+        return res.status(201).json({
+            id: user._id,
+            success: true,
+            message: 'User registered successfully',
+        });
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
     }
-
-    // Check existing user
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res
-        .status(409)
-        .json({ success: false, message: 'Email already registered' });
-    }
-
-    // Hash password & create user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ email, password: hashedPassword });
-
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    // Set cookies
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 12 * 60 * 60 * 1000, // 12 hours
-    });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
-    });
-
-    // Response
-    return res.status(201).json({
-      id: user._id,
-      success: true,
-      message: 'User registered successfully',
-    });
-
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
-  }
 });
 
 // Complete onboarding and save user data
@@ -149,12 +149,12 @@ router.post('/onboarding', async (req, res) => {
             if (!email || !password) {
                 return res.status(400).json({ success: false, message: 'Email and password are required for new accounts' });
             }
-            
+
             const existing = await User.findOne({ email });
             if (existing) {
                 return res.status(409).json({ success: false, message: 'Email already registered. Please log in first.' });
             }
-            
+
             const hashedPassword = await bcrypt.hash(password, 10);
             user = new User({ email, password: hashedPassword });
         }
@@ -327,14 +327,19 @@ router.post('/login', async (req, res) => {
 // GOOGLE OAUTH ROUTES
 // Initiate Google OAuth
 router.get('/auth/google', (req, res, next) => {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    return res.status(503).json({ success: false, message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.' });
-  }
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        return res.status(503).json({ success: false, message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.' });
+    }
+    // Store the original URL or any state if needed
+    passport.authenticate('google', {
+        scope: ['profile', 'email'],
+        accessType: 'offline',
+        prompt: 'consent'
+    })(req, res, next);
 });
 
 // Google OAuth callback
-router.get('/auth/google/callback', 
+router.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed` }),
     async (req, res) => {
         try {
@@ -368,9 +373,9 @@ router.get('/auth/google/callback',
             const frontendUrl = getFrontendUrl();
             // Check if user has completed onboarding
             if (req.user.hasCompletedOnboarding) {
-                res.redirect(`${frontendUrl}/me`);
+                res.redirect(`${frontendUrl}/me/edit?oauth_success=true`);
             } else {
-                res.redirect(`${frontendUrl}/onboarding`);
+                res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
@@ -549,19 +554,19 @@ router.put('/me', upload.single('image'), async (req, res) => {
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
-        const { 
+        const {
             name, institute, course, phone, gender,
             languages, city, educationType, board, universityName,
             class: userClass, stream, schoolName, courseLevel, courseDetails,
             collegeName, examsPreparingFor, reasonForAdmeasy, reasonForAdmeasyInput
         } = req.body;
-        
+
         if (name) user.name = name;
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
         if (gender) user.gender = gender;
-        
+
         // Onboarding fields - handle JSON strings from FormData
         if (languages !== undefined) {
             try {
@@ -726,7 +731,7 @@ router.get('/proxy-image', async (req, res) => {
 router.get('/:userId/image', verifyAdminToken, async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         // Find the user
         const user = await User.findById(userId);
         if (!user) {
@@ -810,5 +815,67 @@ router.delete('/:userId', async (req, res) => {
 // RESET PASSWORD
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
+
+// GET USER BY ID (for mentors who have chats with the user, or users viewing their own profile)
+router.get('/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const token = req.cookies['accessToken'];
+        
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+        
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        } catch (err) {
+            return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+        }
+        
+        // Check if this is a mentor by checking if there's a mentor with this ID
+        const Mentor = require('../models/mentorSchema');
+        const mentor = await Mentor.findById(decoded.id);
+        
+        if (mentor) {
+            // It's a mentor - verify they have a chat with this user
+            const Chat = require('../models/chatSchema');
+            const chat = await Chat.findOne({
+                userId,
+                mentorId: decoded.id,
+                isActive: true
+            });
+            
+            if (!chat) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'You can only view details of users you have chats with' 
+                });
+            }
+        } else {
+            // It's a regular user - they can only view their own profile
+            if (decoded.id !== userId) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'You can only view your own profile' 
+                });
+            }
+        }
+        
+        // Find the user
+        const user = await User.findById(userId).select('-password -refreshToken');
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        
+        // Process image if needed
+        const processedUser = await processUserImage(user.toObject());
+        
+        res.json(processedUser);
+    } catch (err) {
+        console.error('Error fetching user:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 module.exports = router;

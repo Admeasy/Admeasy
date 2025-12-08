@@ -10,6 +10,7 @@ import Guide from "../assets/Icons/guide.gif"
 import Mentor from "../assets/Icons/Mentor.gif"
 import SignUp from './SignUp.jsx'
 import World from "../assets/Icons/World.gif"
+import { toast } from 'react-toastify'
 const LogIn = () => {
   const navigate = useNavigate()
   const [showLogin, setShowLogin] = useState(true)
@@ -25,6 +26,17 @@ const LogIn = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  // Handle OAuth errors
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error === 'google_auth_failed') {
+      toast.error('Google authentication failed. Please try again.');
+      // Remove error from URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   return (
     <>
 
@@ -32,9 +44,9 @@ const LogIn = () => {
         {/* Left Side - Login */}
         <div className=" w-full lg:w-1/3 flex">
           {showLogin ? (
-            <LogInComp setShowLogin={setShowLogin} showLogin={showLogin} />
-          ) : (
             <SignUp setShowLogin={setShowLogin} showLogin={showLogin} />
+          ) : (
+            <LogInComp setShowLogin={setShowLogin} showLogin={showLogin} />
           )}
 
         </div>
