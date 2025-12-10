@@ -86,7 +86,7 @@ const Navbar = () => {
       >
         Blogs
       </NavLink>
-      <NavLink
+               <NavLink
         className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
         to="/about"
         onClick={() => setIsOpen(false)}

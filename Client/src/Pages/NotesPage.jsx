@@ -1,16 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { FileText, User, File, Download, Share2, Eye, Heart, ArrowLeft } from "lucide-react";
+import { FileText, User, File, Download, Share2, Eye, Heart, ArrowLeft, CreditCard } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import { useUser } from "../context/UserContext";
+import PaymentModal from "../components/PaymentModal";
 
 const NotesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [note, setNote] = useState(null);
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isLiking, setIsLiking] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Sample data for testing
   const sampleNotes = {
@@ -107,6 +113,11 @@ const NotesPage = () => {
           }
         }
         setNote(data);
+
+        // Check purchase status after note is loaded
+        if (data && !data.isFree && user) {
+          checkPurchaseStatus(data);
+        }
       } catch (err) {
         if (err.name === "AbortError") return;
         setError(err.message || "Something went wrong.");
@@ -124,6 +135,15 @@ const NotesPage = () => {
       controller.abort();
     };
   }, [id]);
+
+  // Check purchase status when user changes or note loads
+  useEffect(() => {
+    if (note && !note.isFree && user) {
+      checkPurchaseStatus(note);
+    } else if (note && note.isFree) {
+      setHasPurchased(true); // Free notes are always "purchased"
+    }
+  }, [user, note]);
 
   // Add structured data for note
   useEffect(() => {
@@ -173,6 +193,38 @@ const NotesPage = () => {
       return;
     }
     window.open(note.fileUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const checkPurchaseStatus = async (noteData) => {
+    if (!user || !noteData || noteData.isFree) return;
+
+    try {
+      setCheckingPurchase(true);
+      const res = await fetch(`/api/payments/check/${noteData._id}`, {
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setHasPurchased(data.hasPurchased);
+      } else {
+        console.error("Failed to check purchase status");
+        setHasPurchased(false);
+      }
+    } catch (error) {
+      console.error("Error checking purchase status:", error);
+      setHasPurchased(false);
+    } finally {
+      setCheckingPurchase(false);
+    }
+  };
+
+  const handlePurchase = () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setShowPaymentModal(true);
   };
 
   const handleShare = () => {
@@ -347,13 +399,24 @@ const NotesPage = () => {
 
           {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <button
-              onClick={handleDownload}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg hover:shadow-xl"
-            >
-              <Download className="w-5 h-5" />
-              Download
-            </button>
+            {note.isFree || hasPurchased ? (
+              <button
+                onClick={handleDownload}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg hover:shadow-xl"
+              >
+                <Download className="w-5 h-5" />
+                Download
+              </button>
+            ) : (
+              <button
+                onClick={handlePurchase}
+                disabled={checkingPurchase}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-500 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <CreditCard className="w-5 h-5" />
+                {checkingPurchase ? "Checking..." : `Purchase - ₹${note.price}`}
+              </button>
+            )}
 
             <button
               onClick={handleShare}
@@ -392,6 +455,19 @@ const NotesPage = () => {
                 ))}
           </div>
         </div>
+
+        {/* Payment Modal */}
+        <PaymentModal
+          note={note}
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onPaymentSuccess={(downloadUrl) => {
+            setHasPurchased(true);
+            if (downloadUrl) {
+              window.open(downloadUrl, "_blank", "noopener,noreferrer");
+            }
+          }}
+        />
 
         {/* Preview Section */}
         <div className="bg-white rounded-2xl shadow-3d border border-gray-100 p-6">

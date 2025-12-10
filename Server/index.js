@@ -15,6 +15,7 @@ const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NoteRoutes = require('./routes/noteRoutes');
+const PaymentRoutes = require('./routes/paymentRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
 const session = require('express-session');
 const passport = require('./middleware/passport');
@@ -139,6 +140,10 @@ app.use('/api/enrollments', EnrollmentsRoutes);
 app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
 app.use('/api', ChatRoutes);
+
+// Payment Routes Registration
+app.use('/api/payments', PaymentRoutes);
+
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
