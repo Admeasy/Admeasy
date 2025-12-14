@@ -17,24 +17,31 @@ const Chat = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
   const [chatId, setChatId] = useState(null);
+  const [connectionError, setConnectionError] = useState(false);
   const messagesEndRef = useRef(null);
+  const initializationDone = useRef(false);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
   useEffect(() => {
-    // Only users can access user chats, mentors use different routes
+    // Only users can access user chats
     if (!user) {
       navigate('/login');
       return;
     }
 
-    if (mentorId) {
+    if (mentorId && !initializationDone.current) {
+      initializationDone.current = true;
       initializeChat();
     }
   }, [mentorId, user, navigate]);
 
   const initializeChat = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
+      setConnectionError(false);
+
       // First, get or create the chat
       const chatResponse = await fetch(`/api/chats/${mentorId}`, {
         method: 'POST',
@@ -46,9 +53,14 @@ const Chat = () => {
       }
 
       const chatData = await chatResponse.json();
+      
+      if (!chatData.success || !chatData.chat) {
+        throw new Error('Invalid chat response');
+      }
+
       setChatId(chatData.chat.chatId);
 
-      // Set mentor data from chat response (avoids extra API call)
+      // Set mentor data from chat response
       if (chatData.chat.mentorName) {
         setMentor({
           _id: chatData.chat.mentorId,
@@ -58,15 +70,46 @@ const Chat = () => {
         });
       }
 
-      // Join the chat room for real-time messaging
-      joinChat(chatData.chat.chatId);
+      // Wait for socket to be ready before joining chat
+      const waitForSocket = () => {
+        return new Promise((resolve, reject) => {
+          if (isConnected && socket) {
+            resolve();
+          } else {
+            const timeout = setTimeout(() => {
+              reject(new Error('Socket connection timeout'));
+            }, 10000); // 10 second timeout
 
-      // Fetch mentor details (if not in chat response) and messages
-      await Promise.all([fetchMentorDetails(), fetchMessages(chatData.chat.chatId)]);
+            const checkInterval = setInterval(() => {
+              if (isConnected && socket) {
+                clearInterval(checkInterval);
+                clearTimeout(timeout);
+                resolve();
+              }
+            }, 100);
+          }
+        });
+      };
+
+      try {
+        await waitForSocket();
+        joinChat(chatData.chat.chatId);
+        console.log('Successfully joined chat:', chatData.chat.chatId);
+      } catch (socketError) {
+        console.error('Socket connection error:', socketError);
+        setConnectionError(true);
+        toast.error('Connection issue. Messages may be delayed.');
+      }
+
+      // Fetch messages
+      await fetchMessages(chatData.chat.chatId);
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error initializing chat:', error);
       setError('Failed to load chat');
       setIsLoading(false);
+      toast.error('Failed to initialize chat');
     }
   };
 
@@ -79,15 +122,16 @@ const Chat = () => {
     if (!socket || !chatId) return;
 
     const handleReceiveMessage = (message) => {
-      // Add new message to state
+      console.log('Received message:', message);
       setMessages(prevMessages => {
-        // Check if message already exists (avoid duplicates)
         const exists = prevMessages.some(m => m._id === message._id);
         if (!exists) {
           return [...prevMessages, message];
         }
         return prevMessages;
       });
+      // Clear sending state when message is received
+      setIsSending(false);
     };
 
     const handleMessageError = (error) => {
@@ -116,47 +160,13 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchMentorDetails = async () => {
-    try {
-      // Try to fetch by ID first (since mentorId is an ObjectId)
-      const response = await fetch(`/api/mentors/id/${mentorId}`, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        // If ID fetch fails, try by username (fallback)
-        const usernameResponse = await fetch(`/api/mentors/${mentorId}`, {
-          credentials: 'include'
-        });
-
-        if (!usernameResponse.ok) {
-          throw new Error('Failed to fetch mentor details');
-        }
-
-        const mentorData = await usernameResponse.json();
-        setMentor(mentorData);
-      } else {
-        const mentorData = await response.json();
-        setMentor(mentorData);
-      }
-    } catch (err) {
-      console.error('Error fetching mentor details:', err);
-      // Don't show error toast if mentor data was already set from chat response
-      if (!mentor) {
-        toast.error('Failed to load mentor information');
-      }
-    }
-  };
-
   const fetchMessages = async (chatIdParam) => {
     try {
-      setIsLoading(true);
       const response = await fetch(`/api/chats/${mentorId}/messages`, {
         credentials: 'include'
       });
 
       if (!response.ok) {
-        // If no chat exists yet (404), that's okay - user can start new conversation
         if (response.status === 404) {
           setMessages([]);
           setError(null);
@@ -170,26 +180,28 @@ const Chat = () => {
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
-      // Don't set error for 404s as it's expected for new chats
       if (!err.message.includes('404')) {
         setError(err.message);
         toast.error('Failed to load messages');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const sendMessage = async (e) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || !chatId || isSending || !isConnected) return;
+    if (!newMessage.trim() || !chatId || isSending) return;
+
+    if (!isConnected || !socket) {
+      toast.error('Not connected to server. Please wait...');
+      return;
+    }
 
     const messageToSend = newMessage.trim();
     setNewMessage('');
     setIsSending(true);
 
-    // Send message via Socket.io for real-time delivery
+    // Send message via Socket.io
     socketSendMessage({
       chatId,
       senderId: user._id,
@@ -197,8 +209,10 @@ const Chat = () => {
       senderRole: 'user'
     });
 
-    // Note: The message will be added to state via the 'receive_message' event
-    // This provides instant feedback while the server processes it
+    // Set timeout to reset sending state if no response
+    setTimeout(() => {
+      setIsSending(false);
+    }, 5000);
   };
 
   const formatTime = (timestamp) => {
@@ -229,7 +243,10 @@ const Chat = () => {
   if (isLoading && !mentor) {
     return (
       <div className="min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading chat...</p>
+        </div>
       </div>
     );
   }
@@ -237,7 +254,7 @@ const Chat = () => {
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b fixed top-0 z-10">
+      <div className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
@@ -262,8 +279,7 @@ const Chat = () => {
                 {mentorId && (
                   <div className="absolute -bottom-1 -right-1">
                     <FaCircle
-                      className={`text-xs ${isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'
-                        }`}
+                      className={`text-xs ${isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'}`}
                     />
                   </div>
                 )}
@@ -292,17 +308,23 @@ const Chat = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pt-20 pb-24">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="text-center py-8">
               <p className="text-red-500">{error}</p>
               <button
-                onClick={fetchMessages}
+                onClick={() => initializeChat()}
                 className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
                 Try Again
               </button>
+            </div>
+          )}
+
+          {connectionError && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+              Connection unstable. Messages may be delayed.
             </div>
           )}
 
@@ -335,8 +357,7 @@ const Chat = () => {
                       } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
                   >
                     <p className="text-sm leading-relaxed">{message.message || message.text}</p>
-                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isUser ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
+                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isUser ? 'text-blue-100' : 'text-gray-500'}`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
                       {isUser && getMessageStatus(message)}
                     </div>
@@ -350,7 +371,7 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t p-4 sticky bottom-0">
+      <div className="bg-white border-t p-4 fixed bottom-0 left-0 right-0">
         <div className="max-w-4xl mx-auto">
           {/* Connection Status */}
           {!isConnected && (
