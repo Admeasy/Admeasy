@@ -18,8 +18,8 @@ const fadeUpVariant = {
 }
 
 const About = () => {
-     const location = useLocation();
-useEffect(() => {
+  const location = useLocation();
+  useEffect(() => {
 
     if (location.hash) {
       // Wait for DOM to render
@@ -92,11 +92,11 @@ useEffect(() => {
       description: 'Keeps our day-to-day execution smooth and efficient.',
     },
     {
-  emoji: '📣',
-  name: 'Parth Tiwari',
-  title: 'Chief Marketing Officer (CMO)',
-  description: 'Marketing strategist, growth enabler,and brand visibility lead.',
-}
+      emoji: '📣',
+      name: 'Parth Tiwari',
+      title: 'Chief Marketing Officer (CMO)',
+      description: 'Marketing strategist, growth enabler,and brand visibility lead.',
+    }
   ];
   return (
     <>
@@ -106,7 +106,12 @@ useEffect(() => {
         keywords="about admeasy, team, mission, college admissions platform, education technology"
         url="https://admeasy.in/about"
       />
-      <div className="w-full min-h-screen bg-white">
+    
+      {/* UPDATED CONTAINER CLASS: 
+          - ml-0: No margin on mobile
+          - lg:ml-72: EXACT 18rem/288px margin on desktop to match sidebar width
+      */}
+      <div className="ml-0 lg:ml-72 min-h-screen bg-gradient-to-b from-gray-50 via-white to-blue-50 transition-all duration-300">
         {/* Header Section */}
         <div className='w-full h-full'>
           <motion.header
@@ -125,26 +130,22 @@ useEffect(() => {
             }
           `}
             </style>
-           {/* Simple Heading */}
-            {/* <h1 className='h-about custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-tprimary tracking-wide lg:tracking-widest z-5 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
-            */}
+           
+            <div className='h-max relative'>
+              <TextPressure
+                text="About Us!"
+                flex={true}
+                alpha={false}
+                stroke={false}
+                width={true}
+                weight={true}
+                italic={true}
+                textColor="black"
+                strokeColor="#ff0000"
+                minFontSize={16}
+              />
+            </div>
 
-<div className='h-max relative'>
-  <TextPressure
-    text="About Us!"
-    flex={true}
-    alpha={false}
-    stroke={false}
-    width={true}
-    weight={true}
-    italic={true}
-    textColor="black"
-    strokeColor="#ff0000"
-    minFontSize={16}
-  />
-</div>
-
-            {/* <h1 className='custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1> */}
           </motion.header>
         </div>
         {/* Main Sections */}
@@ -171,7 +172,7 @@ useEffect(() => {
               <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
               Team Members
               </h2>
-               <div className="flex flex-wrap justify-center gap-6">
+                <div className="flex flex-wrap justify-center gap-6">
                 {teamMembers.map((member, index) => (
                   <div key={index}
                     className="flex md:hidden flex-col items-center justify-evenly bg-white p-3 md:gap-2 rounded-2xl shadow hover:shadow-md w-full transition">

@@ -252,9 +252,12 @@ const Chat = () => {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col">
+    // Updated Main Wrapper
+    <main className="lg:ml-72 ml-0 min-h-screen bg-gray-50 flex flex-col transition-all duration-300">
+      
       {/* Header */}
-      <div className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-10">
+      {/* Updated: Added lg:ml-72 to header */}
+      <div className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-10 lg:ml-72">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
@@ -371,7 +374,8 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t p-4 fixed bottom-0 left-0 right-0">
+      {/* Updated: Added lg:ml-72 to input bar */}
+      <div className="bg-white border-t p-4 fixed bottom-0 left-0 right-0 lg:ml-72 z-10">
         <div className="max-w-4xl mx-auto">
           {/* Connection Status */}
           {!isConnected && (

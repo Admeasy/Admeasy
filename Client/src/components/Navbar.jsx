@@ -60,6 +60,15 @@ const Navbar = () => {
       >
         Mentors
       </NavLink>
+      {loggedInAccount && (
+        <NavLink
+          className="hover:text-link lg:px-0.5 xl:px-2 py-0.25 sm:py-0.5 transition-colors duration-300 block md:inline"
+          to="/mentor-posts"
+          onClick={() => setIsOpen(false)}
+        >
+          Mentor Posts
+        </NavLink>
+      )}
       {/* Chat link only for users, Messages link only for mentors */}
       {isUserAccount && (
         <NavLink

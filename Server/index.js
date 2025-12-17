@@ -21,6 +21,7 @@ const NoteRoutes = require('./routes/noteRoutes');
 const PaymentRoutes = require('./routes/paymentRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
 const SitemapRoutes = require('./routes/sitemapRoutes');
+const MentorPostRoutes = require('./routes/mentorPostRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -160,6 +161,7 @@ app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
 app.use('/api', ChatRoutes);
 app.use('/api/payments', PaymentRoutes);
+app.use('/api/mentor-posts', MentorPostRoutes);
 
 // Socket.io connection handling with session authentication
 io.on('connection', (socket) => {

@@ -57,10 +57,6 @@ const Blogs = () => {
     fetchBlogs();
   }, []);
 
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [navigate])
-
   const fetchBlogs = async () => {
     // Check if cache is valid
     const now = Date.now();
@@ -96,35 +92,41 @@ const Blogs = () => {
     navigate(`/blog/${blogId}`);
   };
 
+  // Wrapper div for consistent layout spacing
+  const LayoutWrapper = ({ children }) => (
+    <div className="lg:ml-72 ml-0 transition-all duration-300 min-h-screen">
+      {children}
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <>
+      <LayoutWrapper>
         <SEO
           title="Blog - Education & College Admissions | Admeasy"
-          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-          keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories."
+          keywords="education blog, college admissions blog, career guidance"
           url="https://admeasy.in/blog"
         />
-        <div className="p-6 flex justify-center flex-wrap gap-6 min-h-screen">
-          {/* Show multiple skeleton cards for better UX */}
+        <div className="p-6 flex justify-center flex-wrap gap-6">
           {[...Array(6)].map((_, index) => (
             <BlogCardSkeleton key={index} />
           ))}
         </div>
-      </>
+      </LayoutWrapper>
     );
   }
 
   if (error) {
     return (
-      <>
+      <LayoutWrapper>
         <SEO
-          title="Blog - Education & College Admissions | Admeasy"
-          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-          keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+          title="Blog - Error | Admeasy"
+          description="Error loading blogs."
+          keywords="error"
           url="https://admeasy.in/blog"
         />
-        <div className="flex justify-center items-center min-h-screen">
+        <div className="flex justify-center items-center min-h-[80vh]">
           <div className="text-center p-6 bg-white rounded-2xl shadow-lg max-w-md">
             <div className="mb-4">
               <svg className="w-16 h-16 mx-auto text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,20 +143,20 @@ const Blogs = () => {
             </button>
           </div>
         </div>
-      </>
+      </LayoutWrapper>
     );
   }
 
   if (blogs.length === 0) {
     return (
-      <>
+      <LayoutWrapper>
         <SEO
           title="Blog - Education & College Admissions | Admeasy"
-          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-          keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+          description="Read our latest blogs on college admissions, education tips, career guidance."
+          keywords="education blog"
           url="https://admeasy.in/blog"
         />
-        <div className="flex justify-center items-center min-h-screen">
+        <div className="flex justify-center items-center min-h-[80vh]">
           <div className="text-center p-6">
             <div className="mb-4">
               <svg className="w-20 h-20 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,19 +167,19 @@ const Blogs = () => {
             <p className="text-gray-400 text-sm">Check back soon for new content!</p>
           </div>
         </div>
-      </>
+      </LayoutWrapper>
     );
   }
 
   return (
-    <>
+    <LayoutWrapper>
       <SEO
         title="Blogs - Education & College Admissions | Admeasy"
-        description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-        keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+        description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories."
+        keywords="education blog, college admissions blog, career guidance"
         url="https://admeasy.in/blog"
       />
-      <div className="p-6 flex justify-center flex-wrap gap-6 min-h-screen">
+      <div className="p-6 flex justify-center flex-wrap gap-6">
         {blogs.map((blog) => (
           <div
             key={blog._id}
@@ -232,7 +234,7 @@ const Blogs = () => {
           </div>
         ))}
       </div>
-    </>
+    </LayoutWrapper>
   );
 };
 
