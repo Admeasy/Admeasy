@@ -8,7 +8,7 @@ const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
-const uploadToCloudinary = require('../utils/UploadToCloudinary');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -28,6 +28,17 @@ const generateRefreshToken = (mentor) => {
     return jwt.sign({ id: mentor._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '28d' });
 }
 
+const getPublicIdFromUrl = (imageUrl) => {
+    const parts = imageUrl.split('/upload/');
+    if (parts.length < 2) {
+        return null; // Not a valid Cloudinary URL format
+    }
+    const publicIdWithExtension = parts[1];
+    const extensionName = path.extname(publicIdWithExtension);
+    const publicId = publicIdWithExtension.replace(extensionName, '');
+    return publicId;
+};
+
 // GET ALL MENTORS
 router.get('/', async (req, res) => {
     try {
@@ -36,63 +47,6 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json('Internal Server Error');
-    }
-})
-
-// GET CURRENT MENTOR (must be before /:username route)
-router.get('/me', authenticateMentorJWT, async (req, res) => {
-    try {
-        const mentor = await Mentor.findById(req.mentor.id).select('-password -refreshToken');
-        if (!mentor) {
-            return res.status(404).json({ success: false, message: 'Mentor not found' });
-        }
-        res.json({ success: true, mentor });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
-
-// GET CURRENT MENTOR PROFILE PICTURE
-router.get('/me/pic', authenticateMentorJWT, async (req, res) => {
-    try {
-        const mentor = await Mentor.findById(req.mentor.id);
-        if (!mentor || !mentor.image) {
-            return res.json(null);
-        }
-        
-        // Return Cloudinary URL directly
-        res.json(mentor.image);
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
-
-// GET MENTOR PROFILE PICTURE BY ID
-router.get('/:id/pic', async (req, res) => {
-    try {
-        const mentor = await Mentor.findById(req.params.id);
-        if (!mentor || !mentor.image) {
-            return res.json(null);
-        }
-        
-        // Return Cloudinary URL directly
-        res.json(mentor.image);
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
-
-// GET MENTOR BY USERNAME
-router.get('/:username', async (req, res) => {
-    try {
-        const mentor = await Mentor.findOne({ username: req.params.username });
-        if (!mentor) {
-            return res.status(404).json({ success: false, message: 'Mentor not found' });
-        }
-        res.status(200).json(mentor);
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 })
 
@@ -117,13 +71,13 @@ router.post('/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const mentor = new Mentor({ email, password: hashedPassword });
-        
+
         try {
             const response = await fetch('http://localhost:5000/api/apply/mentorship/' + applicantId, {
                 method: 'DELETE',
                 credentials: 'include'
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Failed to delete application:', response.status, errorText);
@@ -133,7 +87,7 @@ router.post('/register', async (req, res) => {
             console.error('Error deleting application:', fetchError);
             return res.status(500).json({ success: false, message: 'Failed to delete application' });
         }
-        
+
         await mentor.save();
         const accessToken = generateAccessToken(mentor);
         const refreshToken = generateRefreshToken(mentor);
@@ -201,6 +155,78 @@ router.post('/login', async (req, res) => {
     }
 })
 
+// GET CURRENT MENTOR (must be before /:username route)
+router.get('/me', authenticateMentorJWT, async (req, res) => {
+    try {
+        const mentor = await Mentor.findById(req.mentor.id).select('-password -refreshToken');
+        if (!mentor) {
+            return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+        res.json({ success: true, mentor });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET CURRENT MENTOR PROFILE PICTURE
+router.get('/me/pic', authenticateMentorJWT, async (req, res) => {
+    try {
+        const mentor = await Mentor.findById(req.mentor.id);
+        if (!mentor || !mentor.image) {
+            return res.json(null);
+        }
+
+        // Return Cloudinary URL directly
+        res.json(mentor.image);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET MENTOR PROFILE PICTURE BY ID
+router.get('/:id/pic', async (req, res) => {
+    try {
+        const mentor = await Mentor.findById(req.params.id);
+        if (!mentor || !mentor.image) {
+            return res.json(null);
+        }
+
+        // Return Cloudinary URL directly
+        res.json(mentor.image);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET MENTOR BY ID (must be before /:username route to avoid conflicts)
+router.get('/id/:id', async (req, res) => {
+    try {
+        const mentor = await Mentor.findById(req.params.id);
+        if (!mentor) {
+            return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+        res.status(200).json(mentor);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+// GET MENTOR BY USERNAME
+router.get('/:username', async (req, res) => {
+    try {
+        const mentor = await Mentor.findOne({ username: req.params.username });
+        if (!mentor) {
+            return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+        res.status(200).json(mentor);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+})
+
 // UPDATE MENTOR PROFILE (with image upload to Cloudinary)
 router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req, res) => {
     try {
@@ -209,12 +235,17 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         console.log("File:", req.file);
 
         const { name, username, phone, tagline, bio } = req.body;
-        let competitiveExamsAttempted = [];
-        if (req.body.competitiveExamsAttempted) {
+        let competitiveExamsCleared = [];
+        if (req.body.competitiveExamsCleared) {
             try {
-                competitiveExamsAttempted = JSON.parse(req.body.competitiveExamsAttempted);
+                const parsedExams = typeof req.body.competitiveExamsCleared === 'string' ? JSON.parse(req.body.competitiveExamsCleared) : req.body.competitiveExamsCleared;
+                if (Array.isArray(parsedExams)) {
+                    competitiveExamsCleared = parsedExams
+                        .filter(exam => exam && exam.name)
+                        .map(exam => ({ name: exam.name }));
+                }
             } catch (parseError) {
-                console.error('Error parsing competitiveExamsAttempted:', parseError);
+                console.error('Error parsing competitiveExamsCleared:', parseError);
             }
         }
 
@@ -255,13 +286,14 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         if (course) {
             updateData.course = course;
         }
-        if (competitiveExamsAttempted.length > 0) {
-            updateData.competitiveExamsAttempted = competitiveExamsAttempted;
+        if (competitiveExamsCleared.length > 0) {
+            updateData.competitiveExamsCleared = competitiveExamsCleared;
         }
 
         // Handle image upload to Cloudinary
         if (req.file) {
             try {
+                console.log("Uploading image to Cloudinary:", req.file.path);
                 const cloudUrl = await uploadToCloudinary(req.file.path, 'mentor_profiles');
                 updateData.image = cloudUrl;
                 console.log("Image uploaded to Cloudinary:", cloudUrl);
@@ -272,7 +304,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         }
 
         const mentor = await Mentor.findByIdAndUpdate(req.params.id, updateData, { new: true });
-        
+
         console.log("Mentor updated successfully");
         res.status(200).json({ success: true, message: 'Mentor updated successfully', mentor });
     } catch (error) {
@@ -338,7 +370,7 @@ router.post('/logout', authenticateMentorJWT, async (req, res) => {
     try {
         // Clear refresh token from database
         await Mentor.findByIdAndUpdate(req.mentor.id, { refreshToken: null });
-        
+
         // Clear cookies
         res.clearCookie('accessToken', {
             httpOnly: true,
@@ -369,9 +401,10 @@ router.delete('/:id', async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Mentor not found' });
             }
 
-            // Note: Cloudinary URLs don't need to be manually deleted
-            // If you want to delete from Cloudinary, you'd need to extract the public_id
-            // and use cloudinary.uploader.destroy(public_id)
+            if (mentor.image) {
+                const publicId = getPublicIdFromUrl(mentor.image);
+                await deleteFromCloudinary(publicId);
+            }
 
             // Delete the mentor from database
             await Mentor.findByIdAndDelete(req.params.id);
@@ -396,6 +429,12 @@ router.delete('/:id', async (req, res) => {
 
             // Delete the mentor from database
             await Mentor.findByIdAndDelete(req.params.id);
+
+            if (mentor.image) {
+                const publicId = getPublicIdFromUrl(mentor.image);
+                await deleteFromCloudinary(publicId);
+            }
+
             res.status(200).json({ success: true, message: 'Mentor deleted successfully' });
         } catch (error) {
             console.log(error);

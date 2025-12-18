@@ -6,9 +6,12 @@ import { useState } from "react";
 import { MdAlternateEmail, MdLockOutline } from 'react-icons/md';
 import Logo from '../assets/Admeasy/LOGO.webp';
 import MentorsLogo from '../assets/Admeasy/MentorsLoginLogo.webp';
+import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
+
+
 const LogInComp = ({ setAuthMode }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,10 +66,10 @@ const fadeUpVariant = {
         toast.success("You're all set!");
         navigate('/');
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || 'An error occurred. Please try again.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(err.message || 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

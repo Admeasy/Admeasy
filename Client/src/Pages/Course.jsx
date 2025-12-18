@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import { useParams, useLocation } from 'react-router-dom';
 import SEO from '../components/SEO';
 
-
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -27,8 +26,6 @@ const Course = () => {
   }, []);
 
   useEffect(() => {
-    // Process URL parameters
-
     if (!collegeId || !courseId) {
       setError('Missing required parameters: collegeId or courseId');
       setLoading(false);
@@ -37,7 +34,6 @@ const Course = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch college data
         const collegeResponse = await fetch(`/api/colleges/${collegeId}`);
         if (!collegeResponse.ok) {
           throw new Error(`Failed to fetch college data (${collegeResponse.status})`);
@@ -45,7 +41,6 @@ const Course = () => {
         const collegeData = await collegeResponse.json();
         setCollege(collegeData);
 
-        // Fetch course data
         const courseResponse = await fetch(`/api/colleges/${collegeId}/courses/${courseId}`);
         if (!courseResponse.ok) {
           throw new Error(`Failed to fetch course data (${courseResponse.status})`);
@@ -64,37 +59,7 @@ const Course = () => {
     fetchData();
   }, [collegeId, courseId, location]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white p-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Error Loading Data</h1>
-          <p className="text-gray-700">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!college || !course) {
-    return (
-      <div className="min-h-screen bg-white p-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-700">No Data Available</h1>
-          <p className="text-gray-600">The requested college or course information could not be found.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Add structured data for course
+  // Moved structured data setup before returns!
   useEffect(() => {
     if (college && course) {
       const structuredData = {
@@ -127,13 +92,13 @@ const Course = () => {
           "availability": "https://schema.org/InStock"
         }
       };
-      
+
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.text = JSON.stringify(structuredData);
       script.id = 'course-structured-data';
       document.head.appendChild(script);
-      
+
       return () => {
         const existingScript = document.getElementById('course-structured-data');
         if (existingScript) {
@@ -142,6 +107,37 @@ const Course = () => {
       };
     }
   }, [college, course, courseId]);
+
+  // Early returns below, after all hooks.
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white p-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">Error Loading Data</h1>
+          <p className="text-gray-700">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!college || !course) {
+    return (
+      <div className="min-h-screen bg-white p-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-gray-700">No Data Available</h1>
+          <p className="text-gray-600">The requested college or course information could not be found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className='w-full min-h-screen'>
@@ -254,7 +250,7 @@ const Course = () => {
                   course.feeStructure.additionals.map((feeObj, index) => {
                     const title = feeObj.title || Object.values(feeObj)[0];
                     const amount = feeObj.amount || Object.values(feeObj)[1];
-                    
+
                     // Convert value to number and handle invalid cases
                     const feeValue = parseFloat(amount);
                     if (!feeValue || isNaN(feeValue)) return null;
@@ -272,7 +268,7 @@ const Course = () => {
                       </tr>
                     );
                   })
-                ) : (' ')}
+                ) : ('')}
               </tbody>
               <tfoot className='bg-gray-300 text-gray-700 font-semibold'>
                 <tr>
@@ -282,14 +278,14 @@ const Course = () => {
                       const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
                       const additionalsTotal = course.feeStructure?.additionals
                         ? course.feeStructure.additionals.reduce((sum, feeObj) => {
-                            const amount = feeObj.amount || Object.values(feeObj)[1];
-                            const feeValue = parseFloat(amount);
-                            if (!feeValue || isNaN(feeValue)) return sum;
-                            
-                            const title = feeObj.title || Object.values(feeObj)[0];
-                            const isOneTime = title.toLowerCase().includes('one time');
-                            return sum + (isOneTime ? feeValue : feeValue * course.duration);
-                          }, 0)
+                          const amount = feeObj.amount || Object.values(feeObj)[1];
+                          const feeValue = parseFloat(amount);
+                          if (!feeValue || isNaN(feeValue)) return sum;
+
+                          const title = feeObj.title || Object.values(feeObj)[0];
+                          const isOneTime = title.toLowerCase().includes('one time');
+                          return sum + (isOneTime ? feeValue : feeValue * course.duration);
+                        }, 0)
                         : 0;
                       return (tuitionTotal + additionalsTotal).toLocaleString();
                     })()}

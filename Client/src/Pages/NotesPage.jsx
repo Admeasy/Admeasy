@@ -52,7 +52,9 @@ const NotesPage = () => {
 
         let updatedWithView = null;
         try {
-          const viewRes = await fetch(`/api/notes/${data._id || id}/view`, { method: "POST" });
+          const viewRes = await 
+            fetch(`/api/notes/${data._id || id}/view`,
+            { method: "POST" });
           if (viewRes.ok) {
             const viewPayload = await viewRes.json();
             updatedWithView = viewPayload?.data;
@@ -144,7 +146,10 @@ const NotesPage = () => {
 
     try {
       setIsLiking(true);
-      const res = await fetch(`/api/notes/${note._id || id}/like`, { method: "POST" });
+      const res = await 
+      fetch(`/api/notes/${note._id || id}/like`,
+      { method: "POST" });
+      
       if (!res.ok) throw new Error("Unable to like this note right now.");
       const payload = await res.json();
       setNote(payload?.data ?? { ...note, likes: (note.likes ?? 0) + 1 });

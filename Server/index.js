@@ -125,24 +125,6 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'default_secret',
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGODB_USERS_URI }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
-    maxAge: 12 * 60 * 60 * 1000 // 12 hours
-  }
-}));
-
-// Initialize Passport and session
-app.use(passport.initialize());
-app.use(passport.session());
-
 // Server uploaded blog images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -285,17 +267,25 @@ io.on('connection', (socket) => {
         { $inc: { [unreadField]: 1 } }
       );
 
-      // Populate sender info
-      await newMessage.populate('senderId', 'name image');
+      // Manually fetch sender info (can't use populate across different DB connections or without ref)
+      const { Users } = require('./db');
+      const Mentor = require('./models/mentorSchema');
+      let sender = null;
+      if (senderRole === 'user') {
+        const UserModel = Users.model('Users');
+        sender = await UserModel.findById(senderId).select('name image').lean();
+      } else {
+        sender = await Mentor.findById(senderId).select('name image').lean();
+      }
 
       // Format message for broadcasting
       const formattedMessage = {
         _id: newMessage._id,
         chatId,
-        senderId: newMessage.senderId._id,
+        senderId: senderId,
         senderRole: newMessage.senderRole,
-        senderName: newMessage.senderId.name,
-        senderImage: newMessage.senderId.image,
+        senderName: sender?.name || 'Unknown',
+        senderImage: sender?.image || null,
         message: newMessage.message,
         status: newMessage.status,
         createdAt: newMessage.createdAt

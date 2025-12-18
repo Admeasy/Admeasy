@@ -57,6 +57,10 @@ const Blogs = () => {
     fetchBlogs();
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [navigate])
+
   const fetchBlogs = async () => {
     // Check if cache is valid
     const now = Date.now();
@@ -168,7 +172,7 @@ const Blogs = () => {
   return (
     <>
       <SEO
-        title="Blog - Education & College Admissions | Admeasy"
+        title="Blogs - Education & College Admissions | Admeasy"
         description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
         keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
         url="https://admeasy.in/blog"

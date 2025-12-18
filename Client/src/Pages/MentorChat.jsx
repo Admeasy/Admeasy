@@ -71,7 +71,6 @@ const MentorChat = () => {
     };
 
     const handleMessageSent = (message) => {
-      console.log('Message sent successfully:', message);
       setIsSending(false);
     };
 
@@ -207,7 +206,7 @@ const MentorChat = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="bg-white shadow-sm border-b fixed top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
@@ -230,9 +229,8 @@ const MentorChat = () => {
                 {userId && (
                   <div className="absolute -bottom-1 -right-1">
                     <FaCircle
-                      className={`text-xs ${
-                        isUserOnline(userId) ? 'text-green-500' : 'text-gray-400'
-                      }`}
+                      className={`text-xs ${isUserOnline(userId) ? 'text-green-500' : 'text-gray-400'
+                        }`}
                     />
                   </div>
                 )}
@@ -246,11 +244,10 @@ const MentorChat = () => {
                     {user?.course || 'Student'}
                   </p>
                   {userId && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      isUserOnline(userId)
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${isUserOnline(userId)
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                      }`}>
                       {isUserOnline(userId) ? 'Online' : 'Offline'}
                     </span>
                   )}
@@ -300,16 +297,14 @@ const MentorChat = () => {
                   className={`flex ${isMentor ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      isMentor
-                        ? 'bg-blue-500 text-white rounded-br-md'
-                        : 'bg-white text-gray-900 rounded-bl-md border'
-                    } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${isMentor
+                      ? 'bg-blue-500 text-white rounded-br-md'
+                      : 'bg-white text-gray-900 rounded-bl-md border'
+                      } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
                   >
                     <p className="text-sm leading-relaxed">{message.message || message.text}</p>
-                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${
-                      isMentor ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
+                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMentor ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
                       {isMentor && getMessageStatus(message)}
                     </div>
@@ -324,39 +319,38 @@ const MentorChat = () => {
 
       {/* Message Input - Only show if there's an existing conversation */}
       {messages.length > 0 && (
-        <div className="bg-white border-t p-4">
+        <div className="bg-white border-t p-4 sticky bottom-0">
           <div className="max-w-4xl mx-auto">
-          {/* Connection Status */}
-          {!isConnected && (
-            <div className="mb-3 text-center">
-              <span className="text-sm text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
-                Connecting to chat...
-              </span>
-            </div>
-          )}
+            {/* Connection Status */}
+            {!isConnected && (
+              <div className="mb-3 text-center">
+                <span className="text-sm text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                  Connecting to chat...
+                </span>
+              </div>
+            )}
 
-          <form onSubmit={sendMessage} className="flex gap-3">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={`Reply to ${user?.name || 'student'}...`}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-              disabled={isSending || !isConnected}
-            />
-            <button
-              type="submit"
-              disabled={!newMessage.trim() || isSending || !isConnected || messages.length === 0}
-              className={`px-6 py-3 rounded-full transition-colors flex items-center gap-2 ${
-                newMessage.trim() && !isSending && isConnected && messages.length > 0
+            <form onSubmit={sendMessage} className="flex gap-3">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={`Reply to ${user?.name || 'student'}...`}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                disabled={isSending || !isConnected}
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim() || isSending || !isConnected || messages.length === 0}
+                className={`px-6 py-3 rounded-full transition-colors flex items-center gap-2 ${newMessage.trim() && !isSending && isConnected && messages.length > 0
                   ? 'bg-blue-500 hover:bg-blue-600 text-white'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              <FaPaperPlane className="text-sm" />
-              {isSending ? 'Sending...' : isConnected ? 'Reply' : 'Offline'}
-            </button>
-          </form>
+                  }`}
+              >
+                <FaPaperPlane className="text-sm" />
+                {isSending ? 'Sending...' : isConnected ? 'Reply' : 'Offline'}
+              </button>
+            </form>
           </div>
         </div>
       )}

@@ -35,7 +35,7 @@ const MentorChats = () => {
       }
 
       const data = await response.json();
-      setChats(data);
+      setChats(data.chats || []);
     } catch (err) {
       setError(err.message);
       toast.error('Failed to load chats');

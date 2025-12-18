@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
@@ -48,10 +48,20 @@ const Chat = () => {
       const chatData = await chatResponse.json();
       setChatId(chatData.chat.chatId);
 
+      // Set mentor data from chat response (avoids extra API call)
+      if (chatData.chat.mentorName) {
+        setMentor({
+          _id: chatData.chat.mentorId,
+          name: chatData.chat.mentorName,
+          username: chatData.chat.mentorUsername,
+          image: chatData.chat.mentorImage
+        });
+      }
+
       // Join the chat room for real-time messaging
       joinChat(chatData.chat.chatId);
 
-      // Fetch mentor details and messages
+      // Fetch mentor details (if not in chat response) and messages
       await Promise.all([fetchMentorDetails(), fetchMessages(chatData.chat.chatId)]);
     } catch (error) {
       console.error('Error initializing chat:', error);
@@ -108,19 +118,33 @@ const Chat = () => {
 
   const fetchMentorDetails = async () => {
     try {
-      const response = await fetch(`/api/mentors/${mentorId}`, {
+      // Try to fetch by ID first (since mentorId is an ObjectId)
+      const response = await fetch(`/api/mentors/id/${mentorId}`, {
         credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch mentor details');
-      }
+        // If ID fetch fails, try by username (fallback)
+        const usernameResponse = await fetch(`/api/mentors/${mentorId}`, {
+          credentials: 'include'
+        });
 
-      const mentorData = await response.json();
-      setMentor(mentorData);
+        if (!usernameResponse.ok) {
+          throw new Error('Failed to fetch mentor details');
+        }
+
+        const mentorData = await usernameResponse.json();
+        setMentor(mentorData);
+      } else {
+        const mentorData = await response.json();
+        setMentor(mentorData);
+      }
     } catch (err) {
       console.error('Error fetching mentor details:', err);
-      toast.error('Failed to load mentor information');
+      // Don't show error toast if mentor data was already set from chat response
+      if (!mentor) {
+        toast.error('Failed to load mentor information');
+      }
     }
   };
 
@@ -211,34 +235,35 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <main className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="bg-white shadow-sm border-b fixed top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/chats')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="text-xl p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <FaArrowLeft className="text-gray-600" />
             </button>
 
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img
-                  src={mentor?.image || mentor?.imageUrl || fallbackProfilePic}
-                  alt={mentor?.name || 'Mentor'}
-                  className="w-10 h-10 rounded-full object-cover"
-                  onError={(e) => {
-                    e.target.src = fallbackProfilePic;
-                  }}
-                />
+                <Link to={`/mentors/${mentor?.username}`}>
+                  <img
+                    src={mentor?.image || mentor?.imageUrl || fallbackProfilePic}
+                    alt={mentor?.name || 'Mentor'}
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => {
+                      e.target.src = fallbackProfilePic;
+                    }}
+                  />
+                </Link>
                 {mentorId && (
                   <div className="absolute -bottom-1 -right-1">
                     <FaCircle
-                      className={`text-xs ${
-                        isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'
-                      }`}
+                      className={`text-xs ${isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'
+                        }`}
                     />
                   </div>
                 )}
@@ -252,11 +277,10 @@ const Chat = () => {
                     {mentor?.username || 'Mentor'}
                   </p>
                   {mentorId && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      isMentorOnline(mentorId)
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${isMentorOnline(mentorId)
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                      }`}>
                       {isMentorOnline(mentorId) ? 'Online' : 'Offline'}
                     </span>
                   )}
@@ -305,16 +329,14 @@ const Chat = () => {
                   className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      isUser
-                        ? 'bg-blue-500 text-white rounded-br-md'
-                        : 'bg-white text-gray-900 rounded-bl-md border'
-                    } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${isUser
+                      ? 'bg-blue-500 text-white rounded-br-md'
+                      : 'bg-white text-gray-900 rounded-bl-md border'
+                      } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
                   >
                     <p className="text-sm leading-relaxed">{message.message || message.text}</p>
-                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${
-                      isUser ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
+                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isUser ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
                       {isUser && getMessageStatus(message)}
                     </div>
@@ -328,7 +350,7 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white border-t p-4">
+      <div className="bg-white border-t p-4 sticky bottom-0">
         <div className="max-w-4xl mx-auto">
           {/* Connection Status */}
           {!isConnected && (
@@ -351,11 +373,10 @@ const Chat = () => {
             <button
               type="submit"
               disabled={!newMessage.trim() || isSending || !isConnected}
-              className={`px-6 py-3 rounded-full transition-colors flex items-center gap-2 ${
-                newMessage.trim() && !isSending && isConnected
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className={`px-6 py-3 rounded-full transition-colors flex items-center gap-2 ${newMessage.trim() && !isSending && isConnected
+                ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
             >
               <FaPaperPlane className="text-sm" />
               {isSending ? 'Sending...' : isConnected ? 'Send' : 'Offline'}
@@ -363,7 +384,7 @@ const Chat = () => {
           </form>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

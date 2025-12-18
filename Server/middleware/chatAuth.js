@@ -68,28 +68,44 @@ const requireMentor = async (req, res, next) => {
 const requireChatParticipant = async (req, res, next) => {
     try {
         const { mentorId, userId } = req.params;
-        const chatId = req.params.chatId || req.params.mentorId || req.params.userId;
+        const chatId = req.params.chatId;
+        // Only use mentorId/userId as chatId if chatId is not explicitly provided
+        const potentialChatId = chatId || req.params.mentorId || req.params.userId;
 
         let chat;
 
-        // If we have mentorId/userId params, find by participants
+        // If we have both mentorId and userId params, find by participants
         if (mentorId && userId) {
             // This is for mentor accessing user chat or vice versa
             if (req.mentor) {
                 // Mentor accessing user chat
                 chat = await Chat.findOne({
-                    mentorId: req.mentor._id,
+                    mentorId: req.mentor.id,
                     userId: userId,
                     isActive: true
                 });
             } else if (req.user) {
                 // User accessing mentor chat
                 chat = await Chat.findOne({
-                    userId: req.user._id,
+                    userId: req.user.id,
                     mentorId: mentorId,
                     isActive: true
                 });
             }
+        } else if (mentorId && req.user) {
+            // Route like /api/chats/:mentorId/messages - find chat by user and mentor
+            chat = await Chat.findOne({
+                userId: req.user.id,
+                mentorId: mentorId,
+                isActive: true
+            });
+        } else if (userId && req.mentor) {
+            // Route like /api/mentor/chats/:userId/messages - find chat by mentor and user
+            chat = await Chat.findOne({
+                mentorId: req.mentor.id,
+                userId: userId,
+                isActive: true
+            });
         } else if (chatId) {
             // Direct chat ID access
             chat = await Chat.findOne({
@@ -100,9 +116,9 @@ const requireChatParticipant = async (req, res, next) => {
             if (chat) {
                 // Verify current user/mentor is participant
                 const isParticipant = req.user
-                    ? chat.userId.toString() === req.user._id.toString()
+                    ? chat.userId.toString() === req.user.id.toString()
                     : req.mentor
-                        ? chat.mentorId.toString() === req.mentor._id.toString()
+                        ? chat.mentorId.toString() === req.mentor.id.toString()
                         : false;
 
                 if (!isParticipant) {

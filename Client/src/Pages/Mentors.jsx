@@ -175,6 +175,7 @@ const Mentors = () => {
                 // Process mentors from DB with parallel image/logo fetching
                 const mentorsWithLogos = await Promise.all(
                     mentorsFromDB.map(async (mentor) => {
+                        if (!mentor.name) return '';
                         // Fetch image and logo in parallel
                         const [image, college, course] = await Promise.all([
                             fetchMentorImageUrl(mentor._id),

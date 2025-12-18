@@ -27,7 +27,7 @@ const Chats = () => {
       }
 
       const data = await response.json();
-      setChats(data);
+      setChats(data.chats || []);
     } catch (err) {
       setError(err.message);
       toast.error('Failed to load chats');
@@ -52,13 +52,13 @@ const Chats = () => {
     }
   };
 
-  const filteredChats = chats.filter(chat => {
+  const filteredChats = Array.isArray(chats) ? chats.filter(chat => {
     const searchLower = searchQuery.toLowerCase();
     return (
       chat.mentorName?.toLowerCase().includes(searchLower) ||
       chat.lastMessage?.toLowerCase().includes(searchLower)
     );
-  });
+  }) : [];
 
   if (isLoading) {
     return (

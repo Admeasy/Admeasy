@@ -6,6 +6,7 @@ import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { motion } from "framer-motion";
 import LoadingButton from "../components/LoadingButton";
 import Logo from "../assets/Admeasy/LOGO.webp";
+import { toast } from "react-toastify";
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -72,7 +73,7 @@ const Signup = ({ setAuthMode }) => {
 
       navigate(`/onboarding/${data?.id || ""}`);
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError(err.message || "An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

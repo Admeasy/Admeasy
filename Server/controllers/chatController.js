@@ -2,11 +2,12 @@ const Chat = require('../models/chatSchema');
 const ChatMessage = require('../models/chatMessageSchema');
 const User = require('../models/userSchema');
 const Mentor = require('../models/mentorSchema');
+const { Users } = require('../db');
 
 // Get user's chat inbox (all mentors they've chatted with)
 const getUserChats = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
 
         const chats = await Chat.find({
             userId,
@@ -50,32 +51,49 @@ const getUserChats = async (req, res) => {
 // Get mentor's chat inbox (all users who've messaged them)
 const getMentorChats = async (req, res) => {
     try {
-        const mentorId = req.mentor._id;
+        const mentorId = req.mentor.id;
 
         const chats = await Chat.find({
             mentorId,
             isActive: true
         })
-        .populate('userId', 'name course image')
         .sort({ updatedAt: -1 })
         .lean();
 
-        // Format response for frontend
-        const formattedChats = chats.map(chat => ({
-            chatId: chat._id,
-            userId: chat.userId._id,
-            userName: chat.userId.name,
-            userCourse: chat.userId.course,
-            userImage: chat.userId.image,
-            lastMessage: chat.lastMessage,
-            lastMessageTime: chat.lastMessageTime,
-            unreadCount: chat.mentorUnreadCount || 0,
-            updatedAt: chat.updatedAt
+        // Manually fetch user data from Users database (can't use populate across different DB connections)
+        const UserModel = Users.model('Users');
+        const formattedChats = await Promise.all(chats.map(async (chat) => {
+            try {
+                const user = await UserModel.findById(chat.userId).select('name course image').lean();
+                
+                // Skip chats where user doesn't exist (deleted users)
+                if (!user) {
+                    return null;
+                }
+
+                return {
+                    chatId: chat._id,
+                    userId: chat.userId,
+                    userName: user.name || 'Student',
+                    userCourse: user.course || '',
+                    userImage: user.image || null,
+                    lastMessage: chat.lastMessage || null,
+                    lastMessageTime: chat.lastMessageTime || null,
+                    unreadCount: chat.mentorUnreadCount || 0,
+                    updatedAt: chat.updatedAt
+                };
+            } catch (userError) {
+                console.error(`Error fetching user ${chat.userId}:`, userError);
+                return null; // Skip this chat if user fetch fails
+            }
         }));
+
+        // Filter out null values (deleted users)
+        const validChats = formattedChats.filter(chat => chat !== null);
 
         res.json({
             success: true,
-            chats: formattedChats
+            chats: validChats
         });
     } catch (error) {
         console.error('Error getting mentor chats:', error);
@@ -90,14 +108,13 @@ const getMentorChats = async (req, res) => {
 const getChatMessages = async (req, res) => {
     try {
         const chatId = req.chat._id;
-        const userId = req.user?._id;
-        const mentorId = req.mentor?._id;
+        const userId = req.user?.id;
+        const mentorId = req.mentor?.id;
 
         // Get messages
         const messages = await ChatMessage.find({
             chatId
         })
-        .populate('senderId', 'name image')
         .sort({ createdAt: 1 })
         .lean();
 
@@ -142,17 +159,57 @@ const getChatMessages = async (req, res) => {
             );
         }
 
-        // Format messages for frontend
-        const formattedMessages = messages.map(message => ({
-            _id: message._id,
-            senderId: message.senderId._id,
-            senderRole: message.senderRole,
-            senderName: message.senderId.name,
-            senderImage: message.senderId.image,
-            message: message.message,
-            status: message.status,
-            createdAt: message.createdAt,
-            readAt: message.readAt
+        // Manually fetch sender data (can't use populate across different DB connections or without ref)
+        const UserModel = Users.model('Users');
+        const formattedMessages = await Promise.all(messages.map(async (message) => {
+            try {
+                let sender = null;
+                if (message.senderRole === 'user') {
+                    sender = await UserModel.findById(message.senderId).select('name image').lean();
+                } else {
+                    sender = await Mentor.findById(message.senderId).select('name image').lean();
+                }
+
+                // Handle case where sender doesn't exist (deleted account)
+                if (!sender) {
+                    return {
+                        _id: message._id,
+                        senderId: message.senderId,
+                        senderRole: message.senderRole,
+                        senderName: 'Deleted User',
+                        senderImage: null,
+                        message: message.message,
+                        status: message.status,
+                        createdAt: message.createdAt,
+                        readAt: message.readAt
+                    };
+                }
+
+                return {
+                    _id: message._id,
+                    senderId: message.senderId,
+                    senderRole: message.senderRole,
+                    senderName: sender.name || 'Unknown',
+                    senderImage: sender.image || null,
+                    message: message.message,
+                    status: message.status,
+                    createdAt: message.createdAt,
+                    readAt: message.readAt
+                };
+            } catch (senderError) {
+                console.error(`Error fetching sender ${message.senderId}:`, senderError);
+                return {
+                    _id: message._id,
+                    senderId: message.senderId,
+                    senderRole: message.senderRole,
+                    senderName: 'Unknown',
+                    senderImage: null,
+                    message: message.message,
+                    status: message.status,
+                    createdAt: message.createdAt,
+                    readAt: message.readAt
+                };
+            }
         }));
 
         res.json({
@@ -174,7 +231,7 @@ const sendMessage = async (req, res) => {
     try {
         const { message } = req.body;
         const chatId = req.chat._id;
-        const senderId = req.user?._id || req.mentor?._id;
+        const senderId = req.user?.id || req.mentor?.id;
         const senderRole = req.user ? 'user' : 'mentor';
 
         if (!message || !message.trim()) {
@@ -224,16 +281,22 @@ const sendMessage = async (req, res) => {
             { $inc: { [unreadField]: 1 } }
         );
 
-        // Populate sender info for response
-        await newMessage.populate('senderId', 'name image');
+        // Manually fetch sender info (can't use populate across different DB connections or without ref)
+        let sender = null;
+        if (senderRole === 'user') {
+            const UserModel = Users.model('Users');
+            sender = await UserModel.findById(senderId).select('name image').lean();
+        } else {
+            sender = await Mentor.findById(senderId).select('name image').lean();
+        }
 
         // Format response
         const formattedMessage = {
             _id: newMessage._id,
-            senderId: newMessage.senderId._id,
+            senderId: senderId,
             senderRole: newMessage.senderRole,
-            senderName: newMessage.senderId.name,
-            senderImage: newMessage.senderId.image,
+            senderName: sender?.name || 'Unknown',
+            senderImage: sender?.image || null,
             message: newMessage.message,
             status: newMessage.status,
             createdAt: newMessage.createdAt
@@ -256,7 +319,7 @@ const sendMessage = async (req, res) => {
 const createOrGetChat = async (req, res) => {
     try {
         const mentorId = req.params.mentorId;
-        const userId = req.user._id;
+        const userId = req.user.id;
 
         // Verify mentor exists
         const mentor = await Mentor.findById(mentorId);
@@ -302,7 +365,7 @@ const createOrGetChat = async (req, res) => {
             // Try to get the existing chat
             try {
                 const existingChat = await Chat.findOne({
-                    userId: req.user._id,
+                    userId: req.user.id,
                     mentorId: req.params.mentorId,
                     isActive: true
                 });

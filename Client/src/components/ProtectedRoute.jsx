@@ -24,7 +24,7 @@ const ProtectedRoute = ({ user, mentor, children }) => {
   // Handle different types of protection
   if (mentor === true) {
     // This route requires mentor authentication
-    if (!user && !oauthInProgress) {
+    if (user && oauthInProgress) {
       toast.info('Please login as a mentor', {
         toastId: 'mentor-login-warning'
       });

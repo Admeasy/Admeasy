@@ -150,7 +150,7 @@ export default function MentorProfile() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600"> <LoadingButton/> Loading profile...</p>
+          <p className="text-gray-600"> <LoadingButton /> Loading profile...</p>
         </div>
       </div>
     );
@@ -174,13 +174,10 @@ export default function MentorProfile() {
   }
 
   // Extract exams array
-  const exams = mentor.competitiveExamsAttempted || [];
+  const exams = mentor.competitiveExamsCleared || [];
   const examList = Array.isArray(exams)
     ? exams.map(exam => {
-      if (typeof exam === 'string') {
-        return { name: exam, rank: '' };
-      }
-      return { name: exam.name || '', rank: exam.rank || '' };
+      return { name: exam.name || '' };
     }).filter(exam => exam.name)
     : [];
 
@@ -188,28 +185,28 @@ export default function MentorProfile() {
   const courseData = mentor.course && (typeof mentor.course === 'object' && mentor.course !== null
     ? mentor.course
     : (mentor.course ? (() => {
-        try {
-          return JSON.parse(mentor.course);
-        } catch {
-          return null;
-        }
-      })() : null));
+      try {
+        return JSON.parse(mentor.course);
+      } catch {
+        return null;
+      }
+    })() : null));
   const collegeData = mentor.college && (typeof mentor.college === 'object' && mentor.college !== null
     ? mentor.college
     : (mentor.college ? (() => {
-        try {
-          return JSON.parse(mentor.college);
-        } catch {
-          return null;
-        }
-      })() : null));
-  
+      try {
+        return JSON.parse(mentor.college);
+      } catch {
+        return null;
+      }
+    })() : null));
+
   const mentorName = mentor.name || mentor.username || 'Mentor';
   const mentorTitle = `${mentorName} | Mentor @ Admeasy`;
-  const mentorDescription = mentor.tagline 
+  const mentorDescription = mentor.tagline
     ? `${mentor.tagline}${collegeData ? ` - Mentor at ${collegeData.name}` : ''}${courseData ? ` specializing in ${courseData.name || courseData.title}` : ''}. Connect with verified mentors on Admeasy.`
     : `Connect with ${mentorName}${collegeData ? ` from ${collegeData.name}` : ''}${courseData ? ` - ${courseData.name || courseData.title} mentor` : ''}. Get real insights and guidance from verified mentors on Admeasy.`;
-  
+
   const mentorKeywords = [
     mentorName,
     mentor.username,
@@ -219,7 +216,7 @@ export default function MentorProfile() {
     courseData?.name || courseData?.title,
     ...(examList.map(exam => exam.name))
   ].filter(Boolean).join(', ');
-  
+
   const mentorImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';
   const mentorUrl = `https://admeasy.in/mentors/${mentor.username || mentor._id}`;
 
@@ -334,7 +331,7 @@ export default function MentorProfile() {
             </div>
           </div>
           {/* Chat Button - Only for users, not mentors */}
-          {user && !currentMentor && (
+          {!currentMentor && (
             <button
               onClick={(e) => {
                 // Navigate to chat with this mentor
@@ -372,10 +369,7 @@ export default function MentorProfile() {
                   className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100 hover:border-blue-300 transition-colors cursor-default"
                 >
                   <div className="flex flex-col items-center justify-center h-full">
-                    <span className="text-sm font-semibold text-thead2 text-center mb-1">{exam.name}</span>
-                    {exam.rank && (
-                      <span className="max-[400px]:text-base text-lg text-thead1 font-bold text-center">{exam.rank}</span>
-                    )}
+                    <span className="text-base font-bold text-thead2 text-center mb-1">{exam.name}</span>
                   </div>
                 </div>
               ))}

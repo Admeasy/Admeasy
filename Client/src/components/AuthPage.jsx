@@ -1,17 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Logo from '../assets/Admeasy/LOGO.webp';
-import MentorsLogo from '../assets/Admeasy/MentorsLoginLogo.webp';
-
-import { Eye, EyeOff } from 'lucide-react';
-import { MdAlternateEmail, MdLockOutline } from 'react-icons/md';
-import { useUser } from '../context/UserContext';
-import { useMentor } from '../context/MentorContext';
-import { toast } from 'react-toastify';
-import LoadingButton from './LoadingButton';
 import MentorPortal from '../Pages/MentorsLogin';
 import Signup from '../Pages/SignUp';
 import LogInComp from '../Pages/LogInComp';
+import SEO from '../components/SEO';
+
+
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -27,6 +20,7 @@ const AuthPage = () => {
 
   return (
     <div className=" bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+      <SEO title="Log into Admeasy | Admeasy" description="Log into Admeasy or Create a new account." keywords="Admeasy, Log in, Sign up, Student, Mentor" author="Admeasy" url="https://admeasy.in/login" />
       <div className="max-w-md mx-auto">
         {/* Tab Switcher */}
         <div className="flex justify-center gap-3 mb-2">
