@@ -16,9 +16,7 @@ const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NoteRoutes = require('./routes/noteRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
-const session = require('express-session');
 const passport = require('./middleware/passport');
-const MongoStore = require('connect-mongo');
 const { adminAuth } = require('./middleware/adminAuth');
 const SitemapRoutes = require('./routes/sitemapRoutes')
 const app = express();
@@ -98,7 +96,6 @@ if (process.env.NODE_ENV === 'production') {
 
 const requiredEnvVars = [
   'MONGODB_USERS_URI',
-  'SESSION_SECRET',
 ];
 const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
 if (missing.length) {
@@ -120,6 +117,9 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+// Initialize Passport middleware (JWT-based, no sessions)
+app.use(passport.initialize());
 
 // Middleware
 app.use(express.json());

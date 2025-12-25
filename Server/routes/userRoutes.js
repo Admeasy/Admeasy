@@ -334,13 +334,17 @@ router.get('/auth/google', (req, res, next) => {
     passport.authenticate('google', {
         scope: ['profile', 'email'],
         accessType: 'offline',
-        prompt: 'consent'
+        prompt: 'consent',
+        session: false // Disable sessions, use JWT instead
     })(req, res, next);
 });
 
 // Google OAuth callback
 router.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed` }),
+    passport.authenticate('google', { 
+        failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed`,
+        session: false // Disable sessions, use JWT instead
+    }),
     async (req, res) => {
         try {
             // Safety check: ensure user is authenticated
@@ -387,28 +391,40 @@ router.get('/auth/google/callback',
 // LOGOUT
 router.post('/logout', async (req, res) => {
     try {
-        // Passport logout (for Google/session users)
-        req.logout(function (err) {
-            if (err) {
-                return res.status(500).json({ success: false, message: err.message });
+        // Get refresh token from cookie to identify user
+        const refreshToken = req.cookies['refreshToken'];
+        
+        // Clear refresh token from database if it exists
+        if (refreshToken) {
+            try {
+                await User.updateOne(
+                    { refreshToken: refreshToken },
+                    { $unset: { refreshToken: 1 } }
+                );
+                
+            } catch (dbErr) {
+                // Log error but don't fail logout if DB update fails
+                console.error('Error clearing refresh token from database:', dbErr);
             }
-            req.session?.destroy(() => {
-                // Clear cookies as before
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
-                res.clearCookie('refreshToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
-                res.json({ success: true, message: 'Logged out' });
-            });
+        }
+
+        // Clear cookies
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/'
         });
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/'
+        });
+        
+        res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
-        console.log(err);
+        console.error('Logout error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
