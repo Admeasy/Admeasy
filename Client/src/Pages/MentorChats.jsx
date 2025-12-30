@@ -78,7 +78,9 @@ const MentorChats = () => {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-6 lg:p-8">
+    // Updated Wrapper
+    <main className="min-h-screen p-4 sm:p-6 lg:p-8 transition-all duration-300">
+      
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-center justify-between mb-6">

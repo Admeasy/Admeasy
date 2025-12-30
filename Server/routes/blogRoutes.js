@@ -8,7 +8,6 @@ const fs = require("fs");
 const upload = require('../middleware/multer')
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary')
 
-
 const getPublicIdFromUrl = (imageUrl) => {
     const parts = imageUrl.split('/upload/');
     if (parts.length < 2) {

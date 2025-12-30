@@ -19,7 +19,7 @@ const AuthPage = () => {
   }, []);
 
   return (
-    <div className=" bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+    <div className="mt-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <SEO title="Log into Admeasy | Admeasy" description="Log into Admeasy or Create a new account." keywords="Admeasy, Log in, Sign up, Student, Mentor" author="Admeasy" url="https://admeasy.in/login" />
       <div className="max-w-md mx-auto">
         {/* Tab Switcher */}

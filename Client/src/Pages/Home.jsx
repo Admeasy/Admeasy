@@ -50,20 +50,36 @@ const Home = () => {
   }, []);
 
   return (
-    <main>
+    <main className="w-full min-h-screen overflow-x-hidden max-w-full">
       <SEO
         title="Admeasy - Find Your Dream College | Connect with Mentors | Study Notes"
         description="Discover top colleges in India, connect with verified mentors, and access premium study notes. Your complete guide to college admissions and academic success."
         keywords="colleges in India, college admissions, mentors, study notes, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search"
         url="https://admeasy.in"
       />
-      <FrontHome />
-      <StudentSwiper/>
-      <CollabBanner/>
-      <CollegeCard />
-      <BlogSwiper/>
-      <Features />
-      <FAQ />
+      <div className="w-full max-w-full overflow-x-hidden">
+        <div className="w-full">
+          <FrontHome />
+        </div>
+        <div className="w-full">
+          <StudentSwiper/>
+        </div>
+        <div className="w-full">
+          <CollabBanner/>
+        </div>
+        <div className="w-full">
+          <CollegeCard />
+        </div>
+        <div className="w-full">
+          <BlogSwiper/>
+        </div>
+        <div className="w-full">
+          <Features />
+        </div>
+        <div className="w-full">
+          <FAQ />
+        </div>
+      </div>
     </main>
 
   )

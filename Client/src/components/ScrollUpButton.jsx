@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ChevronUp } from "lucide-react";
 
 const ScrollUpButton = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -9,7 +10,7 @@ const ScrollUpButton = () => {
     };
 
     window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Check initial scroll position
+    handleScroll();
     
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -23,109 +24,100 @@ const ScrollUpButton = () => {
   return (
     <>
       <style>{`
-        @keyframes fadeSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+        @keyframes slideInBounce {
+          0% { opacity: 0; transform: translateY(30px) scale(0.8); }
+          60% { opacity: 1; transform: translateY(-5px) scale(1.05); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
+        @keyframes floatSoft {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes ripple {
+          0% { transform: scale(1); opacity: 0.4; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .scroll-up-container {
+          animation: slideInBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .scroll-up-btn {
+          position: relative;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        /* Only apply hover lift on non-touch devices to prevent sticking on mobile */
+        @media (hover: hover) {
+            .scroll-up-btn:hover {
             transform: translateY(-4px);
-          }
+            box-shadow: 0 20px 35px -15px rgba(159, 53, 98, 0.5), 0 0 0 3px rgba(159, 53, 98, 0.1);
+            }
+            .scroll-up-btn:hover .arrow-icon {
+            animation: floatSoft 1.2s ease-in-out infinite;
+            }
         }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.6;
-          }
+        .scroll-up-btn:active {
+          transform: translateY(-1px) scale(0.95);
         }
-
-        .scroll-btn-container {
-          animation: fadeSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        .shimmer-effect {
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          background-size: 200% 100%;
+          animation: shimmer 2s infinite;
         }
-
-        .scroll-btn {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .scroll-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px -5px rgba(14, 165, 233, 0.5),
-                      0 8px 10px -6px rgba(14, 165, 233, 0.3);
-        }
-
-        .scroll-btn:active {
-          transform: translateY(0);
-          box-shadow: 0 4px 15px -3px rgba(14, 165, 233, 0.4);
-        }
-
-        .arrow-animate {
-          transition: transform 0.3s ease;
-        }
-
-        .scroll-btn:hover .arrow-animate {
-          transform: translateY(-3px);
-          animation: float 1.5s ease-in-out infinite;
-        }
-
-        .glow-ring {
-          transition: opacity 0.3s ease;
-        }
-
-        .scroll-btn:hover .glow-ring {
-          opacity: 1;
+        .ripple-effect {
+          animation: ripple 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
       `}</style>
       
-      <div className="scroll-btn-container cursor-pointer fixed bottom-8 right-8 z-50">
-        {/* Glow ring */}
-        <div className="glow-ring cursor-pointer absolute -inset-1 bg-gradient-to-r from-sky-400 via-blue-400 to-cyan-400 rounded-full opacity-0 blur-md"></div>
-        
-        {/* Main button */}
+      {/* Container: Adjusted positioning for mobile (bottom-5 right-5) vs desktop (md:bottom-8 md:right-8) */}
+      <div className="scroll-up-container fixed bottom-5 right-5 md:bottom-8 md:right-8 z-50">
         <button
           onClick={scrollToTop}
-          className="cursor-pointer scroll-btn relative w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center group"
+          /* Responsive Sizes:
+             - Mobile: w-11 h-11 (44px is a good touch target size)
+             - Desktop: md:w-14 md:h-14 (Original size)
+          */
+          className="cursor-pointer scroll-up-btn group relative w-11 h-11 md:w-14 md:h-14 bg-gradient-to-br from-[#9f3562] via-[#b8447a] to-[#9f3562] rounded-xl md:rounded-2xl shadow-xl flex items-center justify-center overflow-hidden"
           aria-label="Scroll to top"
         >
-          {/* Background shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          {/* Background ripple effect */}
+          <div className="ripple-effect absolute inset-0 bg-white/20 rounded-xl md:rounded-2xl"></div>
           
-          {/* Arrow icon */}
-          <div className="arrow-animate relative">
-            <svg
-              className="w-6 h-6 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
+          {/* Shimmer overlay */}
+          <div className="shimmer-effect absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* Gradient border glow */}
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-300 via-purple-300 to-pink-300 rounded-xl md:rounded-2xl opacity-0 group-hover:opacity-75 blur transition-opacity duration-300"></div>
+          
+          {/* Main content */}
+          <div className="relative z-10 flex flex-col items-center">
+            {/* Icon: Smaller on mobile (w-6 h-6), larger on desktop (md:w-7 md:h-7) */}
+            <ChevronUp 
+              className="arrow-icon w-6 h-6 md:w-7 md:h-7 text-white drop-shadow-lg" 
+              strokeWidth={3}
+            />
           </div>
 
-          {/* Pulse indicator */}
-          <div 
-            className="absolute inset-0 rounded-full border-2 border-white/30"
-            style={{ animation: "pulse 2s ease-in-out infinite" }}
-          ></div>
+          {/* Decorative dots */}
+          <div className="absolute top-2 right-2 w-0.5 h-0.5 md:w-1 md:h-1 bg-white/40 rounded-full group-hover:scale-150 transition-transform duration-300"></div>
+          <div className="absolute bottom-2 left-2 w-0.5 h-0.5 md:w-1 md:h-1 bg-white/40 rounded-full group-hover:scale-150 transition-transform duration-300 delay-75"></div>
+          
+          {/* Inner highlight */}
+          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/20 rounded-xl md:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </button>
+
+        {/* Floating label: Hidden on mobile (hidden), shown on desktop (md:block) */}
+        <div className="hidden md:block absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+          <div className="bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+            Back to top
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-gray-900"></div>
+          </div>
+        </div>
       </div>
     </>
   );
 };
 
-export default ScrollUpButton
+export default ScrollUpButton;

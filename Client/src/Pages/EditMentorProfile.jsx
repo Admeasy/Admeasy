@@ -340,7 +340,7 @@ export default function MentorsProfile() {
       }
 
       await fetchMentor();
-      navigate('/')
+      navigate('/feed')
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update mentor profile:', error);

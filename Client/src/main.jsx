@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')).render(
     <UserProvider>
       <MentorProvider>
         <SocketProvider>
-          <App />
+        <App />
         </SocketProvider>
       </MentorProvider>
     </UserProvider>
