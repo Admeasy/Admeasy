@@ -5,58 +5,112 @@ const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 const redis = require('redis');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 require('dotenv').config();
+
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
 const MentorRoutes = require('./routes/mentorRoutes');
-const EnrollmentsRoutes  = require('./routes/enrollmentRoutes');
+const EnrollmentsRoutes = require('./routes/enrollmentRoutes');
 const BlogRoutes = require('./routes/blogRoutes');
 const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NoteRoutes = require('./routes/noteRoutes');
+const PaymentRoutes = require('./routes/paymentRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
-const session = require('express-session');
-const passport = require('./middleware/passport');
-const MongoStore = require('connect-mongo');
-const { adminAuth } = require('./middleware/adminAuth');
-const SitemapRoutes = require('./routes/sitemapRoutes')
+const SitemapRoutes = require('./routes/sitemapRoutes');
+const MentorPostRoutes = require('./routes/mentorPostRoutes');
+const SearchRoutes = require('./routes/SearchRoute')
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io setup with CORS
+const allowedOrigins = [
+  'https://admeasy.in',
+  'http://localhost:5173',
+].filter(Boolean);
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+// Check required environment variables
+const requiredEnvVars = ['MONGODB_USERS_URI', 'SESSION_SECRET'];
+const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
+if (missing.length) {
+  console.error('Missing required environment variables:', missing.join(', '));
+  process.exit(1);
+}
+
+// CORS configuration
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+
+// Basic middleware
+app.use(express.json());
+app.use(cookieParser());
+
+// Session configuration - MUST be before Socket.io setup
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_USERS_URI,
+    touchAfter: 24 * 3600, // lazy session update
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
+});
+
+app.use(sessionMiddleware);
+
+// Socket.io setup with session integration
 const io = socketIo(server, {
   cors: {
     origin: (origin, callback) => {
-      const allowList = [
-        'https://admeasy.in',
-        'http://localhost:5173',
-      ].filter(Boolean);
-      if (!origin || allowList.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   },
+  transports: ['websocket', 'polling'], // Ensure both transports are available
 });
+
+// Share session with Socket.io - CRITICAL FIX
+io.engine.use(sessionMiddleware);
 
 // Redis client for presence tracking
 let redisClient;
 try {
   redisClient = redis.createClient({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
+    url: process.env.REDIS_URL,
   });
-
   redisClient.on('error', (err) => {
     console.error('Redis Client Error:', err);
   });
-
-  redisClient.connect();
+  redisClient.connect().then(() => {
+    console.log('Redis connected successfully');
+  }).catch(err => {
+    console.error('Redis connection failed:', err);
+    redisClient = null;
+  });
 } catch (error) {
-  console.error('Redis connection failed, using in-memory storage:', error.message);
+  console.error('Redis initialization failed:', error.message);
   redisClient = null;
 }
 
@@ -92,40 +146,7 @@ const setPresence = async (userId, role, isOnline) => {
   presenceStore.set(`${role}:${userId}`, isOnline ? 'online' : 'offline');
 };
 
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
-
-const requiredEnvVars = [
-  'MONGODB_USERS_URI',
-  'SESSION_SECRET',
-];
-const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
-if (missing.length) {
-  console.error('Missing required environment variables:', missing.join(', '));
-  console.error('Please set them in your .env and restart the server.');
-}
-
-// Enable CORS with credentials
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowList = [
-      'https://admeasy.in',
-      'http://localhost:5173',
-    ].filter(Boolean);
-    if (!origin || allowList.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
-
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
-
-// Server uploaded blog images
+// Serve uploaded blog images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
@@ -139,50 +160,93 @@ app.use('/api/enrollments', EnrollmentsRoutes);
 app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
 app.use('/api', ChatRoutes);
-
-// Socket.io connection handling
+app.use('/api/payments', PaymentRoutes);
+app.use('/api/mentor-posts', MentorPostRoutes);
+app.use("/api", SearchRoutes);
+// Socket.io connection handling with session authentication
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log('Socket connected:', socket.id);
 
-  // Join user room for presence tracking
-  socket.on('join_user', async (userId) => {
-    try {
-      socket.userId = userId;
-      socket.userRole = 'user';
+  // Access session data - CRITICAL FIX
+  const session = socket.request.session;
+  
+  if (!session) {
+    console.error('No session found for socket:', socket.id);
+    socket.emit('auth_error', { message: 'No session found' });
+    return;
+  }
 
-      // Join user-specific room
-      socket.join(`user:${userId}`);
+  // Authenticate user or mentor from session
+  const userId = session.userId;
+  const mentorId = session.mentorId;
+  const userRole = session.userRole; // 'user' or 'mentor'
 
-      // Set online status
-      await setPresence(userId, 'user', true);
+  if (!userId && !mentorId) {
+    console.log('Unauthenticated socket connection:', socket.id);
+    // Don't reject immediately - user might authenticate later
+    // socket.emit('auth_error', { message: 'Not authenticated' });
+    return;
+  }
 
-      // Broadcast online status
+  // Auto-join based on session authentication and role
+  if (userId && userRole === 'user') {
+    socket.userId = userId;
+    socket.userRole = 'user';
+    socket.join(`user:${userId}`);
+    
+    setPresence(userId, 'user', true).then(() => {
       socket.broadcast.emit('user_online', { userId });
+      console.log(`User ${userId} auto-joined and set online`);
+    });
+  } else if (mentorId && userRole === 'mentor') {
+    socket.mentorId = mentorId;
+    socket.userRole = 'mentor';
+    socket.join(`mentor:${mentorId}`);
+    
+    setPresence(mentorId, 'mentor', true).then(() => {
+      socket.broadcast.emit('mentor_online', { mentorId });
+      console.log(`Mentor ${mentorId} auto-joined and set online`);
+    });
+  }
 
-      console.log(`User ${userId} joined`);
+  // Manual join handlers (kept for backward compatibility)
+  socket.on('join_user', async (userIdParam) => {
+    try {
+      // Verify session matches and role is correct
+      if (session.userId && session.userId.toString() === userIdParam.toString() && session.userRole === 'user') {
+        socket.userId = userIdParam;
+        socket.userRole = 'user';
+        socket.join(`user:${userIdParam}`);
+        await setPresence(userIdParam, 'user', true);
+        socket.broadcast.emit('user_online', { userId: userIdParam });
+        console.log(`User ${userIdParam} manually joined`);
+      } else {
+        console.error('Session userId mismatch or wrong role:', session.userId, userIdParam, session.userRole);
+        socket.emit('auth_error', { message: 'Authentication mismatch' });
+      }
     } catch (error) {
       console.error('Error joining user:', error);
+      socket.emit('auth_error', { message: 'Failed to join' });
     }
   });
 
-  // Join mentor room for presence tracking
-  socket.on('join_mentor', async (mentorId) => {
+  socket.on('join_mentor', async (mentorIdParam) => {
     try {
-      socket.mentorId = mentorId;
-      socket.userRole = 'mentor';
-
-      // Join mentor-specific room
-      socket.join(`mentor:${mentorId}`);
-
-      // Set online status
-      await setPresence(mentorId, 'mentor', true);
-
-      // Broadcast online status
-      socket.broadcast.emit('mentor_online', { mentorId });
-
-      console.log(`Mentor ${mentorId} joined`);
+      // Verify session matches and role is correct
+      if (session.mentorId && session.mentorId.toString() === mentorIdParam.toString() && session.userRole === 'mentor') {
+        socket.mentorId = mentorIdParam;
+        socket.userRole = 'mentor';
+        socket.join(`mentor:${mentorIdParam}`);
+        await setPresence(mentorIdParam, 'mentor', true);
+        socket.broadcast.emit('mentor_online', { mentorId: mentorIdParam });
+        console.log(`Mentor ${mentorIdParam} manually joined`);
+      } else {
+        console.error('Session mentorId mismatch or wrong role:', session.mentorId, mentorIdParam, session.userRole);
+        socket.emit('auth_error', { message: 'Authentication mismatch' });
+      }
     } catch (error) {
       console.error('Error joining mentor:', error);
+      socket.emit('auth_error', { message: 'Failed to join' });
     }
   });
 
@@ -208,7 +272,17 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Import models here to avoid circular dependencies
+      // Verify sender matches session
+      if (senderRole === 'user' && session.userId?.toString() !== senderId.toString()) {
+        socket.emit('message_error', { message: 'Unauthorized sender' });
+        return;
+      }
+      if (senderRole === 'mentor' && session.mentorId?.toString() !== senderId.toString()) {
+        socket.emit('message_error', { message: 'Unauthorized sender' });
+        return;
+      }
+
+      // Import models
       const Chat = require('./models/chatSchema');
       const ChatMessage = require('./models/chatMessageSchema');
 
@@ -267,7 +341,7 @@ io.on('connection', (socket) => {
         { $inc: { [unreadField]: 1 } }
       );
 
-      // Manually fetch sender info (can't use populate across different DB connections or without ref)
+      // Fetch sender info
       const { Users } = require('./db');
       const Mentor = require('./models/mentorSchema');
       let sender = null;

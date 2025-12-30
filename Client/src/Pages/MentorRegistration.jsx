@@ -169,8 +169,8 @@ const MentorRegistration = () => {
                     attempts++;
                 }
                 
-                // Navigate to profile page
-                navigate('/me');
+                // Navigate to feed page after successful registration
+                navigate('/feed');
             } else {
                 setError(data.message || "Registration failed");
             }

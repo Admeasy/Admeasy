@@ -79,8 +79,8 @@ function MentorsLogin({ onLoginSuccess }) {
           attempts++;
         }
         
-        // Navigate to profile edit page
-        navigate('/me');
+        // Navigate to feed page after successful login
+        navigate('/feed');
       } else {
         setError(data.message || "Invalid username or password");
       }

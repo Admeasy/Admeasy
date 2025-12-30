@@ -79,4 +79,4 @@ async function deleteFromCloudinary(publicId) {
   }
 }
 
-module.exports = uploadToCloudinary;
+module.exports = { uploadToCloudinary, deleteFromCloudinary };

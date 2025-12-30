@@ -20,12 +20,27 @@ const verifyAdminFromCookie = (req) => {
     }
 };
 
+// Helper: generate JWT with role
 const generateAccessToken = (mentor) => {
-    return jwt.sign({ id: mentor._id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '12hr' });
+    return jwt.sign(
+        { 
+            id: mentor._id,
+            role: 'mentor'  // Add role to distinguish from user
+        }, 
+        process.env.JWT_ACCESS_SECRET, 
+        { expiresIn: '12hr' }
+    );
 }
 
 const generateRefreshToken = (mentor) => {
-    return jwt.sign({ id: mentor._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '28d' });
+    return jwt.sign(
+        { 
+            id: mentor._id,
+            role: 'mentor'  // Add role to distinguish from user
+        }, 
+        process.env.JWT_REFRESH_SECRET, 
+        { expiresIn: '28d' }
+    );
 }
 
 const getPublicIdFromUrl = (imageUrl) => {

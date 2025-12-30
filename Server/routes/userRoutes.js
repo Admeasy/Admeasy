@@ -18,10 +18,15 @@ const passport = require('../middleware/passport');
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Helper: generate JWT
+
+// Helper: generate JWT with role
 function generateAccessToken(user) {
     return jwt.sign(
-        { id: user._id, email: user.email },
+        { 
+            id: user._id, 
+            email: user.email,
+            role: 'user'  // Add role to distinguish from mentor
+        },
         process.env.JWT_ACCESS_SECRET,
         { expiresIn: '12hr' }
     );
@@ -29,11 +34,16 @@ function generateAccessToken(user) {
 
 function generateRefreshToken(user) {
     return jwt.sign(
-        { id: user._id, email: user.email },
+        { 
+            id: user._id, 
+            email: user.email,
+            role: 'user'  // Add role to distinguish from mentor
+        },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '28d' }
     );
 }
+
 
 // Helper: Get frontend URL for redirects (works for both dev and production)
 function getFrontendUrl() {
