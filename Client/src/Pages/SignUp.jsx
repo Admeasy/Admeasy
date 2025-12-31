@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { motion } from "framer-motion";
 import LoadingButton from "../components/LoadingButton";
-import Logo from "../assets/Admeasy/LOGO.webp";
+import Logo from "../assets/Admeasy/AdmeasyLatest.png";
 import { toast } from "react-toastify";
 
 const fadeUpVariant = {

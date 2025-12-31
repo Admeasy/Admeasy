@@ -31,41 +31,47 @@ const PostCard = ({ post }) => {
     }
     if (isLiking) return;
 
-    setIsLiking(true);
+    // OPTIMISTIC UPDATE: Update UI immediately before API call
     const previousLiked = isLiked;
     const previousCount = likesCount;
-
-    // Optimistic update with animation
+    
+    // Update UI instantly
+    setIsLiked(!isLiked);
+    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
+    
+    // Show animation
     if (!previousLiked) {
       setShowLikeAnimation(true);
       setTimeout(() => setShowLikeAnimation(false), 800);
     }
-    
-    setIsLiked(!isLiked);
-    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
 
-    try {
-      const response = await fetch(`/api/mentor-posts/${post._id}/like`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background (no blocking)
+    setIsLiking(true);
+    fetch(`/api/mentor-posts/${post._id}/like`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Sync with server response (in case of race conditions)
+          setIsLiked(data.isLiked);
+          setLikesCount(data.likesCount);
+        } else {
+          // Revert on error
+          setIsLiked(previousLiked);
+          setLikesCount(previousCount);
+        }
+      })
+      .catch(error => {
+        console.error('Error liking post:', error);
+        // Revert on error
+        setIsLiked(previousLiked);
+        setLikesCount(previousCount);
+      })
+      .finally(() => {
+        setIsLiking(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to like post');
-      }
-
-      setIsLiked(data.isLiked);
-      setLikesCount(data.likesCount);
-    } catch (error) {
-      console.error('Error liking post:', error);
-      toast.error('Failed to like post');
-      setIsLiked(previousLiked);
-      setLikesCount(previousCount);
-    } finally {
-      setIsLiking(false);
-    }
   };
 
   const handleShare = async (e) => {
@@ -101,33 +107,33 @@ const PostCard = ({ post }) => {
     }
     if (isReposting) return;
 
-    setIsReposting(true);
+    // OPTIMISTIC UPDATE: Update UI immediately
     const previousReposted = isReposted;
     setIsReposted(!isReposted);
 
-    try {
-      const response = await fetch(`/api/mentor-posts/${post._id}/repost`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background
+    setIsReposting(true);
+    fetch(`/api/mentor-posts/${post._id}/repost`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsReposted(data.isReposted);
+        } else {
+          // Revert on error
+          setIsReposted(previousReposted);
+        }
+      })
+      .catch(error => {
+        console.error('Error reposting:', error);
+        // Revert on error
+        setIsReposted(previousReposted);
+      })
+      .finally(() => {
+        setIsReposting(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to repost');
-      }
-
-      if (data.success) {
-        setIsReposted(data.isReposted);
-        toast.success(data.isReposted ? 'Post reposted successfully!' : 'Repost removed');
-      }
-    } catch (error) {
-      console.error('Error reposting:', error);
-      toast.error(error.message || 'Failed to repost');
-      setIsReposted(previousReposted);
-    } finally {
-      setIsReposting(false);
-    }
   };
 
   const handleFollow = async (e) => {
@@ -139,33 +145,33 @@ const PostCard = ({ post }) => {
     }
     if (isFollowingLoading) return;
 
-    setIsFollowingLoading(true);
+    // OPTIMISTIC UPDATE: Update UI immediately
     const previousFollowing = isFollowing;
     setIsFollowing(!isFollowing);
 
-    try {
-      const response = await fetch(`/api/users/${post.mentor._id}/follow`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background
+    setIsFollowingLoading(true);
+    fetch(`/api/users/${post.mentor._id}/follow`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsFollowing(data.isFollowing);
+        } else {
+          // Revert on error
+          setIsFollowing(previousFollowing);
+        }
+      })
+      .catch(error => {
+        console.error('Error following:', error);
+        // Revert on error
+        setIsFollowing(previousFollowing);
+      })
+      .finally(() => {
+        setIsFollowingLoading(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to follow');
-      }
-
-      if (data.success) {
-        setIsFollowing(data.isFollowing);
-        toast.success(data.isFollowing ? 'Followed successfully!' : 'Unfollowed successfully');
-      }
-    } catch (error) {
-      console.error('Error following:', error);
-      toast.error(error.message || 'Failed to follow');
-      setIsFollowing(previousFollowing);
-    } finally {
-      setIsFollowingLoading(false);
-    }
   };
 
   // Fetch follow status on mount if user is logged in

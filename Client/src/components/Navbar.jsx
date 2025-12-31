@@ -1,22 +1,15 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { FiMenu } from "react-icons/fi";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import logo from "../assets/Admeasy/newLogo.png";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import LoginButton from "./LoginButton";
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 
 const fallbackProfilePic =
   "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
-const Navbar = ({
-  isCollapsed,
-  setIsCollapsed,
-  isMobileMenuOpen,
-  setIsMobileMenuOpen
-}) => {
+const Navbar = ({ isCollapsed, setIsCollapsed }) => {
   const { user } = useUser();
   const { mentor } = useMentor();
   const navigate = useNavigate();
@@ -39,19 +32,6 @@ const Navbar = ({
       : (isUserAccount
           ? user?.imageUrl || user?.image
           : mentor?.imageUrl || mentor?.image) || fallbackProfilePic;
-
-  const hideNavbarMenu = [
-    '/login',
-    '/mentors/login',
-    '/mentors/register',
-    '/onboarding',
-    '/forgot-password',
-    '/reset-password'
-  ];
-  
-  const shouldHideMenu = hideNavbarMenu.some(path =>
-    location.pathname.startsWith(path)
-  );
 
   // Single unified search handler
   const handleSearch = (e) => {
@@ -81,19 +61,9 @@ const Navbar = ({
     <nav className="fixed top-0 left-0 w-full h-16 bg-white z-[1000] border-b border-gray-200">
       <div className="h-full px-4 flex items-center">
         
-        {/* ================= MOBILE HAMBURGER ================= */}
-        {!shouldHideMenu && (
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden mr-3 text-2xl text-gray-700"
-            aria-label="Open menu"
-          >
-            <FiMenu />
-          </button>
-        )}
-
         {/* ================= LOGO ================= */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
+        {/* Removed Hamburger button here */}
+        <Link to="/feed" className="flex items-center gap-2 shrink-0">
           <img
             src={logo}
             alt="Admeasy"
@@ -212,7 +182,7 @@ const Navbar = ({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Search for courses, quizzes, or documents"
+                  placeholder="Search..."
                   className="w-full h-11 pl-11 pr-4 bg-gray-100 rounded-full text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#9f3562] focus:bg-white transition-all"
                   autoFocus={searchActive}
                 />

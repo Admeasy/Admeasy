@@ -78,6 +78,28 @@ const mentorPostSchema = new mongoose.Schema(
         required: true,
         trim: true,
       },
+      likes: [{
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Users',
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
+      likesCount: {
+        type: Number,
+        default: 0,
+      },
+      parentCommentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+      },
+      deleted: {
+        type: Boolean,
+        default: false,
+      },
       createdAt: {
         type: Date,
         default: Date.now,
@@ -102,9 +124,13 @@ const mentorPostSchema = new mongoose.Schema(
   }
 );
 
-// Index for efficient queries
+// Indexes for efficient queries
 mentorPostSchema.index({ mentorId: 1, createdAt: -1 });
 mentorPostSchema.index({ createdAt: -1 });
+mentorPostSchema.index({ 'comments.deleted': 1, 'comments.createdAt': 1 });
+mentorPostSchema.index({ 'comments.parentCommentId': 1 });
+// Compound index for feed queries
+mentorPostSchema.index({ createdAt: -1, likesCount: -1 });
 
 module.exports = Admeasy.models.MentorPosts || Admeasy.model('MentorPosts', mentorPostSchema);
 

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from "react";
 import { MdAlternateEmail, MdLockOutline } from 'react-icons/md';
-import Logo from '../assets/Admeasy/LOGO.webp';
+import Logo from '../assets/Admeasy/AdmeasyLatest.png';
 import MentorsLogo from '../assets/Admeasy/MentorsLoginLogo.webp';
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";

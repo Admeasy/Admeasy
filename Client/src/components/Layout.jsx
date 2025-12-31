@@ -3,10 +3,10 @@ import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import LeftSidebar from "./LeftSidebar";
 
-const DESKTOP_BREAKPOINT = 1024;
+const DESKTOP_BREAKPOINT = 768; // Changed from 1024 to 768
 
 const Layout = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false); // desktop
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(
     window.innerWidth >= DESKTOP_BREAKPOINT

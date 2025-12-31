@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
-import { Heart, MessageCircle, Share2, ExternalLink, Youtube, ArrowLeft, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, ExternalLink, Youtube, ArrowLeft, Send, Trash2, Reply } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -21,6 +22,17 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [likingCommentId, setLikingCommentId] = useState(null);
+  const [deletingCommentId, setDeletingCommentId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    commentId: null,
+    isReply: false,
+    parentCommentId: null,
+  });
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -72,35 +84,40 @@ const PostDetail = () => {
     }
     if (isLiking) return;
 
-    setIsLiking(true);
+    // OPTIMISTIC UPDATE: Update UI immediately
     const previousLiked = isLiked;
     const previousCount = likesCount;
-
+    
     setIsLiked(!isLiked);
     setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
 
-    try {
-      const response = await fetch(`/api/mentor-posts/${postId}/like`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background
+    setIsLiking(true);
+    fetch(`/api/mentor-posts/${postId}/like`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Sync with server
+          setIsLiked(data.isLiked);
+          setLikesCount(data.likesCount);
+        } else {
+          // Revert on error
+          setIsLiked(previousLiked);
+          setLikesCount(previousCount);
+        }
+      })
+      .catch(error => {
+        console.error('Error liking post:', error);
+        // Revert on error
+        setIsLiked(previousLiked);
+        setLikesCount(previousCount);
+      })
+      .finally(() => {
+        setIsLiking(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to like post');
-      }
-
-      setIsLiked(data.isLiked);
-      setLikesCount(data.likesCount);
-    } catch (error) {
-      console.error('Error liking post:', error);
-      toast.error('Failed to like post');
-      setIsLiked(previousLiked);
-      setLikesCount(previousCount);
-    } finally {
-      setIsLiking(false);
-    }
   };
 
   const handleShare = async () => {
@@ -135,41 +152,443 @@ const PostDetail = () => {
     }
     if (!newComment.trim() || isSubmittingComment) return;
 
-    setIsSubmittingComment(true);
     const commentContent = newComment.trim();
+    
+    // OPTIMISTIC UPDATE: Add comment to UI immediately
+    const tempCommentId = `temp-${Date.now()}`;
+    const optimisticComment = {
+      _id: tempCommentId,
+      user: {
+        _id: viewer._id,
+        name: viewer.name || 'You',
+        image: viewer.imageUrl || viewer.image,
+      },
+      content: commentContent,
+      likesCount: 0,
+      isLiked: false,
+      replies: [],
+      createdAt: new Date().toISOString(),
+    };
 
-    try {
-      const response = await fetch(`/api/mentor-posts/${postId}/comment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ content: commentContent }),
-      });
+    // Update UI immediately
+    setComments(prev => [...prev, optimisticComment]);
+    setPost(prev => ({
+      ...prev,
+      commentsCount: (prev?.commentsCount || 0) + 1,
+    }));
+    setNewComment('');
+    setIsSubmittingComment(true);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to add comment');
-      }
-
-      if (data.success) {
-        // FIXED: Update both comments and post commentsCount
-        setComments((prev) => [...prev, data.comment]);
-        setPost((prev) => ({
+    // Make API call in background
+    fetch(`/api/mentor-posts/${postId}/comment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ content: commentContent }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Replace optimistic comment with real one
+          setComments(prev =>
+            prev.map(comment =>
+              comment._id === tempCommentId
+                ? {
+                    ...data.comment,
+                    replies: [],
+                  }
+                : comment
+            )
+          );
+          setPost(prev => ({
+            ...prev,
+            commentsCount: data.commentsCount,
+          }));
+        } else {
+          // Remove optimistic comment on error
+          setComments(prev => prev.filter(c => c._id !== tempCommentId));
+          setPost(prev => ({
+            ...prev,
+            commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
+          }));
+          setNewComment(commentContent); // Restore comment text
+        }
+      })
+      .catch(error => {
+        console.error('Error adding comment:', error);
+        // Remove optimistic comment on error
+        setComments(prev => prev.filter(c => c._id !== tempCommentId));
+        setPost(prev => ({
           ...prev,
-          commentsCount: data.commentsCount,
+          commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
         }));
-        setNewComment('');
-        toast.success('Comment added!');
-      }
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast.error('Failed to add comment');
-    } finally {
-      setIsSubmittingComment(false);
+        setNewComment(commentContent); // Restore comment text
+      })
+      .finally(() => {
+        setIsSubmittingComment(false);
+      });
+  };
+
+  const handleReplySubmit = async (commentId) => {
+    if (!viewer) {
+      toast.info('Log in to reply');
+      navigate('/login');
+      return;
     }
+    if (!replyContent.trim() || isSubmittingReply) return;
+
+    const replyText = replyContent.trim();
+    
+    // OPTIMISTIC UPDATE: Add reply to UI immediately
+    const tempReplyId = `temp-reply-${Date.now()}`;
+    const optimisticReply = {
+      _id: tempReplyId,
+      user: {
+        _id: viewer._id,
+        name: viewer.name || 'You',
+        image: viewer.imageUrl || viewer.image,
+      },
+      content: replyText,
+      likesCount: 0,
+      isLiked: false,
+      parentCommentId: commentId,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Update UI immediately
+    setComments(prev =>
+      prev.map(comment => {
+        if (comment._id === commentId) {
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), optimisticReply],
+          };
+        }
+        return comment;
+      })
+    );
+    setPost(prev => ({
+      ...prev,
+      commentsCount: (prev?.commentsCount || 0) + 1,
+    }));
+    setReplyingTo(null);
+    setReplyContent('');
+    setIsSubmittingReply(true);
+
+    // Make API call in background
+    fetch(`/api/mentor-posts/${postId}/comments/${commentId}/reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ content: replyText }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Replace optimistic reply with real one
+          setComments(prev =>
+            prev.map(comment => {
+              if (comment._id === commentId) {
+                return {
+                  ...comment,
+                  replies: comment.replies.map(reply =>
+                    reply._id === tempReplyId ? data.reply : reply
+                  ),
+                };
+              }
+              return comment;
+            })
+          );
+          setPost(prev => ({
+            ...prev,
+            commentsCount: data.commentsCount,
+          }));
+        } else {
+          // Remove optimistic reply on error
+          setComments(prev =>
+            prev.map(comment => {
+              if (comment._id === commentId) {
+                return {
+                  ...comment,
+                  replies: comment.replies.filter(r => r._id !== tempReplyId),
+                };
+              }
+              return comment;
+            })
+          );
+          setPost(prev => ({
+            ...prev,
+            commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
+          }));
+          setReplyingTo(commentId);
+          setReplyContent(replyText); // Restore reply text
+        }
+      })
+      .catch(error => {
+        console.error('Error adding reply:', error);
+        // Remove optimistic reply on error
+        setComments(prev =>
+          prev.map(comment => {
+            if (comment._id === commentId) {
+              return {
+                ...comment,
+                replies: comment.replies.filter(r => r._id !== tempReplyId),
+              };
+            }
+            return comment;
+          })
+        );
+        setPost(prev => ({
+          ...prev,
+          commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
+        }));
+        setReplyingTo(commentId);
+        setReplyContent(replyText); // Restore reply text
+      })
+      .finally(() => {
+        setIsSubmittingReply(false);
+      });
+  };
+
+  const handleCommentLike = async (commentId, currentLiked) => {
+    if (!viewer) {
+      toast.info('Log in to like comments');
+      navigate('/login');
+      return;
+    }
+    if (likingCommentId === commentId) return;
+
+    // OPTIMISTIC UPDATE: Update UI immediately
+    let previousLiked = false;
+    let previousCount = 0;
+    let isReply = false;
+    let parentCommentId = null;
+
+    // Find and update the comment/reply immediately
+    setComments((prev) => {
+      return prev.map((comment) => {
+        if (comment._id === commentId) {
+          // Top-level comment
+          previousLiked = comment.isLiked;
+          previousCount = comment.likesCount || 0;
+          return {
+            ...comment,
+            isLiked: !comment.isLiked,
+            likesCount: comment.isLiked ? (comment.likesCount || 0) - 1 : (comment.likesCount || 0) + 1,
+          };
+        }
+        // Check if it's a reply
+        if (comment.replies && comment.replies.some(reply => reply._id === commentId)) {
+          isReply = true;
+          parentCommentId = comment._id;
+          const reply = comment.replies.find(r => r._id === commentId);
+          previousLiked = reply?.isLiked || false;
+          previousCount = reply?.likesCount || 0;
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) =>
+              reply._id === commentId
+                ? {
+                    ...reply,
+                    isLiked: !reply.isLiked,
+                    likesCount: reply.isLiked ? (reply.likesCount || 0) - 1 : (reply.likesCount || 0) + 1,
+                  }
+                : reply
+            ),
+          };
+        }
+        return comment;
+      });
+    });
+
+    // Make API call in background
+    setLikingCommentId(commentId);
+    fetch(`/api/mentor-posts/${postId}/comments/${commentId}/like`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Sync with server response
+          setComments((prev) =>
+            prev.map((comment) => {
+              if (comment._id === commentId) {
+                return { ...comment, isLiked: data.isLiked, likesCount: data.likesCount };
+              }
+              if (comment.replies && comment.replies.some(reply => reply._id === commentId)) {
+                return {
+                  ...comment,
+                  replies: comment.replies.map((reply) =>
+                    reply._id === commentId
+                      ? { ...reply, isLiked: data.isLiked, likesCount: data.likesCount }
+                      : reply
+                  ),
+                };
+              }
+              return comment;
+            })
+          );
+        } else {
+          // Revert on error
+          setComments((prev) =>
+            prev.map((comment) => {
+              if (comment._id === commentId) {
+                return { ...comment, isLiked: previousLiked, likesCount: previousCount };
+              }
+              if (comment._id === parentCommentId) {
+                return {
+                  ...comment,
+                  replies: comment.replies.map((reply) =>
+                    reply._id === commentId
+                      ? { ...reply, isLiked: previousLiked, likesCount: previousCount }
+                      : reply
+                  ),
+                };
+              }
+              return comment;
+            })
+          );
+        }
+      })
+      .catch(error => {
+        console.error('Error liking comment:', error);
+        // Revert on error
+        setComments((prev) =>
+          prev.map((comment) => {
+            if (comment._id === commentId) {
+              return { ...comment, isLiked: previousLiked, likesCount: previousCount };
+            }
+            if (comment._id === parentCommentId) {
+              return {
+                ...comment,
+                replies: comment.replies.map((reply) =>
+                  reply._id === commentId
+                    ? { ...reply, isLiked: previousLiked, likesCount: previousCount }
+                    : reply
+                ),
+              };
+            }
+            return comment;
+          })
+        );
+      })
+      .finally(() => {
+        setLikingCommentId(null);
+      });
+  };
+
+  const handleCommentDeleteClick = (commentId, isReply = false, parentCommentId = null) => {
+    if (!viewer) {
+      return;
+    }
+    setConfirmModal({
+      isOpen: true,
+      commentId,
+      isReply,
+      parentCommentId,
+    });
+  };
+
+  const handleCommentDelete = async (commentId, isReplyParam = false, parentCommentIdParam = null) => {
+    if (deletingCommentId === commentId) return;
+
+    // OPTIMISTIC UPDATE: Remove from UI immediately
+    let deletedComment = null;
+    const isReply = isReplyParam;
+    const parentCommentId = parentCommentIdParam;
+
+    setComments((prev) => {
+      const newComments = prev.map((comment) => {
+        if (comment._id === commentId) {
+          deletedComment = comment;
+          return null; // Mark for removal
+        }
+        if (comment.replies && comment.replies.some(reply => reply._id === commentId)) {
+          isReply = true;
+          parentCommentId = comment._id;
+          deletedComment = comment.replies.find(r => r._id === commentId);
+          return {
+            ...comment,
+            replies: comment.replies.filter(reply => reply._id !== commentId),
+          };
+        }
+        return comment;
+      });
+      return newComments.filter(c => c !== null);
+    });
+
+    // Update comment count immediately
+    setPost(prev => ({
+      ...prev,
+      commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
+    }));
+
+    // Make API call in background
+    setDeletingCommentId(commentId);
+    fetch(`/api/mentor-posts/${postId}/comments/${commentId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Sync with server
+          setPost(prev => ({
+            ...prev,
+            commentsCount: data.commentsCount,
+          }));
+        } else {
+          // Restore comment on error
+          if (isReply && parentCommentId) {
+            setComments(prev =>
+              prev.map(comment =>
+                comment._id === parentCommentId
+                  ? {
+                      ...comment,
+                      replies: [...(comment.replies || []), deletedComment],
+                    }
+                  : comment
+              )
+            );
+          } else {
+            setComments(prev => [...prev, deletedComment]);
+          }
+          setPost(prev => ({
+            ...prev,
+            commentsCount: (prev?.commentsCount || 0) + 1,
+          }));
+        }
+      })
+      .catch(error => {
+        console.error('Error deleting comment:', error);
+        // Restore comment on error
+        if (isReply && parentCommentId) {
+          setComments(prev =>
+            prev.map(comment =>
+              comment._id === parentCommentId
+                ? {
+                    ...comment,
+                    replies: [...(comment.replies || []), deletedComment],
+                  }
+                : comment
+            )
+          );
+        } else {
+          setComments(prev => [...prev, deletedComment]);
+        }
+        setPost(prev => ({
+          ...prev,
+          commentsCount: (prev?.commentsCount || 0) + 1,
+        }));
+      })
+      .finally(() => {
+        setDeletingCommentId(null);
+      });
   };
 
   const handleLinkClick = (url) => {
@@ -406,7 +825,7 @@ const PostDetail = () => {
                 Comments ({post.commentsCount})
               </h3>
 
-              <div className="space-y-4 mb-5 max-h-[400px] overflow-y-auto custom-scrollbar">
+              <div className="space-y-4 mb-5 max-h-[500px] overflow-y-auto custom-scrollbar">
                 {comments.length === 0 ? (
                   <div className="text-center py-12 bg-white/80 rounded-2xl border border-gray-100">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -423,22 +842,218 @@ const PostDetail = () => {
                       animate={{ opacity: 1, y: 0 }}
                       className="flex gap-3"
                     >
-                      <img
-                        src={comment.user.image || fallbackProfilePic}
-                        alt={comment.user.name}
-                        className="w-10 h-10 rounded-full object-cover flex-shrink-0 ring-2 ring-gray-100"
-                        onError={(e) => {
-                          e.target.src = fallbackProfilePic;
-                        }}
-                      />
-                      <div className="flex-1">
+                      {viewer && comment.user?._id === viewer._id ? (
+                        <Link
+                          to={`/me/edit`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-shrink-0"
+                        >
+                          <img
+                            src={comment.user?.image || fallbackProfilePic}
+                            alt={comment.user?.name || 'User'}
+                            className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
+                            onError={(e) => {
+                              e.target.src = fallbackProfilePic;
+                            }}
+                          />
+                        </Link>
+                      ) : (
+                        <img
+                          src={comment.user?.image || fallbackProfilePic}
+                          alt={comment.user?.name || 'User'}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0 ring-2 ring-gray-100"
+                          onError={(e) => {
+                            e.target.src = fallbackProfilePic;
+                          }}
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
                         <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
-                          <p className="font-semibold text-sm text-gray-900">{comment.user.name}</p>
-                          <p className="text-gray-800 mt-1 text-sm sm:text-base">{comment.content}</p>
+                          {viewer && comment.user?._id === viewer._id ? (
+                            <Link
+                              to={`/me/edit`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="block"
+                            >
+                              <p className="font-semibold text-sm text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
+                                {comment.user?.name || 'Unknown User'}
+                              </p>
+                            </Link>
+                          ) : (
+                            <p className="font-semibold text-sm text-gray-900">
+                              {comment.user?.name || 'Unknown User'}
+                            </p>
+                          )}
+                          <p className="text-gray-800 mt-1 text-sm sm:text-base break-words">
+                            {comment.content}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-500 mt-2 ml-4">
-                          {formatDate(comment.createdAt)}
-                        </p>
+                        <div className="flex items-center gap-4 mt-2 ml-4">
+                          <button
+                            onClick={() => handleCommentLike(comment._id, comment.isLiked)}
+                            disabled={likingCommentId === comment._id}
+                            className={`flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                              comment.isLiked
+                                ? 'text-red-500'
+                                : 'text-gray-500 hover:text-red-500'
+                            }`}
+                          >
+                            <Heart
+                              className={`w-4 h-4 ${comment.isLiked ? 'fill-current' : ''}`}
+                            />
+                            <span>{comment.likesCount || 0}</span>
+                          </button>
+                          <button
+                            onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+                            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#9f3562] transition-colors"
+                          >
+                            <Reply className="w-4 h-4" />
+                            <span>Reply</span>
+                          </button>
+                          <span className="text-xs text-gray-500">
+                            {formatDate(comment.createdAt)}
+                          </span>
+                          {viewer && comment.user?._id === viewer._id && (
+                            <button
+                              onClick={() => handleCommentDeleteClick(comment._id, false, null)}
+                              disabled={deletingCommentId === comment._id}
+                              className="ml-auto flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Replies */}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <div className="mt-3 ml-4 space-y-3 border-l-2 border-gray-100 pl-4">
+                            {comment.replies.map((reply) => (
+                              <div key={reply._id} className="flex gap-3">
+                                {viewer && reply.user?._id === viewer._id ? (
+                                  <Link
+                                    to={`/me/edit`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-shrink-0"
+                                  >
+                                    <img
+                                      src={reply.user?.image || fallbackProfilePic}
+                                      alt={reply.user?.name || 'User'}
+                                      className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
+                                      onError={(e) => {
+                                        e.target.src = fallbackProfilePic;
+                                      }}
+                                    />
+                                  </Link>
+                                ) : (
+                                  <img
+                                    src={reply.user?.image || fallbackProfilePic}
+                                    alt={reply.user?.name || 'User'}
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-gray-100"
+                                    onError={(e) => {
+                                      e.target.src = fallbackProfilePic;
+                                    }}
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+                                    {viewer && reply.user?._id === viewer._id ? (
+                                      <Link
+                                        to={`/me/edit`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="block"
+                                      >
+                                        <p className="font-semibold text-xs text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
+                                          {reply.user?.name || 'Unknown User'}
+                                        </p>
+                                      </Link>
+                                    ) : (
+                                      <p className="font-semibold text-xs text-gray-900">
+                                        {reply.user?.name || 'Unknown User'}
+                                      </p>
+                                    )}
+                                    <p className="text-gray-800 mt-1 text-xs sm:text-sm break-words">
+                                      {reply.content}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-1.5 ml-3">
+                                    <button
+                                      onClick={() => handleCommentLike(reply._id, reply.isLiked)}
+                                      disabled={likingCommentId === reply._id}
+                                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                                        reply.isLiked
+                                          ? 'text-red-500'
+                                          : 'text-gray-500 hover:text-red-500'
+                                      }`}
+                                    >
+                                      <Heart
+                                        className={`w-3.5 h-3.5 ${reply.isLiked ? 'fill-current' : ''}`}
+                                      />
+                                      <span>{reply.likesCount || 0}</span>
+                                    </button>
+                                    <span className="text-xs text-gray-500">
+                                      {formatDate(reply.createdAt)}
+                                    </span>
+                                    {viewer && reply.user?._id === viewer._id && (
+                                      <button
+                                        onClick={() => handleCommentDeleteClick(reply._id, true, comment._id)}
+                                        disabled={deletingCommentId === reply._id}
+                                        className="ml-auto flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Reply Input */}
+                        {replyingTo === comment._id && (
+                          <div className="mt-3 ml-4 flex gap-2">
+                            <input
+                              type="text"
+                              value={replyContent}
+                              onChange={(e) => setReplyContent(e.target.value)}
+                              placeholder="Write a reply..."
+                              className="flex-1 px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9f3562]/30 focus:border-[#9f3562] transition-all"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleReplySubmit(comment._id);
+                                }
+                                if (e.key === 'Escape') {
+                                  setReplyingTo(null);
+                                  setReplyContent('');
+                                }
+                              }}
+                              autoFocus
+                            />
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleReplySubmit(comment._id)}
+                              disabled={!replyContent.trim() || isSubmittingReply}
+                              className="px-4 py-2 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-semibold"
+                            >
+                              {isSubmittingReply ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
+                            </motion.button>
+                            <button
+                              onClick={() => {
+                                setReplyingTo(null);
+                                setReplyContent('');
+                              }}
+                              className="px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ))
@@ -482,6 +1097,29 @@ const PostDetail = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, commentId: null, isReply: false, parentCommentId: null })}
+        onConfirm={() => {
+          setConfirmModal({ isOpen: false, commentId: null, isReply: false, parentCommentId: null });
+          handleCommentDelete(
+            confirmModal.commentId,
+            confirmModal.isReply,
+            confirmModal.parentCommentId
+          );
+        }}
+        title="Delete Comment"
+        message={confirmModal.isReply 
+          ? "Are you sure you want to delete this reply? This action cannot be undone."
+          : "Are you sure you want to delete this comment? This action cannot be undone."
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        isLoading={deletingCommentId === confirmModal.commentId}
+      />
     </div>
   );
 };

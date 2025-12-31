@@ -860,8 +860,9 @@ router.get('/:userId', async (req, res) => {
         }
         
         // Check if this is a mentor by checking if there's a mentor with this ID
+        // OPTIMIZED: Using lean() and parallel queries where possible
         const Mentor = require('../models/mentorSchema');
-        const mentor = await Mentor.findById(decoded.id);
+        const mentor = await Mentor.findById(decoded.id).lean();
         
         if (mentor) {
             // It's a mentor - verify they have a chat with this user
@@ -870,7 +871,7 @@ router.get('/:userId', async (req, res) => {
                 userId,
                 mentorId: decoded.id,
                 isActive: true
-            });
+            }).lean();
             
             if (!chat) {
                 return res.status(403).json({ 
@@ -888,14 +889,14 @@ router.get('/:userId', async (req, res) => {
             }
         }
         
-        // Find the user
-        const user = await User.findById(userId).select('-password -refreshToken');
+        // Find the user - OPTIMIZED: Using lean() for faster queries
+        const user = await User.findById(userId).select('-password -refreshToken').lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
         
         // Process image if needed
-        const processedUser = await processUserImage(user.toObject());
+        const processedUser = await processUserImage(user);
         
         res.json(processedUser);
     } catch (err) {

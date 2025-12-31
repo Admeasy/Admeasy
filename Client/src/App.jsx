@@ -60,6 +60,7 @@ import PostDetail from './Pages/PostDetail';
 import MentorPost from './Pages/MentorPost';
 import Layout from './components/Layout';
 import SearchPage from "./Pages/Search"
+import BottomNavBar from './components/BottomNavBar';
 
 function App() {
   const location = useLocation();
@@ -244,8 +245,10 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
 
+      {/* ================= BOTTOM NAV BAR (MOBILE ONLY) ================= */}
+      <BottomNavBar />
 
-          {/* Showing scroll up button on mobiles (not good) */}
+      {/* Showing scroll up button on mobiles (not good) */}
       {/* <ScrollUpButton /> */}
       
       {/* Footer - show on non-Layout, non-admin routes (Layout pages handle their own footer) */}

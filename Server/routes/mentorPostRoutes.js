@@ -22,18 +22,24 @@ const getPublicIdFromUrl = (imageUrl) => {
   return publicId;
 };
 
-// Optional user resolver - FIXED: Better error handling
+// Optional user resolver - OPTIMIZED: Using lean() for faster queries
 async function getOptionalUser(req) {
   const token = req.cookies?.accessToken;
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     if (decoded.role && decoded.role === 'mentor') return null;
-    const user = await User.findById(decoded.id || decoded._id).select('following reposts');
+    // Use lean() for faster queries - returns plain JS object instead of Mongoose document
+    const user = await User.findById(decoded.id || decoded._id)
+      .select('following reposts _id')
+      .lean();
     return user || null;
   } catch (err) {
     // Token invalid/expired - silently return null for public access
-    console.log('Token validation failed (optional user):', err.message);
+    // Only log in development to reduce noise
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Token validation failed (optional user):', err.message);
+    }
     return null;
   }
 }
@@ -56,31 +62,46 @@ router.get("/", async (req, res) => {
       .limit(limit)
       .lean();
 
-    // Manually populate user data for likes (cross-DB population)
-    const formattedPosts = await Promise.all(posts.map(async (post) => {
-      // Populate likes with user data
-      const populatedLikes = await Promise.all(
-        (post.likes || []).map(async (like) => {
-          if (like.userId) {
-            try {
-              const user = await User.findById(like.userId).select('name image').lean();
-              return {
-                ...like,
-                userId: user ? {
-                  _id: user._id,
-                  name: user.name,
-                  image: user.image,
-                } : like.userId,
-              };
-            } catch (err) {
-              return like; // Return original if user not found
-            }
-          }
-          return like;
-        })
-      );
+    // OPTIMIZED: Batch all user lookups to avoid N+1 queries
+    // Collect all unique user IDs from all posts' likes
+    const allLikeUserIds = new Set();
+    posts.forEach(post => {
+      (post.likes || []).forEach(like => {
+        if (like.userId) allLikeUserIds.add(like.userId.toString());
+      });
+    });
 
-      // Check if user is following the mentor
+    // Batch fetch all users in one query
+    const userIdsArray = Array.from(allLikeUserIds);
+    const usersMap = new Map();
+    if (userIdsArray.length > 0) {
+      const users = await User.find({ _id: { $in: userIdsArray } })
+        .select('name image _id')
+        .lean();
+      users.forEach(user => {
+        usersMap.set(user._id.toString(), {
+          _id: user._id,
+          name: user.name,
+          image: user.image,
+        });
+      });
+    }
+
+    // Format posts using the pre-fetched user data
+    const formattedPosts = posts.map((post) => {
+      // Map likes using pre-fetched users
+      const populatedLikes = (post.likes || []).map(like => {
+        if (like.userId) {
+          const user = usersMap.get(like.userId.toString());
+          return {
+            ...like,
+            userId: user || { _id: like.userId },
+          };
+        }
+        return like;
+      });
+
+      // Check if user is following the mentor (using pre-loaded currentUser)
       const isFollowing = currentUser && currentUser.following
         ? currentUser.following.some(id => id.toString() === post.mentorId._id.toString())
         : false;
@@ -114,7 +135,7 @@ router.get("/", async (req, res) => {
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
       };
-    }));
+    });
 
     const total = await MentorPost.countDocuments();
 
@@ -150,61 +171,102 @@ router.get("/:postId", async (req, res) => {
       return res.status(404).json({ success: false, message: "Post not found" });
     }
 
-    // Manually populate likes with user data (cross-DB population)
-    const populatedLikes = await Promise.all(
-      (post.likes || []).map(async (like) => {
-        if (like.userId) {
-          try {
-            const user = await User.findById(like.userId).select('name image').lean();
-            return {
-              _id: like._id,
-              user: user ? {
-                _id: user._id,
-                name: user.name,
-                image: user.image,
-              } : { _id: like.userId },
-              createdAt: like.createdAt,
-            };
-          } catch (err) {
-            return {
-              _id: like._id,
-              user: { _id: like.userId },
-              createdAt: like.createdAt,
-            };
-          }
-        }
-        return like;
-      })
-    );
+    // OPTIMIZED: Batch all user lookups to avoid N+1 queries
+    // Collect all unique user IDs from likes and comments
+    const allUserIds = new Set();
+    
+    // Collect from likes
+    (post.likes || []).forEach(like => {
+      if (like.userId) allUserIds.add(like.userId.toString());
+    });
+    
+    // Collect from comments and replies
+    const allComments = (post.comments || []).filter(c => !c.deleted);
+    allComments.forEach(comment => {
+      if (comment.userId) allUserIds.add(comment.userId.toString());
+    });
 
-    // Manually populate comments with user data (cross-DB population)
-    const populatedComments = await Promise.all(
-      (post.comments || []).map(async (comment) => {
-        if (comment.userId) {
-          try {
-            const user = await User.findById(comment.userId).select('name image').lean();
-            return {
-              _id: comment._id,
-              user: user ? {
-                _id: user._id,
-                name: user.name,
-                image: user.image,
-              } : { _id: comment.userId },
-              content: comment.content,
-              createdAt: comment.createdAt,
-            };
-          } catch (err) {
-            return {
-              _id: comment._id,
-              user: { _id: comment.userId },
-              content: comment.content,
-              createdAt: comment.createdAt,
-            };
-          }
-        }
-        return comment;
-      })
-    );
+    // Batch fetch all users in one query
+    const userIdsArray = Array.from(allUserIds);
+    const usersMap = new Map();
+    if (userIdsArray.length > 0) {
+      const users = await User.find({ _id: { $in: userIdsArray } })
+        .select('name image _id')
+        .lean();
+      users.forEach(user => {
+        usersMap.set(user._id.toString(), {
+          _id: user._id,
+          name: user.name,
+          image: user.image,
+        });
+      });
+    }
+
+    // Populate likes using pre-fetched users
+    const populatedLikes = (post.likes || []).map(like => {
+      if (like.userId) {
+        const user = usersMap.get(like.userId.toString());
+        return {
+          _id: like._id,
+          user: user || { _id: like.userId },
+          createdAt: like.createdAt,
+        };
+      }
+      return like;
+    });
+
+    // Organize comments by parent/child
+    const topLevelComments = allComments.filter(c => !c.parentCommentId);
+    
+    // Populate comments using pre-fetched users
+    const populatedComments = topLevelComments.map(comment => {
+      const populatedUser = comment.userId 
+        ? (usersMap.get(comment.userId.toString()) || { _id: comment.userId })
+        : null;
+
+      // Get replies for this comment
+      const replies = allComments.filter(c => 
+        c.parentCommentId && c.parentCommentId.toString() === comment._id.toString()
+      );
+
+      const populatedReplies = replies.map(reply => {
+        const replyUser = reply.userId
+          ? (usersMap.get(reply.userId.toString()) || { _id: reply.userId })
+          : null;
+
+        const isLiked = currentUser && reply.likes
+          ? reply.likes.some(like => 
+              like.userId && like.userId.toString() === currentUser._id.toString()
+            )
+          : false;
+
+        return {
+          _id: reply._id,
+          user: replyUser,
+          content: reply.content,
+          likesCount: reply.likesCount || 0,
+          isLiked,
+          parentCommentId: reply.parentCommentId,
+          createdAt: reply.createdAt,
+        };
+      });
+
+      const isLiked = currentUser && comment.likes
+        ? comment.likes.some(like => 
+            like.userId && like.userId.toString() === currentUser._id.toString()
+          )
+        : false;
+
+      return {
+        _id: comment._id,
+        user: populatedUser,
+        content: comment.content,
+        likesCount: comment.likesCount || 0,
+        isLiked,
+        replies: populatedReplies,
+        createdAt: comment.createdAt,
+      };
+    });
 
     const formattedPost = {
       _id: post._id,
@@ -534,6 +596,10 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
     post.comments.push({
       userId: req.user._id,
       content: content.trim(),
+      likes: [],
+      likesCount: 0,
+      parentCommentId: null,
+      deleted: false,
     });
     post.commentsCount = post.commentsCount + 1;
 
@@ -562,6 +628,9 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
         _id: newComment._id,
         user: populatedUser,
         content: newComment.content,
+        likesCount: newComment.likesCount || 0,
+        isLiked: false,
+        replies: [],
         createdAt: newComment.createdAt,
       },
       commentsCount: post.commentsCount,
@@ -627,6 +696,171 @@ router.post("/:postId/repost", authenticateJWT, async (req, res) => {
     });
   } catch (error) {
     console.error("Error reposting:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * POST /api/mentor-posts/:postId/comments/:commentId/like
+ * Like/Unlike a comment (authenticated users only)
+ */
+router.post("/:postId/comments/:commentId/like", authenticateJWT, async (req, res) => {
+  try {
+    const post = await MentorPost.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment || comment.deleted) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    const userId = req.user._id;
+    const existingLikeIndex = comment.likes.findIndex(
+      like => like.userId && like.userId.toString() === userId.toString()
+    );
+
+    if (existingLikeIndex > -1) {
+      // Unlike
+      comment.likes.splice(existingLikeIndex, 1);
+      comment.likesCount = Math.max(0, (comment.likesCount || 0) - 1);
+    } else {
+      // Like
+      comment.likes.push({ userId });
+      comment.likesCount = (comment.likesCount || 0) + 1;
+    }
+
+    await post.save();
+
+    res.json({
+      success: true,
+      isLiked: existingLikeIndex === -1,
+      likesCount: comment.likesCount,
+    });
+  } catch (error) {
+    console.error("Error toggling comment like:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * POST /api/mentor-posts/:postId/comments/:commentId/reply
+ * Reply to a comment (authenticated users only)
+ */
+router.post("/:postId/comments/:commentId/reply", authenticateJWT, async (req, res) => {
+  try {
+    const { content } = req.body;
+    
+    if (!content || !content.trim()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Reply content is required" 
+      });
+    }
+
+    const post = await MentorPost.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const parentComment = post.comments.id(req.params.commentId);
+    if (!parentComment || parentComment.deleted) {
+      return res.status(404).json({ success: false, message: "Parent comment not found" });
+    }
+
+    // Create reply
+    const reply = {
+      userId: req.user._id,
+      content: content.trim(),
+      parentCommentId: req.params.commentId,
+      likes: [],
+      likesCount: 0,
+      deleted: false,
+    };
+
+    post.comments.push(reply);
+    post.commentsCount = post.commentsCount + 1;
+
+    await post.save();
+
+    // Get the newly added reply
+    const newReply = post.comments[post.comments.length - 1];
+    
+    // Manually populate the reply's user data (cross-DB population)
+    let populatedUser = null;
+    if (newReply.userId) {
+      try {
+        const user = await User.findById(newReply.userId).select('name image').lean();
+        populatedUser = user ? {
+          _id: user._id,
+          name: user.name,
+          image: user.image,
+        } : { _id: newReply.userId };
+      } catch (err) {
+        populatedUser = { _id: newReply.userId };
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Reply added successfully",
+      reply: {
+        _id: newReply._id,
+        user: populatedUser,
+        content: newReply.content,
+        likesCount: newReply.likesCount,
+        parentCommentId: newReply.parentCommentId,
+        createdAt: newReply.createdAt,
+      },
+      commentsCount: post.commentsCount,
+    });
+  } catch (error) {
+    console.error("Error adding reply:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * DELETE /api/mentor-posts/:postId/comments/:commentId
+ * Delete a comment (only by the comment author)
+ */
+router.delete("/:postId/comments/:commentId", authenticateJWT, async (req, res) => {
+  try {
+    const post = await MentorPost.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    // Check if user is the author
+    if (comment.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "You can only delete your own comments" 
+      });
+    }
+
+    // Soft delete the comment
+    comment.deleted = true;
+    post.commentsCount = Math.max(0, post.commentsCount - 1);
+
+    await post.save();
+
+    res.json({
+      success: true,
+      message: "Comment deleted successfully",
+      commentsCount: post.commentsCount,
+    });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { Eye, EyeOff, X } from "lucide-react";
 import { motion } from "framer-motion";
-import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
+import mentorsLogo from "../assets/Admeasy/AdmeasyLatest.png";
 import { Upload, User, BookOpen, GraduationCap, Sparkles, FileText, Calendar } from "lucide-react";
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
@@ -100,13 +100,15 @@ function MentorsLogin({ onLoginSuccess }) {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl">
         <div className="flex flex-col items-center">
+          <div className="mb-4 text-center">
           <img
             src={mentorsLogo}
-            className="w-40 mb-4"
+            className="w-40"
             draggable="false"
             alt="Mentors Login"
           />
-
+          <p className="font-admeasy-bold primary-color text-1xl">Mentors</p>
+          </div>
           {error && (
             <div className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-center text-xs font-semibold mb-2">
               {error}

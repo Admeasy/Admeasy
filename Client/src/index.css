@@ -316,7 +316,9 @@ body {
 /* ===============================
    PRIMARY ACTION BUTTON (Admeasy)
    =============================== */
-
+.primary-color{
+  color: #9f3562;
+}
 .btn-action {
   width: 100%;
   cursor: pointer;
@@ -343,6 +345,7 @@ body {
   background-color: #b24a78; /* lighter shade */
   box-shadow: 0 8px 20px rgba(159, 53, 98, 0.25);
 }
+
 
 /* Active click feedback */
 .btn-action:active {
