@@ -24,6 +24,12 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: Number,
     },
+    username: {
+        type: String,
+        trim: true,
+        unique: true,
+        sparse: true // Allows multiple null values
+    },
     email: {
         type: String,
         required: true

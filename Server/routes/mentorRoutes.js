@@ -20,12 +20,27 @@ const verifyAdminFromCookie = (req) => {
     }
 };
 
+// Helper: generate JWT with role
 const generateAccessToken = (mentor) => {
-    return jwt.sign({ id: mentor._id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '12hr' });
+    return jwt.sign(
+        { 
+            id: mentor._id,
+            role: 'mentor'  // Add role to distinguish from user
+        }, 
+        process.env.JWT_ACCESS_SECRET, 
+        { expiresIn: '12hr' }
+    );
 }
 
 const generateRefreshToken = (mentor) => {
-    return jwt.sign({ id: mentor._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '28d' });
+    return jwt.sign(
+        { 
+            id: mentor._id,
+            role: 'mentor'  // Add role to distinguish from user
+        }, 
+        process.env.JWT_REFRESH_SECRET, 
+        { expiresIn: '28d' }
+    );
 }
 
 const getPublicIdFromUrl = (imageUrl) => {
@@ -277,6 +292,27 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         const existingMentor = await Mentor.findById(req.params.id);
         if (!existingMentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+
+        // Check username uniqueness if username is being changed
+        if (username && username !== existingMentor.username) {
+            const normalizedUsername = username.trim().toLowerCase();
+            
+            // Check if username is already taken by another mentor
+            const mentorWithUsername = await Mentor.findOne({ 
+                username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') },
+                _id: { $ne: req.params.id }
+            });
+            
+            // Also check if username is taken by a user
+            const User = require('../models/userSchema');
+            const userWithUsername = await User.findOne({ 
+                username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } 
+            });
+
+            if (mentorWithUsername || userWithUsername) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
         }
 
         const updateData = { name, username, phone, tagline, bio };

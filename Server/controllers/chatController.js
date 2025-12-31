@@ -13,31 +13,46 @@ const getUserChats = async (req, res) => {
             userId,
             isActive: true
         })
-        .populate('mentorId', 'name username image')
         .sort({ updatedAt: -1 })
         .lean();
 
-        // Format response for frontend
+        // Manually fetch mentor data (can't rely on populate due to ref mismatch or cross-DB issues)
         const formattedChats = await Promise.all(chats.map(async (chat) => {
-            // Get unread count for user
-            const unreadCount = chat.userUnreadCount || 0;
+            try {
+                // Fetch mentor data manually
+                const mentor = await Mentor.findById(chat.mentorId).select('name username image').lean();
+                
+                // Skip chats where mentor doesn't exist (deleted mentors)
+                if (!mentor) {
+                    return null;
+                }
 
-            return {
-                chatId: chat._id,
-                mentorId: chat.mentorId._id,
-                mentorName: chat.mentorId.name,
-                mentorUsername: chat.mentorId.username,
-                mentorImage: chat.mentorId.image,
-                lastMessage: chat.lastMessage,
-                lastMessageTime: chat.lastMessageTime,
-                unreadCount,
-                updatedAt: chat.updatedAt
-            };
+                // Get unread count for user
+                const unreadCount = chat.userUnreadCount || 0;
+
+                return {
+                    chatId: chat._id,
+                    mentorId: chat.mentorId,
+                    mentorName: mentor.name,
+                    mentorUsername: mentor.username,
+                    mentorImage: mentor.image,
+                    lastMessage: chat.lastMessage,
+                    lastMessageTime: chat.lastMessageTime,
+                    unreadCount,
+                    updatedAt: chat.updatedAt
+                };
+            } catch (mentorError) {
+                console.error(`Error fetching mentor ${chat.mentorId}:`, mentorError);
+                return null; // Skip this chat if mentor fetch fails
+            }
         }));
+
+        // Filter out null values (deleted mentors)
+        const validChats = formattedChats.filter(chat => chat !== null);
 
         res.json({
             success: true,
-            chats: formattedChats
+            chats: validChats
         });
     } catch (error) {
         console.error('Error getting user chats:', error);

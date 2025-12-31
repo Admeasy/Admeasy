@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useMentor } from '../context/MentorContext';
@@ -204,9 +204,12 @@ const MentorChat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    // Updated Main Wrapper
+    <div className="h-[calc(100vh-4rem)] bg-gray-50 flex flex-col transition-all duration-300">
+
       {/* Header */}
-      <div className="bg-white shadow-sm border-b fixed top-0 z-10">
+      {/* Updated: Fixed header aligned with sidebar */}
+      <div className="bg-white shadow-sm border-b fixed top-16 left-0 right-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
@@ -218,16 +221,18 @@ const MentorChat = () => {
 
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img
-                  src={user?.image || user?.imageUrl || fallbackProfilePic}
-                  alt={user?.name || 'Student'}
-                  className="w-10 h-10 rounded-full object-cover"
-                  onError={(e) => {
-                    e.target.src = fallbackProfilePic;
-                  }}
-                />
+                <Link to={`/${user?.username}`}>
+                  <img
+                    src={user?.image || user?.imageUrl || fallbackProfilePic}
+                    alt={user?.name || 'Student'}
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => {
+                      e.target.src = fallbackProfilePic;
+                    }}
+                  />
+                </Link>
                 {userId && (
-                  <div className="absolute -bottom-1 -right-1">
+                  <div className="absolute -bottom-0 -right-0">
                     <FaCircle
                       className={`text-xs ${isUserOnline(userId) ? 'text-green-500' : 'text-gray-400'
                         }`}
@@ -259,7 +264,7 @@ const MentorChat = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pt-24 pb-24">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="text-center py-8">
@@ -319,7 +324,8 @@ const MentorChat = () => {
 
       {/* Message Input - Only show if there's an existing conversation */}
       {messages.length > 0 && (
-        <div className="bg-white border-t p-4 sticky bottom-0">
+        // Updated: Fixed input bar aligned with sidebar
+        <div className="bg-white border-t p-4 fixed bottom-0 left-0 right-0 z-10">
           <div className="max-w-4xl mx-auto">
             {/* Connection Status */}
             {!isConnected && (

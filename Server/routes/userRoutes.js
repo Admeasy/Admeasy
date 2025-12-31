@@ -18,10 +18,15 @@ const passport = require('../middleware/passport');
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Helper: generate JWT
+
+// Helper: generate JWT with role
 function generateAccessToken(user) {
     return jwt.sign(
-        { id: user._id, email: user.email },
+        { 
+            id: user._id, 
+            email: user.email,
+            role: 'user'  // Add role to distinguish from mentor
+        },
         process.env.JWT_ACCESS_SECRET,
         { expiresIn: '12hr' }
     );
@@ -29,11 +34,16 @@ function generateAccessToken(user) {
 
 function generateRefreshToken(user) {
     return jwt.sign(
-        { id: user._id, email: user.email },
+        { 
+            id: user._id, 
+            email: user.email,
+            role: 'user'  // Add role to distinguish from mentor
+        },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: '28d' }
     );
 }
+
 
 // Helper: Get frontend URL for redirects (works for both dev and production)
 function getFrontendUrl() {
@@ -377,7 +387,7 @@ router.get('/auth/google/callback',
             const frontendUrl = getFrontendUrl();
             // Check if user has completed onboarding
             if (req.user.hasCompletedOnboarding) {
-                res.redirect(`${frontendUrl}/me/edit?oauth_success=true`);
+                res.redirect(`${frontendUrl}/?oauth_success=true`);
             } else {
                 res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
             }
@@ -578,6 +588,30 @@ router.put('/me', upload.single('image'), async (req, res) => {
         } = req.body;
 
         if (name) user.name = name;
+        
+        // Check username uniqueness if username is being changed
+        if (req.body.username !== undefined && req.body.username !== user.username) {
+            const normalizedUsername = req.body.username.trim().toLowerCase();
+            
+            // Check if username is already taken by another user
+            const userWithUsername = await User.findOne({ 
+                username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') },
+                _id: { $ne: user._id }
+            });
+            
+            // Also check if username is taken by a mentor
+            const Mentor = require('../models/mentorSchema');
+            const mentorWithUsername = await Mentor.findOne({ 
+                username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } 
+            });
+
+            if (userWithUsername || mentorWithUsername) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
+            
+            user.username = req.body.username;
+        }
+        
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;

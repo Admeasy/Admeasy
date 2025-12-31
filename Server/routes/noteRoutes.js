@@ -19,6 +19,14 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
   },
+  fileFilter: (req, file, cb) => {
+    // Only accept PDFs
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
 });
 
 // Public routes
@@ -36,5 +44,3 @@ router.put('/admin/:id', verifyAdminToken, updateNote);
 router.delete('/admin/:id', verifyAdminToken, deleteNote);
 
 module.exports = router;
-
-

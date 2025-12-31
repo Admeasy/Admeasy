@@ -18,8 +18,8 @@ const fadeUpVariant = {
 }
 
 const About = () => {
-     const location = useLocation();
-useEffect(() => {
+  const location = useLocation();
+  useEffect(() => {
 
     if (location.hash) {
       // Wait for DOM to render
@@ -77,7 +77,7 @@ useEffect(() => {
       emoji: '🎨',
       name: 'Nitish Kr. Yadav',
       title: 'Co-founder & Co-Chief Technical Officer (Co-CTO)',
-      description: 'Frontend expert, UI designer',
+      description: 'Full Stack Developer,UI/UX Designer',
     },
     {
       emoji: '🛠️',
@@ -92,11 +92,11 @@ useEffect(() => {
       description: 'Keeps our day-to-day execution smooth and efficient.',
     },
     {
-  emoji: '📣',
-  name: 'Parth Tiwari',
-  title: 'Chief Marketing Officer (CMO)',
-  description: 'Marketing strategist, growth enabler,and brand visibility lead.',
-}
+      emoji: '📣',
+      name: 'Parth Tiwari',
+      title: 'Chief Marketing Officer (CMO)',
+      description: 'Marketing strategist, growth enabler,and brand visibility lead.',
+    }
   ];
   return (
     <>
@@ -106,9 +106,18 @@ useEffect(() => {
         keywords="about admeasy, team, mission, college admissions platform, education technology"
         url="https://admeasy.in/about"
       />
-      <div className="w-full min-h-screen bg-white">
+    
+     
+     <div className="flex flex-col ml-auto mr-auto bg-gradient-to-br from-gray-50 via-white to-pink-50/40 min-h-screen relative overflow-x-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+        {/* Enhanced Ambient Background */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+          <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+        </div>
         {/* Header Section */}
-        <div className='w-full h-full'>
+        <div className='w-full h-full relative z-10'>
           <motion.header
             variants={fadeUpVariant}
             initial="hidden"
@@ -116,7 +125,7 @@ useEffect(() => {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.9, ease: 'easeOut' }}
             className="w-full h-fit m-auto p-4 sm:p-12 text-center relative">
-            <style>
+            {/* <style>
               {`
             @media (max-width: 465px) {
               .custom-top {
@@ -124,31 +133,27 @@ useEffect(() => {
               }
             }
           `}
-            </style>
-           {/* Simple Heading */}
-            {/* <h1 className='h-about custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-tprimary tracking-wide lg:tracking-widest z-5 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ fontSize: fSize }}>About Us</h1>
-            */}
+            </style> */}
+           
+            <div className='h-max relative'>
+              <TextPressure
+                text="About Us!"
+                flex={true}
+                alpha={false}
+                stroke={false}
+                width={true}
+                weight={true}
+                italic={true}
+                textColor="black"
+                strokeColor="#ff0000"
+                minFontSize={16}
+              />
+            </div>
 
-<div className='h-max relative'>
-  <TextPressure
-    text="About Us!"
-    flex={true}
-    alpha={false}
-    stroke={false}
-    width={true}
-    weight={true}
-    italic={true}
-    textColor="black"
-    strokeColor="#ff0000"
-    minFontSize={16}
-  />
-</div>
-
-            {/* <h1 className='custom-top text-[1.8rem] sm:text-[4rem] md:text-7xl xl:text-8xl font-admeasy-extrabold m-0 p-0 text-transparent tracking-wide lg:tracking-widest z-15 absolute top-24 sm:top-15 md:top-16 lg:top-10 xl:top-12 left-1/2 transform -translate-x-1/2' style={{ WebkitTextStroke: stroke, fontSize: fSize }}>About Us</h1> */}
           </motion.header>
         </div>
         {/* Main Sections */}
-        <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-0 bg-white">
+        <main className="w-full px-6 sm:px-12 lg:px-28 py-10 flex flex-col items-center gap-10 md:gap-20 relative z-10">
           <Section>
             <h2 className="text-2xl md:text-4xl font-semibold">What is Admeasy?</h2>
             <p className="text-[12px] md:text-2xl text-gray-700 px-4">
@@ -166,20 +171,20 @@ useEffect(() => {
               That’s when the idea for Admeasy was born a platform that connects students with the right colleges <strong> without compromising their privacy</strong>.
             </p>
           </Section>
-          <Section className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <Section className="bg-white/80 backdrop-blur-sm py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-6xl mx-auto text-center">
               <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-10 flex justify-center items-center gap-2">
               Team Members
               </h2>
-               <div className="flex flex-wrap justify-center gap-6">
+                <div className="flex flex-wrap justify-center gap-6">
                 {teamMembers.map((member, index) => (
                   <div key={index}
-                    className="flex md:hidden flex-col items-center justify-evenly bg-white p-3 md:gap-2 rounded-2xl shadow hover:shadow-md w-full transition">
+                    className="flex md:hidden flex-col items-center justify-evenly bg-white/95 backdrop-blur-sm p-3 md:gap-2 rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-[#9f3562]/20 w-full transition-all">
                     <h3 className="text-2xl md:text-3xl font-semibold">{member.emoji}</h3>
                     <h3 className="text-2xl md:text-3xl font-semibold text-gray-800">
                       {member.name}
                     </h3>
-                    <p className="text-sm text-indigo-600 font-medium mb-2">{member.title}</p>
+                    <p className="text-sm text-[#9f3562] font-medium mb-2">{member.title}</p>
                     <p className="text-gray-700 text-sm">{member.description}</p>
                   </div>
                 ))}
@@ -193,10 +198,10 @@ useEffect(() => {
       >
         {teamMembers.map((member, idx) => (
           <SwiperSlide key={idx}>
-            <div className="bg-white rounded-2xl shadow-3d p-4 flex flex-col items-center justify-center text-center h-full">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-4 flex flex-col items-center justify-center text-center h-full hover:border-[#9f3562]/20 transition-all">
               <div className="text-5xl mb-4">{member.emoji}</div>
               <h3 className="text-lg font-semibold text-gray-800">{member.name}</h3>
-              <p className="text-sm font-medium text-blue-600 mt-1">{member.title}</p>
+              <p className="text-sm font-medium text-[#9f3562] mt-1">{member.title}</p>
               <p className="text-gray-500 text-sm mt-3">{member.description}</p>
             </div>
           </SwiperSlide>
@@ -205,7 +210,7 @@ useEffect(() => {
               </div>
             </div>
           </Section>
-          <Section className="bg-white py-20 px-2 sm:px-6 lg:px-8 flex items-center justify-center min-h-screen">
+          <Section className="bg-white/80 backdrop-blur-sm py-20 px-2 sm:px-6 lg:px-8 flex items-center justify-center min-h-screen">
             <div className="max-w-3xl text-center">
               <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-gray-900 mb-8">
                 What Makes Us Different

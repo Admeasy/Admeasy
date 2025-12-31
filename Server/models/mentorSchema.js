@@ -11,7 +11,9 @@ const Schema = new mongoose.Schema({
     },
     username: {
         type: String,
-        trim: true
+        trim: true,
+        unique: true,
+        sparse: true // Allows multiple null values
     },
     email: {
         type: String,
@@ -76,4 +78,4 @@ const Schema = new mongoose.Schema({
     }
 });
 
-module.exports = Admeasy.model('Mentors', Schema);
+module.exports = Admeasy.model('Mentor', Schema);

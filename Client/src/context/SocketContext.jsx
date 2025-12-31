@@ -20,43 +20,128 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [onlineMentors, setOnlineMentors] = useState(new Set());
+  const reconnectTimeoutRef = useRef(null);
+  const authRetryTimeoutRef = useRef(null);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
-    // Initialize socket connection
+    // Only initialize socket if user or mentor exists
+    if (!user && !mentor) {
+      console.log('No user or mentor, skipping socket connection');
+      return;
+    }
+
+    // Prevent multiple socket connections
+    if (socketRef.current && socketRef.current.connected) {
+      console.log('Socket already connected');
+      return;
+    }
+
     const initSocket = () => {
-      const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      console.log('Initializing socket connection...');
+      
+      // Fix: Use the correct backend URL instead of Vite dev server
+      // In development, connect directly to backend (localhost:5000)
+      // In production, use VITE_API_URL or default to same origin
+      const getSocketUrl = () => {
+        if (import.meta.env.VITE_API_URL) {
+          return import.meta.env.VITE_API_URL;
+        }
+        // In development, backend is on port 5000
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return 'http://localhost:5000';
+        }
+        // In production, use same origin
+        return window.location.origin;
+      };
+      
+      const socketUrl = getSocketUrl();
+      console.log('Connecting to socket server:', socketUrl);
+      
+      const socket = io(socketUrl, {
         withCredentials: true,
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: maxReconnectAttempts,
+        timeout: 20000,
+        autoConnect: true
       });
 
       socketRef.current = socket;
 
       // Connection events
       socket.on('connect', () => {
-        console.log('Connected to server');
-        setIsConnected(true);
-
-        // Join appropriate room based on user type
+        console.log('Socket connected successfully:', socket.id);
+        // Don't set isConnected to true yet - wait for authentication
+        
+        // Auto-join based on user type - socket will verify session server-side
         if (user && user._id) {
+          console.log('Joining as user:', user._id);
           socket.emit('join_user', user._id);
         } else if (mentor && mentor._id) {
+          console.log('Joining as mentor:', mentor._id);
           socket.emit('join_mentor', mentor._id);
         }
       });
 
-      socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error.message);
+        setIsConnected(false);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason);
         setIsConnected(false);
         setOnlineUsers(new Set());
         setOnlineMentors(new Set());
       });
 
+      // Authentication events
+      socket.on('authenticated', (data) => {
+        console.log('Socket authenticated:', data);
+        setIsConnected(true);
+      });
+
+      socket.on('auth_required', (data) => {
+        console.log('Authentication required:', data.message);
+        setIsConnected(false);
+        
+        // Clear any existing retry timeout
+        if (authRetryTimeoutRef.current) {
+          clearTimeout(authRetryTimeoutRef.current);
+        }
+        
+        // Session might not be set yet - retry join after a short delay
+        // This allows time for authenticated HTTP requests to set the session
+        authRetryTimeoutRef.current = setTimeout(() => {
+          if (socket.connected && socketRef.current === socket) {
+            if (user && user._id) {
+              console.log('Retrying user join after auth_required');
+              socket.emit('join_user', user._id);
+            } else if (mentor && mentor._id) {
+              console.log('Retrying mentor join after auth_required');
+              socket.emit('join_mentor', mentor._id);
+            }
+          }
+        }, 2000); // Wait 2 seconds for session to be set via HTTP requests
+      });
+
+      // Authentication error handler
+      socket.on('auth_error', (data) => {
+        console.error('Authentication error:', data.message);
+        setIsConnected(false);
+      });
+
       // Presence tracking events
       socket.on('user_online', (data) => {
+        console.log('User came online:', data.userId);
         setOnlineUsers(prev => new Set([...prev, data.userId]));
       });
 
       socket.on('user_offline', (data) => {
+        console.log('User went offline:', data.userId);
         setOnlineUsers(prev => {
           const newSet = new Set(prev);
           newSet.delete(data.userId);
@@ -65,10 +150,12 @@ export const SocketProvider = ({ children }) => {
       });
 
       socket.on('mentor_online', (data) => {
+        console.log('Mentor came online:', data.mentorId);
         setOnlineMentors(prev => new Set([...prev, data.mentorId]));
       });
 
       socket.on('mentor_offline', (data) => {
+        console.log('Mentor went offline:', data.mentorId);
         setOnlineMentors(prev => {
           const newSet = new Set(prev);
           newSet.delete(data.mentorId);
@@ -83,41 +170,62 @@ export const SocketProvider = ({ children }) => {
 
     // Cleanup function
     return () => {
+      console.log('Cleaning up socket connection');
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (authRetryTimeoutRef.current) {
+        clearTimeout(authRetryTimeoutRef.current);
+      }
       if (socket) {
+        socket.removeAllListeners();
         socket.disconnect();
       }
+      socketRef.current = null;
     };
-  }, []); // Only run once on mount
+  }, [user?._id, mentor?._id]); // Only reconnect when user/mentor ID changes
 
-  // Handle user/mentor changes
+  // Retry authentication when user/mentor context updates (session might be set now)
   useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !isConnected) return;
-
-    // Join appropriate room when user/mentor changes
-    if (user && user._id) {
-      socket.emit('join_user', user._id);
-    } else if (mentor && mentor._id) {
-      socket.emit('join_mentor', mentor._id);
+    if (socketRef.current && socketRef.current.connected && !isConnected) {
+      // Socket is connected but not authenticated - retry authentication
+      if (user && user._id) {
+        console.log('Retrying user authentication after context update');
+        socketRef.current.emit('join_user', user._id);
+      } else if (mentor && mentor._id) {
+        console.log('Retrying mentor authentication after context update');
+        socketRef.current.emit('join_mentor', mentor._id);
+      }
     }
   }, [user, mentor, isConnected]);
 
   // Utility functions
   const joinChat = (chatId) => {
     if (socketRef.current && isConnected) {
+      console.log('Joining chat:', chatId);
       socketRef.current.emit('join_chat', chatId);
+    } else {
+      console.warn('Cannot join chat: socket not connected');
     }
   };
 
   const leaveChat = (chatId) => {
     if (socketRef.current && isConnected) {
+      console.log('Leaving chat:', chatId);
       socketRef.current.emit('leave_chat', chatId);
     }
   };
 
   const sendMessage = (data) => {
     if (socketRef.current && isConnected) {
+      console.log('Sending message:', data);
       socketRef.current.emit('send_message', data);
+    } else {
+      console.error('Cannot send message: socket not connected');
+      // Emit error to trigger UI feedback
+      if (socketRef.current) {
+        socketRef.current.emit('message_error', { message: 'Not connected to server' });
+      }
     }
   };
 
@@ -126,23 +234,6 @@ export const SocketProvider = ({ children }) => {
       socketRef.current.emit('get_online_status', { userId, mentorId });
     }
   };
-
-  // Listen for online status responses
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-
-    const handleOnlineStatus = (status) => {
-      // This could be enhanced to provide callbacks or state updates
-      console.log('Online status:', status);
-    };
-
-    socket.on('online_status', handleOnlineStatus);
-
-    return () => {
-      socket.off('online_status', handleOnlineStatus);
-    };
-  }, []);
 
   const value = {
     socket: socketRef.current,

@@ -78,7 +78,9 @@ const MentorChats = () => {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-6 lg:p-8">
+    // Updated Wrapper
+    <main className="min-h-screen p-4 sm:p-6 lg:p-8 transition-all duration-300">
+      
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-center justify-between mb-6">
@@ -152,7 +154,7 @@ const MentorChats = () => {
                       e.target.src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
                     }}
                   />
-                  <div className="absolute -bottom-1 -right-1">
+                  <div className="absolute -bottom-0 -right-0">
                     <FaCircle
                       className={`text-sm ${
                         isUserOnline(chat.userId) ? 'text-green-500' : 'text-gray-400'

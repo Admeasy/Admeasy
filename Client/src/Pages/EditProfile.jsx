@@ -47,6 +47,7 @@ const EditProfile = () => {
   const [preview, setPreview] = useState(null);
   const [form, setForm] = useState({
     name: '',
+    username: '',
     email: '',
     phone: '',
     institute: '',
@@ -75,6 +76,7 @@ const EditProfile = () => {
   const [isEmpty, setIsEmpty] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null, message: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -124,6 +126,7 @@ const EditProfile = () => {
       
       setForm({
         name: user.name || '',
+        username: user.username || '',
         email: user.email || '',
         phone: user.phone || '',
         institute: instituteValue,
@@ -179,6 +182,52 @@ const EditProfile = () => {
     }
   }, []);
 
+  // Real-time username availability check
+  useEffect(() => {
+    const checkUsernameAvailability = async () => {
+      const username = form.username?.trim();
+      
+      // Reset status if username is empty or same as current
+      if (!username || username === user?.username) {
+        setUsernameStatus({ checking: false, available: null, message: '' });
+        return;
+      }
+
+      // Validate username format (alphanumeric, underscore, hyphen, period, 3-30 chars)
+      if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(username)) {
+        setUsernameStatus({ 
+          checking: false, 
+          available: false, 
+          message: 'Username must be 3-30 characters and contain only letters, numbers, underscores, hyphens, or periods' 
+        });
+        return;
+      }
+
+      setUsernameStatus({ checking: true, available: null, message: 'Checking availability...' });
+
+      try {
+        const res = await fetch(`/api/check-username/${encodeURIComponent(username)}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          setUsernameStatus({ 
+            checking: false, 
+            available: data.available, 
+            message: data.available ? 'Username is available ✓' : 'Username is already taken' 
+          });
+        } else {
+          setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+        setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsernameAvailability, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [form.username, user?.username]);
+
   // Onchange
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -207,6 +256,22 @@ const EditProfile = () => {
       return;
     }
 
+    // Validate username if it's changed
+    if (form.username && form.username !== user?.username) {
+      if (usernameStatus.checking) {
+        toast.error('Please wait while we check username availability');
+        return;
+      }
+      if (usernameStatus.available === false) {
+        toast.error('Please choose a different username');
+        return;
+      }
+      if (usernameStatus.available === null && form.username.trim() !== '') {
+        toast.error('Please wait for username validation to complete');
+        return;
+      }
+    }
+
     // mobile Function
     if (
       String(form.phone).trim().length < 10 ||
@@ -220,6 +285,7 @@ const EditProfile = () => {
 
     const formData = new FormData();
     formData.append('name', form.name);
+    if (form.username) formData.append('username', form.username);
     formData.append('phone', form.phone);
     formData.append('gender', form.gender);
     formData.append('institute', form.institute);
@@ -294,6 +360,7 @@ const EditProfile = () => {
         
         setForm({
           name: updatedUser.name || form.name,
+          username: updatedUser.username || form.username,
           email: updatedUser.email || form.email,
           phone: updatedUser.phone || form.phone,
           institute: updatedUser.institute || form.institute,
@@ -474,6 +541,38 @@ const EditProfile = () => {
           transition
         "
       />
+    </label>
+
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      Username
+      <input
+        type="text"
+        name="username"
+        value={form.username}
+        onChange={handleChange}
+        className={`
+          w-full px-3 py-2 rounded-lg border shadow-sm
+          bg-white/90
+          focus:outline-none focus:ring-2 transition
+          ${
+            usernameStatus.available === false 
+              ? 'border-red-300 focus:ring-red-500' 
+              : usernameStatus.available === true 
+              ? 'border-green-300 focus:ring-green-500' 
+              : 'border-gray-300 focus:ring-tprimary'
+          }
+        `}
+        placeholder="Choose a username"
+      />
+      {form.username && (
+        <span className={`text-xs mt-1 ${
+          usernameStatus.available === true ? 'text-green-600' : 
+          usernameStatus.available === false ? 'text-red-600' : 
+          'text-gray-500'
+        }`}>
+          {usernameStatus.checking ? 'Checking...' : usernameStatus.message || ''}
+        </span>
+      )}
     </label>
 
     <label className="flex flex-col gap-1 text-sm font-semibold">

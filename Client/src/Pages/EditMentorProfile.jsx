@@ -92,6 +92,53 @@ export default function MentorsProfile() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null, message: '' });
+
+  // Real-time username availability check
+  useEffect(() => {
+    const checkUsernameAvailability = async () => {
+      const username = formData.username?.trim();
+      
+      // Reset status if username is empty or same as current
+      if (!username || username === mentorData?.username) {
+        setUsernameStatus({ checking: false, available: null, message: '' });
+        return;
+      }
+
+      // Validate username format (alphanumeric, underscore, hyphen, period, 3-30 chars)
+      if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(username)) {
+        setUsernameStatus({ 
+          checking: false, 
+          available: false, 
+          message: 'Username must be 3-30 characters and contain only letters, numbers, underscores, hyphens, or periods' 
+        });
+        return;
+      }
+
+      setUsernameStatus({ checking: true, available: null, message: 'Checking availability...' });
+
+      try {
+        const res = await fetch(`/api/check-username/${encodeURIComponent(username)}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          setUsernameStatus({ 
+            checking: false, 
+            available: data.available, 
+            message: data.available ? 'Username is available ✓' : 'Username is already taken' 
+          });
+        } else {
+          setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+        setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsernameAvailability, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.username, mentorData?.username]);
 
   useEffect(() => {
     async function fetchColleges() {
@@ -270,6 +317,23 @@ export default function MentorsProfile() {
   // Form Handler
   const handleSubmit = async () => {
     if (isSubmitting) return;
+    
+    // Validate username if it's changed
+    if (formData.username && formData.username !== mentorData?.username) {
+      if (usernameStatus.checking) {
+        toast.error('Please wait while we check username availability');
+        return;
+      }
+      if (usernameStatus.available === false) {
+        toast.error('Please choose a different username');
+        return;
+      }
+      if (usernameStatus.available === null && formData.username.trim() !== '') {
+        toast.error('Please wait for username validation to complete');
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -340,7 +404,7 @@ export default function MentorsProfile() {
       }
 
       await fetchMentor();
-      navigate('/')
+      navigate('/feed')
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update mentor profile:', error);
@@ -405,9 +469,26 @@ export default function MentorsProfile() {
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                usernameStatus.available === false 
+                  ? 'border-red-300 focus:ring-red-500' 
+                  : usernameStatus.available === true 
+                  ? 'border-green-300 focus:ring-green-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
               placeholder="Your Username"
             />
+            {formData.username && (
+              <div className="mt-1 text-sm">
+                {usernameStatus.checking ? (
+                  <span className="text-gray-500">Checking...</span>
+                ) : usernameStatus.message ? (
+                  <span className={usernameStatus.available === true ? 'text-green-600' : 'text-red-600'}>
+                    {usernameStatus.message}
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div className="mb-6">

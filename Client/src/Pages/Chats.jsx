@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaArrowLeft, FaUser, FaCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useSocket } from '../context/SocketContext';
+import { useUser } from '../context/UserContext';
 
 const Chats = () => {
   const [chats, setChats] = useState([]);
@@ -10,11 +11,59 @@ const Chats = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  const { isMentorOnline } = useSocket();
+  const { user } = useUser();
+  const { isMentorOnline, socket, isConnected } = useSocket();
 
   useEffect(() => {
     fetchChats();
   }, []);
+
+  // Listen for real-time chat updates
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+    
+    // Listen for new messages to update chat list
+    const handleNewMessage = (message) => {
+      setChats(prevChats => {
+        // Find the chat that this message belongs to
+        const chatIndex = prevChats.findIndex(chat => 
+          chat.chatId && message.chatId && chat.chatId.toString() === message.chatId.toString()
+        );
+        
+        if (chatIndex !== -1) {
+          // Update the chat with new message info
+          const updatedChats = [...prevChats];
+          // Check if message is from current user
+          const isFromCurrentUser = user && message.senderId && (
+            message.senderId.toString() === user._id.toString() || 
+            message.senderId.toString() === user.id?.toString()
+          );
+          const updatedChat = {
+            ...updatedChats[chatIndex],
+            lastMessage: message.message,
+            lastMessageTime: message.createdAt || new Date(),
+            // Increment unread count only if message is not from current user
+            unreadCount: isFromCurrentUser 
+              ? updatedChats[chatIndex].unreadCount 
+              : (updatedChats[chatIndex].unreadCount || 0) + 1
+          };
+          updatedChats[chatIndex] = updatedChat;
+          
+          // Move updated chat to top
+          const [movedChat] = updatedChats.splice(chatIndex, 1);
+          return [movedChat, ...updatedChats];
+        }
+        
+        return prevChats;
+      });
+    };
+    
+    socket.on('receive_message', handleNewMessage);
+    
+    return () => {
+      socket.off('receive_message', handleNewMessage);
+    };
+  }, [socket, isConnected, user]);
 
   const fetchChats = async () => {
     try {
@@ -23,14 +72,24 @@ const Chats = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch chats');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch chats');
       }
 
       const data = await response.json();
-      setChats(data.chats || []);
+      console.log('Fetched chats:', data);
+      
+      if (data.success && Array.isArray(data.chats)) {
+        setChats(data.chats);
+      } else {
+        console.warn('Unexpected response format:', data);
+        setChats([]);
+      }
     } catch (err) {
+      console.error('Error fetching chats:', err);
       setError(err.message);
       toast.error('Failed to load chats');
+      setChats([]);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +128,9 @@ const Chats = () => {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-6 lg:p-8">
+    // Updated Wrapper
+    <main className="min-h-screen p-4 sm:p-6 lg:p-8 transition-all duration-300">
+      
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex items-center justify-between mb-6">
@@ -143,7 +204,7 @@ const Chats = () => {
                       e.target.src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
                     }}
                   />
-                  <div className="absolute -bottom-1 -right-1">
+                  <div className="absolute -bottom-0 -right-0">
                     <FaCircle
                       className={`text-sm ${
                         isMentorOnline(chat.mentorId) ? 'text-green-500' : 'text-gray-400'
