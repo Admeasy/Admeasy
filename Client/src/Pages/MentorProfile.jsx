@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, LogOut, Users, BookOpen, Trophy } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, LogOut, Users, BookOpen, Trophy, MoreVertical } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LoadingButton from '../components/LoadingButton';
 import SEO from '../components/SEO';
@@ -19,6 +19,8 @@ export default function MentorProfile() {
   const [error, setError] = useState(null);
   const isMountedRef = useRef(true);
   const [copied, setCopied] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
   useEffect(() => {
     if (contextLoading) {
       return;
@@ -116,6 +118,7 @@ export default function MentorProfile() {
   }, [username, currentMentor, contextLoading]);
 
   const handleLogout = async () => {
+    setShowMenu(false);
     const res = await fetch('/api/mentors/logout', {
       method: 'POST',
       credentials: 'include'
@@ -124,11 +127,30 @@ export default function MentorProfile() {
 
     if (!res.ok || !response.success) {
       toast.error('Failed to Log out!');
+    } else {
+      toast.success('Logged out successfully');
     }
 
     navigate('/');
     window.location.reload();
   }
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
   const handleShareProfile = async () => {
     const mentorUrl = `${window.location.origin}/mentors/${mentor.username || mentor._id}`;
@@ -258,7 +280,7 @@ export default function MentorProfile() {
 
               {/* Action Buttons */}
               {isOwnProfile && (
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 items-center">
                   <Link
                     to="/me/edit"
                     className="px-4 sm:px-6 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold text-sm text-gray-800 transition-colors flex items-center gap-2"
@@ -267,45 +289,60 @@ export default function MentorProfile() {
                     <span className="hidden sm:inline">Edit</span>
                   </Link>
 
-                  {/* Logout button */}
-                  {/* <button
-                    onClick={handleLogout}
-                    className="px-4 sm:px-6 py-2 bg-red-50 hover:bg-red-100 rounded-lg font-semibold text-sm text-red-600 transition-colors flex items-center gap-2"
-                  >
-                    <LogOut size={16} />
-                    <span className="hidden sm:inline">Logout</span>
-                  </button> */}
                   {/* Share button */}
                   <button
-                    onClick={handleShareProfile}
-                    className="
-        inline-flex items-center gap-2
-        rounded-xl border border-slate-200
-        bg-white px-4 py-2
-        text-sm font-medium text-slate-700
-        shadow-sm
-        transition-all
-        hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600
-        active:scale-95
-      "
-                  >
-                    {/* Icon */}
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m6.632 2.684C15.114 13.062 15 12.518 15 12s.114-1.062.316-1.342M12 3v9m0 0l-3-3m3 3l3-3m-9 9a2 2 0 002 2h8a2 2 0 002-2"
-                      />
-                    </svg>
+                                  onClick={handleShareProfile}
+                                  className="
+                      inline-flex items-center gap-2
+                      rounded-xl border border-slate-200
+                      bg-white px-4 py-2
+                      text-sm font-medium text-slate-700
+                      shadow-sm
+                      transition-all
+                      hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600
+                      active:scale-95
+                    "
+                                >
+                                  {/* Icon */}
+                                  <svg
+                                    className="h-4 w-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m6.632 2.684C15.114 13.062 15 12.518 15 12s.114-1.062.316-1.342M12 3v9m0 0l-3-3m3 3l3-3m-9 9a2 2 0 002 2h8a2 2 0 002-2"
+                                    />
+                                  </svg>
 
-                    {copied ? "Shared🎉" : "Share"}
-                  </button>
+                                  {copied ? "Shared🎉" : "Share"}
+                                </button>
+
+                  {/* 3-dots menu with logout */}
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                      aria-label="More options"
+                    >
+                      <MoreVertical size={20} />
+                    </button>
+
+                    {showMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut size={18} />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

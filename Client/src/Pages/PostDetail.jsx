@@ -104,18 +104,14 @@ const PostDetail = () => {
   };
 
   const handleShare = async () => {
-    if (!viewer) {
-      toast.info('Log in to share posts');
-      navigate('/login');
-      return;
-    }
+    // Share works without login
     const postUrl = `${window.location.origin}/posts/${postId}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Post by ${post.mentor.name}`,
-          text: post.content.substring(0, 100),
+          text: post.content.replace(/<[^>]*>/g, '').substring(0, 100), // Strip HTML for text
           url: postUrl,
         });
       } catch (error) {
@@ -189,7 +185,7 @@ const PostDetail = () => {
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    
+
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
@@ -198,7 +194,7 @@ const PostDetail = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        
+
         <div className="flex flex-col items-center gap-4 relative z-10">
           <div className="relative">
             <Loader2 className="w-12 h-12 animate-spin text-[#9f3562]" />
@@ -229,7 +225,7 @@ const PostDetail = () => {
             animate={{ opacity: 1, x: 0 }}
             whileHover={{ scale: 1.05, x: -5 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-700 hover:text-[#9f3562] hover:border-[#9f3562]/30 rounded-xl mb-6 sm:mb-8 transition-all shadow-sm hover:shadow-md"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -243,7 +239,7 @@ const PostDetail = () => {
             className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-lg shadow-gray-200/50 overflow-hidden border border-gray-100"
           >
             <div className="flex items-center gap-4 p-5 sm:p-6 border-b border-gray-100">
-              <Link to={`/mentors/${post.mentor.username}`} className="relative">
+              <Link to={`/${post.mentor.username}`} className="relative">
                 <img
                   src={post.mentor.image || fallbackProfilePic}
                   alt={post.mentor.name}
@@ -255,9 +251,18 @@ const PostDetail = () => {
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-br from-[#9f3562] to-[#b14270] rounded-full border-2 border-white" />
               </Link>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900 text-base sm:text-lg">{post.mentor.name}</h3>
+                <h3 className="font-bold text-gray-900 text-base sm:text-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/${post.mentor.username}`);
+                  }}>
+                  {post.mentor.name}
+                </h3>
                 {post.mentor.username && (
-                  <p className="text-sm text-gray-500">@{post.mentor.username}</p>
+                  <p className="text-sm text-gray-500" onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/${post.mentor.username}`);
+                  }}>@{post.mentor.username}</p>
                 )}
                 {post.mentor.tagline && (
                   <p className="text-sm text-gray-600 mt-1 line-clamp-1">{post.mentor.tagline}</p>
@@ -269,8 +274,48 @@ const PostDetail = () => {
             </div>
 
             <div className="px-5 sm:px-6 py-5">
-              <p className="text-gray-800 whitespace-pre-wrap break-words text-base sm:text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: post.content }}>
-              </p>
+              <style>{`
+                .post-content h1, .post-content h2, .post-content h3 {
+                  font-weight: 700;
+                  margin-top: 0.5rem;
+                  margin-bottom: 0.5rem;
+                }
+                .post-content p {
+                  margin-bottom: 0.75rem;
+                  line-height: 1.6;
+                }
+                .post-content ul, .post-content ol {
+                  margin-left: 1.5rem;
+                  margin-bottom: 0.75rem;
+                }
+                .post-content ul {
+                  list-style: disc;
+                }
+                .post-content ol {
+                  list-style: decimal;
+                }
+                .post-content a {
+                  color: #9f3562;
+                  text-decoration: underline;
+                }
+                .post-content a:hover {
+                  color: #b14270;
+                }
+                .post-content table {
+                  border-radius: 8px;
+                  overflow: hidden;
+                  border: 1px solid #e2e8f0;
+                  margin: 1rem 0;
+                }
+                .post-content table td, .post-content table th {
+                  padding: 0.5rem;
+                  border: 1px solid #e2e8f0;
+                }
+              `}</style>
+              <div
+                className="text-gray-800 break-words text-base sm:text-lg leading-relaxed post-content"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
             </div>
 
             {post.image && (
@@ -342,9 +387,8 @@ const PostDetail = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLike}
                 disabled={isLiking}
-                className={`flex items-center gap-2.5 transition-colors disabled:opacity-50 ${
-                  isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
-                }`}
+                className={`flex items-center gap-2.5 transition-colors disabled:opacity-50 ${isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'
+                  }`}
               >
                 <Heart className={`w-6 h-6 sm:w-7 sm:h-7 ${isLiked ? 'fill-current' : ''}`} />
                 <span className="text-base sm:text-lg font-bold">{likesCount}</span>

@@ -202,20 +202,33 @@ const JobApplications = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+                <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="relative z-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
+                </div>
             </div>
         );
     }
 
     return (
-        <main className="min-h-screen p-4 sm:p-6 lg:p-8">
-            <button className="admin-back-button" onClick={() => navigate(-1)}>
+        <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden p-6 sm:p-8 transition-all duration-300 selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+            {/* Enhanced Ambient Background */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+                <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+            </div>
+
+            <button className="absolute top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 bg-white/95 backdrop-blur-sm hover:bg-white rounded-xl transition-all duration-300 shadow-sm border border-gray-200 hover:shadow-md hover:border-[#9f3562]/30 text-gray-700 hover:text-[#9f3562]" onClick={() => navigate(-1)}>
                 <FaArrowLeft />
+                Back
             </button>
-            <h1 className="admin-heading">Job Applications</h1>
-            {error && <div className="text-red-500 mb-4">{error}</div>}
-            <div className="max-w-6xl mx-auto">
+            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-gray-900 font-admeasy-bold text-3xl sm:text-5xl text-center mb-8 relative z-10">Job Applications</h1>
+            {error && <div className="text-red-500 mb-4 relative z-10 text-center">{error}</div>}
+            <div className="max-w-6xl mx-auto relative z-10">
                 <div className="relative mb-6">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FaSearch className="h-5 w-5 text-gray-400" />
@@ -225,14 +238,14 @@ const JobApplications = () => {
                         placeholder="Search applications..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3 text-tprimary placeholder:text-tsecondary border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="block w-full pl-10 pr-3 py-3 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 shadow-sm"
                     />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {filteredApps.map((app, idx) => (
                         <div
                             key={app._id || idx}
-                            className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden flex flex-col" onClick={() => handleShowModal(app)}
+                            className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#9f3562]/30 cursor-pointer overflow-hidden flex flex-col" onClick={() => handleShowModal(app)}
                         >
                             <div className="p-4 sm:p-6 flex-1">
                                 <div className="flex items-center space-x-3 mb-4 relative">
@@ -273,7 +286,7 @@ const JobApplications = () => {
                                 </div>
                             </div>
                             <button
-                                className="w-9/10 mx-auto mb-3 px-3 py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors flex items-center justify-center"
+                                className="w-9/10 mx-auto mb-3 px-3 py-2 rounded-xl text-white bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all duration-300 flex items-center justify-center hover:scale-105 active:scale-95"
                                 onClick={() => handleShowModal(app)}
                             >
                                 View Full Application
@@ -282,15 +295,15 @@ const JobApplications = () => {
                     ))}
                 </div>
                 {filteredApps.length === 0 && !isLoading && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No applications found</p>
+                    <div className="text-center py-12 bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/50">
+                        <p className="text-gray-700 text-lg font-medium">No applications found</p>
                     </div>
                 )}
             </div>
             {/* Modal */}
             {showModal && selectedApp && (
-                <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-4 sm:p-6 pb-0">
                             <h2 className="text-xl sm:text-2xl font-bold text-thead1">Application Details</h2>
                             <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-4xl font-bold">×</button>
@@ -341,32 +354,32 @@ const JobApplications = () => {
                             <button
                                 onClick={() => { setShowInterviewModal(true); setInterviewData({ applicantName: selectedApp.name, applicantEmail: selectedApp.email, startDateTime: '', endDateTime: '', guests: [] }); }}
                                 disabled={selectedApp.isAccepted}
-                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-lg transition-colors ${selectedApp.isAccepted
+                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 ${selectedApp.isAccepted
                                         ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-blue-500 hover:bg-blue-700 cursor-pointer'
+                                        : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 cursor-pointer'
                                     }`}>
                                 Schedule Interview
                             </button>
                             <button
                                 onClick={handleAccept}
                                 disabled={selectedApp.isAccepted}
-                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-lg transition-colors ${selectedApp.isAccepted
+                                className={`max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 ${selectedApp.isAccepted
                                         ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-green-500 hover:bg-green-700 cursor-pointer'
+                                        : 'bg-green-500 hover:bg-green-600 hover:shadow-lg cursor-pointer'
                                     }`}>
                                 Accept
                             </button>
                             <button
                                 onClick={handleReject}
-                                className="max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 bg-red-500 hover:bg-red-700 text-white font-medium rounded-lg transition-colors cursor-pointer">
+                                className="max-[400px]:w-full max-[400px]:text-center w-1/3 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer">
                                 Reject
                             </button>
                         </div>
                     </div>
                     {/* Interview scheduling modal */}
                     {showInterviewModal && (
-                        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50">
-                            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+                        <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full max-h-[90vh] flex flex-col">
                                 <div className="flex items-center justify-between p-4 sm:p-4 pb-0">
                                     <h2 className="w-full text-center text-xl sm:text-2xl font-bold text-thead1">Schedule Interview</h2>
                                     <button onClick={closeInterviewModal} className="text-gray-500 hover:text-gray-700 text-3xl font-bold">×</button>
@@ -408,7 +421,7 @@ const JobApplications = () => {
                                             </select>
                                         </div>
                                         <div className="flex items-center p-3">
-                                            <button className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors cursor-pointer" onClick={scheduleInterview}>Schedule Interview</button>
+                                            <button className="w-full px-4 py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer" onClick={scheduleInterview}>Schedule Interview</button>
                                         </div>
                                     </div>
                                 </div>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, ExternalLink, Youtube } from 'lucide-react';
+import { Heart, MessageCircle, Share2, ExternalLink, Youtube, Repeat2, UserPlus, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
@@ -15,6 +15,10 @@ const PostCard = ({ post }) => {
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [isLiking, setIsLiking] = useState(false);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [isReposting, setIsReposting] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(post.isFollowing || false);
+  const [isFollowingLoading, setIsFollowingLoading] = useState(false);
+  const [isReposted, setIsReposted] = useState(post.isReposted || false);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -66,18 +70,14 @@ const PostCard = ({ post }) => {
 
   const handleShare = async (e) => {
     e.stopPropagation();
-    if (!isAuthed) {
-      toast.info('Log in to share posts');
-      navigate('/login');
-      return;
-    }
+    // Share works without login
     const postUrl = `${window.location.origin}/posts/${post._id}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Post by ${post.mentor.name}`,
-          text: post.content.substring(0, 100),
+          text: post.content.replace(/<[^>]*>/g, '').substring(0, 100), // Strip HTML for text
           url: postUrl,
         });
       } catch (error) {
@@ -91,6 +91,98 @@ const PostCard = ({ post }) => {
       toast.success('Link copied to clipboard!');
     }
   };
+
+  const handleRepost = async (e) => {
+    e.stopPropagation();
+    if (!user) {
+      toast.info('Log in to repost');
+      navigate('/login');
+      return;
+    }
+    if (isReposting) return;
+
+    setIsReposting(true);
+    const previousReposted = isReposted;
+    setIsReposted(!isReposted);
+
+    try {
+      const response = await fetch(`/api/mentor-posts/${post._id}/repost`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to repost');
+      }
+
+      if (data.success) {
+        setIsReposted(data.isReposted);
+        toast.success(data.isReposted ? 'Post reposted successfully!' : 'Repost removed');
+      }
+    } catch (error) {
+      console.error('Error reposting:', error);
+      toast.error(error.message || 'Failed to repost');
+      setIsReposted(previousReposted);
+    } finally {
+      setIsReposting(false);
+    }
+  };
+
+  const handleFollow = async (e) => {
+    e.stopPropagation();
+    if (!user) {
+      toast.info('Log in to follow mentors');
+      navigate('/login');
+      return;
+    }
+    if (isFollowingLoading) return;
+
+    setIsFollowingLoading(true);
+    const previousFollowing = isFollowing;
+    setIsFollowing(!isFollowing);
+
+    try {
+      const response = await fetch(`/api/users/${post.mentor._id}/follow`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to follow');
+      }
+
+      if (data.success) {
+        setIsFollowing(data.isFollowing);
+        toast.success(data.isFollowing ? 'Followed successfully!' : 'Unfollowed successfully');
+      }
+    } catch (error) {
+      console.error('Error following:', error);
+      toast.error(error.message || 'Failed to follow');
+      setIsFollowing(previousFollowing);
+    } finally {
+      setIsFollowingLoading(false);
+    }
+  };
+
+  // Fetch follow status on mount if user is logged in
+  useEffect(() => {
+    if (user && post.mentor._id) {
+      fetch(`/api/users/${post.mentor._id}/follow-status`, {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setIsFollowing(data.isFollowing);
+          }
+        })
+        .catch(err => console.error('Error fetching follow status:', err));
+    }
+  }, [user, post.mentor._id]);
 
   const handleLinkClick = (e, url) => {
     e.stopPropagation();
@@ -124,6 +216,44 @@ const PostCard = ({ post }) => {
       onClick={() => navigate(`/posts/${post._id}`)}
       className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/20 group relative"
     >
+      <style>{`
+        .post-content h1, .post-content h2, .post-content h3 {
+          font-weight: 700;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .post-content p {
+          margin-bottom: 0.75rem;
+          line-height: 1.6;
+        }
+        .post-content ul, .post-content ol {
+          margin-left: 1.5rem;
+          margin-bottom: 0.75rem;
+        }
+        .post-content ul {
+          list-style: disc;
+        }
+        .post-content ol {
+          list-style: decimal;
+        }
+        .post-content a {
+          color: #9f3562;
+          text-decoration: underline;
+        }
+        .post-content a:hover {
+          color: #b14270;
+        }
+        .post-content table {
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid #e2e8f0;
+          margin: 1rem 0;
+        }
+        .post-content table td, .post-content table th {
+          padding: 0.5rem;
+          border: 1px solid #e2e8f0;
+        }
+      `}</style>
       {/* Gradient hover effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#9f3562]/0 via-pink-500/0 to-purple-500/0 group-hover:from-[#9f3562]/5 group-hover:via-pink-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none" />
       
@@ -138,24 +268,76 @@ const PostCard = ({ post }) => {
             <img
               src={post.mentor.image || fallbackProfilePic}
               alt={post.mentor.name}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/${post.mentor.username}`);
+              }}
               onError={(e) => {
                 e.target.src = fallbackProfilePic;
               }}
             />
           </motion.div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">{post.mentor.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 
+                className="font-bold text-gray-900 text-sm sm:text-base truncate cursor-pointer hover:text-[#9f3562] transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/${post.mentor.username}`);
+                }}
+              >
+                {post.mentor.name}
+              </h3>
+            </div>
             {post.mentor.username && (
-              <p className="text-xs sm:text-sm text-gray-500 truncate">@{post.mentor.username}</p>
+              <p 
+                className="text-xs sm:text-sm text-gray-500 truncate cursor-pointer hover:text-[#9f3562] transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/${post.mentor.username}`);
+                }}
+              >
+                @{post.mentor.username}
+              </p>
             )}
           </div>
+          {user && !mentor && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleFollow}
+              disabled={isFollowingLoading}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${
+                isFollowing
+                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30'
+              }`}
+            >
+              {isFollowingLoading ? (
+                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : isFollowing ? (
+                <>
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Following</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Follow</span>
+                </>
+              )}
+            </motion.button>
+          )}
           <span className="text-xs font-medium text-gray-400 flex-shrink-0 px-2.5 py-1 bg-gray-50 rounded-full">{formatDate(post.createdAt)}</span>
         </div>
 
         {/* Post Content */}
         <div className="px-5 sm:px-6 pb-4">
-          <p className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed text-sm sm:text-[15px]" dangerouslySetInnerHTML={{ __html: post.content }}></p>
+          <div 
+            className="text-gray-800 break-words leading-relaxed text-sm sm:text-[15px] post-content"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         </div>
 
         {/* Post Image */}
@@ -273,10 +455,29 @@ const PostCard = ({ post }) => {
           </motion.button>
 
           <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleRepost}
+            disabled={isReposting || !user}
+            className={`flex items-center gap-2 transition-colors disabled:opacity-50 ${
+              isReposted 
+                ? 'text-[#9f3562]' 
+                : 'text-gray-500 hover:text-[#9f3562]'
+            }`}
+          >
+            <Repeat2 className={`w-5 h-5 sm:w-6 sm:h-6 ${isReposting ? 'animate-spin' : ''} ${isReposted ? 'fill-current' : ''}`} />
+            {post.repostCount > 0 && (
+              <span className={`text-sm sm:text-base font-bold ${isReposted ? 'text-[#9f3562]' : 'text-gray-600'}`}>
+                {post.repostCount}
+              </span>
+            )}
+          </motion.button>
+
+          <motion.button
             whileHover={{ scale: 1.1, rotate: 15 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleShare}
-            className="flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors ml-auto"
+            className="flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors"
           >
             <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
           </motion.button>

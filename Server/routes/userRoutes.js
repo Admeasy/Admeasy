@@ -928,4 +928,113 @@ router.get('/:userId', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/users/:mentorId/follow
+ * Follow a mentor (authenticated users only)
+ */
+router.post('/:mentorId/follow', async (req, res) => {
+    try {
+        const token = req.cookies?.accessToken;
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        if (decoded.role && decoded.role === 'mentor') {
+            return res.status(403).json({ success: false, message: 'Mentors cannot follow other mentors' });
+        }
+
+        const user = await User.findById(decoded.id || decoded._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const Mentor = require('../models/mentorSchema');
+        const mentor = await Mentor.findById(req.params.mentorId);
+        if (!mentor) {
+            return res.status(404).json({ success: false, message: 'Mentor not found' });
+        }
+
+        // Check if already following
+        const isFollowing = user.following.some(
+            id => id.toString() === req.params.mentorId
+        );
+
+        if (isFollowing) {
+            // Unfollow
+            user.following = user.following.filter(
+                id => id.toString() !== req.params.mentorId
+            );
+            mentor.followers = mentor.followers.filter(
+                id => id.toString() !== user._id.toString()
+            );
+            await user.save();
+            await mentor.save();
+
+            return res.json({
+                success: true,
+                message: 'Unfollowed successfully',
+                isFollowing: false,
+                followersCount: mentor.followers.length
+            });
+        } else {
+            // Follow
+            user.following.push(mentor._id);
+            mentor.followers.push(user._id);
+            await user.save();
+            await mentor.save();
+
+            return res.json({
+                success: true,
+                message: 'Followed successfully',
+                isFollowing: true,
+                followersCount: mentor.followers.length
+            });
+        }
+    } catch (error) {
+        console.error('Error following/unfollowing:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/users/:mentorId/follow-status
+ * Check if user is following a mentor (optional auth)
+ */
+router.get('/:mentorId/follow-status', async (req, res) => {
+    try {
+        const token = req.cookies?.accessToken;
+        let isFollowing = false;
+
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                if (!decoded.role || decoded.role !== 'mentor') {
+                    const user = await User.findById(decoded.id || decoded._id);
+                    if (user) {
+                        isFollowing = user.following.some(
+                            id => id.toString() === req.params.mentorId
+                        );
+                    }
+                }
+            } catch (err) {
+                // Token invalid, user not logged in
+            }
+        }
+
+        const Mentor = require('../models/mentorSchema');
+        const mentor = await Mentor.findById(req.params.mentorId);
+        const followersCount = mentor ? mentor.followers.length : 0;
+
+        res.json({
+            success: true,
+            isFollowing,
+            followersCount
+        });
+    } catch (error) {
+        console.error('Error checking follow status:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 module.exports = router;

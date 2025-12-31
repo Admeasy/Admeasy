@@ -200,17 +200,17 @@ const Colleges = () => {
         {/* Search bar */}
         <div className="w-full max-w-4xl mx-auto m-0 my-8 p-4 flex items-center justify-center relative z-10">
           <div className="relative w-full">
-            <input
-              name='search'
-              value={searchQuery}
-              onChange={handleSearch}
+          <input
+            name='search'
+            value={searchQuery}
+            onChange={handleSearch}
               className='pl-12 pr-4 py-4 w-full bg-white rounded-2xl text-gray-900 placeholder:text-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9f3562] focus:border-transparent shadow-sm hover:shadow-md transition-all duration-300 text-sm sm:text-base lg:text-lg' 
-              type="text" 
-              placeholder={placeholder} 
-            />
+            type="text" 
+            placeholder={placeholder} 
+          />
             <button className='cursor-pointer absolute left-4 top-1/2 -translate-y-1/2'>
               <img draggable="false" src={SearchLogo} alt="Search" className='w-5 h-5 sm:w-6 sm:h-6' />
-            </button>
+          </button>
           </div>
         </div>
 
@@ -251,7 +251,7 @@ const Colleges = () => {
                   className="relative snap-start h-full"
                 >
                   <motion.div
-                    onClick={(e) => handleViewCollege(college._id, e)}
+                  onClick={(e) => handleViewCollege(college._id, e)}
                     whileHover={{ y: -4, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-200 hover:shadow-xl hover:border-[#9f3562]/30 transition-all duration-300 cursor-pointer group active:scale-[0.98] h-full flex flex-col"
@@ -283,17 +283,17 @@ const Colleges = () => {
                             variant="warning"
                           />
                         )}
-                      </div>
-                      
+                  </div>
+
                       {/* Menu Button - Thumb-friendly position */}
-                      <button
-                        onClick={(e) => toggleMenu(college._id, e)}
+                  <button
+                    onClick={(e) => toggleMenu(college._id, e)}
                         className='flex-shrink-0 hover:bg-gray-100 active:bg-gray-200 p-2 rounded-lg transition-colors text-gray-500 hover:text-[#9f3562] touch-manipulation'
-                        title="More options"
+                    title="More options"
                         aria-label="More options"
-                      >
+                  >
                         <BsThreeDotsVertical size={16} />
-                      </button>
+                  </button>
                     </div>
 
                     {/* College Logo - Optimized for mobile */}
@@ -354,32 +354,32 @@ const Colleges = () => {
                     ) : (
                       <div className="h-[2.25rem] flex-shrink-0"></div>
                     )}
-                  </motion.div>
+                </motion.div>
 
                   {/* Dropdown Menu */}
-                  {openMenuId === college._id && (
+                {openMenuId === college._id && (
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      ref={(el) => menuRefs.current[college._id] = el}
+                    ref={(el) => menuRefs.current[college._id] = el}
                       className='absolute top-20 right-3 bg-white rounded-xl shadow-xl z-50 w-44 border border-gray-100 overflow-hidden'
-                    >
-                      <button
-                        onClick={(e) => handleViewCollege(college._id, e)}
+                  >
+                    <button
+                      onClick={(e) => handleViewCollege(college._id, e)}
                         className='w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-[#9f3562]/10 hover:to-[#b14270]/10 transition-colors text-gray-800 font-medium text-sm active:bg-[#9f3562]/20'
-                      >
-                        View College
-                      </button>
+                    >
+                      View College
+                    </button>
                       <div className='border-t border-gray-100'></div>
-                      <button
-                        onClick={(e) => handleShareCollege(college, e)}
+                    <button
+                      onClick={(e) => handleShareCollege(college, e)}
                         className='w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-[#9f3562]/10 hover:to-[#b14270]/10 transition-colors text-gray-800 font-medium text-sm flex items-center gap-2 active:bg-[#9f3562]/20'
-                      >
+                    >
                         <FaShareAlt size={14} className="text-[#9f3562]" /> Share College
-                      </button>
+                    </button>
                     </motion.div>
-                  )}
+                )}
                 </motion.div>
               );
             })

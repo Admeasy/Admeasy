@@ -190,33 +190,43 @@ const MentorChat = () => {
   };
 
   const getMessageStatus = (message) => {
-    if (message.status === 'read') return <FaCheckDouble className="text-blue-500 text-xs" />;
-    if (message.status === 'delivered') return <FaCheck className="text-gray-400 text-xs" />;
-    return <FaCheck className="text-gray-300 text-xs" />;
+    if (message.status === 'read') return <FaCheckDouble className="text-pink-200 text-xs" />;
+    if (message.status === 'delivered') return <FaCheck className="text-pink-200/70 text-xs" />;
+    return <FaCheck className="text-pink-200/50 text-xs" />;
   };
 
   if (isLoading && !user) {
     return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="relative z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    // Updated Main Wrapper
-    <div className="h-[calc(100vh-4rem)] bg-gray-50 flex flex-col transition-all duration-300">
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+      
+      {/* Enhanced Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+      </div>
+      
       {/* Header */}
-      {/* Updated: Fixed header aligned with sidebar */}
-      <div className="bg-white shadow-sm border-b fixed top-16 left-0 right-0 z-10">
+      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/mentor/chats')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562]"
             >
-              <FaArrowLeft className="text-gray-600" />
+              <FaArrowLeft />
             </button>
 
             <div className="flex items-center gap-3">
@@ -264,14 +274,14 @@ const MentorChat = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pt-24 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pt-20 pb-24 relative z-10">
         <div className="max-w-4xl mx-auto">
           {error && (
-            <div className="text-center py-8">
-              <p className="text-red-500">{error}</p>
+            <div className="text-center py-8 bg-white/95 backdrop-blur-xl rounded-2xl border border-red-200 shadow-xl shadow-gray-200/50">
+              <p className="text-red-500 mb-4">{error}</p>
               <button
                 onClick={() => navigate('/mentor/chats')}
-                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                className="px-6 py-2 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all duration-300"
               >
                 Back to Messages
               </button>
@@ -279,12 +289,12 @@ const MentorChat = () => {
           )}
 
           {!error && messages.length === 0 && (
-            <div className="text-center py-12">
-              <FaUser className="mx-auto text-6xl text-gray-300 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            <div className="text-center py-12 bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/50">
+              <FaUser className="mx-auto text-6xl text-[#9f3562]/30 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 No conversation yet
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-600">
                 This student hasn't started a conversation with you yet.
                 You can only reply to messages they send you.
               </p>
@@ -302,13 +312,13 @@ const MentorChat = () => {
                   className={`flex ${isMentor ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${isMentor
-                      ? 'bg-blue-500 text-white rounded-br-md'
-                      : 'bg-white text-gray-900 rounded-bl-md border'
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${isMentor
+                      ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-br-md'
+                      : 'bg-white/95 backdrop-blur-sm text-gray-900 rounded-bl-md border border-gray-200'
                       } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
                   >
                     <p className="text-sm leading-relaxed">{message.message || message.text}</p>
-                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMentor ? 'text-blue-100' : 'text-gray-500'
+                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMentor ? 'text-pink-100' : 'text-gray-500'
                       }`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
                       {isMentor && getMessageStatus(message)}
@@ -324,13 +334,12 @@ const MentorChat = () => {
 
       {/* Message Input - Only show if there's an existing conversation */}
       {messages.length > 0 && (
-        // Updated: Fixed input bar aligned with sidebar
-        <div className="bg-white border-t p-4 fixed bottom-0 left-0 right-0 z-10">
+        <div className="bg-white/95 backdrop-blur-xl border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg">
           <div className="max-w-4xl mx-auto">
             {/* Connection Status */}
             {!isConnected && (
               <div className="mb-3 text-center">
-                <span className="text-sm text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                <span className="text-sm text-orange-600 bg-orange-100/80 backdrop-blur-sm px-3 py-1 rounded-full border border-orange-200">
                   Connecting to chat...
                 </span>
               </div>
@@ -342,14 +351,14 @@ const MentorChat = () => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder={`Reply to ${user?.name || 'student'}...`}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                className="flex-1 px-4 py-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
                 disabled={isSending || !isConnected}
               />
               <button
                 type="submit"
                 disabled={!newMessage.trim() || isSending || !isConnected || messages.length === 0}
-                className={`px-6 py-3 rounded-full transition-colors flex items-center gap-2 ${newMessage.trim() && !isSending && isConnected && messages.length > 0
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                className={`px-6 py-3 rounded-full transition-all duration-300 flex items-center gap-2 shadow-sm ${newMessage.trim() && !isSending && isConnected && messages.length > 0
+                  ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white hover:scale-105 active:scale-95'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
               >
