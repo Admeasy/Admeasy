@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaInfoCircle } from "react-icons/fa";
 import { toast } from 'react-toastify'
@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext'
 import LoadingButton from '../components/LoadingButton';
+import { MoreVertical, LogOut } from 'lucide-react';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 // Utility function to check if user profile is complete
@@ -75,6 +76,8 @@ const EditProfile = () => {
   const [isEmpty, setIsEmpty] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -347,6 +350,7 @@ const EditProfile = () => {
   };
 
   const handleLogout = async () => {
+    setShowMenu(false);
     try {
       const res = await fetch('/api/users/logout', {
         method: 'POST',
@@ -365,6 +369,23 @@ const EditProfile = () => {
       toast.error('Failed to logout');
     }
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
   const { pathname } = useLocation();
 
@@ -387,40 +408,29 @@ const EditProfile = () => {
   backdrop-blur-lg border border-white/20
 ">
 
-  {/* Logout */}
+  {/* 3-dots menu with logout */}
   <div className="flex w-full justify-end mb-2">
-    <button
-      className="
-        group flex items-center justify-start 
-        w-[45px] h-[45px] 
-        border-none rounded-full cursor-pointer relative overflow-hidden 
-        shadow-[2px_2px_10px_rgba(0,0,0,0.15)]
-        bg-red-500/90 transition-all duration-300 
-        active:translate-x-[2px] active:translate-y-[2px]
-        hover:w-[130px] hover:rounded-[40px]
-      "
-      onClick={handleLogout}
-    >
-      <div className="
-        w-full flex items-center justify-center transition-all duration-300 
-        group-hover:w-[30%] group-hover:pl-5
-      ">
-        <svg viewBox="0 0 512 512" className="w-[18px]">
-          <path
-            fill="white"
-            d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"
-          ></path>
-        </svg>
-      </div>
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+        aria-label="More options"
+      >
+        <MoreVertical size={20} />
+      </button>
 
-      <div className="
-        absolute right-0 w-0 opacity-0 text-white 
-        text-[1.1em] font-semibold tracking-wide transition-all duration-300 
-        group-hover:opacity-100 group-hover:w-[65%] group-hover:pr-[14px]
-      ">
-        Logout
-      </div>
-    </button>
+      {showMenu && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50">
+          <button
+            onClick={handleLogout}
+            className="w-full px-4 py-3 text-left flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={18} />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      )}
+    </div>
   </div>
 
   {/* TITLE */}

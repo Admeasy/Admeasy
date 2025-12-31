@@ -20,15 +20,9 @@ const AdminRoutes = require('./routes/adminRoutes');
 const NoteRoutes = require('./routes/noteRoutes');
 const PaymentRoutes = require('./routes/paymentRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
-<<<<<<< HEAD
-const passport = require('./middleware/passport');
-const { adminAuth } = require('./middleware/adminAuth');
-const SitemapRoutes = require('./routes/sitemapRoutes')
-=======
 const SitemapRoutes = require('./routes/sitemapRoutes');
 const MentorPostRoutes = require('./routes/mentorPostRoutes');
 const SearchRoutes = require('./routes/SearchRoute')
->>>>>>> ahsan
 const app = express();
 const server = http.createServer(app);
 
@@ -152,46 +146,7 @@ const setPresence = async (userId, role, isOnline) => {
   presenceStore.set(`${role}:${userId}`, isOnline ? 'online' : 'offline');
 };
 
-<<<<<<< HEAD
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
-
-const requiredEnvVars = [
-  'MONGODB_USERS_URI',
-];
-const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
-if (missing.length) {
-  console.error('Missing required environment variables:', missing.join(', '));
-  console.error('Please set them in your .env and restart the server.');
-}
-
-// Enable CORS with credentials
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowList = [
-      'https://admeasy.in',
-      'http://localhost:5173',
-    ].filter(Boolean);
-    if (!origin || allowList.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
-
-// Initialize Passport middleware (JWT-based, no sessions)
-app.use(passport.initialize());
-
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
-
-// Server uploaded blog images
-=======
 // Serve uploaded blog images
->>>>>>> ahsan
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes

@@ -87,6 +87,15 @@ const mentorPostSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    repostOf: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'MentorPosts',
+      default: null,
+    },
+    repostCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

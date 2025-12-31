@@ -29,7 +29,7 @@ async function getOptionalUser(req) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     if (decoded.role && decoded.role === 'mentor') return null;
-    const user = await User.findById(decoded.id || decoded._id);
+    const user = await User.findById(decoded.id || decoded._id).select('following reposts');
     return user || null;
   } catch (err) {
     // Token invalid/expired - silently return null for public access
@@ -51,32 +51,69 @@ router.get("/", async (req, res) => {
 
     const posts = await MentorPost.find()
       .populate('mentorId', 'name username image')
-      .populate('likes.userId', 'name image')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    const formattedPosts = posts.map(post => ({
-      _id: post._id,
-      mentor: {
-        _id: post.mentorId._id,
-        name: post.mentorId.name,
-        username: post.mentorId.username,
-        image: post.mentorId.image,
-      },
-      content: post.content,
-      image: post.image,
-      externalLink: post.externalLink,
-      likesCount: post.likesCount,
-      commentsCount: post.commentsCount,
-      isLiked: currentUser
-        ? post.likes.some(
-            like => like.userId && like.userId._id.toString() === currentUser._id.toString()
-          )
-        : false,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+    // Manually populate user data for likes (cross-DB population)
+    const formattedPosts = await Promise.all(posts.map(async (post) => {
+      // Populate likes with user data
+      const populatedLikes = await Promise.all(
+        (post.likes || []).map(async (like) => {
+          if (like.userId) {
+            try {
+              const user = await User.findById(like.userId).select('name image').lean();
+              return {
+                ...like,
+                userId: user ? {
+                  _id: user._id,
+                  name: user.name,
+                  image: user.image,
+                } : like.userId,
+              };
+            } catch (err) {
+              return like; // Return original if user not found
+            }
+          }
+          return like;
+        })
+      );
+
+      // Check if user is following the mentor
+      const isFollowing = currentUser && currentUser.following
+        ? currentUser.following.some(id => id.toString() === post.mentorId._id.toString())
+        : false;
+
+      // Check if user has reposted this
+      const isReposted = currentUser && currentUser.reposts
+        ? currentUser.reposts.some(id => id.toString() === post._id.toString())
+        : false;
+
+      return {
+        _id: post._id,
+        mentor: {
+          _id: post.mentorId._id,
+          name: post.mentorId.name,
+          username: post.mentorId.username,
+          image: post.mentorId.image,
+        },
+        content: post.content,
+        image: post.image,
+        externalLink: post.externalLink,
+        likesCount: post.likesCount,
+        commentsCount: post.commentsCount,
+        repostCount: post.repostCount || 0,
+        isLiked: currentUser
+          ? populatedLikes.some(
+              like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
+            )
+          : false,
+        isFollowing,
+        isReposted,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+      };
     }));
 
     const total = await MentorPost.countDocuments();
@@ -104,15 +141,70 @@ router.get("/", async (req, res) => {
 router.get("/:postId", async (req, res) => {
   try {
     const currentUser = await getOptionalUser(req);
+    
     const post = await MentorPost.findById(req.params.postId)
       .populate('mentorId', 'name username image bio tagline')
-      .populate('likes.userId', 'name image')
-      .populate('comments.userId', 'name image')
       .lean();
 
     if (!post) {
       return res.status(404).json({ success: false, message: "Post not found" });
     }
+
+    // Manually populate likes with user data (cross-DB population)
+    const populatedLikes = await Promise.all(
+      (post.likes || []).map(async (like) => {
+        if (like.userId) {
+          try {
+            const user = await User.findById(like.userId).select('name image').lean();
+            return {
+              _id: like._id,
+              user: user ? {
+                _id: user._id,
+                name: user.name,
+                image: user.image,
+              } : { _id: like.userId },
+              createdAt: like.createdAt,
+            };
+          } catch (err) {
+            return {
+              _id: like._id,
+              user: { _id: like.userId },
+              createdAt: like.createdAt,
+            };
+          }
+        }
+        return like;
+      })
+    );
+
+    // Manually populate comments with user data (cross-DB population)
+    const populatedComments = await Promise.all(
+      (post.comments || []).map(async (comment) => {
+        if (comment.userId) {
+          try {
+            const user = await User.findById(comment.userId).select('name image').lean();
+            return {
+              _id: comment._id,
+              user: user ? {
+                _id: user._id,
+                name: user.name,
+                image: user.image,
+              } : { _id: comment.userId },
+              content: comment.content,
+              createdAt: comment.createdAt,
+            };
+          } catch (err) {
+            return {
+              _id: comment._id,
+              user: { _id: comment.userId },
+              content: comment.content,
+              createdAt: comment.createdAt,
+            };
+          }
+        }
+        return comment;
+      })
+    );
 
     const formattedPost = {
       _id: post._id,
@@ -127,30 +219,13 @@ router.get("/:postId", async (req, res) => {
       content: post.content,
       image: post.image,
       externalLink: post.externalLink,
-      likes: post.likes.map(like => ({
-        _id: like._id,
-        user: {
-          _id: like.userId._id,
-          name: like.userId.name,
-          image: like.userId.image,
-        },
-        createdAt: like.createdAt,
-      })),
+      likes: populatedLikes,
       likesCount: post.likesCount,
-      comments: post.comments.map(comment => ({
-        _id: comment._id,
-        user: {
-          _id: comment.userId._id,
-          name: comment.userId.name,
-          image: comment.userId.image,
-        },
-        content: comment.content,
-        createdAt: comment.createdAt,
-      })),
+      comments: populatedComments,
       commentsCount: post.commentsCount,
       isLiked: currentUser
-        ? post.likes.some(
-            like => like.userId && like.userId._id.toString() === currentUser._id.toString()
+        ? populatedLikes.some(
+            like => like.user && like.user._id && like.user._id.toString() === currentUser._id.toString()
           )
         : false,
       createdAt: post.createdAt,
@@ -463,20 +538,29 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
     post.commentsCount = post.commentsCount + 1;
 
     await post.save();
-    await post.populate('comments.userId', 'name image');
 
+    // Manually populate the new comment's user data (cross-DB population)
     const newComment = post.comments[post.comments.length - 1];
+    let populatedUser = null;
+    if (newComment.userId) {
+      try {
+        const user = await User.findById(newComment.userId).select('name image').lean();
+        populatedUser = user ? {
+          _id: user._id,
+          name: user.name,
+          image: user.image,
+        } : { _id: newComment.userId };
+      } catch (err) {
+        populatedUser = { _id: newComment.userId };
+      }
+    }
 
     res.status(201).json({
       success: true,
       message: "Comment added successfully",
       comment: {
         _id: newComment._id,
-        user: {
-          _id: newComment.userId._id,
-          name: newComment.userId.name,
-          image: newComment.userId.image,
-        },
+        user: populatedUser,
         content: newComment.content,
         createdAt: newComment.createdAt,
       },
@@ -484,6 +568,65 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding comment:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * POST /api/mentor-posts/:postId/repost
+ * Repost a mentor post (authenticated users only)
+ * Note: This creates a reference to the original post
+ */
+router.post("/:postId/repost", authenticateJWT, async (req, res) => {
+  try {
+    const originalPost = await MentorPost.findById(req.params.postId);
+
+    if (!originalPost) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Check if user already reposted this (check user's reposts array)
+    // Refresh user to get latest reposts
+    const user = await User.findById(req.user._id);
+    const userReposts = user.reposts || [];
+    const alreadyReposted = userReposts.some(
+      repostId => repostId.toString() === req.params.postId
+    );
+
+    if (alreadyReposted) {
+      // Unrepost
+      user.reposts = userReposts.filter(
+        repostId => repostId.toString() !== req.params.postId
+      );
+      originalPost.repostCount = Math.max(0, (originalPost.repostCount || 0) - 1);
+      await user.save();
+      await originalPost.save();
+
+      return res.json({
+        success: true,
+        message: "Repost removed successfully",
+        repostCount: originalPost.repostCount,
+        isReposted: false,
+      });
+    }
+
+    // Add repost to user's reposts array for profile display
+    user.reposts.push(originalPost._id);
+    
+    // Increment repost count on original post
+    originalPost.repostCount = (originalPost.repostCount || 0) + 1;
+    
+    await user.save();
+    await originalPost.save();
+
+    res.json({
+      success: true,
+      message: "Post reposted successfully",
+      repostCount: originalPost.repostCount,
+      isReposted: true,
+    });
+  } catch (error) {
+    console.error("Error reposting:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });

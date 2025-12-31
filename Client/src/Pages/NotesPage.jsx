@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from "react";
-<<<<<<< HEAD
-import { FileText, User, File, Download, Share2, Eye, Heart, ArrowLeft, ExternalLink } from "lucide-react";
-=======
 import {
   FileText,
   User,
@@ -18,7 +15,6 @@ import {
   Upload,
   TrendingUp,
 } from "lucide-react";
->>>>>>> ahsan
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import { useUser } from "../context/UserContext";
@@ -34,15 +30,10 @@ const NotesPage = () => {
   const [error, setError] = useState("");
   const [isLiking, setIsLiking] = useState(false);
   const [pdfError, setPdfError] = useState(false);
-<<<<<<< HEAD
-
-  // Scroll to top when component mounts or note ID changes
-=======
   const [hasPurchased, setHasPurchased] = useState(false);
   const [checkingPurchase, setCheckingPurchase] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
->>>>>>> ahsan
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [id]);
@@ -66,12 +57,6 @@ const NotesPage = () => {
         if (!data) {
           throw new Error("Note not found.");
         }
-<<<<<<< HEAD
-        
-        // Increment view count
-=======
-
->>>>>>> ahsan
         let updatedWithView = null;
         try {
           const viewRes = await fetch(`/api/notes/${data._id || id}/view`, { method: "POST" });
@@ -82,11 +67,6 @@ const NotesPage = () => {
         } catch (viewErr) {
           console.error("Error incrementing views:", viewErr);
         }
-<<<<<<< HEAD
-        
-=======
-
->>>>>>> ahsan
         if (!ignore) {
           if (updatedWithView) {
             data = updatedWithView;
@@ -191,15 +171,7 @@ const NotesPage = () => {
 
   const handleShare = () => {
     if (!note) return;
-<<<<<<< HEAD
-    const shareData = {
-      title: note.title,
-      text: note.description,
-      url: window.location.href,
-    };
-=======
     const shareData = { title: note.title, text: note.description, url: window.location.href };
->>>>>>> ahsan
 
     if (navigator.share) {
       navigator.share(shareData).catch((err) => console.log("Error sharing", err));
@@ -239,11 +211,8 @@ const NotesPage = () => {
   const uploadedOn = uploadedAt
     ? new Date(uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
     : "Recently";
-<<<<<<< HEAD
-=======
 
   const isFree = note?.isFree ?? true;
->>>>>>> ahsan
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 pb-20 lg:pb-10 relative overflow-x-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
@@ -260,31 +229,6 @@ const NotesPage = () => {
         keywords={`${note?.title || ""}, ${note?.standard || ""}, study notes, ${note?.course || ""}, ${note?.university || ""}`}
         url={`https://admeasy.in/notes/${id}`}
       />
-<<<<<<< HEAD
-      
-      {/* Back Button */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <button
-            onClick={() => navigate("/notes")}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#6C63FF] transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Notes</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {loading ? (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-10 text-center text-gray-500">
-            Loading note…
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 rounded-2xl border border-red-200 p-8 text-center shadow-lg text-red-700">
-            <p className="font-semibold mb-2">We couldn&apos;t fetch this note.</p>
-            <p className="text-sm mb-6">{error}</p>
-=======
 
       {/* Header kept as original */}
       <header className="relative border-b border-slate-200 bg-gradient-to-b from-[#9f3562] via-[#9f3562]/90 to-[#9f3562]/5 relative z-10">
@@ -295,7 +239,6 @@ const NotesPage = () => {
 
         <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 pb-6 pt-4 sm:pb-8 sm:pt-6 lg:pb-10">
           <div className="flex items-center justify-between gap-3">
->>>>>>> ahsan
             <button
               onClick={() => navigate("/notes")}
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium text-slate-100 backdrop-blur hover:bg-white/20 transition"
@@ -304,59 +247,6 @@ const NotesPage = () => {
               <span className="hidden sm:inline">Back to All Notes</span>
               <span className="sm:hidden">Back</span>
             </button>
-<<<<<<< HEAD
-          </div>
-        ) : !note ? (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-10 text-center">
-            <p className="text-gray-600 mb-4">This note is no longer available.</p>
-            <button
-              onClick={() => navigate("/notes")}
-              className="px-4 py-2 bg-[#6C63FF] text-white rounded-xl font-semibold shadow-lg hover:bg-[#5A52E8] transition"
-            >
-              Explore other notes
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Sidebar - Note Info */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Stats Cards */}
-              <div className="bg-pink-50 rounded-2xl p-5 border border-pink-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Heart className="w-6 h-6 text-pink-600 fill-pink-500" />
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-gray-900">{formatNumber(note.likes)}</p>
-                    <p className="text-base text-gray-600">likes</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Eye className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-gray-900">{formatNumber(note.views)}</p>
-                    <p className="text-base text-gray-600">views</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Info Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                      note.isFree ?? true
-                        ? "bg-green-50 text-green-700 border border-green-200"
-                        : "bg-blue-50 text-blue-700 border border-blue-200"
-                    }`}
-                  >
-                    {note.isFree ?? true ? "FREE" : note.price ? `₹${note.price}` : "Paid"}
-=======
 
             <div className="flex items-center gap-2">
               <Sparkles className="h-3 sm:h-4 w-3 sm:w-4 text-amber-300" />
@@ -402,7 +292,6 @@ const NotesPage = () => {
                   <span className="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/20 px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium text-slate-100">
                     <School className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     {note.standard}
->>>>>>> ahsan
                   </span>
                 )}
                 {note.course && (
@@ -432,124 +321,6 @@ const NotesPage = () => {
                   </div>
                 </div>
 
-<<<<<<< HEAD
-                <h1 className="text-2xl font-bold text-gray-900 mb-3">{note.title}</h1>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">{note.description}</p>
-
-                {/* Uploader Info */}
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{uploaderName}</p>
-                    <p className="text-xs text-gray-500">Uploaded • {uploadedOn}</p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-3 mb-6">
-                  <button
-                    onClick={handleDownload}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg hover:shadow-xl"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download PDF
-                  </button>
-
-                  <button
-                    onClick={handleShare}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all border-2 border-gray-300"
-                  >
-                    <Share2 className="w-5 h-5" />
-                    Share
-                  </button>
-
-                  <button
-                    onClick={handleLike}
-                    disabled={liked || isLiking}
-                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all border-2 ${
-                      liked
-                        ? "bg-pink-100 text-pink-600 border-pink-200"
-                        : "bg-white text-gray-700 hover:bg-pink-50 border-gray-200"
-                    }`}
-                  >
-                    <Heart className={`w-5 h-5 ${liked ? "fill-pink-500 text-pink-500" : "text-pink-500"}`} />
-                    {liked ? "Liked" : isLiking ? "Liking…" : "Like"}
-                  </button>
-                </div>
-
-                {/* Note Details */}
-                <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
-                  {[
-                    { label: "University", value: note.university ? note.university.toUpperCase() : "Not shared" },
-                    { label: "Programme", value: formatLabelValue(note.programme) },
-                    { label: "Course", value: formatLabelValue(note.course) },
-                    { label: "Total Pages", value: note.pages ?? "Not shared" },
-                  ].map((detail) => (
-                    <div key={detail.label} className="flex justify-between items-center">
-                      <p className="text-sm text-gray-600">{detail.label}</p>
-                      <p className="font-semibold text-gray-900 text-sm">{detail.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - PDF Viewer */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden sticky top-6">
-                <div className="bg-gradient-to-r from-[#6C63FF] to-[#5A52E8] px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-6 h-6 text-white" />
-                    <h2 className="text-xl font-bold text-white">Document Preview</h2>
-                  </div>
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span className="hidden sm:inline">Open Full</span>
-                  </button>
-                </div>
-
-                {note.fileUrl ? (
-                  <div className="relative">
-                    {!pdfError ? (
-                      <iframe
-                        src={`${note.fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                        className="w-full h-[calc(100vh-200px)] min-h-[600px]"
-                        title={note.title}
-                        onError={() => setPdfError(true)}
-                      />
-                    ) : (
-                      <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
-                        <File className="w-20 h-20 text-gray-300 mb-4" />
-                        <p className="text-gray-600 font-semibold mb-2">Unable to display PDF in browser</p>
-                        <p className="text-gray-500 text-sm mb-6">Some PDFs cannot be previewed directly. Please download to view.</p>
-                        <button
-                          onClick={handleDownload}
-                          className="flex items-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg"
-                        >
-                          <Download className="w-5 h-5" />
-                          Download PDF
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
-                    <File className="w-20 h-20 text-gray-300 mb-4" />
-                    <p className="text-gray-600 font-semibold">No preview available</p>
-                    <p className="text-gray-500 text-sm">The PDF file is being processed</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-=======
                 <div className="flex items-center gap-3 sm:gap-4 text-slate-100/90">
                   <span className="inline-flex items-center gap-1.5">
                     <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -801,7 +572,6 @@ const NotesPage = () => {
       )}
 
       {showPaymentModal && <PaymentModal onClose={() => setShowPaymentModal(false)} noteId={note?._id} />}
->>>>>>> ahsan
     </div>
   );
 };

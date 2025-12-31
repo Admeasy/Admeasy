@@ -2,9 +2,6 @@ const jwt = require('jsonwebtoken');
 const Mentor = require('../models/mentorSchema');
 require('dotenv').config();
 
-<<<<<<< HEAD
-async function authenticateMentorJWT(req, res, next) {
-=======
 // Middleware: authenticate Mentor JWT and set session
 async function authenticateMentorJWT(req, res, next) {
     const token = req.cookies['accessToken'];
@@ -12,7 +9,6 @@ async function authenticateMentorJWT(req, res, next) {
         return res.status(401).json({ success: false, message: 'No token' });
     }
     
->>>>>>> ahsan
     try {
         const token = req.cookies['accessToken'];
         if (!token) {
@@ -21,17 +17,6 @@ async function authenticateMentorJWT(req, res, next) {
 
         // Decode token
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-<<<<<<< HEAD
-
-        // Fetch REAL mentor from DB
-        const mentor = await Mentor.findById(decoded.id);
-
-        if (!mentor) {
-            return res.status(401).json({ success: false, message: 'User not found' });
-        }
-
-        req.mentor = mentor; // ⭐ IMPORTANT: assign full mentor object
-=======
         
         // Check if this token is for a mentor (not a user)
         if (decoded.role && decoded.role === 'user') {
@@ -60,7 +45,6 @@ async function authenticateMentorJWT(req, res, next) {
             });
         }
         
->>>>>>> ahsan
         next();
 
     } catch (err) {
@@ -69,8 +53,4 @@ async function authenticateMentorJWT(req, res, next) {
     }
 }
 
-<<<<<<< HEAD
 module.exports = authenticateMentorJWT;
-=======
-module.exports = authenticateMentorJWT;
->>>>>>> ahsan

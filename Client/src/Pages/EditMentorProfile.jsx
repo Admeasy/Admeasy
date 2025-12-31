@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Upload, RotateCw, Check } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { X, Upload, RotateCw, Check, MoreVertical, LogOut } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { useDropzone } from 'react-dropzone';
 import { useMentor } from '../context/MentorContext';
@@ -92,6 +92,8 @@ export default function MentorsProfile() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     async function fetchColleges() {
@@ -350,9 +352,73 @@ export default function MentorsProfile() {
     }
   };
 
+  const handleLogout = async () => {
+    setShowMenu(false);
+    try {
+      const res = await fetch('/api/mentors/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const response = await res.json();
+
+      if (!res.ok || !response.success) {
+        toast.error('Failed to logout');
+      } else {
+        toast.success('Logged out successfully');
+        navigate('/');
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Logout failed:', err);
+      toast.error('Failed to logout');
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* 3-dots menu with logout */}
+        <div className="flex justify-end mb-4">
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+              aria-label="More options"
+            >
+              <MoreVertical size={20} />
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50">
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-3 text-left flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-6">
           
           {/* Profile Picture Section */}

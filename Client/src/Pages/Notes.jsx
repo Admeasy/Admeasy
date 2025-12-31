@@ -87,11 +87,7 @@ const Notes = () => {
       } catch (err) {
         if (err.name === "AbortError") return;
         setError(err.message || "Something went wrong while loading notes");
-<<<<<<< HEAD
-        setNotes([]); // No fallback, no fake data
-=======
         setNotes([]);
->>>>>>> ahsan
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -151,27 +147,6 @@ const Notes = () => {
         keywords="study notes, CA Foundation notes, JEE notes, NEET notes, university notes, exam preparation, study materials"
         url="https://admeasy.in/notes"
       />
-<<<<<<< HEAD
-
-      <div className="w-[90%] lg:w-[95%] mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-900">
-          Notes Library
-        </h1>
-
-        {/* Search & Add Note Section */}
-        <div className="mb-8 max-w-2xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <button
-                onClick={() => navigate("/notes-search")}
-                className="w-full relative group"
-              >
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-[#6C63FF] transition-colors" />
-                <div className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 group-hover:border-[#6C63FF] transition-all shadow-lg text-left bg-white">
-                  <span className="text-gray-400 animate-pulse">
-                    Search notes by title, course, or tags...
-                  </span>
-=======
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Modern Header */}
@@ -207,7 +182,6 @@ const Notes = () => {
                   <div className="hidden sm:block px-3 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-600 group-hover:bg-[#9f3562]/10 group-hover:text-[#9f3562] transition-colors">
                     ⌘K
                   </div>
->>>>>>> ahsan
                 </div>
               </button>
             </div>
@@ -216,11 +190,7 @@ const Notes = () => {
             {!mentorLoading && mentor && (
               <button
                 onClick={() => navigate("/add-note")}
-<<<<<<< HEAD
-                className="flex items-center gap-2 bg-[#6C63FF] text-white px-6 py-4 rounded-2xl font-semibold shadow-lg hover:bg-[#5a52e8] transition"
-=======
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#9f3562] to-[#b8447a] text-white px-6 py-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
->>>>>>> ahsan
               >
                 <Plus className="w-5 h-5" />
                 <span>Add Note</span>
@@ -229,26 +199,6 @@ const Notes = () => {
           </div>
         </div>
 
-<<<<<<< HEAD
-        {/* Filters */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg mb-8 border border-gray-100">
-          <FilterSection
-            title="Select Your University"
-            options={universities}
-            selected={selectedUniversity}
-            onChange={setSelectedUniversity}
-          />
-
-          <FilterSection
-            title="Select Programme"
-            options={programmes}
-            selected={selectedProgramme}
-            onChange={setSelectedProgramme}
-          />
-
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Search Course</h3>
-=======
         {/* Filters Card - Horizontal Scrollable */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 mb-8">
           <div className="flex items-center gap-2 mb-6">
@@ -311,7 +261,6 @@ const Notes = () => {
           {/* Course Search */}
           <div className="mb-0">
             <h3 className="text-base font-semibold text-gray-900 mb-3">Search Course</h3>
->>>>>>> ahsan
             <CourseSearchDropdown
               value={selectedCourse}
               onChange={setSelectedCourse}
@@ -323,17 +272,6 @@ const Notes = () => {
         {/* Popular Notes Slider */}
         {popularNotes.length > 0 && (
           <div className="mb-10">
-<<<<<<< HEAD
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Most Popular
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-              {popularNotes.map((note) => (
-                <div key={note._id} className="snap-start">
-                  <NotesCard note={note} compact />
-                </div>
-              ))}
-=======
             <div className="flex items-center gap-3 mb-5">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-[#9f3562]" />
@@ -354,19 +292,10 @@ const Notes = () => {
                   </div>
                 ))}
               </div>
->>>>>>> ahsan
             </div>
           </div>
         )}
 
-<<<<<<< HEAD
-        {/* All Notes */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            All Notes ({filteredNotes.length})
-          </h2>
-
-=======
         {/* ================= ALL NOTES SECTION ================= */}
         <div className="w-full">
           {/* Header */}
@@ -383,7 +312,6 @@ const Notes = () => {
           </div>
 
           {/* ================= ERROR STATE ================= */}
->>>>>>> ahsan
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-5 sm:p-8 text-center shadow-sm mb-6">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -399,21 +327,14 @@ const Notes = () => {
 
               <button
                 onClick={() => setReloadToken((p) => p + 1)}
-<<<<<<< HEAD
-                className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold shadow-lg hover:bg-red-500 transition"
-=======
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold shadow-md hover:shadow-xl transition-all duration-300"
->>>>>>> ahsan
               >
                 Try Again
               </button>
             </div>
           )}
 
-<<<<<<< HEAD
-=======
           {/* ================= LOADING STATE ================= */}
->>>>>>> ahsan
           {loading ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-12 text-center shadow-sm">
               <div className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin mx-auto mb-4"></div>

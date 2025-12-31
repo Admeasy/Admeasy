@@ -193,22 +193,22 @@ const Mentors = () => {
                 // Process DB mentors with optimized parallel fetching
                 // First, set basic mentor data immediately for faster initial render
                 const mentorsBasic = mentorsFromDB.map((mentor) => {
-                    const college = typeof mentor.college === 'object' && mentor.college !== null
-                        ? mentor.college
-                        : (mentor.college ? JSON.parse(mentor.college) : null);
-                    const course = typeof mentor.course === 'object' && mentor.course !== null
-                        ? mentor.course
-                        : (mentor.course ? (typeof mentor.course === 'string' && mentor.course.startsWith('{') ? JSON.parse(mentor.course) : { name: mentor.course }) : null);
+                        const college = typeof mentor.college === 'object' && mentor.college !== null
+                          ? mentor.college
+                          : (mentor.college ? JSON.parse(mentor.college) : null);
+                        const course = typeof mentor.course === 'object' && mentor.course !== null
+                          ? mentor.course
+                          : (mentor.course ? (typeof mentor.course === 'string' && mentor.course.startsWith('{') ? JSON.parse(mentor.course) : { name: mentor.course }) : null);
                     
-                    return {
-                        ...mentor,
+                        return {
+                            ...mentor,
                         image: fallbackImage, // Set fallback initially
-                        college: college?.name || mentor.college || '',
-                        collegeId: college?.id || '',
+                            college: college?.name || mentor.college || '',
+                            collegeId: college?.id || '',
                         collegeLogo: null, // Will be loaded later
                         course: course?.name || course?.title || mentor.course || '',
                         _tempId: mentor._id // Store original ID for updates
-                    };
+                        };
                 });
 
                 allMentors.push(...mentorsBasic);
@@ -457,16 +457,16 @@ const Mentors = () => {
                                         {/* Profile Image with College Logo Overlay */}
                                         <div className="relative w-24 h-24 mx-auto mb-4 flex-shrink-0">
                                             <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-white shadow-lg group-hover:ring-[#9f3562]/20 transition-all duration-300">
-                                                <img
+                                            <img
                                                     src={mentorCard.username ? mentorCard.image : getMentorImageUrl(mentorCard.image)}
                                                     className="w-full h-full object-cover object-center"
                                                     style={{ aspectRatio: '1 / 1' }}
-                                                    onError={(e) => {
-                                                        e.target.src = fallbackImage;
-                                                    }}
+                                                onError={(e) => {
+                                                    e.target.src = fallbackImage;
+                                                }}
                                                     alt={mentorCard.name || 'Mentor'}
                                                     loading="lazy"
-                                                />
+                                            />
                                             </div>
                                             {mentorCard.collegeLogo && (
                                                 <img
@@ -516,7 +516,7 @@ const Mentors = () => {
                                     {/* Card Footer with CTA - Fixed at bottom */}
                                     <div className="px-6 pb-6 pt-2 flex justify-center items-center">
                                         <div className='cursor-pointer w-full flex justify-center' onClick={(e) => {
-                                            e.stopPropagation();
+                                                e.stopPropagation();
                                             if (loggedInAccount) {
                                                 // Navigate to chat page with mentor ID or username
                                                 // Use mentorCard (the displayed mentor) for the identifier
@@ -524,7 +524,7 @@ const Mentors = () => {
                                                 if (mentorIdentifier) {
                                                     // If logged in as user, go to /chats/:mentorId
                                                     // If logged in as mentor, go to /mentor/chats/:userId
-                                                    if (user) {
+                                                if (user) {
                                                         navigate(`/chats/${mentorIdentifier}`);
                                                     } else if (mentor) {
                                                         // For mentor-to-mentor chat

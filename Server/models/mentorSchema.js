@@ -63,8 +63,12 @@ const Schema = new mongoose.Schema({
         }
     }],
     followers: [{
-        type: String,
-        trim: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Users'
+    }],
+    following: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Mentor'
     }],
     notesUploaded: {
         type: String,

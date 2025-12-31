@@ -104,18 +104,14 @@ const PostDetail = () => {
   };
 
   const handleShare = async () => {
-    if (!viewer) {
-      toast.info('Log in to share posts');
-      navigate('/login');
-      return;
-    }
+    // Share works without login
     const postUrl = `${window.location.origin}/posts/${postId}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: `Post by ${post.mentor.name}`,
-          text: post.content.substring(0, 100),
+          text: post.content.replace(/<[^>]*>/g, '').substring(0, 100), // Strip HTML for text
           url: postUrl,
         });
       } catch (error) {
@@ -229,7 +225,7 @@ const PostDetail = () => {
             animate={{ opacity: 1, x: 0 }}
             whileHover={{ scale: 1.05, x: -5 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur-sm border border-gray-200 text-gray-700 hover:text-[#9f3562] hover:border-[#9f3562]/30 rounded-xl mb-6 sm:mb-8 transition-all shadow-sm hover:shadow-md"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -269,9 +265,48 @@ const PostDetail = () => {
             </div>
 
             <div className="px-5 sm:px-6 py-5">
-              <p className="text-gray-800 whitespace-pre-wrap break-words text-base sm:text-lg leading-relaxed">
-                {post.content}
-              </p>
+              <style>{`
+                .post-content h1, .post-content h2, .post-content h3 {
+                  font-weight: 700;
+                  margin-top: 0.5rem;
+                  margin-bottom: 0.5rem;
+                }
+                .post-content p {
+                  margin-bottom: 0.75rem;
+                  line-height: 1.6;
+                }
+                .post-content ul, .post-content ol {
+                  margin-left: 1.5rem;
+                  margin-bottom: 0.75rem;
+                }
+                .post-content ul {
+                  list-style: disc;
+                }
+                .post-content ol {
+                  list-style: decimal;
+                }
+                .post-content a {
+                  color: #9f3562;
+                  text-decoration: underline;
+                }
+                .post-content a:hover {
+                  color: #b14270;
+                }
+                .post-content table {
+                  border-radius: 8px;
+                  overflow: hidden;
+                  border: 1px solid #e2e8f0;
+                  margin: 1rem 0;
+                }
+                .post-content table td, .post-content table th {
+                  padding: 0.5rem;
+                  border: 1px solid #e2e8f0;
+                }
+              `}</style>
+              <div 
+                className="text-gray-800 break-words text-base sm:text-lg leading-relaxed post-content"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
             </div>
 
             {post.image && (
