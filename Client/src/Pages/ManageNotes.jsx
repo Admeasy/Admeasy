@@ -240,7 +240,7 @@ const ManageNotes = () => {
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 mx-auto mb-4" style={{ borderColor: '#993e66' }}></div>
               <p className="text-gray-500">Loading notes...</p>
             </div>
           ) : notes.length === 0 ? (
@@ -311,7 +311,7 @@ const ManageNotes = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => window.open(note.fileUrl, '_blank')}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="hover:opacity-80 transition-colors" style={{ color: '#993e66' }}
                             title="Download/View File"
                           >
                             <FaDownload />
@@ -366,15 +366,15 @@ const ManageNotes = () => {
 
         {/* Rejection Modal */}
         {showModal && selectedNote && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
             <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-2xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Reject Note</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Reject Note</h3>
               <p className="text-gray-600 mb-4">
                 Provide a reason for rejecting "{selectedNote.title}":
               </p>
               <textarea
                 id="rejectionReason"
-                className="w-full px-3 py-2 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 mb-4"
+                className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 mb-4"
                 rows="3"
                 placeholder="Reason for rejection..."
               />
@@ -384,7 +384,7 @@ const ManageNotes = () => {
                     setShowModal(false);
                     setSelectedNote(null);
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 rounded-xl transition-all duration-300"
+                  className="px-4 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   Cancel
                 </button>
@@ -394,7 +394,7 @@ const ManageNotes = () => {
                     handleStatusUpdate(selectedNote._id, 'rejected', reason);
                   }}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   {actionLoading ? 'Rejecting...' : 'Reject'}
                 </button>

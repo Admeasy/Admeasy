@@ -6,13 +6,14 @@ import {
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
-import logo from "../assets/Admeasy/newLogo.png";
+import logo from "../assets/Admeasy/favicon.ico";
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
 
 // SIDEBAR WIDTH CONSTANTS (VERY IMPORTANT)
-
 export const SIDEBAR_EXPANDED_WIDTH = 288; // 18rem
 export const SIDEBAR_COLLAPSED_WIDTH = 88; // 5.5rem
+
 const LeftSidebar = ({
   isCollapsed,
   setIsCollapsed,
@@ -20,8 +21,8 @@ const LeftSidebar = ({
   setIsMobileMenuOpen
 }) => {
   const location = useLocation();
-  const { user } = useUser();
-  const { mentor } = useMentor();
+  const { user, setUser } = useUser();
+  const { mentor, setMentor } = useMentor();
   const loggedInAccount = user || mentor;
   const isUserAccount = Boolean(user);
   const landingPage = location.pathname === '/'
@@ -48,7 +49,7 @@ const LeftSidebar = ({
       : []),
     loggedInAccount
       ? { icon: User, label: 'Profile', path: '/me', exact: false, matchPaths: ['/me'] }
-      : { icon: UserPlus, label: 'Sign Up', path: '/login' },
+      : { icon: UserPlus, label: 'Sign Up/Log In', path: '/login' },
   ];
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -59,6 +60,45 @@ const LeftSidebar = ({
     hidden: { opacity: 0, width: 0, transition: { duration: 0.2 } }, // Fade out fast
     visible: { opacity: 1, width: "auto", transition: { duration: 0.3, delay: 0.1 } } // Fade in slightly slower
   };
+
+  const handleLogout = async () => {
+    if (!user && !mentor) {
+      return null;
+    }
+
+    try {
+      if (user) {
+        console.log("It's a user")
+        const res = await fetch('/api/users/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          setUser(null);
+          localStorage.clear();
+          toast.success("Logged out successfully");
+          navigate('/');
+        }
+      } else if (mentor) {
+        console.log("It's a mentor")
+        const res = await fetch('/api/mentors/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          setMentor(null);
+          localStorage.clear();
+          toast.success("Logged out successfully");
+          navigate('/');
+        }
+      }
+    } catch (err) {
+      console.error("Logout failed: ", err);
+      toast.error("Failed to Log out");
+    }
+  }
 
   return (
     <>
@@ -257,7 +297,7 @@ const LeftSidebar = ({
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
-                    className="flex-1 min-w-0"
+                    className="flex min-w-0 gap-16"
                   >
                     <Link to={'/me'}>
                       <p className="font-semibold text-sm text-gray-900 truncate">
@@ -265,6 +305,9 @@ const LeftSidebar = ({
                       </p>
                       <p className="text-xs text-gray-500 group-hover:text-[#9f3562] transition-colors whitespace-nowrap">View Profile</p>
                     </Link>
+                    <button className='text-sm font-semibold px-1 bg-none border-2 rounded-xl border-brand hover:bg-brand-hover transition-colors ease-in-out hover:text-white cursor-pointer' onClick={handleLogout}>
+                      Log out
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>

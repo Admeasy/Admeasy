@@ -258,7 +258,7 @@ const JobApplications = () => {
                                                 onError={e => { e.target.style.display = 'none'; }}
                                             />
                                         ) : null}
-                                        <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg sm:text-xl">
+                                        <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg sm:text-xl" style={{ backgroundColor: '#993e66' }}>
                                             {(app.name || 'A').charAt(0).toUpperCase()}
                                         </div>
                                     </div>
@@ -305,8 +305,8 @@ const JobApplications = () => {
                 <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
                     <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[90vh] flex flex-col">
                         <div className="flex items-center justify-between p-4 sm:p-6 pb-0">
-                            <h2 className="text-xl sm:text-2xl font-bold text-thead1">Application Details</h2>
-                            <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-4xl font-bold">×</button>
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Application Details</h2>
+                            <button onClick={closeModal} className="text-gray-500 hover:text-[#9f3562] text-4xl font-bold transition-colors">×</button>
                         </div>
                         <div className="p-4 sm:p-6 flex-grow overflow-y-auto">
                             <div className="flex flex-col items-center mb-6">
@@ -326,7 +326,7 @@ const JobApplications = () => {
                                             <img src={unlockedImages[selectedApp._id]} alt={selectedApp.name || 'Applicant'} className="w-full h-full object-cover" />
                                         )
                                     ) : (
-                                        <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white font-bold text-4xl sm:text-5xl">
+                                        <div className="w-full h-full flex items-center justify-center text-white font-bold text-4xl sm:text-5xl" style={{ backgroundColor: '#993e66' }}>
                                             {(selectedApp.name || 'A').charAt(0).toUpperCase()}
                                         </div>
                                     )}
@@ -381,8 +381,8 @@ const JobApplications = () => {
                         <div className="fixed inset-0 bg-black/25 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
                             <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full max-h-[90vh] flex flex-col">
                                 <div className="flex items-center justify-between p-4 sm:p-4 pb-0">
-                                    <h2 className="w-full text-center text-xl sm:text-2xl font-bold text-thead1">Schedule Interview</h2>
-                                    <button onClick={closeInterviewModal} className="text-gray-500 hover:text-gray-700 text-3xl font-bold">×</button>
+                                    <h2 className="w-full text-center text-xl sm:text-2xl font-bold text-gray-900">Schedule Interview</h2>
+                                    <button onClick={closeInterviewModal} className="text-gray-500 hover:text-[#9f3562] text-3xl font-bold transition-colors">×</button>
                                 </div>
                                 <div className="p-4 sm:p-6 flex-grow overflow-y-auto">
                                     <div className="space-y-2">
@@ -390,7 +390,7 @@ const JobApplications = () => {
                                             <span className="font-medium">Start:</span>
                                             <input
                                                 type="datetime-local"
-                                                className="ml-2 border border-gray-300 rounded-lg p-2"
+                                                className="ml-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
                                                 value={interviewData.startDateTime}
                                                 onChange={(e) => setInterviewData({ ...interviewData, startDateTime: e.target.value })}
                                             />
@@ -399,14 +399,14 @@ const JobApplications = () => {
                                             <span className="font-medium">End:</span>
                                             <input
                                                 type="datetime-local"
-                                                className="ml-2 border border-gray-300 rounded-lg p-2"
+                                                className="ml-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
                                                 value={interviewData.endDateTime}
                                                 onChange={(e) => setInterviewData({ ...interviewData, endDateTime: e.target.value })}
                                             />
                                         </div>
                                         <div className="flex justify-around items-center p-1.5">
                                             <span className="font-medium">Choose Department:</span>
-                                            <select className="ml-2 border border-gray-300 rounded-lg p-2" onChange={(e) => setDept(e.target.value)}>
+                                            <select className="ml-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300" onChange={(e) => setDept(e.target.value)}>
                                                 <option value="">Select Department</option>
                                                 <option value="Tech Department">Tech Dept.</option>
                                                 <option value="Marketing Department">Marketing Dept.</option>

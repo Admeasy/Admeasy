@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, LogOut, Users, BookOpen, Trophy, MoreVertical } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, LogOut, Users, BookOpen, Trophy, MoreVertical, CreditCard } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LoadingButton from '../components/LoadingButton';
 import SEO from '../components/SEO';
@@ -21,6 +21,8 @@ export default function MentorProfile() {
   const [copied, setCopied] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+
+
   useEffect(() => {
     if (contextLoading) {
       return;
@@ -291,8 +293,8 @@ export default function MentorProfile() {
 
                   {/* Share button */}
                   <button
-                                  onClick={handleShareProfile}
-                                  className="
+                    onClick={handleShareProfile}
+                    className="
                       inline-flex items-center gap-2
                       rounded-xl border border-slate-200
                       bg-white px-4 py-2
@@ -302,24 +304,24 @@ export default function MentorProfile() {
                       hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600
                       active:scale-95
                     "
-                                >
-                                  {/* Icon */}
-                                  <svg
-                                    className="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m6.632 2.684C15.114 13.062 15 12.518 15 12s.114-1.062.316-1.342M12 3v9m0 0l-3-3m3 3l3-3m-9 9a2 2 0 002 2h8a2 2 0 002-2"
-                                    />
-                                  </svg>
+                  >
+                    {/* Icon */}
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m6.632 2.684C15.114 13.062 15 12.518 15 12s.114-1.062.316-1.342M12 3v9m0 0l-3-3m3 3l3-3m-9 9a2 2 0 002 2h8a2 2 0 002-2"
+                      />
+                    </svg>
 
-                                  {copied ? "Shared🎉" : "Share"}
-                                </button>
+                    {copied ? "Shared🎉" : "Share"}
+                  </button>
 
                   {/* 3-dots menu with logout */}
                   <div className="relative" ref={menuRef}>
@@ -402,15 +404,26 @@ export default function MentorProfile() {
                 )}
               </div>
 
-              {/* Action Button for Non-Owners */}
-              {!isOwnProfile && !currentMentor && (
-                <button
-                  onClick={() => navigate(`/chats/${mentor._id}`)}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-md"
-                >
-                  <MessagesSquare size={20} />
-                  Message
-                </button>
+              {/* Action Buttons for Non-Owners */}
+              {!isOwnProfile && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (!user && !currentMentor) {
+                        toast.info('Please login to chat with mentors', {
+                          position: 'top-center',
+                        });
+                        navigate('/login');
+                        return;
+                      }
+                      navigate(`/chats/${mentor._id}`);
+                    }}
+                    className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <MessagesSquare size={20} />
+                    Chat Now
+                  </button>
+                </div>
               )}
             </div>
           </div>

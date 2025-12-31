@@ -297,17 +297,19 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         // Check username uniqueness if username is being changed
         if (username && username !== existingMentor.username) {
             const normalizedUsername = username.trim().toLowerCase();
+            // Escape special regex characters to match literally
+            const escapedUsername = normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
             // Check if username is already taken by another mentor
             const mentorWithUsername = await Mentor.findOne({ 
-                username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') },
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') },
                 _id: { $ne: req.params.id }
             });
             
             // Also check if username is taken by a user
             const User = require('../models/userSchema');
             const userWithUsername = await User.findOne({ 
-                username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } 
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
             });
 
             if (mentorWithUsername || userWithUsername) {

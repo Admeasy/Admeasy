@@ -12,7 +12,7 @@ const fadeUpVariant = {
 
 const AuthPage = () => {
   const [activeTab, setActiveTab] = useState('student'); // 'student' or 'mentor'
-  const [authMode, setAuthMode] = useState('signup'); // 'signup' or 'login' (for students only)
+  const [authMode, setAuthMode] = useState('login'); // 'signup' or 'login' (for students only)
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,7 +27,7 @@ const AuthPage = () => {
           <button
             onClick={() => {
               setActiveTab('student');
-              setAuthMode('signup');
+              setAuthMode('login');
             }}
             className={`px-8 py-3 rounded-full font-bold text-lg transition-all duration-300 ${
               activeTab === 'student'

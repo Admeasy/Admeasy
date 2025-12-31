@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 .blog-content a {
   color: rgb(0, 47, 255) !important;
   text-decoration: underline;
@@ -204,12 +205,18 @@
   --smooth-transition: .7s ease-in-out;
   --color-tprimary: #2C2E3E;
   --color-tsecondary: #5A5C6C;
-  --color-thead1: #575CFF;
+  --color-thead1: #993e66;
   --color-thead2: #5A4BFF;
   --color-cta: #FF6B00;
   --color-cta-hover: #FF6B00;
   --color-link: #0057A0;
   --color-rating: #FFB400;
+  --color-brand: #993e66;
+  --color-brand-light: #9f3562;
+  --color-brand-dark: #b14270;
+  --color-brand-hover: #9a3f66;
+  --color-brand-bg-light: rgba(153, 62, 102, 0.1);
+  --color-brand-bg-lighter: rgba(153, 62, 102, 0.05);
   --font-poppins-extrabold: 'Poppins Extrabold', sans-serif;
   --font-admeasy: 'Admeasy', sans-serif;
   --font-admeasy-semibold: 'Admeasy Semibold', sans-serif;

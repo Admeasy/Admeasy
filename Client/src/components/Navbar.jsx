@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 import { Search, X } from "lucide-react";
-import logo from "../assets/Admeasy/newLogo.png";
+import logo from "../assets/Admeasy/favicon.ico";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import LoginButton from "./LoginButton";

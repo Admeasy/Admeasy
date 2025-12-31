@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -36,7 +36,7 @@ export default function Profile() {
       try {
         let profileData;
         let profileTypeData;
-        const isOwnProfileCheck = !username || 
+        const isOwnProfileCheck = !username ||
           (currentMentor && currentMentor.username === username) ||
           (currentUser && currentUser.username === username);
 
@@ -163,10 +163,10 @@ export default function Profile() {
     const profileUrl = `${window.location.origin}/profile/${profile.username}`;
     if (navigator.share) {
       try {
-        await navigator.share({ 
-          title: `Share ${profile.name || profile.username}'s profile`, 
-          text: profile.tagline || profile.name, 
-          url: profileUrl 
+        await navigator.share({
+          title: `Share ${profile.name || profile.username}'s profile`,
+          text: profile.tagline || profile.name,
+          url: profileUrl
         });
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -210,12 +210,12 @@ export default function Profile() {
 
   const isMentor = profileType === 'mentor';
   const isOwnProfile = (isMentor && currentMentor && (currentMentor._id === profile._id || currentMentor.username === profile.username)) ||
-                      (!isMentor && currentUser && (currentUser._id === profile._id || currentUser.username === profile.username));
+    (!isMentor && currentUser && (currentUser._id === profile._id || currentUser.username === profile.username));
 
   // Prepare SEO data
   const profileName = profile.name || profile.username || (isMentor ? 'Mentor' : 'User');
-  const profileTitle = `${profileName} | ${isMentor ? 'Mentor' : 'User'} @ Admeasy`;
-  
+  const profileTitle = `${profileName}${isMentor ? ' | Mentor @ Admeasy' : ''}`;
+
   let profileDescription = '';
   let profileKeywords = [profileName, profile.username, isMentor ? 'mentor' : 'user', 'admeasy'];
 
@@ -224,36 +224,36 @@ export default function Profile() {
     const examList = Array.isArray(exams)
       ? exams.map(exam => exam.name || '').filter(Boolean)
       : [];
-    
+
     const courseData = profile.course && (typeof profile.course === 'object' && profile.course !== null
       ? profile.course
       : (profile.course ? (() => {
-          try {
-            return JSON.parse(profile.course);
-          } catch {
-            return null;
-          }
-        })() : null));
+        try {
+          return JSON.parse(profile.course);
+        } catch {
+          return null;
+        }
+      })() : null));
     const collegeData = profile.college && (typeof profile.college === 'object' && profile.college !== null
       ? profile.college
       : (profile.college ? (() => {
-          try {
-            return JSON.parse(profile.college);
-          } catch {
-            return null;
-          }
-        })() : null));
+        try {
+          return JSON.parse(profile.college);
+        } catch {
+          return null;
+        }
+      })() : null));
 
     profileDescription = profile.tagline
       ? `${profile.tagline}${collegeData ? ` - Mentor at ${collegeData.name}` : ''}${courseData ? ` specializing in ${courseData.name || courseData.title}` : ''}. Connect with verified mentors on Admeasy.`
       : `Connect with ${profileName}${collegeData ? ` from ${collegeData.name}` : ''}${courseData ? ` - ${courseData.name || courseData.title} mentor` : ''}. Get real insights and guidance from verified mentors on Admeasy.`;
-    
+
     profileKeywords.push(collegeData?.name, courseData?.name || courseData?.title, ...examList);
   } else {
     profileDescription = profile.institute
       ? `${profileName}${profile.course ? ` - ${profile.course}` : ''} from ${profile.institute}. Connect with students on Admeasy.`
       : `Connect with ${profileName}${profile.course ? ` - ${profile.course}` : ''}. Get real insights and guidance from verified mentors on Admeasy.`;
-    
+
     profileKeywords.push(profile.institute, profile.course);
   }
 
@@ -268,7 +268,7 @@ export default function Profile() {
         keywords={profileKeywords.filter(Boolean).join(', ')}
         image={profileImage}
         url={profileUrl} />
-      
+
       {/* Main Container with max width */}
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Profile Card - Instagram Style */}
@@ -276,7 +276,7 @@ export default function Profile() {
           {/* Cover Background */}
           <div className="h-24 sm:h-32 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 border-b border-slate-200"></div>
 
-          
+
           {/* Profile Content */}
           <div className="px-4 sm:px-6 pb-6">
             {/* Profile Image - Overlapping cover */}
@@ -293,13 +293,13 @@ export default function Profile() {
                   />
                 </div>
               </div>
-              
+
               {/* Action Buttons */}
               {isOwnProfile && (
                 <div className="flex gap-2 mt-2">
                   <Link
                     to="/me/edit"
-                    className="px-4 sm:px-6 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold text-sm text-gray-800 transition-colors flex items-center gap-2"
+                    className="px-4 sm:px-6 py-2 bg-white border border-slate-200 hover:bg-gray-200 shadow-sm rounded-xl font-semibold text-sm text-gray-800 transition-colors flex items-center gap-2"
                   >
                     <Edit size={16} />
                     <span className="hidden sm:inline">Edit</span>
@@ -383,24 +383,24 @@ export default function Profile() {
                       const courseData = typeof profile.course === 'object' && profile.course !== null
                         ? profile.course
                         : (profile.course ? (() => {
-                            try {
-                              return JSON.parse(profile.course);
-                            } catch {
-                              return null;
-                            }
-                          })() : null);
-                      
+                          try {
+                            return JSON.parse(profile.course);
+                          } catch {
+                            return null;
+                          }
+                        })() : null);
+
                       if (courseData) {
                         const collegeData = profile.college && (typeof profile.college === 'object' && profile.college !== null
                           ? profile.college
                           : (profile.college ? (() => {
-                              try {
-                                return JSON.parse(profile.college);
-                              } catch {
-                                return null;
-                              }
-                            })() : null));
-                        
+                            try {
+                              return JSON.parse(profile.college);
+                            } catch {
+                              return null;
+                            }
+                          })() : null));
+
                         return (
                           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700">
                             <GraduationCap size={18} className="text-blue-500 flex-shrink-0" />
@@ -420,13 +420,13 @@ export default function Profile() {
                       const collegeData = typeof profile.college === 'object' && profile.college !== null
                         ? profile.college
                         : (profile.college ? (() => {
-                            try {
-                              return JSON.parse(profile.college);
-                            } catch {
-                              return null;
-                            }
-                          })() : null);
-                      
+                          try {
+                            return JSON.parse(profile.college);
+                          } catch {
+                            return null;
+                          }
+                        })() : null);
+
                       if (collegeData) {
                         return (
                           <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700">
@@ -460,19 +460,38 @@ export default function Profile() {
 
               {/* Action Button for Non-Owners */}
               {!isOwnProfile && (
-                <button
-                  onClick={() => {
-                    if (isMentor) {
-                      navigate(`/chats/${profile._id}`);
-                    } else if (currentMentor) {
-                      navigate(`/chats/${currentMentor._id}`);
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => {
+                      if (isMentor) {
+                        navigate(`/chats/${profile._id}`);
+                      } else if (currentMentor) {
+                        navigate(`/chats/${currentMentor._id}`);
+                      }
+                    }}
+                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <MessagesSquare size={20} />
+                    Message
+                  </button>
+                  <button onClick={() => {
+                    if (!currentUser && !currentMentor) {
+                      toast.info('Please login to subscribe', {
+                        position: 'top-center',
+                      });
+                      navigate('/login');
+                      return;
                     }
+                    // Navigate to subscription page or show subscription plans
+                    toast.info('Subscription feature coming soon!', {
+                      position: 'top-center',
+                    });
                   }}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-md"
-                >
-                  <MessagesSquare size={20} />
-                  Message
-                </button>
+                    className="flex-1 py-3 bg-brand-dark text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] hover:bg-brand-hover flex items-center justify-center gap-2 shadow-md cursor-pointer">
+                    <CreditCard size={20} />
+                    Subscribe
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -490,7 +509,7 @@ export default function Profile() {
                 <p className="text-xs sm:text-sm text-gray-500">{profile.competitiveExamsCleared.length} exam{profile.competitiveExamsCleared.length !== 1 ? 's' : ''} cleared</p>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {profile.competitiveExamsCleared.map((exam, index) => (
                 <div
@@ -527,7 +546,7 @@ export default function Profile() {
                 <p className="text-xs sm:text-sm text-gray-500">{profile.examsPreparingFor.length} exam{profile.examsPreparingFor.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {profile.examsPreparingFor.map((exam, index) => (
                 <div

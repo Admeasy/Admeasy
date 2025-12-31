@@ -249,10 +249,10 @@ const ManageMentors = () => {
         <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 sm:p-6 pb-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-thead1">Mentor Details</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Mentor Details</h2>
               <div className="flex items-center gap-4">
                 <button
-                  className={`px-3 py-2 rounded-lg text-white transition-colors flex items-center justify-center ${deletingMentorId === selectedMentor._id ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
+                  className={`px-3 py-2 rounded-xl text-white transition-all duration-300 flex items-center justify-center hover:scale-105 active:scale-95 ${deletingMentorId === selectedMentor._id ? 'bg-gray-500 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
                   onClick={() => handleDelete(selectedMentor._id)}
                   disabled={deletingMentorId === selectedMentor._id}
                   title="Delete mentor"
@@ -260,7 +260,7 @@ const ManageMentors = () => {
                   <FaTrash className="mr-2" />
                   Delete
                 </button>
-                <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-4xl font-bold">
+                <button onClick={closeModal} className="text-gray-500 hover:text-[#9f3562] text-4xl font-bold transition-colors">
                   ×
                 </button>
               </div>
@@ -291,7 +291,7 @@ const ManageMentors = () => {
                       </div>
                     )
                   ) : (
-                    <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white font-bold text-4xl sm:text-5xl">
+                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-4xl sm:text-5xl" style={{ backgroundColor: '#993e66' }}>
                       {(selectedMentor.name || selectedMentor.username || 'M').charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -304,7 +304,7 @@ const ManageMentors = () => {
 
               <div className="space-y-4">
                 <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                  <FaEnvelope className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
+                  <FaEnvelope className="w-5 h-5 mr-3 flex-shrink-0" style={{ color: '#993e66' }} />
                   <div>
                     <p className="text-sm text-gray-500">Email</p>
                     <p className="font-medium">{selectedMentor.email || 'No Email'}</p>

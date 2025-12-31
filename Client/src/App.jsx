@@ -33,6 +33,7 @@ import Onboarding from './Pages/Onboarding';
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
 import ManageApplications from './Pages/ManageApplications'
+import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans'
 import JobApplications from './Pages/JobApplications'
 import MentorshipForm from './Pages/MentorshipForm'
 import Blogs from './Pages/Blogs'
@@ -241,6 +242,7 @@ function App() {
         <Route path="/admin/applications" element={<ManageApplications />} />
         <Route path="/admin/applications/:job" element={<JobApplications />} />
         <Route path="/admin/notes" element={<ManageNotes />} />
+        <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />

@@ -22,6 +22,7 @@ const ChatRoutes = require('./routes/chatRoutes');
 const SitemapRoutes = require('./routes/sitemapRoutes')
 const MentorPostRoutes = require('./routes/mentorPostRoutes');
 const SearchRoutes = require('./routes/searchRoute')
+const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const app = express();
 const server = http.createServer(app);
 
@@ -172,6 +173,11 @@ async function processUserImage(user) {
   }
 }
 
+// Helper function to escape special regex characters
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Common username availability check route (before other routes)
 app.get('/api/check-username/:username', async (req, res) => {
   try {
@@ -181,18 +187,23 @@ app.get('/api/check-username/:username', async (req, res) => {
     }
 
     const normalizedUsername = username.trim().toLowerCase();
+    const escapedUsername = escapeRegex(normalizedUsername);
     
     // Check both mentors and users
     const Mentor = require('./models/mentorSchema');
     const User = require('./models/userSchema');
     
     const existingMentor = await Mentor.findOne({ 
-      username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } 
+      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
     });
+
+    console.log(existingMentor);
     
     const existingUser = await User.findOne({ 
-      username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') } 
+      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
     });
+
+    console.log(existingUser);
 
     const isAvailable = !existingMentor && !existingUser;
     
@@ -258,6 +269,7 @@ app.use('/api', ChatRoutes);
 app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', MentorPostRoutes);
 app.use("/api", SearchRoutes);
+app.use('/api/subscription-plans', SubscriptionPlanRoutes);
 // Socket.io connection handling with session authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);

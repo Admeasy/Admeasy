@@ -75,40 +75,21 @@ export default function StudentSwiper() {
         const data = await res.json();
         const colleges = data.colleges || [];
         let allStudents = [];
-        let dustudents = [];
 
         colleges.forEach(college => {
           if (college.students && college.students.length > 0) {
             college.students.forEach(student => {
-              if (
-                college.affiliation === 'Delhi University' ||
-                college.name.includes('Delhi University') ||
-                college.name.includes('DU')
-              ) {
-                dustudents.push({
-                  ...student,
-                  college: college.name,
-                  collegeLogo: college.logo || '',
-                  university: college.affiliation || 'Delhi University',
-                });
-              } else {
-                allStudents.push({
-                  ...student,
-                  college: college.name,
-                  collegeLogo: college.logo || '',
-                  university: college.affiliation,
-                });
-              }
+              allStudents.push({
+                ...student,
+                college: college.name,
+                collegeLogo: college.logo || '',
+                university: college.affiliation,
+              });
             });
           }
         });
 
-        const shuffledAllStudents = shuffleArray(allStudents).slice(0, 5);
-        const shuffledDUStudents = shuffleArray(dustudents);
-
-        shuffledDUStudents.forEach(student => {
-          shuffledAllStudents.unshift(student);
-        });
+        const shuffledAllStudents = shuffleArray(allStudents);
 
         setStudents(shuffledAllStudents);
       } catch (error) {
@@ -172,7 +153,7 @@ export default function StudentSwiper() {
               <Sparkles className="w-5 h-5 text-blue-600" />
               <span className="text-sm font-semibold text-blue-700">Connect with Experts</span>
             </motion.div>
-            
+
             <motion.h2
               initial={{ y: 20, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
@@ -182,7 +163,7 @@ export default function StudentSwiper() {
             >
               Talk to UGs/Alumni
             </motion.h2>
-            
+
             <motion.p
               initial={{ y: 20, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
@@ -204,7 +185,7 @@ export default function StudentSwiper() {
               <span className="text-lg text-gray-600 mt-4">Loading amazing mentors...</span>
             </div>
           )}
-          
+
           {error && (
             <div className="w-full flex justify-center items-center py-16">
               <div className="bg-red-50 border border-red-200 rounded-2xl px-6 py-4">
@@ -212,7 +193,7 @@ export default function StudentSwiper() {
               </div>
             </div>
           )}
-          
+
           {!loading && !students.length && (
             <div className="w-full flex justify-center items-center py-16">
               <div className="bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4">
@@ -232,7 +213,7 @@ export default function StudentSwiper() {
               <IoIosArrowBack size={24} />
             </CustomButton>
           </motion.div>
-          
+
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -279,7 +260,7 @@ export default function StudentSwiper() {
                   <div className="relative group bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-5 border border-gray-100 overflow-hidden">
                     {/* Decorative gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
+
                     {/* University badge with enhanced styling */}
                     {student.university && (
                       <motion.div
@@ -314,7 +295,7 @@ export default function StudentSwiper() {
                               ease: "easeInOut"
                             }}
                           />
-                          
+
                           <div className="relative">
                             <img
                               src={getStudentImageUrl(student.image)}
@@ -323,7 +304,7 @@ export default function StudentSwiper() {
                                 if (e.target.src !== fallbackImage) e.target.src = fallbackImage;
                               }}
                             />
-                            
+
                             {/* College Logo with better positioning */}
                             <motion.div
                               whileHover={{ scale: 1.1 }}
@@ -347,7 +328,7 @@ export default function StudentSwiper() {
                         <h3 className="text-base md:text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
                           {student.name}
                         </h3>
-                        
+
                         <p
                           onClick={() => {
                             window.location.href = `/colleges/${student.college._id}`
@@ -356,7 +337,7 @@ export default function StudentSwiper() {
                         >
                           {student.college}
                         </p>
-                        
+
                         <motion.span
                           whileHover={{ scale: 1.05 }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 font-semibold rounded-full shadow-sm border border-blue-100"

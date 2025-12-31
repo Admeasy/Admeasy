@@ -114,21 +114,22 @@ const Admin = () => {
         animate="visible"
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden p-6 sm:p-8 transition-all duration-300 selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
-          <SEO title="Admin Dashboard | Admeasy" description="Admin Dashboard" />
-          
-          {/* Enhanced Ambient Background */}
-          <div className="fixed inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-            <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-            <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
-          </div>
+        <SEO title="Admin Dashboard | Admeasy" description="Admin Dashboard" />
+
+        {/* Enhanced Ambient Background */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+          <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+        </div>
 
         <div className="max-w-4/5 mx-auto space-y-8 relative z-10">
           <img src={logo} alt="LOGO" className='w-150 aspect-auto mx-auto' />
           <button
             onClick={handleLogout} className="px-2 sm:px-3 py-1 sm:py-1.5 flex items-center justify-center bg-red-500 text-white font-semibold absolute top-2 sm:top-5 right-2 sm:right-5 rounded-lg sm:rounded-xl hover:bg-red-600 transition-colors z-20">
-            <FaSignOutAlt className="w-5 h-5 mr-2" /> Logout
+            <FaSignOutAlt className="w-5 h-5 mr-2" />
+            Logout
           </button>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -138,7 +139,7 @@ const Admin = () => {
                 <p className="text-gray-600">Add, edit, or remove college information</p>
               </div>
             </Link>
-              <Link to="/admin/blogs">
+            <Link to="/admin/blogs">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Blogs</h2>
                 <p className="text-gray-600">Add, edit, or remove Blogs</p>
@@ -168,7 +169,7 @@ const Admin = () => {
                 <p className="text-gray-600">Check and reply messages</p>
               </div>
             </Link>
-             <Link to="/admin/enrollments">
+            <Link to="/admin/enrollments">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Enrollments</h2>
                 <p className="text-gray-600">Students Enrolled From the Banner</p>
@@ -178,6 +179,12 @@ const Admin = () => {
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Notes</h2>
                 <p className="text-gray-600">Review and manage uploaded notes</p>
+              </div>
+            </Link>
+            <Link to="/admin/subscription-plans">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Subscription Plans</h2>
+                <p className="text-gray-600">Add, edit, or remove subscription plans</p>
               </div>
             </Link>
           </div>

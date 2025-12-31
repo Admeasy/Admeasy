@@ -187,10 +187,10 @@ const Enrollments = () => {
         <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-6 pb-0">
-              <h2 className="text-2xl font-bold text-thead1">{selectedEnrollment.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{selectedEnrollment.name}</h2>
               <div className="flex items-center gap-2">
                 <button
-                  className={`p-2 rounded-full text-white ${
+                  className={`p-2 rounded-full text-white transition-all duration-300 hover:scale-105 active:scale-95 ${
                     deletingEnrollmentId === selectedEnrollment._id
                       ? 'bg-gray-500 cursor-not-allowed'
                       : 'bg-red-500 hover:bg-red-600'
@@ -200,7 +200,7 @@ const Enrollments = () => {
                 >
                   <FaTrash className="text-sm" />
                 </button>
-                <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">×</button>
+                <button onClick={closeModal} className="text-gray-500 hover:text-[#9f3562] text-2xl font-bold transition-colors">×</button>
               </div>
             </div>
             <div className="p-6 flex-grow overflow-y-auto">
