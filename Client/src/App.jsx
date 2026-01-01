@@ -63,6 +63,8 @@ import MentorPost from './Pages/MentorPost';
 import Layout from './components/Layout';
 import Explore from "./Pages/Explore"
 import BottomNavBar from './components/BottomNavBar';
+import MentorForgotPassword from "./Pages/MentorForgotPassword";
+import MentorResetPassword from "./Pages/MentorResetPassword";
 
 function App() {
   const location = useLocation();
@@ -184,6 +186,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+           <Route path="/mentors/:username" element={<MentorProfile />} />
+           
+            {/* Mentor Password Reset */}
+          <Route path="/mentors/forgot-password" element={<MentorForgotPassword />} />
+          <Route path="/mentors/reset-password/:token" element={<MentorResetPassword />} />
 
           {/* Posts */}
           <Route path="/posts/:postId" element={<PostDetail />} />

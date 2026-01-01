@@ -8,7 +8,7 @@ import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import LoadingButton from "../components/LoadingButton";
-
+import { Link } from "react-router-dom";
 // Animation variant
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -153,7 +153,17 @@ function MentorsLogin({ onLoginSuccess }) {
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
+              
             </div>
+
+                <div className="flex justify-end mb-4">
+  <Link
+    to="/mentors/forgot-password"
+    className="text-sm text-purple-600 hover:underline font-semibold"
+  >
+    Forgot Password?
+  </Link>
+</div>
 
             {/* Submit */}
             {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'pruple'}/>

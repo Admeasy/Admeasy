@@ -25,6 +25,13 @@ export default function MentorProfile() {
   const menuRef = useRef(null);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  // Followers / Following state
+const [followersCount, setFollowersCount] = useState(0);
+const [followingCount, setFollowingCount] = useState(0);
+
+// Modal state
+const [showModal, setShowModal] = useState(false);
+const [modalType, setModalType] = useState(null);
 
 
   useEffect(() => {

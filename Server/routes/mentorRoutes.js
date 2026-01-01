@@ -9,6 +9,11 @@ const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const {
+  mentorForgotPassword,
+  mentorResetPassword,
+} = require("../controllers/mentorController");
+
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -480,5 +485,9 @@ router.delete('/:id', async (req, res) => {
         }
     });
 })
+
+// Forgot / Reset Password
+router.post("/forgot-password", mentorForgotPassword);
+router.post("/reset-password/:token", mentorResetPassword);
 
 module.exports = router;

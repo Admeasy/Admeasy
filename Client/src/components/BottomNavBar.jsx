@@ -88,7 +88,7 @@ const BottomNavBar = () => {
       id: 'upload',
       icon: CirclePlus,
       path: '/posts/create',
-      onClick: () => handleProtectedRoute('/posts/create'),
+      onClick: () => handleProtectedRoute('/posts/create',"Add Post"),
       requiresAuth: true
     },
     {
