@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { motion } from "framer-motion";
 import LoadingButton from "../components/LoadingButton";
-import Logo from "../assets/Admeasy/LOGO.webp";
+import Logo from "../assets/Admeasy/AdmeasyLatest.png";
 import { toast } from "react-toastify";
 
 const fadeUpVariant = {
@@ -106,7 +106,7 @@ const Signup = ({ setAuthMode }) => {
           <input
             type="email"
             placeholder="Email"
-            className="pl-11 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
+            className="pl-11 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-brand-light/30 transition-all"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
@@ -120,7 +120,7 @@ const Signup = ({ setAuthMode }) => {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
-            className="pl-11 pr-12 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
+            className="pl-11 pr-12 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-brand-light/30 transition-all"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
@@ -141,7 +141,7 @@ const Signup = ({ setAuthMode }) => {
         ) : (
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+            className="w-full inline-flex items-center justify-center px-8 py-3.5 text-white font-semibold rounded-xl bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
           >
             Create Account
           </button>
@@ -188,7 +188,7 @@ const Signup = ({ setAuthMode }) => {
         <span className="text-gray-700 text-sm">Already have an account? </span>
         <button
           onClick={() => setAuthMode("login")}
-          className="text-blue-600 hover:underline font-semibold"
+          className="text-brand-light hover:underline font-semibold"
         >
           Log In
         </button>

@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Home, GraduationCap, Users, Newspaper, Info, Mail,
-  UserPlus, MessageSquare, User, Menu, X, ChevronLeft
-} from 'lucide-react';
+import { Home, Newspaper, UserPlus, MessagesSquare, Menu, X, ChevronLeft, Compass, CirclePlus } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import logo from "../assets/Admeasy/favicon.ico";
@@ -26,8 +23,6 @@ const LeftSidebar = ({
   const loggedInAccount = user || mentor;
   const isUserAccount = Boolean(user);
   const landingPage = location.pathname === '/'
-  // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  //const [isCollapsed, setIsCollapsed] = useState(landingPage?true:false);
   const navigate = useNavigate()
   const isAdminRoute = location.pathname.startsWith('/admin');
   const hideSidebarPages = ['/login', '/mentors/login', '/mentors/register', '/onboarding', '/forgot-password', '/reset-password'];
@@ -36,26 +31,21 @@ const LeftSidebar = ({
   if (shouldHide) return null;
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/feed', exact: true },
-    { icon: GraduationCap, label: 'Colleges', path: '/colleges' },
-    { icon: Users, label: 'Mentors', path: '/mentors' },
-    { icon: Newspaper, label: 'Blogs', path: '/blog' },
-    { icon: Info, label: 'About', path: '/about' },
-    { icon: Mail, label: 'Contact', path: '/contact' },
+    { icon: Home, label: 'Home', path: '/', exact: true },
+    { icon: Compass, label: 'Explore', path: '/explore' },
     ...(loggedInAccount
       ? isUserAccount
-        ? [{ icon: MessageSquare, label: 'Chat', path: '/chats' }]
-        : [{ icon: MessageSquare, label: 'Messages', path: '/mentor/chats' }]
+        ? [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chat', path: '/chats' }]
+        : [{ icon: MessagesSquare, label: 'Messages', path: '/mentor/chats' }]
       : []),
-    loggedInAccount
-      ? { icon: User, label: 'Profile', path: '/me', exact: false, matchPaths: ['/me'] }
-      : { icon: UserPlus, label: 'Sign Up/Log In', path: '/login' },
+    { icon: Newspaper, label: 'Blogs', path: '/blog' },
+    ...(!loggedInAccount ? [{ icon: UserPlus, label: 'Sign Up/Log In', path: '/login' }] : [])
   ];
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   // Optimized Animation Configuration
-  const sidebarTransition = { duration: 0.3, ease: "easeInOut" }; // Fast & Smooth (300ms)
+  const sidebarTransition = { duration: 0.3, ease: "easeInOut" };
   const textVariants = {
     hidden: { opacity: 0, width: 0, transition: { duration: 0.2 } }, // Fade out fast
     visible: { opacity: 1, width: "auto", transition: { duration: 0.3, delay: 0.1 } } // Fade in slightly slower
@@ -102,12 +92,12 @@ const LeftSidebar = ({
 
   return (
     <>
-      {/* ================= MOBILE MENU BUTTON ================= */}
+      {/* ================= MOBILE MENU BUTTON (below 768px) ================= */}
       <motion.button
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 right-4 z-50 w-12 h-12 rounded-xl bg-white/95 backdrop-blur-xl shadow-lg flex items-center justify-center border border-gray-100 hover:shadow-xl hover:border-[#9f3562]/20 transition-all active:scale-90"
+        className="md:hidden fixed top-4 right-4 z-50 w-12 h-12 rounded-xl bg-white/95 backdrop-blur-xl shadow-lg flex items-center justify-center border border-gray-100 hover:shadow-xl hover:border-[#9f3562]/20 transition-all active:scale-90"
       >
         <AnimatePresence mode="wait">
           {isMobileMenuOpen ? (
@@ -142,13 +132,13 @@ const LeftSidebar = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
           />
         )}
       </AnimatePresence>
 
 
-      {/* ================= DESKTOP SIDEBAR FIXED================= */}
+      {/* ================= DESKTOP SIDEBAR (768px and above) ================= */}
       <motion.aside
         initial="expanded"
         animate={{
@@ -157,18 +147,18 @@ const LeftSidebar = ({
             : SIDEBAR_EXPANDED_WIDTH
         }}
         variants={{
-          expanded: { width: "18rem" }, // w-72
-          collapsed: { width: "5.5rem" }  // Slightly wider than w-20 to fit centered icons perfectly
+          expanded: { width: "18rem" },
+          collapsed: { width: "5.5rem" }
         }}
         transition={sidebarTransition}
-        className="hidden lg:flex fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white/95 backdrop-blur-2xl border-r border-gray-100 shadow-xl z-40 flex-col py-8 overflow-hidden"
+        className="hidden md:flex fixed left-0 top-16 h-[calc(100vh-3rem)] bg-white/95 backdrop-blur-2xl border-r border-gray-100 shadow-xl z-40 flex-col py-8 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
       >
         {/* Toggle Button */}
         <motion.button
           onClick={() => setIsCollapsed(!isCollapsed)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="absolute right-6 top-1 w-7 h-7 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center cursor-pointer z-50 hover:border-[#9f3562] group"
+          className="absolute right-6 top-2 w-7 h-7 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center cursor-pointer z-50 hover:border-[#9f3562] group"
         >
           <motion.div
             animate={{ rotate: isCollapsed ? 180 : 0 }}
@@ -179,7 +169,7 @@ const LeftSidebar = ({
         </motion.button>
 
         {/* Header */}
-        <div className={`flex items-center gap-3 mb-8 px-5 ${isCollapsed ? 'justify-center' : ''} h-12`}>
+        <div className={`flex items-center gap-3 ${isCollapsed ? 'mt-6' : 'mt-0'} mb-8 px-5 ${isCollapsed ? 'justify-center' : ''} h-12`}>
           <motion.div
             onClick={() => navigate('/')}
             layout // Magic framer motion prop for smooth layout shifts
@@ -196,7 +186,7 @@ const LeftSidebar = ({
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="overflow-hidden whitespace-nowrap"
+                className="overflow-hidden whitespace-nowrap cursor-pointer"
               >
                 <h2 className="font-bold text-xl text-gray-900 tracking-tight">Admeasy</h2>
                 <p className="text-xs text-gray-500 font-medium">Your Education Hub</p>
@@ -209,10 +199,8 @@ const LeftSidebar = ({
         <nav className="flex-1 space-y-2 w-full px-3">
           {navItems.map((item, index) => {
             const Icon = item.icon;
-            // Special handling for Profile item to prevent false matches
             let isActive;
             if (item.matchPaths) {
-              // For Profile item, only match exact paths
               isActive = item.matchPaths.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
             } else {
               isActive = item.exact
@@ -243,7 +231,11 @@ const LeftSidebar = ({
                 )}
 
                 <motion.div className="relative z-10 flex-shrink-0">
-                  <Icon className="w-5 h-5" />
+                  {item.icon === "profilePhoto" ? <img
+                    src={loggedInAccount.imageUrl || loggedInAccount.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
+                    alt={loggedInAccount.name}
+                    className="w-6 h-6 rounded-full object-cover ring-2 ring-[#9f3562]/30 group-hover:ring-[#9f3562]/60 transition-all"
+                  /> : <Icon className="w-5 h-5" />}
                 </motion.div>
 
                 <AnimatePresence>
@@ -279,9 +271,12 @@ const LeftSidebar = ({
         {loggedInAccount && (
           <motion.div
             layout
-            className={`mt-auto pt-6 border-t border-gray-100 px-3 transition-all duration-300`}
+            className={`mt-auto pt-6 border-t border-gray-100 px-3 transition-all duration-300 mb-4`}
           >
-            <div className={`flex items-center rounded-xl hover:bg-gray-50 transition-colors duration-300 cursor-pointer group py-2.5 ${isCollapsed ? 'justify-center' : 'gap-3 px-3'}`}>
+            <div
+              onClick={() => navigate('/me')}
+              className={`flex items-center rounded-xl hover:bg-gray-50 transition-colors duration-300 cursor-pointer group py-2.5 ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
+            >
               <div className="relative flex-shrink-0">
                 <img
                   src={loggedInAccount.imageUrl || loggedInAccount.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
@@ -316,7 +311,7 @@ const LeftSidebar = ({
         )}
       </motion.aside>
 
-      {/*  MOBILE SIDEBAR (UNCHANGED) */}
+      {/* ================= MOBILE SIDEBAR (below 768px) ================= */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.aside
@@ -324,11 +319,10 @@ const LeftSidebar = ({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="lg:hidden fixed left-0 top-0 h-screen w-[85vw] min-w-[70vw] sm:w-[85vw] md:w-[450px]
+            className="md:hidden fixed left-0 top-0 h-screen w-[85vw] min-w-[70vw] sm:w-[85vw]
              bg-white/98 backdrop-blur-2xl border-r border-gray-100 shadow-2xl z-50
              flex flex-col py-8 px-5"
           >
-
             <div className="flex items-center gap-3 px-3 mb-10 mt-12">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ffffff] via-[#ddd8da] to-[#fff1f7] flex items-center justify-center shadow-lg shadow-[#9f3562]/30">
                 <img src={logo} alt="logo" />
@@ -342,10 +336,8 @@ const LeftSidebar = ({
             <nav className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                // Special handling for Profile item to prevent false matches
                 let isActive;
                 if (item.matchPaths) {
-                  // For Profile item, only match exact paths
                   isActive = item.matchPaths.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
                 } else {
                   isActive = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);

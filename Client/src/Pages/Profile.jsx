@@ -2,9 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
+import PostCard from '../components/PostCard';
+import FollowersFollowingModal from '../components/FollowersFollowingModal';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function Profile() {
@@ -19,6 +22,16 @@ export default function Profile() {
   const [error, setError] = useState(null);
   const isMountedRef = useRef(true);
   const [copied, setCopied] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsPage, setPostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowingLoading, setIsFollowingLoading] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState('followers'); // 'followers' or 'following'
 
   useEffect(() => {
     if (mentorLoading || userLoading) {
@@ -159,6 +172,74 @@ export default function Profile() {
     };
   }, [username, currentMentor, currentUser, mentorLoading, userLoading]);
 
+  // Fetch posts when profile is loaded
+  useEffect(() => {
+    if (!profile || !profile._id) return;
+
+    const fetchPosts = async () => {
+      setPostsLoading(true);
+      try {
+        const endpoint = profileType === 'mentor' 
+          ? `/api/posts/mentor/${profile._id}`
+          : `/api/posts/user/${profile._id}`;
+        
+        const response = await fetch(`${endpoint}?page=1&limit=10`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setPosts(data.posts);
+          setHasMorePosts(data.posts.length === 10 && data.pagination.pages > 1);
+        }
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [profile, profileType]);
+
+  // Fetch followers and following counts
+  useEffect(() => {
+    if (!profile || !profile._id) return;
+
+    const fetchCounts = async () => {
+      try {
+        const followersRes = await fetch(`/api/users/${profile._id}/followers`, {
+          credentials: 'include',
+        });
+        const followingRes = await fetch(`/api/users/${profile._id}/following`, {
+          credentials: 'include',
+        });
+
+        if (followersRes.ok) {
+          const followersData = await followersRes.json();
+          if (followersData.success) {
+            setFollowersCount(followersData.count || 0);
+          }
+        }
+
+        if (followingRes.ok) {
+          const followingData = await followingRes.json();
+          if (followingData.success) {
+            setFollowingCount(followingData.count || 0);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching counts:', err);
+      }
+    };
+
+    fetchCounts();
+  }, [profile]);
+
   const handleShareProfile = async () => {
     const profileUrl = `${window.location.origin}/profile/${profile.username}`;
     if (navigator.share) {
@@ -179,6 +260,90 @@ export default function Profile() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const handleFollow = async () => {
+    if (!currentUser && !currentMentor) {
+      toast.info('Log in to follow users and mentors');
+      navigate('/login');
+      return;
+    }
+    if (isFollowingLoading || !profile || !profile._id) return;
+
+    // OPTIMISTIC UPDATE: Update UI immediately
+    const previousFollowing = isFollowing;
+    setIsFollowing(!isFollowing);
+
+    // Make API call in background
+    setIsFollowingLoading(true);
+    fetch(`/api/users/${profile._id}/follow`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsFollowing(data.isFollowing);
+          // Broadcast follow status change globally
+          window.dispatchEvent(new CustomEvent('followStatusChanged', {
+            detail: {
+              targetId: profile._id.toString(),
+              isFollowing: data.isFollowing
+            }
+          }));
+        } else {
+          // Revert on error
+          setIsFollowing(previousFollowing);
+        }
+      })
+      .catch(error => {
+        console.error('Error following:', error);
+        // Revert on error
+        setIsFollowing(previousFollowing);
+      })
+      .finally(() => {
+        setIsFollowingLoading(false);
+      });
+  };
+
+  // Calculate isMentor and isOwnProfile before useEffect that uses them
+  const isMentor = profileType === 'mentor';
+  const isOwnProfile = profile && profileType ? (
+    (isMentor && currentMentor && (currentMentor._id === profile._id || currentMentor.username === profile.username)) ||
+    (!isMentor && currentUser && (currentUser._id === profile._id || currentUser.username === profile.username))
+  ) : false;
+
+  // Fetch follow status when profile loads
+  useEffect(() => {
+    if ((currentUser || currentMentor) && profile && profile._id && !isOwnProfile) {
+      fetch(`/api/users/${profile._id}/follow-status`, {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setIsFollowing(data.isFollowing);
+          }
+        })
+        .catch(err => console.error('Error fetching follow status:', err));
+    }
+  }, [currentUser, currentMentor, profile, isOwnProfile]);
+
+  // Listen for global follow status changes
+  useEffect(() => {
+    if (!profile || !profile._id || isOwnProfile) return;
+
+    const handleFollowStatusChange = (event) => {
+      const { targetId, isFollowing: newFollowingStatus } = event.detail;
+      if (targetId === profile._id.toString()) {
+        setIsFollowing(newFollowingStatus);
+      }
+    };
+
+    window.addEventListener('followStatusChanged', handleFollowStatusChange);
+    return () => {
+      window.removeEventListener('followStatusChanged', handleFollowStatusChange);
+    };
+  }, [profile, isOwnProfile]);
 
   if (loading || mentorLoading || userLoading) {
     return (
@@ -207,10 +372,6 @@ export default function Profile() {
       </div>
     );
   }
-
-  const isMentor = profileType === 'mentor';
-  const isOwnProfile = (isMentor && currentMentor && (currentMentor._id === profile._id || currentMentor.username === profile.username)) ||
-    (!isMentor && currentUser && (currentUser._id === profile._id || currentUser.username === profile.username));
 
   // Prepare SEO data
   const profileName = profile.name || profile.username || (isMentor ? 'Mentor' : 'User');
@@ -272,10 +433,18 @@ export default function Profile() {
       {/* Main Container with max width */}
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Profile Card - Instagram Style */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 relative">
           {/* Cover Background */}
           <div className="h-24 sm:h-32 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 border-b border-slate-200"></div>
 
+          {/* Mentor Account Tag - Top Right */}
+          {isMentor && (
+            <div className="absolute top-4 right-4 z-10">
+              <span className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold rounded-full shadow-lg">
+                Mentor Account
+              </span>
+            </div>
+          )}
 
           {/* Profile Content */}
           <div className="px-4 sm:px-6 pb-6">
@@ -350,25 +519,33 @@ export default function Profile() {
                 )}
               </div>
 
-              {/* Stats Row for Mentors */}
-              {isMentor && (
-                <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-gray-900">
-                      {Array.isArray(profile.competitiveExamsCleared) ? profile.competitiveExamsCleared.length : 0}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-500">Exams</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-gray-900">0</div>
-                    <div className="text-xs sm:text-sm text-gray-500">Students</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-gray-900">0</div>
-                    <div className="text-xs sm:text-sm text-gray-500">Sessions</div>
-                  </div>
-                </div>
-              )}
+              {/* Stats Row */}
+              <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
+                <button className="text-center cursor-pointer hover:opacity-70 transition-opacity">
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{posts.length}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Posts</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setModalType('followers');
+                    setShowModal(true);
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followersCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Followers</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setModalType('following');
+                    setShowModal(true);
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followingCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Following</div>
+                </button>
+              </div>
 
               {/* Bio/Tagline for Mentors */}
               {isMentor && profile.tagline && (
@@ -460,37 +637,72 @@ export default function Profile() {
 
               {/* Action Button for Non-Owners */}
               {!isOwnProfile && (
-                <div className="grid grid-cols-2 gap-4">
-                  <button
+                <div className="space-y-3">
+                  {/* Follow and Message buttons side by side */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleFollow}
+                      disabled={isFollowingLoading}
+                      className={`flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all disabled:opacity-50 shadow-md ${
+                        isFollowing
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                          : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
+                      }`}
+                    >
+                      {isFollowingLoading ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : isFollowing ? (
+                        <>
+                          <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <span>Following</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <span>Follow</span>
+                        </>
+                      )}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        if (isMentor) {
+                          navigate(`/chats/${profile._id}`);
+                        } else if (currentMentor) {
+                          navigate(`/chats/${currentMentor._id}`);
+                        }
+                      }}
+                      className="w-full py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent flex items-center justify-center gap-2 shadow-md"
+                    >
+                      <MessagesSquare size={20} />
+                      Message
+                    </motion.button>
+                  </div>
+                  {/* Subscribe button full-width below */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
-                      if (isMentor) {
-                        navigate(`/chats/${profile._id}`);
-                      } else if (currentMentor) {
-                        navigate(`/chats/${currentMentor._id}`);
+                      if (!currentUser && !currentMentor) {
+                        toast.info('Please login to subscribe', {
+                          position: 'top-center',
+                        });
+                        navigate('/login');
+                        return;
                       }
-                    }}
-                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-md"
-                  >
-                    <MessagesSquare size={20} />
-                    Message
-                  </button>
-                  <button onClick={() => {
-                    if (!currentUser && !currentMentor) {
-                      toast.info('Please login to subscribe', {
+                      // Navigate to subscription page or show subscription plans
+                      toast.info('Subscription feature coming soon!', {
                         position: 'top-center',
                       });
-                      navigate('/login');
-                      return;
-                    }
-                    // Navigate to subscription page or show subscription plans
-                    toast.info('Subscription feature coming soon!', {
-                      position: 'top-center',
-                    });
-                  }}
-                    className="flex-1 py-3 bg-brand-dark text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] hover:bg-brand-hover flex items-center justify-center gap-2 shadow-md cursor-pointer">
+                    }}
+                    className="w-full py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                  >
                     <CreditCard size={20} />
                     Subscribe
-                  </button>
+                  </motion.button>
                 </div>
               )}
             </div>
@@ -588,7 +800,53 @@ export default function Profile() {
             </Link>
           </div>
         )}
+
+        {/* Posts Section */}
+        <div className="bg-white rounded-2xl shadow-lg mt-6 p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
+            <div className="p-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg">
+              <MessagesSquare className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Posts</h2>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {postsLoading ? 'Loading...' : `${posts.length} post${posts.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+
+          {postsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard key={post._id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+              <p className="text-sm text-gray-500">
+                {isOwnProfile ? 'Start sharing your thoughts and experiences!' : 'This user hasn\'t posted anything yet.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Followers/Following Modal */}
+      {showModal && (modalType === 'followers' || modalType === 'following') && (
+        <FollowersFollowingModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          targetId={profile._id}
+          type={modalType}
+          profileType={profileType}
+        />
+      )}
     </div>
   );
 }

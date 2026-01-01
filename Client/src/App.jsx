@@ -57,11 +57,12 @@ import ManageNotes from './Pages/ManageNotes';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
 import AuthPage from './components/AuthPage';
-import MentorPostsFeed from './Pages/MentorPostsFeed';
+import Feed from './Pages/Feed';
 import PostDetail from './Pages/PostDetail';
 import MentorPost from './Pages/MentorPost';
 import Layout from './components/Layout';
-import SearchPage from "./Pages/Search"
+import Explore from "./Pages/Explore"
+import BottomNavBar from './components/BottomNavBar';
 
 function App() {
   const location = useLocation();
@@ -72,10 +73,7 @@ function App() {
   // Routes that use Layout component (Layout already includes Navbar and Sidebar)
   const layoutRoutes = [
     '/',
-    '/about',
-    '/search',
-    '/feed',
-    '/contact',
+    '/explore',
     '/mentors',
     '/colleges',
     '/blog',
@@ -83,16 +81,17 @@ function App() {
     '/notes',
     '/chats',
     '/mentor/chats',
-    '/mentor-posts',
     '/posts',
-    '/mentors-post',
     '/home-classic'
   ];
 
   // Check if current route uses Layout
-  const usesLayout = layoutRoutes.some(path => 
-    location.pathname === path || location.pathname.startsWith(path)
-  );
+  const usesLayout = layoutRoutes.some(path => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  });
 
   // Auth pages that should hide navbar
   const authPages = [
@@ -104,7 +103,7 @@ function App() {
     '/reset-password'
   ];
 
-  const isAuthPage = authPages.some(path => 
+  const isAuthPage = authPages.some(path =>
     location.pathname.startsWith(path)
   );
 
@@ -115,7 +114,7 @@ function App() {
     <>
       {/* Old Navbar - only show on pages that don't use Layout (Layout has its own Navbar) */}
       {shouldShowOldNavbar && <Navbar />}
-      
+
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -127,20 +126,20 @@ function App() {
         draggable
         pauseOnHover
       />
-      
+
       <Routes>
         {/* ================= SIDEBAR LAYOUT ROUTES ================= */}
         <Route element={<Layout />}>
           <Route path="/about" element={<About />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/feed" element={<MentorPostsFeed />} />
-          <Route path="/" element={<Home />} />
-          <Route path="/home-classic" element={<Home />} />
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/" element={<Feed />} />
+          {/* <Route path="/" element={<Home />} />
+          <Route path="/home-classic" element={<Home />} /> */}
 
           <Route path="/contact" element={<Contact />} />
 
           <Route path="/mentors" element={<Mentors />} />
-          
+
           {/* Profile Routes - inside Layout for sidebar/navbar */}
           <Route
             path="/me"
@@ -176,14 +175,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/chats/:mentorId"
-            element={
-              <ProtectedRoute user={true}>
-                <Chat />
-              </ProtectedRoute>
-            }
-          />
 
           <Route
             path="/mentor/chats"
@@ -193,16 +184,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/mentor/chats/:userId"
-            element={
-              <ProtectedRoute mentor={true}>
-                <MentorChat />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* Mentor posts */}
+          {/* Posts */}
           <Route path="/posts/:postId" element={<PostDetail />} />
           <Route path="/posts/create" element={<MentorPost />} />
         </Route>
@@ -223,6 +206,24 @@ function App() {
           element={
             <ProtectedRoute user={user || mentor}>
               {mentor ? <EditMentorProfile /> : <EditProfile />}
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chats/:mentorId"
+          element={
+            <ProtectedRoute user={true}>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/mentor/chats/:userId"
+          element={
+            <ProtectedRoute mentor={true}>
+              <MentorChat />
             </ProtectedRoute>
           }
         />
@@ -248,10 +249,9 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
 
-
-          {/* Showing scroll up button on mobiles (not good) */}
+      {/* Showing scroll up button on mobiles (not good) */}
       {/* <ScrollUpButton /> */}
-      
+
       {/* Footer - show on non-Layout, non-admin routes (Layout pages handle their own footer) */}
       {!isAdminRoute && !usesLayout && !isAuthPage && <Footer />}
     </>

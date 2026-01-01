@@ -116,6 +116,22 @@ const userSchema = new mongoose.Schema({
     },
     resetPasswordExpire:{
         type:Date
+    },
+    // Array of reposted mentor post IDs
+    reposts: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'MentorPosts',
+        default: []
+    },
+    // Array of followed user/mentor IDs (can be Users or Mentors)
+    following: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
+    // Array of follower IDs (can be Users or Mentors)
+    followers: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
     }
 })
 

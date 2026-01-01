@@ -5,6 +5,7 @@ import { useMentor } from '../context/MentorContext';
 import { Edit, MapPin, GraduationCap, BookOpen, MessagesSquare } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
+import PostCard from '../components/PostCard';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function UserProfile() {
@@ -18,6 +19,8 @@ export default function UserProfile() {
   const [error, setError] = useState(null);
   const isMountedRef = useRef(true);
   const [copied, setCopied] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   useEffect(() => {
     if (contextLoading) {
@@ -99,6 +102,35 @@ export default function UserProfile() {
       isMountedRef.current = false;
     };
   }, [username, currentUser, contextLoading]);
+
+  // Fetch posts when user is loaded
+  useEffect(() => {
+    if (!user || !user._id) return;
+
+    const fetchPosts = async () => {
+      setPostsLoading(true);
+      try {
+        const response = await fetch(`/api/posts/user/${user._id}?page=1&limit=10`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setPosts(data.posts);
+        }
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [user]);
 
   const handleShareProfile = async () => {
     const userUrl = `${window.location.origin}/users/${user.username || user._id}`;
@@ -324,6 +356,41 @@ export default function UserProfile() {
             </div>
           </div>
         )}
+
+        {/* Posts Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
+            <div className="p-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg">
+              <MessagesSquare className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Posts</h2>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {postsLoading ? 'Loading...' : `${posts.length} post${posts.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+
+          {postsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard key={post._id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+              <p className="text-sm text-gray-500">
+                {isOwnProfile ? 'Start sharing your thoughts and experiences!' : 'This user hasn\'t posted anything yet.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

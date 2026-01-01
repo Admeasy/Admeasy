@@ -206,10 +206,10 @@
   --color-tprimary: #2C2E3E;
   --color-tsecondary: #5A5C6C;
   --color-thead1: #993e66;
-  --color-thead2: #5A4BFF;
+  --color-thead2: #9f3562;
   --color-cta: #FF6B00;
   --color-cta-hover: #FF6B00;
-  --color-link: #0057A0;
+  --color-link: #9f3562;
   --color-rating: #FFB400;
   --color-brand: #993e66;
   --color-brand-light: #9f3562;
@@ -323,7 +323,9 @@ body {
 /* ===============================
    PRIMARY ACTION BUTTON (Admeasy)
    =============================== */
-
+.primary-color{
+  color: #9f3562;
+}
 .btn-action {
   width: 100%;
   cursor: pointer;
@@ -350,6 +352,7 @@ body {
   background-color: #b24a78; /* lighter shade */
   box-shadow: 0 8px 20px rgba(159, 53, 98, 0.25);
 }
+
 
 /* Active click feedback */
 .btn-action:active {

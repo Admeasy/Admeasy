@@ -1,40 +1,27 @@
 const mongoose = require('mongoose');
 const { Admeasy } = require('../db');
 
-/**
- * Unified Post Schema
- * Supports both Users and Mentors as authors
- * Reddit-style interactions: votes, comments, reposts
- */
 const postSchema = new mongoose.Schema(
   {
-    // Polymorphic author reference
-    author: {
+    mentorId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      index: true,
+      ref: 'Mentor', // Fixed: Changed from 'Mentors' to 'Mentor' to match model registration
+      required: false, // Made optional to support user posts
     },
-    // Author type: 'User' or 'Mentor'
-    // Used with refPath for polymorphic population
-    authorType: {
-      type: String,
-      required: true,
-      enum: ['User', 'Mentor'],
-      index: true,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Users',
+      required: false, // Made optional to support mentor posts
     },
-    // Post content
     content: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 10000, // Reasonable limit
     },
-    // Image URL (Cloudinary)
     image: {
-      type: String,
+      type: String, // Cloudinary URL
       default: null,
     },
-    // External link preview (for shared links)
     externalLink: {
       url: {
         type: String,
@@ -72,36 +59,69 @@ const postSchema = new mongoose.Schema(
         },
       },
     },
-    // Repost reference (if this is a repost)
+    likes: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Users',
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+    likesCount: {
+      type: Number,
+      default: 0,
+    },
+    comments: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Users',
+      },
+      content: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      likes: [{
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Users',
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      }],
+      likesCount: {
+        type: Number,
+        default: 0,
+      },
+      parentCommentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+      },
+      deleted: {
+        type: Boolean,
+        default: false,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+    commentsCount: {
+      type: Number,
+      default: 0,
+    },
     repostOf: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Post',
+      ref: 'Posts',
       default: null,
-      index: true,
-    },
-    // Aggregated vote score (upvotes - downvotes)
-    // Updated atomically via Vote model hooks
-    voteScore: {
-      type: Number,
-      default: 0,
-      index: true,
-    },
-    // Aggregated counts (updated via hooks)
-    commentCount: {
-      type: Number,
-      default: 0,
-      index: true,
     },
     repostCount: {
       type: Number,
       default: 0,
-      index: true,
-    },
-    // Soft delete flag
-    deleted: {
-      type: Boolean,
-      default: false,
-      index: true,
     },
   },
   {
@@ -109,32 +129,25 @@ const postSchema = new mongoose.Schema(
   }
 );
 
-// Compound indexes for efficient queries
-// Feed query: non-deleted posts, sorted by voteScore or createdAt
-postSchema.index({ deleted: 1, createdAt: -1 });
-postSchema.index({ deleted: 1, voteScore: -1, createdAt: -1 });
-// Author queries
-postSchema.index({ author: 1, authorType: 1, createdAt: -1 });
-// Repost queries
-postSchema.index({ repostOf: 1, createdAt: -1 });
-
-// Virtual for polymorphic population
-// Note: We'll handle population manually in controllers to avoid cross-DB issues
-postSchema.virtual('authorRef', {
-  refPath: 'authorType',
-  localField: 'author',
-  foreignField: '_id',
+// Validation: At least one of mentorId or userId must be present
+postSchema.pre('validate', function(next) {
+  if (!this.mentorId && !this.userId) {
+    return next(new Error('Either mentorId or userId must be provided'));
+  }
+  if (this.mentorId && this.userId) {
+    return next(new Error('Post cannot have both mentorId and userId'));
+  }
+  next();
 });
 
-// Ensure model is registered correctly
-// Check if model already exists to avoid re-registration errors
-let Post;
-try {
-  Post = Admeasy.model('Post');
-} catch (error) {
-  Post = Admeasy.model('Post', postSchema);
-}
+// Indexes for efficient queries
+postSchema.index({ mentorId: 1, createdAt: -1 });
+postSchema.index({ userId: 1, createdAt: -1 });
+postSchema.index({ createdAt: -1 });
+postSchema.index({ 'comments.deleted': 1, 'comments.createdAt': 1 });
+postSchema.index({ 'comments.parentCommentId': 1 });
+// Compound index for feed queries
+postSchema.index({ createdAt: -1, likesCount: -1 });
 
-module.exports = Post;
-
+module.exports = Admeasy.models.PPosts || Admeasy.model('Posts', postSchema);
 

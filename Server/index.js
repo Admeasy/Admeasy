@@ -20,7 +20,7 @@ const NoteRoutes = require('./routes/noteRoutes');
 const PaymentRoutes = require('./routes/paymentRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
 const SitemapRoutes = require('./routes/sitemapRoutes')
-const MentorPostRoutes = require('./routes/mentorPostRoutes');
+const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const app = express();
@@ -196,14 +196,10 @@ app.get('/api/check-username/:username', async (req, res) => {
     const existingMentor = await Mentor.findOne({ 
       username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
     });
-
-    console.log(existingMentor);
     
     const existingUser = await User.findOne({ 
       username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
     });
-
-    console.log(existingUser);
 
     const isAvailable = !existingMentor && !existingUser;
     
@@ -267,7 +263,7 @@ app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
 app.use('/api', ChatRoutes);
 app.use('/api/payments', PaymentRoutes);
-app.use('/api/posts', MentorPostRoutes);
+app.use('/api/posts', PostRoutes);
 app.use("/api", SearchRoutes);
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
 // Socket.io connection handling with session authentication

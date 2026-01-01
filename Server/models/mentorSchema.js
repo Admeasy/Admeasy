@@ -64,14 +64,16 @@ const Schema = new mongoose.Schema({
             required: true
         }
     }],
-    followers: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users'
-    }],
-    following: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Mentor'
-    }],
+    // Array of follower IDs (can be Users or Mentors)
+    followers: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
+    // Array of followed user/mentor IDs (can be Users or Mentors)
+    following: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
     notesUploaded: {
         type: String,
         trim: true,

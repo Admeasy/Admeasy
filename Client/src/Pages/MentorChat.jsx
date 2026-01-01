@@ -208,7 +208,14 @@ const MentorChat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]"
+      style={{ 
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)'
+      }}
+    >
       
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -219,23 +226,26 @@ const MentorChat = () => {
       </div>
       
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-10">
+      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 fixed top-16 left-0 right-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/mentor/chats')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562]"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562] cursor-pointer relative z-10"
             >
-              <FaArrowLeft />
+              <FaArrowLeft className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Link to={`/${user?.username}`}>
+                <Link 
+                  to={`/${user?.username}`}
+                  className="cursor-pointer relative z-10 block"
+                >
                   <img
                     src={user?.image || user?.imageUrl || fallbackProfilePic}
                     alt={user?.name || 'Student'}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all"
                     onError={(e) => {
                       e.target.src = fallbackProfilePic;
                     }}
@@ -274,7 +284,7 @@ const MentorChat = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pt-20 pb-24 relative z-10">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pt-32 pb-24 relative z-10">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="text-center py-8 bg-white/95 backdrop-blur-xl rounded-2xl border border-red-200 shadow-xl shadow-gray-200/50">

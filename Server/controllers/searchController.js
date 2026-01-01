@@ -3,18 +3,19 @@ const Mentor = require("../models/mentorSchema");
 const Note = require("../models/noteSchema");
 const College = require("../models/collegeSchema");
 
+// Helper function to shuffle array
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 exports.globalSearch = async (req, res) => {
   try {
     const { q = "", type } = req.query;
-
-    if (!q.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Search query is required"
-      });
-    }
-
-    const regex = new RegExp(q, "i");
 
     const results = {
       mentors: [],
@@ -22,6 +23,86 @@ exports.globalSearch = async (req, res) => {
       blogs: [],
       notes: []
     };
+
+    // If no query, return random shuffled data
+    if (!q.trim()) {
+      /* ===================== MENTORS ===================== */
+      if (!type || type === "mentors") {
+        const allMentors = await Mentor.find({})
+          .select(`
+            name
+            image
+            imageUrl
+            college
+            course
+            expertise
+            notesUploaded
+            username
+          `)
+          .limit(50); // Get more to shuffle
+        results.mentors = shuffleArray(allMentors).slice(0, 15);
+      }
+
+      /* ===================== COLLEGES ===================== */
+      if (!type || type === "colleges") {
+        const allColleges = await College.find({})
+          .select(`
+            name
+            logo
+            desc
+            rating
+            placements
+            location
+            city
+            state
+          `)
+          .limit(50);
+        results.colleges = shuffleArray(allColleges).slice(0, 15);
+      }
+
+      /* ===================== BLOGS ===================== */
+      if (!type || type === "blogs") {
+        const allBlogs = await Blog.find({})
+          .select(`
+            Author
+            Title
+            Thumbnail
+            content
+            category
+            readingTime
+            createdAt
+          `)
+          .limit(50);
+        results.blogs = shuffleArray(allBlogs).slice(0, 15);
+      }
+
+      /* ===================== NOTES ===================== */
+      if (!type || type === "notes") {
+        const allNotes = await Note.find({})
+          .select(`
+            title
+            description
+            subject
+            uploader
+            uploaderName
+            likes
+            views
+            createdAt
+          `)
+          .limit(50);
+        results.notes = shuffleArray(allNotes).slice(0, 15);
+      }
+
+      return res.status(200).json({
+        success: true,
+        query: "",
+        type: type || "all",
+        results
+      });
+    }
+
+    // If query exists, perform search
+    const regex = new RegExp(q, "i");
 
     /* ===================== MENTORS ===================== */
     if (!type || type === "mentors") {

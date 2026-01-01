@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
 import { useSocket } from '../context/SocketContext';
+import { ArrowLeft } from 'lucide-react';
 
 const Chat = () => {
   const { mentorId } = useParams();
@@ -53,7 +54,7 @@ const Chat = () => {
       }
 
       const chatData = await chatResponse.json();
-      
+
       if (!chatData.success || !chatData.chat) {
         throw new Error('Invalid chat response');
       }
@@ -72,7 +73,7 @@ const Chat = () => {
 
       // Fetch messages immediately (don't wait for socket)
       await fetchMessages(chatData.chat.chatId);
-      
+
       // Join socket room in background (non-blocking)
       if (isConnected && socket) {
         joinChat(chatData.chat.chatId);
@@ -85,10 +86,10 @@ const Chat = () => {
             console.log('Successfully joined chat after socket ready:', chatData.chat.chatId);
           }
         };
-        
+
         // Try immediately
         setTimeout(tryJoinChat, 100);
-        
+
         // Also set up a listener for when socket becomes connected
         if (socket) {
           socket.once('authenticated', () => {
@@ -98,7 +99,7 @@ const Chat = () => {
           });
         }
       }
-      
+
       setIsLoading(false);
     } catch (error) {
       console.error('Error initializing chat:', error);
@@ -129,7 +130,7 @@ const Chat = () => {
       // Only add message if it belongs to this chat
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         setMessages(prevMessages => {
-          const exists = prevMessages.some(m => 
+          const exists = prevMessages.some(m =>
             m._id && message._id && m._id.toString() === message._id.toString()
           );
           if (!exists) {
@@ -155,7 +156,7 @@ const Chat = () => {
       // Add the sent message to the list if it's not already there
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         setMessages(prevMessages => {
-          const exists = prevMessages.some(m => 
+          const exists = prevMessages.some(m =>
             m._id && message._id && m._id.toString() === message._id.toString()
           );
           if (!exists) {
@@ -277,8 +278,15 @@ const Chat = () => {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
-      
+    <main
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]"
+      style={{
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)'
+      }}
+    >
+
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
@@ -286,25 +294,28 @@ const Chat = () => {
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
-      
+
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-10">
+      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 z-50 relative">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/chats')}
-              className="text-xl p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562]"
+              className="text-xl p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562] cursor-pointer relative z-10"
             >
-              <FaArrowLeft />
+              <ArrowLeft className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Link to={`/${mentor?.username}`}>
+                <Link
+                  to={`/${mentor?.username}`}
+                  className="cursor-pointer relative block"
+                >
                   <img
                     src={mentor?.image || mentor?.imageUrl || fallbackProfilePic}
                     alt={mentor?.name || 'Mentor'}
-                    className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all"
+                    className="w-10 h-10 rounded-full object-cover transition-all"
                     onError={(e) => {
                       e.target.src = fallbackProfilePic;
                     }}
@@ -313,7 +324,7 @@ const Chat = () => {
                 {mentorId && (
                   <div className="absolute -bottom-0 -right-0">
                     <FaCircle
-                      className={`text-xs ${isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'}`}
+                      className={`text-xs z-15 ${isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'}`}
                     />
                   </div>
                 )}
@@ -342,7 +353,7 @@ const Chat = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pt-20 pb-24 relative z-10">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pt-32 pb-24 relative z-10">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="text-center py-8 bg-white/95 backdrop-blur-xl rounded-2xl border border-red-200 shadow-xl shadow-gray-200/50">
@@ -405,7 +416,7 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="bg-white/95 backdrop-blur-xl border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg">
+      <div className="backdrop-blur-xl max-[400px]:p-1.5 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg">
         <div className="max-w-4xl mx-auto">
           {/* Connection Status */}
           {!isConnected && (
@@ -422,7 +433,7 @@ const Chat = () => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder={`Message ${mentor?.name || 'mentor'}...`}
-              className="flex-1 px-4 py-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
+              className="flex-1 max-[400px]:pl-2.25 px-4 max-[400px]:py-0.5 py-3 max-[400px]:text-sm bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
               disabled={isSending || !isConnected}
             />
             <button
@@ -434,7 +445,9 @@ const Chat = () => {
                 }`}
             >
               <FaPaperPlane className="text-sm" />
-              {isSending ? 'Sending...' : isConnected ? 'Send' : 'Offline'}
+              <span className="max-[400px]:hidden">
+                {isSending ? 'Sending...' : isConnected ? 'Send' : 'Offline'}
+              </span>
             </button>
           </form>
         </div>

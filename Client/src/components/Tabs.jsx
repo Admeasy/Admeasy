@@ -41,7 +41,7 @@ const getRatingColor = (rating) => {
   if (!rating) return 'from-gray-300 to-gray-400';
   if (rating >= 4.5) return 'from-green-400 to-green-600';
   if (rating >= 4.0) return 'from-teal-400 to-teal-600';
-  if (rating >= 3.5) return 'from-blue-400 to-blue-600';
+  if (rating >= 3.5) return 'from-brand-light to-brand-dark';
   if (rating >= 3.0) return 'from-yellow-400 to-yellow-600';
   if (rating >= 2.0) return 'from-orange-400 to-orange-600';
   return 'from-red-400 to-red-600';
@@ -59,7 +59,7 @@ const RatingBar = ({ rating, label }) => {
         <h4 className="text-thead1 text-lg font-semibold">{label}</h4>
         <span className={`font-medium ${ratingValue >= 4.5 ? 'text-green-600' :
           ratingValue >= 4.0 ? 'text-teal-600' :
-            ratingValue >= 3.5 ? 'text-blue-600' :
+            ratingValue >= 3.5 ? 'text-[#9f3562]' :
               ratingValue >= 3.0 ? 'text-yellow-600' :
                 ratingValue >= 2.0 ? 'text-orange-600' :
                   'text-red-600'}`}>
@@ -219,14 +219,14 @@ export default function Tabs({college = {} }) {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className='w-full'
         >
-          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1 overflow-x-auto">
+          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-brand-light/20 p-1 overflow-x-auto">
             {Object.keys(categories).map((category) => (
               <Tab
                 key={category}
                 className={({ selected }) =>
                   classNames(
                     'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[20px] font-medium',
-                    'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer',
+                    'ring-white/60 ring-offset-2 ring-offset-[#9f3562] focus:outline-none focus:ring-2 cursor-pointer',
                     selected
                       ? 'bg-white text-link shadow'
                       : 'text-black hover:bg-white/[0.12] hover:text-link'
@@ -556,7 +556,7 @@ export default function Tabs({college = {} }) {
               <h2 className='font-admeasy-extrabold text-center text-2xl sm:text-3xl text-thead1 mb-8'>Gallery</h2>
               {isGalleryLoading ? (
                 <div className="flex justify-center items-center min-h-[200px]">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-light"></div>
                 </div>
               ) : galleryError ? (
                 <div className="text-center py-8 bg-primary rounded-2xl shadow-3d">

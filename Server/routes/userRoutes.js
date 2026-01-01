@@ -886,8 +886,9 @@ router.get('/:userId', async (req, res) => {
         }
         
         // Check if this is a mentor by checking if there's a mentor with this ID
+        // OPTIMIZED: Using lean() and parallel queries where possible
         const Mentor = require('../models/mentorSchema');
-        const mentor = await Mentor.findById(decoded.id);
+        const mentor = await Mentor.findById(decoded.id).lean();
         
         if (mentor) {
             // It's a mentor - verify they have a chat with this user
@@ -896,7 +897,7 @@ router.get('/:userId', async (req, res) => {
                 userId,
                 mentorId: decoded.id,
                 isActive: true
-            });
+            }).lean();
             
             if (!chat) {
                 return res.status(403).json({ 
@@ -914,14 +915,14 @@ router.get('/:userId', async (req, res) => {
             }
         }
         
-        // Find the user
-        const user = await User.findById(userId).select('-password -refreshToken');
+        // Find the user - OPTIMIZED: Using lean() for faster queries
+        const user = await User.findById(userId).select('-password -refreshToken').lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
         
         // Process image if needed
-        const processedUser = await processUserImage(user.toObject());
+        const processedUser = await processUserImage(user);
         
         res.json(processedUser);
     } catch (err) {
@@ -931,10 +932,10 @@ router.get('/:userId', async (req, res) => {
 });
 
 /**
- * POST /api/users/:mentorId/follow
- * Follow a mentor (authenticated users only)
+ * POST /api/users/:targetId/follow
+ * Follow a user or mentor (authenticated users and mentors can follow anyone)
  */
-router.post('/:mentorId/follow', async (req, res) => {
+router.post('/:targetId/follow', async (req, res) => {
     try {
         const token = req.cookies?.accessToken;
         if (!token) {
@@ -942,55 +943,85 @@ router.post('/:mentorId/follow', async (req, res) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-        if (decoded.role && decoded.role === 'mentor') {
-            return res.status(403).json({ success: false, message: 'Mentors cannot follow other mentors' });
-        }
-
-        const user = await User.findById(decoded.id || decoded._id);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
+        const targetId = req.params.targetId;
         const Mentor = require('../models/mentorSchema');
-        const mentor = await Mentor.findById(req.params.mentorId);
-        if (!mentor) {
-            return res.status(404).json({ success: false, message: 'Mentor not found' });
+
+        // Get the follower (can be user or mentor)
+        let follower = null;
+        let followerType = null;
+
+        if (decoded.role === 'mentor') {
+            follower = await Mentor.findById(decoded.id || decoded._id);
+            followerType = 'mentor';
+        } else {
+            follower = await User.findById(decoded.id || decoded._id);
+            followerType = 'user';
+        }
+
+        if (!follower) {
+            return res.status(404).json({ success: false, message: 'Follower not found' });
+        }
+
+        // Prevent self-follow
+        if (follower._id.toString() === targetId) {
+            return res.status(400).json({ success: false, message: 'Cannot follow yourself' });
+        }
+
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+        let targetType = 'user';
+
+        if (!target) {
+            target = await Mentor.findById(targetId);
+            targetType = 'mentor';
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'Target user or mentor not found' });
+        }
+
+        // Initialize arrays if they don't exist (for existing records)
+        if (!follower.following) {
+            follower.following = [];
+        }
+        if (!target.followers) {
+            target.followers = [];
         }
 
         // Check if already following
-        const isFollowing = user.following.some(
-            id => id.toString() === req.params.mentorId
+        const isFollowing = follower.following.some(
+            id => id.toString() === targetId
         );
 
         if (isFollowing) {
             // Unfollow
-            user.following = user.following.filter(
-                id => id.toString() !== req.params.mentorId
+            follower.following = follower.following.filter(
+                id => id.toString() !== targetId
             );
-            mentor.followers = mentor.followers.filter(
-                id => id.toString() !== user._id.toString()
+            target.followers = target.followers.filter(
+                id => id.toString() !== follower._id.toString()
             );
-            await user.save();
-            await mentor.save();
+            await follower.save();
+            await target.save();
 
             return res.json({
                 success: true,
                 message: 'Unfollowed successfully',
                 isFollowing: false,
-                followersCount: mentor.followers.length
+                followersCount: target.followers.length
             });
         } else {
             // Follow
-            user.following.push(mentor._id);
-            mentor.followers.push(user._id);
-            await user.save();
-            await mentor.save();
+            follower.following.push(target._id);
+            target.followers.push(follower._id);
+            await follower.save();
+            await target.save();
 
             return res.json({
                 success: true,
                 message: 'Followed successfully',
                 isFollowing: true,
-                followersCount: mentor.followers.length
+                followersCount: target.followers.length
             });
         }
     } catch (error) {
@@ -1000,33 +1031,47 @@ router.post('/:mentorId/follow', async (req, res) => {
 });
 
 /**
- * GET /api/users/:mentorId/follow-status
- * Check if user is following a mentor (optional auth)
+ * GET /api/users/:targetId/follow-status
+ * Check if current user/mentor is following a target user or mentor (optional auth)
  */
-router.get('/:mentorId/follow-status', async (req, res) => {
+router.get('/:targetId/follow-status', async (req, res) => {
     try {
         const token = req.cookies?.accessToken;
         let isFollowing = false;
+        const targetId = req.params.targetId;
 
         if (token) {
             try {
                 const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-                if (!decoded.role || decoded.role !== 'mentor') {
-                    const user = await User.findById(decoded.id || decoded._id);
-                    if (user) {
-                        isFollowing = user.following.some(
-                            id => id.toString() === req.params.mentorId
-                        );
-                    }
+                const Mentor = require('../models/mentorSchema');
+                
+                // Get the current user/mentor
+                let currentUser = null;
+                if (decoded.role === 'mentor') {
+                    currentUser = await Mentor.findById(decoded.id || decoded._id);
+                } else {
+                    currentUser = await User.findById(decoded.id || decoded._id);
+                }
+
+                if (currentUser && currentUser.following) {
+                    isFollowing = currentUser.following.some(
+                        id => id.toString() === targetId
+                    );
                 }
             } catch (err) {
                 // Token invalid, user not logged in
             }
         }
 
+        // Find the target (can be user or mentor) to get followers count
         const Mentor = require('../models/mentorSchema');
-        const mentor = await Mentor.findById(req.params.mentorId);
-        const followersCount = mentor ? mentor.followers.length : 0;
+        let target = await User.findById(targetId);
+        
+        if (!target) {
+            target = await Mentor.findById(targetId);
+        }
+
+        const followersCount = target && target.followers ? target.followers.length : 0;
 
         res.json({
             success: true,
@@ -1035,6 +1080,112 @@ router.get('/:mentorId/follow-status', async (req, res) => {
         });
     } catch (error) {
         console.error('Error checking follow status:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/users/:targetId/followers
+ * Get list of followers for a user or mentor
+ */
+router.get('/:targetId/followers', async (req, res) => {
+    try {
+        const targetId = req.params.targetId;
+        const Mentor = require('../models/mentorSchema');
+        
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+        
+        if (!target) {
+            target = await Mentor.findById(targetId);
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'User or mentor not found' });
+        }
+
+        const followersIds = target.followers || [];
+        
+        // Fetch followers (can be users or mentors)
+        const followers = [];
+        for (const id of followersIds) {
+            let follower = await User.findById(id).select('name username image imageUrl email _id');
+            if (!follower) {
+                follower = await Mentor.findById(id).select('name username image imageUrl email _id');
+                if (follower) {
+                    follower = follower.toObject();
+                    follower.type = 'mentor';
+                }
+            } else {
+                follower = follower.toObject();
+                follower.type = 'user';
+            }
+            
+            if (follower) {
+                followers.push(follower);
+            }
+        }
+
+        res.json({
+            success: true,
+            followers,
+            count: followers.length
+        });
+    } catch (error) {
+        console.error('Error fetching followers:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/users/:targetId/following
+ * Get list of users/mentors that the target is following
+ */
+router.get('/:targetId/following', async (req, res) => {
+    try {
+        const targetId = req.params.targetId;
+        const Mentor = require('../models/mentorSchema');
+        
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+        
+        if (!target) {
+            target = await Mentor.findById(targetId);
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'User or mentor not found' });
+        }
+
+        const followingIds = target.following || [];
+        
+        // Fetch following (can be users or mentors)
+        const following = [];
+        for (const id of followingIds) {
+            let followed = await User.findById(id).select('name username image imageUrl email _id');
+            if (!followed) {
+                followed = await Mentor.findById(id).select('name username image imageUrl email _id');
+                if (followed) {
+                    followed = followed.toObject();
+                    followed.type = 'mentor';
+                }
+            } else {
+                followed = followed.toObject();
+                followed.type = 'user';
+            }
+            
+            if (followed) {
+                following.push(followed);
+            }
+        }
+
+        res.json({
+            success: true,
+            following,
+            count: following.length
+        });
+    } catch (error) {
+        console.error('Error fetching following:', error);
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });

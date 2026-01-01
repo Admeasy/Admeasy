@@ -21,6 +21,12 @@ const PostCard = ({ post }) => {
   const [isReposted, setIsReposted] = useState(post.isReposted || false);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+  
+  // Support both 'mentor' (backward compatibility) and 'author' (new format)
+  const author = post.author || post.mentor;
+  // A post is a mentor post if it has the 'mentor' key (backward compatibility) or if author has username (mentors typically have usernames)
+  // For now, we'll show follow button only if post.mentor exists (backward compatibility) or if author has username
+  const isMentorPost = Boolean(post.mentor) || Boolean(author && author.username);
 
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -31,41 +37,47 @@ const PostCard = ({ post }) => {
     }
     if (isLiking) return;
 
-    setIsLiking(true);
+    // OPTIMISTIC UPDATE: Update UI immediately before API call
     const previousLiked = isLiked;
     const previousCount = likesCount;
-
-    // Optimistic update with animation
+    
+    // Update UI instantly
+    setIsLiked(!isLiked);
+    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
+    
+    // Show animation
     if (!previousLiked) {
       setShowLikeAnimation(true);
       setTimeout(() => setShowLikeAnimation(false), 800);
     }
-    
-    setIsLiked(!isLiked);
-    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
 
-    try {
-      const response = await fetch(`/api/posts/${post._id}/like`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background (no blocking)
+    setIsLiking(true);
+    fetch(`/api/posts/${post._id}/like`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Sync with server response (in case of race conditions)
+          setIsLiked(data.isLiked);
+          setLikesCount(data.likesCount);
+        } else {
+          // Revert on error
+          setIsLiked(previousLiked);
+          setLikesCount(previousCount);
+        }
+      })
+      .catch(error => {
+        console.error('Error liking post:', error);
+        // Revert on error
+        setIsLiked(previousLiked);
+        setLikesCount(previousCount);
+      })
+      .finally(() => {
+        setIsLiking(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to like post');
-      }
-
-      setIsLiked(data.isLiked);
-      setLikesCount(data.likesCount);
-    } catch (error) {
-      console.error('Error liking post:', error);
-      toast.error('Failed to like post');
-      setIsLiked(previousLiked);
-      setLikesCount(previousCount);
-    } finally {
-      setIsLiking(false);
-    }
   };
 
   const handleShare = async (e) => {
@@ -76,7 +88,7 @@ const PostCard = ({ post }) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Post by ${post.mentor.name}`,
+          title: `Post by ${author?.name || 'User'}`,
           text: post.content.replace(/<[^>]*>/g, '').substring(0, 100), // Strip HTML for text
           url: postUrl,
         });
@@ -101,77 +113,90 @@ const PostCard = ({ post }) => {
     }
     if (isReposting) return;
 
-    setIsReposting(true);
+    // OPTIMISTIC UPDATE: Update UI immediately
     const previousReposted = isReposted;
     setIsReposted(!isReposted);
 
-    try {
-      const response = await fetch(`/api/mentor-posts/${post._id}/repost`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background
+    setIsReposting(true);
+    fetch(`/api/posts/${post._id}/repost`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsReposted(data.isReposted);
+        } else {
+          // Revert on error
+          setIsReposted(previousReposted);
+        }
+      })
+      .catch(error => {
+        console.error('Error reposting:', error);
+        // Revert on error
+        setIsReposted(previousReposted);
+      })
+      .finally(() => {
+        setIsReposting(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to repost');
-      }
-
-      if (data.success) {
-        setIsReposted(data.isReposted);
-        toast.success(data.isReposted ? 'Post reposted successfully!' : 'Repost removed');
-      }
-    } catch (error) {
-      console.error('Error reposting:', error);
-      toast.error(error.message || 'Failed to repost');
-      setIsReposted(previousReposted);
-    } finally {
-      setIsReposting(false);
-    }
   };
 
   const handleFollow = async (e) => {
     e.stopPropagation();
-    if (!user) {
-      toast.info('Log in to follow mentors');
+    if (!isAuthed) {
+      toast.info('Log in to follow users and mentors');
       navigate('/login');
       return;
     }
     if (isFollowingLoading) return;
 
-    setIsFollowingLoading(true);
+    // OPTIMISTIC UPDATE: Update UI immediately
     const previousFollowing = isFollowing;
     setIsFollowing(!isFollowing);
 
-    try {
-      const response = await fetch(`/api/users/${post.mentor._id}/follow`, {
-        method: 'POST',
-        credentials: 'include',
+    // Make API call in background
+    setIsFollowingLoading(true);
+    fetch(`/api/users/${author._id}/follow`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setIsFollowing(data.isFollowing);
+          // Broadcast follow status change globally
+          window.dispatchEvent(new CustomEvent('followStatusChanged', {
+            detail: {
+              targetId: author._id.toString(),
+              isFollowing: data.isFollowing
+            }
+          }));
+        } else {
+          // Revert on error
+          setIsFollowing(previousFollowing);
+        }
+      })
+      .catch(error => {
+        console.error('Error following:', error);
+        // Revert on error
+        setIsFollowing(previousFollowing);
+      })
+      .finally(() => {
+        setIsFollowingLoading(false);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to follow');
-      }
-
-      if (data.success) {
-        setIsFollowing(data.isFollowing);
-        toast.success(data.isFollowing ? 'Followed successfully!' : 'Unfollowed successfully');
-      }
-    } catch (error) {
-      console.error('Error following:', error);
-      toast.error(error.message || 'Failed to follow');
-      setIsFollowing(previousFollowing);
-    } finally {
-      setIsFollowingLoading(false);
-    }
   };
 
-  // Fetch follow status on mount if user is logged in
+  // Check if post is by current user/mentor
+  const isOwnPost = author && (
+    (user && user._id && author._id && user._id.toString() === author._id.toString()) ||
+    (mentor && mentor._id && author._id && mentor._id.toString() === author._id.toString())
+  );
+
+  // Fetch follow status on mount if user/mentor is logged in
   useEffect(() => {
-    if (user && post.mentor._id) {
-      fetch(`/api/users/${post.mentor._id}/follow-status`, {
+    if (isAuthed && author && author._id && !isOwnPost) {
+      fetch(`/api/users/${author._id}/follow-status`, {
         credentials: 'include',
       })
         .then(res => res.json())
@@ -182,7 +207,24 @@ const PostCard = ({ post }) => {
         })
         .catch(err => console.error('Error fetching follow status:', err));
     }
-  }, [user, post.mentor._id]);
+  }, [isAuthed, author, isOwnPost]);
+
+  // Listen for global follow status changes
+  useEffect(() => {
+    if (!author || !author._id || isOwnPost) return;
+
+    const handleFollowStatusChange = (event) => {
+      const { targetId, isFollowing: newFollowingStatus } = event.detail;
+      if (targetId === author._id.toString()) {
+        setIsFollowing(newFollowingStatus);
+      }
+    };
+
+    window.addEventListener('followStatusChanged', handleFollowStatusChange);
+    return () => {
+      window.removeEventListener('followStatusChanged', handleFollowStatusChange);
+    };
+  }, [author, isOwnPost]);
 
   const handleLinkClick = (e, url) => {
     e.stopPropagation();
@@ -214,7 +256,7 @@ const PostCard = ({ post }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       onClick={() => navigate(`/posts/${post._id}`)}
-      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/20 group relative"
+      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
     >
       <style>{`
         .post-content h1, .post-content h2, .post-content h3 {
@@ -255,7 +297,7 @@ const PostCard = ({ post }) => {
         }
       `}</style>
       {/* Gradient hover effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#9f3562]/0 via-pink-500/0 to-purple-500/0 group-hover:from-[#9f3562]/5 group-hover:via-pink-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#9f3562]/0 via-pink-500/0 to-purple-500/0 group-hover:from-[#9f3562]/2 group-hover:via-pink-500/2 group-hover:to-purple-500/2 transition-all duration-500 pointer-events-none" />
       
       {/* Content */}
       <div className="relative z-10">
@@ -266,12 +308,14 @@ const PostCard = ({ post }) => {
             className="relative"
           >
             <img
-              src={post.mentor.image || fallbackProfilePic}
-              alt={post.mentor.name}
+              src={author?.image || fallbackProfilePic}
+              alt={author?.name || 'User'}
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/${post.mentor.username}`);
+                if (author?.username) {
+                  navigate(`/${author.username}`);
+                }
               }}
               onError={(e) => {
                 e.target.src = fallbackProfilePic;
@@ -284,38 +328,40 @@ const PostCard = ({ post }) => {
                 className="font-bold text-gray-900 text-sm sm:text-base truncate cursor-pointer hover:text-[#9f3562] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/${post.mentor.username}`);
+                  if (author?.username) {
+                    navigate(`/${author.username}`);
+                  }
                 }}
               >
-                {post.mentor.name}
+                {author?.name || 'User'}
               </h3>
             </div>
-            {post.mentor.username && (
+            {author?.username && (
               <p 
                 className="text-xs sm:text-sm text-gray-500 truncate cursor-pointer hover:text-[#9f3562] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/${post.mentor.username}`);
+                  navigate(`/${author.username}`);
                 }}
               >
-                @{post.mentor.username}
+                @{author.username}
               </p>
             )}
           </div>
-          {user && !mentor && (
+          {isAuthed && !isOwnPost && author && author._id && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleFollow}
               disabled={isFollowingLoading}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 shadow-sm ${
                 isFollowing
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30'
+                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                  : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
               }`}
             >
               {isFollowingLoading ? (
-                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
               ) : isFollowing ? (
                 <>
                   <UserCheck className="w-3.5 h-3.5" />

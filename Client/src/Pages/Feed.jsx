@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
-import Footer from '../components/Footer';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-const MentorPostsFeed = () => {
+const Feed = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
   const navigate = useNavigate();
@@ -104,9 +103,9 @@ const MentorPostsFeed = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-2 tracking-tight">
-                  Mentor <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] via-[#b14270] to-[#701a3c]">Insights</span>
+                  Introducing Admeasy <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] via-[#b14270] to-[#701a3c]">Feed</span>
                 </h1>
-                <p className="text-gray-600 text-sm sm:text-base font-medium">Discover knowledge shared by top industry mentors</p>
+                <p className="text-gray-600 text-sm sm:text-base font-medium">Discover knowledge shared by top mentors. Ask or answer questions. Your very own, Study Community.</p>
               </div>
               
               {!user && !mentor && (
@@ -163,12 +162,8 @@ const MentorPostsFeed = () => {
           )}
         </div>
       </div>
-      
-      <div className="w-full mt-20 border-t border-gray-200/50 bg-white/60 backdrop-blur-xl relative z-20">
-        <Footer />
-      </div>
     </div>
   );
 };
 
-export default MentorPostsFeed;
+export default Feed;

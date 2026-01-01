@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { ImagePlus, Loader2, Send, X, Globe, Calendar } from "lucide-react";
 import { toast } from "react-toastify";
 import ReactQuill, { Quill } from "react-quill-new";
@@ -6,11 +7,16 @@ import { motion, AnimatePresence } from "framer-motion"; // For animations
 import "react-quill-new/dist/quill.snow.css";
 import TableUI from "quill-table-ui";
 import "quill-table-ui/dist/index.css";
+import { useUser } from "../context/UserContext";
+import { useMentor } from "../context/MentorContext";
 
 // Registration stays the same...
 Quill.register('modules/tableUI', TableUI, true);
 
 const MentorPost = () => {
+  const navigate = useNavigate();
+  const { user } = useUser();
+  const { mentor } = useMentor();
   const [content, setContent] = useState("");
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -51,7 +57,7 @@ const MentorPost = () => {
 
       console.error(err);
 
-      toast.error("Failed to load mentor posts");
+      toast.error("Failed to load posts");
 
     } finally {
 
@@ -64,10 +70,16 @@ const MentorPost = () => {
 
 
   useEffect(() => {
-
     fetchPosts();
-
   }, []);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user && !mentor) {
+      toast.info("Please log in to create posts");
+      navigate("/login");
+    }
+  }, [user, mentor, navigate]);
 
 
 
@@ -189,7 +201,7 @@ const MentorPost = () => {
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-1 bg-pink-500 rounded-full" />
-            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Create Insight</h2>
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Create Post</h2>
           </div>
 
           <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300">
@@ -272,15 +284,17 @@ const MentorPost = () => {
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <img
-                        src={post.mentor.image || "/avatar.png"}
-                        alt={post.mentor.name}
+                        src={(post.author || post.mentor)?.image || "/avatar.png"}
+                        alt={(post.author || post.mentor)?.name || "User"}
                         className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-50"
                       />
                       <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 leading-none mb-1">{post.mentor.name}</h3>
-                      <p className="text-sm text-slate-500">@{post.mentor.username}</p>
+                      <h3 className="font-bold text-slate-900 leading-none mb-1">{(post.author || post.mentor)?.name || "User"}</h3>
+                      {(post.author || post.mentor)?.username && (
+                        <p className="text-sm text-slate-500">@{(post.author || post.mentor).username}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-3 py-1 rounded-full">

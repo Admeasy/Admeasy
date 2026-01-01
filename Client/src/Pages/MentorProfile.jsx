@@ -6,6 +6,8 @@ import { Edit, MapPin, GraduationCap, Award, MessagesSquare, LogOut, Users, Book
 import { toast } from 'react-toastify';
 import LoadingButton from '../components/LoadingButton';
 import SEO from '../components/SEO';
+import PostCard from '../components/PostCard';
+import FollowersFollowingModal from '../components/FollowersFollowingModal';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function MentorProfile() {
@@ -21,6 +23,8 @@ export default function MentorProfile() {
   const [copied, setCopied] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
 
   useEffect(() => {
@@ -118,6 +122,69 @@ export default function MentorProfile() {
       isMountedRef.current = false;
     };
   }, [username, currentMentor, contextLoading]);
+
+  // Fetch posts when mentor is loaded
+  useEffect(() => {
+    if (!mentor || !mentor._id) return;
+
+    const fetchPosts = async () => {
+      setPostsLoading(true);
+      try {
+        const response = await fetch(`/api/posts/mentor/${mentor._id}?page=1&limit=10`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setPosts(data.posts);
+        }
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [mentor]);
+
+  // Fetch followers and following counts
+  useEffect(() => {
+    if (!mentor || !mentor._id) return;
+
+    const fetchCounts = async () => {
+      try {
+        const followersRes = await fetch(`/api/users/${mentor._id}/followers`, {
+          credentials: 'include',
+        });
+        const followingRes = await fetch(`/api/users/${mentor._id}/following`, {
+          credentials: 'include',
+        });
+
+        if (followersRes.ok) {
+          const followersData = await followersRes.json();
+          if (followersData.success) {
+            setFollowersCount(followersData.count || 0);
+          }
+        }
+
+        if (followingRes.ok) {
+          const followingData = await followingRes.json();
+          if (followingData.success) {
+            setFollowingCount(followingData.count || 0);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching counts:', err);
+      }
+    };
+
+    fetchCounts();
+  }, [mentor]);
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -258,10 +325,16 @@ export default function MentorProfile() {
       {/* Main Container with max width */}
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Profile Card - Instagram Style */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 relative">
           {/* Cover Background */}
           <div className="h-24 sm:h-32 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 border-b border-slate-200"></div>
 
+          {/* Mentor Account Tag - Top Right */}
+          <div className="absolute top-4 right-4 z-10">
+            <span className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold rounded-full shadow-lg">
+              Mentor Account
+            </span>
+          </div>
 
           {/* Profile Content */}
           <div className="px-4 sm:px-6 pb-6">
@@ -361,18 +434,37 @@ export default function MentorProfile() {
 
               {/* Stats Row - Instagram Style */}
               <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{examList.length}</div>
-                  <div className="text-xs sm:text-sm text-gray-500">Exams</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">0</div>
-                  <div className="text-xs sm:text-sm text-gray-500">Students</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">0</div>
-                  <div className="text-xs sm:text-sm text-gray-500">Sessions</div>
-                </div>
+                <button
+                  onClick={() => {
+                    setModalType('posts');
+                    // Posts are shown in the posts section below, so we can scroll or just show a message
+                    toast.info('Posts are shown below');
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{posts.length}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Posts</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setModalType('followers');
+                    setShowModal(true);
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followersCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Followers</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setModalType('following');
+                    setShowModal(true);
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followingCount}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Following</div>
+                </button>
               </div>
 
               {/* Bio/Tagline */}
@@ -483,7 +575,53 @@ export default function MentorProfile() {
             </Link>
           </div>
         )}
+
+        {/* Posts Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
+            <div className="p-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg">
+              <MessagesSquare className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Posts</h2>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {postsLoading ? 'Loading...' : `${posts.length} post${posts.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+
+          {postsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard key={post._id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+              <p className="text-sm text-gray-500">
+                {isOwnProfile ? 'Start sharing your thoughts and experiences!' : 'This mentor hasn\'t posted anything yet.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Followers/Following Modal */}
+      {showModal && (modalType === 'followers' || modalType === 'following') && (
+        <FollowersFollowingModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          targetId={mentor._id}
+          type={modalType}
+          profileType="mentor"
+        />
+      )}
     </div>
   );
 }

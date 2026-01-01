@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from "react";
 import { MdAlternateEmail, MdLockOutline } from 'react-icons/md';
-import Logo from '../assets/Admeasy/LOGO.webp';
+import Logo from '../assets/Admeasy/AdmeasyLatest.png';
 import MentorsLogo from '../assets/Admeasy/MentorsLoginLogo.webp';
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
@@ -101,7 +101,7 @@ const fadeUpVariant = {
           <input
             type="email"
             placeholder="Email"
-            className="pl-10 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
+            className="pl-10 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-brand-light/30 transition-all"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
@@ -118,7 +118,7 @@ const fadeUpVariant = {
           <input
             type={showPassword ? 'text' : 'password'}
             placeholder="Password"
-            className="pl-10 pr-12 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-indigo-300 transition-all"
+            className="pl-10 pr-12 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 focus:ring-[#9f3562]/30 transition-all"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -140,7 +140,7 @@ const fadeUpVariant = {
         <div className="flex justify-end mb-4">
           <a
             href="/forgot-password"
-            className="text-sm text-blue-600 hover:underline font-semibold"
+            className="text-sm text-brand-light hover:underline font-semibold"
           >
             Forgot Password?
           </a>
@@ -150,7 +150,7 @@ const fadeUpVariant = {
            {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'blue'}/>
         :   <button
           type="submit"
-          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
           disabled={isSubmitting}
         >
           Log In
@@ -198,7 +198,7 @@ const fadeUpVariant = {
         <span className="text-gray-700 text-sm">Don't have an account? </span>
         <button
           onClick={() => setAuthMode('signup')}
-          className="text-blue-600 hover:underline font-semibold cursor-pointer"
+          className="text-brand-light hover:underline font-semibold cursor-pointer"
         >
           Create one
         </button>

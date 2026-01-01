@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { Eye, EyeOff, X } from "lucide-react";
 import { motion } from "framer-motion";
-import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
+import mentorsLogo from "../assets/Admeasy/AdmeasyLatest.png";
 import { Upload, User, BookOpen, GraduationCap, Sparkles, FileText, Calendar } from "lucide-react";
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
@@ -100,13 +100,15 @@ function MentorsLogin({ onLoginSuccess }) {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl">
         <div className="flex flex-col items-center">
+          <div className="mb-4 text-center">
           <img
             src={mentorsLogo}
-            className="w-40 mb-4"
+            className="w-40"
             draggable="false"
             alt="Mentors Login"
           />
-
+          <p className="font-admeasy-bold primary-color text-1xl">Mentors</p>
+          </div>
           {error && (
             <div className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-center text-xs font-semibold mb-2">
               {error}
@@ -121,7 +123,7 @@ function MentorsLogin({ onLoginSuccess }) {
                 type="text"
                 name="mentorId"
                 placeholder="Email"
-                className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                 value={formData.mentorId}
                 onChange={(e) =>
                   setFormData({ ...formData, mentorId: e.target.value })
@@ -137,7 +139,7 @@ function MentorsLogin({ onLoginSuccess }) {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
-                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
@@ -157,7 +159,7 @@ function MentorsLogin({ onLoginSuccess }) {
             {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'pruple'}/>
         :   <button
           type="submit"
-          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-purple-900 hover:bg-purple-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-purple-900 hover:bg-purple-700 shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
           disabled={isSubmitting}
         >
           Log In
@@ -229,7 +231,7 @@ function MentorsProfile() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-brand-light to-brand-dark bg-clip-text text-transparent mb-2">
             Edit Profile
           </h1>
           <p className="text-gray-600 text-sm">Share your story with the student community</p>
@@ -266,7 +268,7 @@ function MentorsProfile() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">{formData.name || "Your Name"}</h3>
-                <label htmlFor="profile-upload" className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium">
+                <label htmlFor="profile-upload" className="text-sm text-[#9f3562] hover:text-[#b24a78] cursor-pointer font-medium">
                   Change profile photo
                 </label>
               </div>
@@ -405,7 +407,7 @@ function MentorsProfile() {
              <div className="mt-8 flex gap-4">
               <button
                 onClick={handleSubmit}
-                className="cursor-pointer flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="cursor-pointer flex-1 bg-gradient-to-r from-brand-light to-brand-dark text-white font-semibold py-4 rounded-lg hover:from-brand-dark hover:to-brand-hover transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 Save Profile
               </button>

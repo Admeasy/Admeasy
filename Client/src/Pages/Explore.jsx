@@ -15,6 +15,8 @@ import {
   Search,
   Newspaper,
   Upload,
+  ChevronRight,
+  X,
 } from "lucide-react";
 
 /* ================= SAFE RENDER HELPER ================= */
@@ -55,13 +57,14 @@ const setCachedResults = (query, tab, data) => {
 };
 
 /* ================= COMPONENT ================= */
-const SearchPage = () => {
-  const [searchParams] = useSearchParams();
+const Explore = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState(query);
   const [results, setResults] = useState({
     mentors: [],
     colleges: [],
@@ -69,10 +72,29 @@ const SearchPage = () => {
     notes: [],
   });
 
+  // Sync searchInput with URL query param
   useEffect(() => {
-    if (!query) return;
+    setSearchInput(query);
+  }, [query]);
 
-    const cached = getCachedResults(query, activeTab);
+  // Debounced search: Update URL params when user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newParams = new URLSearchParams(searchParams);
+      if (searchInput.trim()) {
+        newParams.set("q", searchInput.trim());
+      } else {
+        newParams.delete("q");
+      }
+      setSearchParams(newParams, { replace: true });
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchInput, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    // Don't cache when there's no query (random data should be fresh each time)
+    const cached = query ? getCachedResults(query, activeTab) : null;
 
     if (cached) {
       setResults(cached);
@@ -85,13 +107,16 @@ const SearchPage = () => {
       try {
         const url =
           activeTab === "all"
-            ? `/api/search?q=${query}`
-            : `/api/search?q=${query}&type=${activeTab}`;
+            ? `/api/search?q=${query || ""}`
+            : `/api/search?q=${query || ""}&type=${activeTab}`;
 
         const { data } = await axios.get(url);
 
         setResults(data.results);
-        setCachedResults(query, activeTab, data.results);
+        // Only cache when there's a query (don't cache random data)
+        if (query) {
+          setCachedResults(query, activeTab, data.results);
+        }
       } catch (err) {
         console.error("Search failed", err);
       } finally {
@@ -133,15 +158,38 @@ const SearchPage = () => {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        {/* ================= SEARCH HEADER ================= */}
+        {/* ================= SEARCHBAR ================= */}
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            Search Results
-          </h1>
-          <p className="text-lg text-gray-600">
-            Found {totalResults} results for{" "}
-            <span className="font-semibold text-[#9f3562]">"{query}"</span>
-          </p>
+          <div className="relative max-w-2xl mx-auto">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                <Search className="w-5 h-5 text-gray-400 group-focus-within:text-[#9f3562] transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search for mentors, colleges, notes, blogs..."
+                className="w-full pl-12 pr-12 py-4 text-base bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/20 focus:border-[#9f3562] transition-all duration-200 shadow-sm hover:shadow-md placeholder:text-gray-400 text-gray-900"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => setSearchInput("")}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-[#9f3562] transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            {query && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600">
+                  Found <span className="font-semibold text-[#9f3562]">{totalResults}</span> results for{" "}
+                  <span className="font-semibold text-gray-900">"{query}"</span>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ================= PILL-STYLE TABS WITH ICONS ================= */}
@@ -306,7 +354,6 @@ const SearchPage = () => {
                               </h3>
                               {collegeName && (
                                 <p className="text-sm text-gray-500 flex items-center gap-1 mb-1">
-                                  <GraduationCap className="w-3.5 h-3.5" />
                                   {collegeName}
                                 </p>
                               )}
@@ -340,6 +387,15 @@ const SearchPage = () => {
                       </div>
                     );
                   })}
+                </div>
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => navigate("/mentors")}
+                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                  >
+                    View More Mentors
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </section>
             )}
@@ -440,6 +496,15 @@ const SearchPage = () => {
                       );
                     })}
                   </div>
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => navigate("/colleges")}
+                      className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                    >
+                      View More Colleges
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </section>
               )}
 
@@ -525,6 +590,15 @@ const SearchPage = () => {
                     );
                   })}
                 </div>
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => navigate("/blogs")}
+                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                  >
+                    View More Blogs
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </section>
             )}
           </div>
@@ -534,4 +608,4 @@ const SearchPage = () => {
   );
 };
 
-export default SearchPage;
+export default Explore;
