@@ -305,7 +305,7 @@ const getCurrentSchema = () => {
           toast.success('🎉 Onboarding Complete!');
           console.log(onboardingData)
           await fetchUser(); // Refresh user context
-          navigate('/feed');
+          navigate('/');
         } else {
           toast.error(result.message || 'Failed to complete onboarding');
         }

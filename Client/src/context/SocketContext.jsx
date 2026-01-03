@@ -15,7 +15,7 @@ export const useSocket = () => {
 
 export const SocketProvider = ({ children }) => {
   const { user } = useUser();
-  const { mentor } = useMentor();
+  const { mentor, isLoading: mentorLoading } = useMentor();
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -25,6 +25,12 @@ export const SocketProvider = ({ children }) => {
   const maxReconnectAttempts = 5;
 
   useEffect(() => {
+    // Wait for mentor loading to complete before initializing socket
+    if (mentorLoading) {
+      console.log('Mentor still loading, waiting...');
+      return;
+    }
+
     // Only initialize socket if user or mentor exists
     if (!user && !mentor) {
       console.log('No user or mentor, skipping socket connection');
@@ -37,8 +43,43 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const initSocket = () => {
+    const initSocket = async () => {
       console.log('Initializing socket connection...');
+      
+      // Make an authenticated HTTP request first to ensure session is set
+      // This is critical for production where session cookies need to be established
+      try {
+        if (user && user._id) {
+          console.log('Making authenticated request to set session before socket connection');
+          await fetch('/api/users/me', {
+            credentials: 'include',
+            method: 'GET'
+          }).catch(err => {
+            console.warn('Failed to set session via /api/users/me:', err);
+          });
+          // Small delay to ensure session cookie is set and propagated
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else if (mentor && mentor._id) {
+          console.log('Making authenticated request to set session before socket connection');
+          const response = await fetch('/api/mentors/me', {
+            credentials: 'include',
+            method: 'GET'
+          }).catch(err => {
+            console.warn('Failed to set session via /api/mentors/me:', err);
+            return null;
+          });
+          
+          if (response && response.ok) {
+            console.log('Session should be set now, waiting for cookie propagation...');
+            // Small delay to ensure session cookie is set and propagated
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } else {
+            console.warn('Failed to set session - response not OK:', response?.status);
+          }
+        }
+      } catch (err) {
+        console.warn('Error setting session before socket connection:', err);
+      }
       
       // Fix: Use the correct backend URL instead of Vite dev server
       // In development, connect directly to backend (localhost:5000)
@@ -104,7 +145,7 @@ export const SocketProvider = ({ children }) => {
         setIsConnected(true);
       });
 
-      socket.on('auth_required', (data) => {
+      socket.on('auth_required', async (data) => {
         console.log('Authentication required:', data.message);
         setIsConnected(false);
         
@@ -113,8 +154,34 @@ export const SocketProvider = ({ children }) => {
           clearTimeout(authRetryTimeoutRef.current);
         }
         
-        // Session might not be set yet - retry join after a short delay
-        // This allows time for authenticated HTTP requests to set the session
+        // Make an authenticated HTTP request first to set the session
+        // This is critical for production where session cookies need to be established
+        try {
+          if (user && user._id) {
+            console.log('Making authenticated request to set session for user');
+            // Make an authenticated request to set the session
+            await fetch('/api/users/me', {
+              credentials: 'include',
+              method: 'GET'
+            }).catch(err => {
+              console.warn('Failed to set session via /api/users/me:', err);
+            });
+          } else if (mentor && mentor._id) {
+            console.log('Making authenticated request to set session for mentor');
+            // Make an authenticated request to set the session
+            await fetch('/api/mentors/me', {
+              credentials: 'include',
+              method: 'GET'
+            }).catch(err => {
+              console.warn('Failed to set session via /api/mentors/me:', err);
+            });
+          }
+        } catch (err) {
+          console.warn('Error setting session:', err);
+        }
+        
+        // Retry join after making authenticated HTTP request
+        // This allows time for the session to be established
         authRetryTimeoutRef.current = setTimeout(() => {
           if (socket.connected && socketRef.current === socket) {
             if (user && user._id) {
@@ -125,7 +192,7 @@ export const SocketProvider = ({ children }) => {
               socket.emit('join_mentor', mentor._id);
             }
           }
-        }, 2000); // Wait 2 seconds for session to be set via HTTP requests
+        }, 2000); // Wait 2 seconds for session to be set via HTTP request
       });
 
       // Authentication error handler
@@ -166,7 +233,7 @@ export const SocketProvider = ({ children }) => {
       return socket;
     };
 
-    const socket = initSocket();
+    initSocket();
 
     // Cleanup function
     return () => {
@@ -183,7 +250,7 @@ export const SocketProvider = ({ children }) => {
       }
       socketRef.current = null;
     };
-  }, [user?._id, mentor?._id]); // Only reconnect when user/mentor ID changes
+  }, [user?._id, mentor?._id, mentorLoading]); // Only reconnect when user/mentor ID changes or mentor loading completes
 
   // Retry authentication when user/mentor context updates (session might be set now)
   useEffect(() => {

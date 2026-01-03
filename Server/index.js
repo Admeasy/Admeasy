@@ -284,8 +284,16 @@ io.on('connection', (socket) => {
   const mentorId = session.mentorId;
   const userRole = session.userRole; // 'user' or 'mentor'
 
+  console.log('Socket connection session check:', {
+    socketId: socket.id,
+    userId,
+    mentorId,
+    userRole,
+    sessionKeys: Object.keys(session)
+  });
+
   if (!userId && !mentorId) {
-    console.log('Unauthenticated socket connection:', socket.id);
+    console.log('Unauthenticated socket connection:', socket.id, 'Session data:', session);
     // Emit auth_required so client knows to wait for session to be set
     socket.emit('auth_required', { message: 'Session not authenticated. Please make an authenticated HTTP request first.' });
     // Don't disconnect - allow re-authentication when session is set

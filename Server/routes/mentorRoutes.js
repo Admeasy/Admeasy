@@ -397,6 +397,26 @@ router.post('/refresh', async (req, res) => {
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(mentor);
+            
+            // CRITICAL: Set session for Socket.io compatibility
+            if (req.session) {
+                req.session.mentorId = mentor._id;
+                req.session.userRole = 'mentor';
+                // Clear user session if exists
+                delete req.session.userId;
+                // Save session explicitly to ensure it's available for socket connections
+                await new Promise((resolve, reject) => {
+                    req.session.save((err) => {
+                        if (err) {
+                            console.error('Error saving mentor session in refresh:', err);
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            }
+            
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',

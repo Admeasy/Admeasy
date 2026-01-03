@@ -5,6 +5,7 @@ import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import SEO from '../components/SEO';
 
 const Feed = () => {
   const { user } = useUser();
@@ -72,7 +73,7 @@ const Feed = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        
+
         <div className="flex flex-col items-center gap-4 relative z-10">
           <div className="relative">
             <Loader2 className="w-12 h-12 animate-spin text-[#9f3562]" />
@@ -86,7 +87,12 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
-      
+      <SEO
+        title="Admeasy - Find Your Dream College | Connect with Mentors | Study Notes"
+        description="Discover top colleges in India, connect with verified mentors, and access premium study notes. Your complete guide to college admissions and academic success."
+        keywords="colleges in India, college admissions, mentors, study notes, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search"
+        url="https://admeasy.in"
+      />
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
@@ -97,7 +103,7 @@ const Feed = () => {
 
       <div className="flex justify-center relative z-10">
         <div className="w-full max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
-          
+
           {/* Header */}
           <div className="mb-10 sm:mb-14">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -107,7 +113,7 @@ const Feed = () => {
                 </h1>
                 <p className="text-gray-600 text-sm sm:text-base font-medium">Discover knowledge shared by top mentors. Ask or answer questions. Your very own, Study Community.</p>
               </div>
-              
+
               {!user && !mentor && (
                 <button
                   onClick={() => navigate('/login')}

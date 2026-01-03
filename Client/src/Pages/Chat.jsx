@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
 import { useSocket } from '../context/SocketContext';
 import { ArrowLeft } from 'lucide-react';
+import SEO from '../components/SEO';
 
 const Chat = () => {
   const { mentorId } = useParams();
@@ -286,7 +287,12 @@ const Chat = () => {
         marginRight: 'calc(-50vw + 50%)'
       }}
     >
-
+      <SEO
+        title={`${mentor?.name || 'Mentor'} | Admeasy`}
+        description={`Chat with ${mentor?.name || 'Mentor'} on Admeasy`}
+        keywords={`${mentor?.name || 'Mentor'}, chat, mentors, study notes, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search`}
+        url={`https://admeasy.in/chat/${mentorId}`}
+      />
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />

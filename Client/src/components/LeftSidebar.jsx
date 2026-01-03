@@ -35,8 +35,8 @@ const LeftSidebar = ({
     { icon: Compass, label: 'Explore', path: '/explore' },
     ...(loggedInAccount
       ? isUserAccount
-        ? [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chat', path: '/chats' }]
-        : [{ icon: MessagesSquare, label: 'Messages', path: '/mentor/chats' }]
+        ? [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chats', path: '/chats' }]
+        : [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chats', path: '/mentor/chats' }]
       : []),
     { icon: Newspaper, label: 'Blogs', path: '/blog' },
     ...(!loggedInAccount ? [{ icon: UserPlus, label: 'Sign Up/Log In', path: '/login' }] : [])
