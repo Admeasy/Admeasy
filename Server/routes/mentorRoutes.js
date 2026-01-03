@@ -152,6 +152,26 @@ router.post('/login', async (req, res) => {
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
         await mentor.save();
+        
+        // CRITICAL: Set session for Socket.io compatibility
+        if (req.session) {
+            req.session.mentorId = mentor._id;
+            req.session.userRole = 'mentor';
+            // Clear user session if exists
+            delete req.session.userId;
+            // Save session explicitly to ensure it's available for socket connections
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Error saving mentor session:', err);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        }
+        
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',

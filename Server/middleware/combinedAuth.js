@@ -25,6 +25,9 @@ const authenticateOptional = async (req, res, next) => {
         req.mentor = mentor;
         if (req.session) {
           req.session.mentorId = mentor._id;
+          req.session.userRole = 'mentor';
+          // Clear user session if exists
+          delete req.session.userId;
         }
       }
     } else {
@@ -34,6 +37,9 @@ const authenticateOptional = async (req, res, next) => {
         req.user = user;
         if (req.session) {
           req.session.userId = user._id;
+          req.session.userRole = 'user';
+          // Clear mentor session if exists
+          delete req.session.mentorId;
         }
       }
     }
@@ -74,6 +80,9 @@ const authenticateRequired = async (req, res, next) => {
       req.mentor = mentor;
       if (req.session) {
         req.session.mentorId = mentor._id;
+        req.session.userRole = 'mentor';
+        // Clear user session if exists
+        delete req.session.userId;
       }
       return next();
     } else {
@@ -88,6 +97,9 @@ const authenticateRequired = async (req, res, next) => {
       req.user = user;
       if (req.session) {
         req.session.userId = user._id;
+        req.session.userRole = 'user';
+        // Clear mentor session if exists
+        delete req.session.mentorId;
       }
       return next();
     }

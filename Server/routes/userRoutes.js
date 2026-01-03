@@ -316,6 +316,26 @@ router.post('/login', async (req, res) => {
         const refreshToken = generateRefreshToken(user);
         user.refreshToken = refreshToken;
         await user.save();
+        
+        // CRITICAL: Set session for Socket.io compatibility
+        if (req.session) {
+            req.session.userId = user._id;
+            req.session.userRole = 'user';
+            // Clear mentor session if exists
+            delete req.session.mentorId;
+            // Save session explicitly to ensure it's available for socket connections
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Error saving user session:', err);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        }
+        
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -368,6 +388,25 @@ router.get('/auth/google/callback',
             const refreshToken = generateRefreshToken(req.user);
             req.user.refreshToken = refreshToken;
             await req.user.save();
+
+            // CRITICAL: Set session for Socket.io compatibility
+            if (req.session) {
+                req.session.userId = req.user._id;
+                req.session.userRole = 'user';
+                // Clear mentor session if exists
+                delete req.session.mentorId;
+                // Save session explicitly to ensure it's available for socket connections
+                await new Promise((resolve, reject) => {
+                    req.session.save((err) => {
+                        if (err) {
+                            console.error('Error saving user session:', err);
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            }
 
             // Set cookies
             res.cookie('accessToken', accessToken, {
