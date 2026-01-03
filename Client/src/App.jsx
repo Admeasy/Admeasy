@@ -253,7 +253,7 @@ function App() {
       {/* <ScrollUpButton /> */}
 
       {/* Footer - show on non-Layout, non-admin routes (Layout pages handle their own footer) */}
-      {!isAdminRoute && !usesLayout && !isAuthPage && <Footer />}
+      {!isAdminRoute && !usesLayout && !isAuthPage && location.pathname !== '/me' && location.pathname !== '/me/edit' && <Footer />}
     </>
   )
 }
