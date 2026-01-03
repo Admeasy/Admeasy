@@ -55,7 +55,7 @@ const Layout = () => {
       <BottomNavBar />
 
       <main
-        className="pt-[64px] transition-all duration-300"
+        className="pt-0 md:pt-[36px] transition-all duration-300"
         style={{ marginLeft: `${sidebarWidth}px` }}
       >
         <Outlet />

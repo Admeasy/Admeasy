@@ -377,7 +377,7 @@ const Explore = () => {
 
                           {/* Button */}
                           <button
-                            onClick={() => navigate(`/mentors/${mentor.username}`)}
+                            onClick={() => navigate(`/${mentor.username}`)}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"
                           >
                             <Eye className="w-4 h-4" />

@@ -80,7 +80,7 @@ function MentorsLogin({ onLoginSuccess }) {
         }
         
         // Navigate to feed page after successful login
-        navigate('/feed');
+        navigate('/');
       } else {
         setError(data.message || "Invalid username or password");
       }

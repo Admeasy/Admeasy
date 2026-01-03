@@ -170,7 +170,7 @@ const MentorRegistration = () => {
                 }
                 
                 // Navigate to feed page after successful registration
-                navigate('/feed');
+                navigate('/');
             } else {
                 setError(data.message || "Registration failed");
             }

@@ -30,10 +30,31 @@ async function populateUser(userId) {
   if (!userId) return null;
   try {
     const UserModel = Users.model('Users');
-    const user = await UserModel.findById(userId).select('name image').lean();
-    return user;
+    const user = await UserModel.findById(userId).select('name image _id username').lean();
+    return user ? {
+      _id: user._id,
+      name: user.name,
+      image: user.image,
+      username: user.username || null,
+    } : null;
   } catch (error) {
     console.error('Error populating user:', error);
+    return null;
+  }
+}
+
+async function populateMentor(mentorId) {
+  if (!mentorId) return null;
+  try {
+    const mentor = await Mentor.findById(mentorId).select('name image _id username').lean();
+    return mentor ? {
+      _id: mentor._id,
+      name: mentor.name,
+      image: mentor.image,
+      username: mentor.username || null,
+    } : null;
+  } catch (error) {
+    console.error('Error populating mentor:', error);
     return null;
   }
 }
@@ -490,19 +511,39 @@ router.get("/:postId", async (req, res) => {
       if (comment.userId) allUserIds.add(comment.userId.toString());
     });
 
-    // Batch fetch all users in one query
+    // Batch fetch all users and mentors in parallel queries
+    // Comments can be from either users or mentors
     const userIdsArray = Array.from(allUserIds);
     const usersMap = new Map();
     if (userIdsArray.length > 0) {
-      const users = await User.find({ _id: { $in: userIdsArray } })
-        .select('name image _id username')
-        .lean();
+      // Query both User and Mentor models since comment.userId can be either
+      const UserModel = Users.model('Users');
+      const [users, mentors] = await Promise.all([
+        UserModel.find({ _id: { $in: userIdsArray } })
+          .select('name image _id username')
+          .lean(),
+        Mentor.find({ _id: { $in: userIdsArray } })
+          .select('name image _id username')
+          .lean()
+      ]);
+      
+      // Add users to map
       users.forEach(user => {
         usersMap.set(user._id.toString(), {
           _id: user._id,
           name: user.name,
           image: user.image,
           username: user.username || null,
+        });
+      });
+      
+      // Add mentors to map (will override users if same ID, but shouldn't happen)
+      mentors.forEach(mentor => {
+        usersMap.set(mentor._id.toString(), {
+          _id: mentor._id,
+          name: mentor.name,
+          image: mentor.image,
+          username: mentor.username || null,
         });
       });
     }
@@ -913,9 +954,9 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
 
 /**
  * POST /api/posts/:postId/like
- * Like/Unlike a mentor post (authenticated users only)
+ * Like/Unlike a post (authenticated users and mentors)
  */
-router.post("/:postId/like", authenticateJWT, async (req, res) => {
+router.post("/:postId/like", authenticateRequired, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
 
@@ -923,7 +964,8 @@ router.post("/:postId/like", authenticateJWT, async (req, res) => {
       return res.status(404).json({ success: false, message: "Post not found" });
     }
 
-    const userId = req.user._id;
+    // Support both user and mentor authentication
+    const userId = req.user ? req.user._id : req.mentor._id;
     const existingLikeIndex = post.likes.findIndex(
       like => like.userId && like.userId.toString() === userId.toString()
     );
@@ -953,7 +995,7 @@ router.post("/:postId/like", authenticateJWT, async (req, res) => {
  * POST /api/posts/:postId/comment
  * Add a comment to a mentor post (authenticated users only)
  */
-router.post("/:postId/comment", authenticateJWT, async (req, res) => {
+router.post("/:postId/comment", authenticateRequired, async (req, res) => {
   try {
     const { content } = req.body;
     
@@ -971,7 +1013,7 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
     }
 
     post.comments.push({
-      userId: req.user._id,
+      userId: req.user ? req.user._id : req.mentor._id,
       content: content.trim(),
       likes: [],
       likesCount: 0,
@@ -984,15 +1026,15 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
     
     // Manually populate user data for the new comment (cross-connection population)
     const newComment = post.comments[post.comments.length - 1];
-    const user = await populateUser(newComment.userId);
-    newComment.userId = user;
+    const user = req.user ? await populateUser(newComment.userId) : await populateMentor(newComment.userId);
+    const userData = user || { _id: newComment.userId };
 
     res.status(201).json({
       success: true,
       message: "Comment added successfully",
       comment: {
         _id: newComment._id,
-        user: user,
+        user: userData,
         content: newComment.content,
         likesCount: newComment.likesCount || 0,
         isLiked: false,
@@ -1012,7 +1054,7 @@ router.post("/:postId/comment", authenticateJWT, async (req, res) => {
  * Repost a mentor post (authenticated users only)
  * Note: This creates a reference to the original post
  */
-router.post("/:postId/repost", authenticateJWT, async (req, res) => {
+router.post("/:postId/repost", authenticateRequired, async (req, res) => {
   try {
     const originalPost = await Post.findById(req.params.postId);
 
@@ -1022,7 +1064,7 @@ router.post("/:postId/repost", authenticateJWT, async (req, res) => {
 
     // Check if user already reposted this (check user's reposts array)
     // Refresh user to get latest reposts
-    const user = await User.findById(req.user._id);
+    const user = req.user ? await User.findById(req.user._id) : await Mentor.findById(req.mentor._id);
     const userReposts = user.reposts || [];
     const alreadyReposted = userReposts.some(
       repostId => repostId.toString() === req.params.postId
@@ -1047,10 +1089,10 @@ router.post("/:postId/repost", authenticateJWT, async (req, res) => {
 
     // Add repost to user's reposts array for profile display
     // Ensure reposts array is initialized
-    if (!user.reposts) {
+    if (!user?.reposts) {
       user.reposts = [];
     }
-    user.reposts.push(originalPost._id);
+    user.reposts.push(originalPost._id.toString());
     
     // Increment repost count on original post
     originalPost.repostCount = (originalPost.repostCount || 0) + 1;
@@ -1072,9 +1114,9 @@ router.post("/:postId/repost", authenticateJWT, async (req, res) => {
 
 /**
  * POST /api/mentor-posts/:postId/comments/:commentId/like
- * Like/Unlike a comment (authenticated users only)
+ * Like/Unlike a comment (authenticated users and mentors)
  */
-router.post("/:postId/comments/:commentId/like", authenticateJWT, async (req, res) => {
+router.post("/:postId/comments/:commentId/like", authenticateRequired, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
 
@@ -1087,7 +1129,8 @@ router.post("/:postId/comments/:commentId/like", authenticateJWT, async (req, re
       return res.status(404).json({ success: false, message: "Comment not found" });
     }
 
-    const userId = req.user._id;
+    // Support both user and mentor authentication
+    const userId = req.user ? req.user._id : req.mentor._id;
     const existingLikeIndex = comment.likes.findIndex(
       like => like.userId && like.userId.toString() === userId.toString()
     );
@@ -1119,7 +1162,7 @@ router.post("/:postId/comments/:commentId/like", authenticateJWT, async (req, re
  * POST /api/mentor-posts/:postId/comments/:commentId/reply
  * Reply to a comment (authenticated users only)
  */
-router.post("/:postId/comments/:commentId/reply", authenticateJWT, async (req, res) => {
+router.post("/:postId/comments/:commentId/reply", authenticateRequired, async (req, res) => {
   try {
     const { content } = req.body;
     
@@ -1143,7 +1186,7 @@ router.post("/:postId/comments/:commentId/reply", authenticateJWT, async (req, r
 
     // Create reply
     const reply = {
-      userId: req.user._id,
+      userId: req.user ? req.user._id : req.mentor._id,
       content: content.trim(),
       parentCommentId: req.params.commentId,
       likes: [],
@@ -1160,28 +1203,21 @@ router.post("/:postId/comments/:commentId/reply", authenticateJWT, async (req, r
     const newReply = post.comments[post.comments.length - 1];
     
     // Manually populate the reply's user data (cross-DB population)
-    let populatedUser = null;
-    if (newReply.userId) {
-      try {
-        const user = await User.findById(newReply.userId).select('name image').lean();
-        populatedUser = user ? {
-          _id: user._id,
-          name: user.name,
-          image: user.image,
-        } : { _id: newReply.userId };
-      } catch (err) {
-        populatedUser = { _id: newReply.userId };
-      }
-    }
+    const populatedUser = req.user 
+      ? await populateUser(newReply.userId) 
+      : await populateMentor(newReply.userId);
+    
+    const userData = populatedUser || { _id: newReply.userId };
 
     res.status(201).json({
       success: true,
       message: "Reply added successfully",
       reply: {
         _id: newReply._id,
-        user: populatedUser,
+        user: userData,
         content: newReply.content,
         likesCount: newReply.likesCount,
+        isLiked: false,
         parentCommentId: newReply.parentCommentId,
         createdAt: newReply.createdAt,
       },
@@ -1197,7 +1233,7 @@ router.post("/:postId/comments/:commentId/reply", authenticateJWT, async (req, r
  * DELETE /api/mentor-posts/:postId/comments/:commentId
  * Delete a comment (only by the comment author)
  */
-router.delete("/:postId/comments/:commentId", authenticateJWT, async (req, res) => {
+router.delete("/:postId/comments/:commentId", authenticateRequired, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
 
@@ -1211,7 +1247,8 @@ router.delete("/:postId/comments/:commentId", authenticateJWT, async (req, res) 
     }
 
     // Check if user is the author
-    if (comment.userId.toString() !== req.user._id.toString()) {
+    const userId = req.user ? req.user._id : req.mentor._id;
+    if (comment.userId?.toString() !== userId?.toString()) {
       return res.status(403).json({ 
         success: false, 
         message: "You can only delete your own comments" 

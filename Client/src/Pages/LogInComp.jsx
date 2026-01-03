@@ -64,7 +64,7 @@ const fadeUpVariant = {
         setMentor(null);
         await fetchUser();
         toast.success("You're all set!");
-        navigate('/feed');
+        navigate('/');
       } else {
         setError(data.message || 'An error occurred. Please try again.');
       }

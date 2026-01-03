@@ -25,7 +25,10 @@ export default function MentorProfile() {
   const menuRef = useRef(null);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
-
+  const [followersCount, setFollowersCount] = useState(null);
+  const [followingCount, setFollowingCount] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState(null); // 'followers' or 'following'
 
   useEffect(() => {
     if (contextLoading) {
@@ -323,9 +326,9 @@ export default function MentorProfile() {
         url={mentorUrl} />
 
       {/* Main Container with max width */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8 flex flex-col gap-8">
         {/* Profile Card - Instagram Style */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 relative">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden relative">
           {/* Cover Background */}
           <div className="h-24 sm:h-32 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 border-b border-slate-200"></div>
 
@@ -436,7 +439,6 @@ export default function MentorProfile() {
               <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
                 <button
                   onClick={() => {
-                    setModalType('posts');
                     // Posts are shown in the posts section below, so we can scroll or just show a message
                     toast.info('Posts are shown below');
                   }}
@@ -447,8 +449,8 @@ export default function MentorProfile() {
                 </button>
                 <button
                   onClick={() => {
-                    setModalType('followers');
                     setShowModal(true);
+                    setModalType('followers');
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
@@ -457,8 +459,8 @@ export default function MentorProfile() {
                 </button>
                 <button
                   onClick={() => {
-                    setModalType('following');
                     setShowModal(true);
+                    setModalType('following');
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
@@ -571,7 +573,7 @@ export default function MentorProfile() {
               className="inline-flex items-center gap-2 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
             >
               <Edit size={16} />
-              Update Profile
+              Edit Profile
             </Link>
           </div>
         )}
