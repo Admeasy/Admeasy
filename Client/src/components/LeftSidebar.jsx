@@ -35,8 +35,8 @@ const LeftSidebar = ({
     { icon: Compass, label: 'Explore', path: '/explore' },
     ...(loggedInAccount
       ? isUserAccount
-        ? [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chat', path: '/chats' }]
-        : [{ icon: MessagesSquare, label: 'Messages', path: '/mentor/chats' }]
+        ? [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chats', path: '/chats' }]
+        : [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chats', path: '/mentor/chats' }]
       : []),
     { icon: Newspaper, label: 'Blogs', path: '/blog' },
     ...(!loggedInAccount ? [{ icon: UserPlus, label: 'Sign Up/Log In', path: '/login' }] : [])
@@ -292,15 +292,21 @@ const LeftSidebar = ({
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
-                    className="flex min-w-0 gap-16"
+                    className="flex flex-1 items-center justify-between min-w-0 gap-2"
                   >
-                    <Link to={'/me'}>
+                    <Link to={'/me'} className="min-w-0 overflow-hidden">
                       <p className="font-semibold text-sm text-gray-900 truncate">
                         {loggedInAccount.name}
                       </p>
                       <p className="text-xs text-gray-500 group-hover:text-[#9f3562] transition-colors whitespace-nowrap">View Profile</p>
                     </Link>
-                    <button className='text-sm font-semibold px-1 bg-none border-2 rounded-xl border-brand hover:bg-brand-hover transition-colors ease-in-out hover:text-white cursor-pointer' onClick={handleLogout}>
+                    <button
+                      className='shrink-0 text-xs font-bold px-2 py-1.5 bg-white border border-[#9f3562] rounded-lg text-[#9f3562] hover:bg-[#9f3562] hover:text-white transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLogout();
+                      }}
+                    >
                       Log out
                     </button>
                   </motion.div>

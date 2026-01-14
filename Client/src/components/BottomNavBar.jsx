@@ -11,7 +11,7 @@ const BottomNavBar = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { mentor } = useMentor();
-  
+
   const loggedInAccount = user || mentor;
   const isUserAccount = Boolean(user);
   const [imageError, setImageError] = useState(false);
@@ -22,12 +22,12 @@ const BottomNavBar = () => {
   }, [user, mentor]);
 
   // Get profile image URL
-  const profileImageUrl = loggedInAccount 
-    ? (isUserAccount 
-        ? (user?.imageUrl || user?.image)
-        : (mentor?.imageUrl || mentor?.image))
+  const profileImageUrl = loggedInAccount
+    ? (isUserAccount
+      ? (user?.imageUrl || user?.image)
+      : (mentor?.imageUrl || mentor?.image))
     : null;
-  
+
   const hasProfileImage = profileImageUrl && !imageError;
 
   // Pages where bottom nav should be hidden
@@ -40,7 +40,7 @@ const BottomNavBar = () => {
     '/forgot-password',
     '/reset-password'
   ];
-  const shouldHide = isAdminRoute || hideSidebarPages.some(path => 
+  const shouldHide = isAdminRoute || hideSidebarPages.some(path =>
     location.pathname.startsWith(path)
   );
 
@@ -88,7 +88,7 @@ const BottomNavBar = () => {
       id: 'upload',
       icon: CirclePlus,
       path: '/posts/create',
-      onClick: () => handleProtectedRoute('/posts/create',"Add Post"),
+      onClick: () => handleProtectedRoute('/posts/create'),
       requiresAuth: true
     },
     {
@@ -120,22 +120,22 @@ const BottomNavBar = () => {
   return (
     <>
       {/* Spacer div to prevent content from hiding behind bottom nav */}
-      <div className="md:hidden h-20" />
-      
+
+
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe pt-2 px-4 sm:px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 h-16 flex items-center justify-between">
         {navItems.map((item) => {
           const Icon = item.icon;
-          
+
           // Determine if active
           let isActive;
           if (item.matchPaths) {
             // For Profile item, only match exact paths
-            isActive = item.matchPaths.some(path => 
+            isActive = item.matchPaths.some(path =>
               location.pathname === path || location.pathname.startsWith(path + '/')
             );
           } else {
-            isActive = location.pathname === item.path || 
-                       location.pathname.startsWith(item.path + '/');
+            isActive = location.pathname === item.path ||
+              location.pathname.startsWith(item.path + '/');
           }
 
           // For profile item, show profile image if available
@@ -165,16 +165,18 @@ const BottomNavBar = () => {
                 <img
                   src={profileImageUrl}
                   alt={loggedInAccount?.name || 'Profile'}
-                  className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 transition-all ${
-                    isActive ? 'ring-[#9f3562]' : 'ring-gray-200'
-                  }`}
+                  className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 transition-all ${isActive ? 'ring-[#9f3562]' : 'ring-gray-200'
+                    }`}
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <Icon 
+                <Icon
                   className="w-5.5 h-5.5 sm:w-6 sm:h-6"
-                  strokeWidth={isActive ? 3 : 2} 
+                  strokeWidth={isActive ? 3 : 2}
                 />
+              )}
+              {isProfileItem && loggedInAccount && !loggedInAccount.username && (
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
               )}
             </motion.button>
           );

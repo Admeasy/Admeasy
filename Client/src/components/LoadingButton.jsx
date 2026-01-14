@@ -1,29 +1,30 @@
 import React from 'react';
 
-const LoadingButton = ({ text, variant}) => {
+const LoadingButton = ({ text, variant }) => {
   const variants = {
-    blue: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/50',
+    blue: 'bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50',
     green: 'bg-green-600 hover:bg-green-700 shadow-green-500/50',
     purple: 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/50',
-    teal: 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/50'
+    teal: 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/50',
+    brand: 'bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50'
   };
 
   return (
-    <button 
-      disabled 
-      type="button" 
+    <button
+      disabled
+      type="button"
       className={`w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl ${variants[variant]} shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-not-allowed`}
     >
       {/* Spinner */}
       <div className="relative w-5 h-5">
         <svg className="animate-spin" viewBox="0 0 50 50">
-          <circle 
+          <circle
             className="animate-dash"
-            cx="25" 
-            cy="25" 
-            r="20" 
-            fill="none" 
-            stroke="white" 
+            cx="25"
+            cy="25"
+            r="20"
+            fill="none"
+            stroke="white"
             strokeWidth="4"
             strokeLinecap="round"
             style={{
@@ -34,9 +35,9 @@ const LoadingButton = ({ text, variant}) => {
           />
         </svg>
       </div>
-      
+
       <span className="text-[15px] tracking-wide">{text}</span>
-      
+
       <style jsx>{`
         @keyframes dash {
           0% {

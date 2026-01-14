@@ -1,5 +1,5 @@
-    const mongoose = require('mongoose');
-    const { Users } = require('../db');
+const mongoose = require('mongoose');
+const { Users } = require('../db');
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-       required: false, // Optional for Google OAuth users
+        required: false, // Optional for Google OAuth users
         select: false // do not return by default
     },
     googleId: {
@@ -110,12 +110,12 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    resetPasswordToken:{
-        type:String,
-        trim:true
+    resetPasswordToken: {
+        type: String,
+        trim: true
     },
-    resetPasswordExpire:{
-        type:Date
+    resetPasswordExpire: {
+        type: Date
     },
     // Array of reposted mentor post IDs
     reposts: {
@@ -132,7 +132,14 @@ const userSchema = new mongoose.Schema({
     followers: {
         type: [mongoose.Schema.Types.ObjectId],
         default: []
-    }
+    },
+    //  Verify email 
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    emailVerifyToken: String,
+    emailVerifyExpiry: Date
 })
 
-    module.exports = Users.model('Users', userSchema);
+module.exports = Users.model('Users', userSchema);

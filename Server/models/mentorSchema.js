@@ -25,10 +25,6 @@ const Schema = new mongoose.Schema({
         required: true,
         trim: true
     },
-
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
-    
     phone: {
         type: Number,
         trim: true

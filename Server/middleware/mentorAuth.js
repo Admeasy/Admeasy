@@ -10,10 +10,6 @@ async function authenticateMentorJWT(req, res, next) {
     }
     
     try {
-        const token = req.cookies['accessToken'];
-        if (!token) {
-            return res.status(401).json({ success: false, message: 'No token' });
-        }
 
         // Decode token
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -37,12 +33,20 @@ async function authenticateMentorJWT(req, res, next) {
             req.session.userRole = 'mentor';
             // Clear user session if exists
             delete req.session.userId;
-            // Force session save
-            req.session.save((err) => {
-                if (err) {
-                    console.error('Error saving mentor session:', err);
-                }
+            // Force session save - await to ensure it's saved before proceeding
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Error saving mentor session:', err);
+                        reject(err);
+                    } else {
+                        console.log('Mentor session saved successfully:', mentor._id);
+                        resolve();
+                    }
+                });
             });
+        } else {
+            console.warn('No session object available in mentor auth middleware');
         }
         
         next();

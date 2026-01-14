@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, ExternalLink, Youtube, Repeat2, UserPlus, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,22 +6,34 @@ import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, onPostUpdate }) => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { mentor } = useMentor();
   const isAuthed = Boolean(user || mentor);
-  const [isLiked, setIsLiked] = useState(post.isLiked);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
-  const [isLiking, setIsLiking] = useState(false);
+
+  // SINGLE SOURCE OF TRUTH
+  const [postState, setPostState] = useState(post);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
-  const [isReposting, setIsReposting] = useState(false);
   const [isFollowing, setIsFollowing] = useState(post.isFollowing || false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
-  const [isReposted, setIsReposted] = useState(post.isReposted || false);
+
+  // Interaction Locks (Action Locks)
+  const isInteracting = useRef({ like: false, repost: false, follow: false });
+
+  // Sync with props when coming from parent (like Feed)
+  // But only if we aren't currently middle of an interaction to avoid snap-backs
+  useEffect(() => {
+    if (!isInteracting.current.like && !isInteracting.current.repost) {
+      setPostState(post);
+    }
+    if (!isInteracting.current.follow) {
+      setIsFollowing(post.isFollowing || false);
+    }
+  }, [post]);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-  
+
   // Support both 'mentor' (backward compatibility) and 'author' (new format)
   const author = post.author || post.mentor;
   // A post is a mentor post if it has the 'mentor' key (backward compatibility) or if author has username (mentors typically have usernames)
@@ -32,59 +44,70 @@ const PostCard = ({ post }) => {
     e.stopPropagation();
     if (!isAuthed) {
       toast.info('Log in to like posts');
-      navigate('/login');
       return;
     }
-    if (isLiking) return;
 
-    // OPTIMISTIC UPDATE: Update UI immediately before API call
-    const previousLiked = isLiked;
-    const previousCount = likesCount;
-    
-    // Update UI instantly
-    setIsLiked(!isLiked);
-    setLikesCount(previousLiked ? likesCount - 1 : likesCount + 1);
-    
-    // Show animation
-    if (!previousLiked) {
+    // Prevent spam/race conditions
+    if (isInteracting.current.like) return;
+    isInteracting.current.like = true;
+
+    // OPTIMISTIC UPDATE
+    const wasLiked = postState.isLiked;
+    const optimisticPost = {
+      ...postState,
+      isLiked: !wasLiked,
+      likesCount: wasLiked ? (postState.likesCount - 1) : (postState.likesCount + 1)
+    };
+
+    // Apply locally immediately
+    setPostState(optimisticPost);
+    // Notify parent immediately
+    if (onPostUpdate) onPostUpdate(optimisticPost);
+
+    if (!wasLiked) {
       setShowLikeAnimation(true);
       setTimeout(() => setShowLikeAnimation(false), 800);
     }
 
-    // Make API call in background (no blocking)
-    setIsLiking(true);
-    fetch(`/api/posts/${post._id}/like`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Sync with server response (in case of race conditions)
-          setIsLiked(data.isLiked);
-          setLikesCount(data.likesCount);
-        } else {
-          // Revert on error
-          setIsLiked(previousLiked);
-          setLikesCount(previousCount);
-        }
-      })
-      .catch(error => {
-        console.error('Error liking post:', error);
-        // Revert on error
-        setIsLiked(previousLiked);
-        setLikesCount(previousCount);
-      })
-      .finally(() => {
-        setIsLiking(false);
+    try {
+      const res = await fetch(`/api/posts/${post._id}/like`, {
+        method: 'POST',
+        credentials: 'include',
       });
+      const data = await res.json();
+
+      if (data.success) {
+        const syncedPost = {
+          ...postState,
+          isLiked: data.isLiked,
+          likesCount: data.likesCount
+        };
+        // MERGE API response
+        setPostState(syncedPost);
+        if (onPostUpdate) onPostUpdate(syncedPost);
+
+        // Broadcast global update for PostDetail
+        window.dispatchEvent(new CustomEvent('postInteraction', {
+          detail: { postId: post._id, ...data }
+        }));
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      // ROLLBACK
+      setPostState(postState); // Revert to previous valid state
+      if (onPostUpdate) onPostUpdate(postState);
+      toast.error('Failed to like post');
+    } finally {
+      isInteracting.current.like = false;
+    }
   };
 
   const handleShare = async (e) => {
     e.stopPropagation();
     // Share works without login
     const postUrl = `${window.location.origin}/posts/${post._id}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -108,48 +131,63 @@ const PostCard = ({ post }) => {
     e.stopPropagation();
     if (!user) {
       toast.info('Log in to repost');
-      navigate('/login');
       return;
     }
-    if (isReposting) return;
 
-    // OPTIMISTIC UPDATE: Update UI immediately
-    const previousReposted = isReposted;
-    setIsReposted(!isReposted);
+    if (isInteracting.current.repost) return;
+    isInteracting.current.repost = true;
 
-    // Make API call in background
-    setIsReposting(true);
-    fetch(`/api/posts/${post._id}/repost`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setIsReposted(data.isReposted);
-        } else {
-          // Revert on error
-          setIsReposted(previousReposted);
-        }
-      })
-      .catch(error => {
-        console.error('Error reposting:', error);
-        // Revert on error
-        setIsReposted(previousReposted);
-      })
-      .finally(() => {
-        setIsReposting(false);
+    // OPTIMISTIC UPDATE
+    const wasReposted = postState.isReposted;
+    const optimisticPost = {
+      ...postState,
+      isReposted: !wasReposted,
+      repostCount: wasReposted ? (postState.repostCount - 1) : (postState.repostCount + 1)
+    };
+
+    setPostState(optimisticPost);
+    if (onPostUpdate) onPostUpdate(optimisticPost);
+
+    try {
+      const res = await fetch(`/api/posts/${post._id}/repost`, {
+        method: 'POST',
+        credentials: 'include',
       });
+      const data = await res.json();
+
+      if (data.success) {
+        const syncedPost = {
+          ...postState,
+          isReposted: data.isReposted,
+          repostCount: data.repostCount
+        };
+        setPostState(syncedPost);
+        if (onPostUpdate) onPostUpdate(syncedPost);
+
+        window.dispatchEvent(new CustomEvent('postInteraction', {
+          detail: { postId: post._id, ...data }
+        }));
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      setPostState(postState);
+      if (onPostUpdate) onPostUpdate(postState);
+      toast.error('Failed to repost');
+    } finally {
+      isInteracting.current.repost = false;
+    }
   };
 
   const handleFollow = async (e) => {
     e.stopPropagation();
     if (!isAuthed) {
       toast.info('Log in to follow users and mentors');
-      navigate('/login');
+      // navigate('/login');
       return;
     }
-    if (isFollowingLoading) return;
+    if (isInteracting.current.follow) return;
+    isInteracting.current.follow = true;
 
     // OPTIMISTIC UPDATE: Update UI immediately
     const previousFollowing = isFollowing;
@@ -184,6 +222,7 @@ const PostCard = ({ post }) => {
       })
       .finally(() => {
         setIsFollowingLoading(false);
+        isInteracting.current.follow = false;
       });
   };
 
@@ -193,38 +232,36 @@ const PostCard = ({ post }) => {
     (mentor && mentor._id && author._id && mentor._id.toString() === author._id.toString())
   );
 
-  // Fetch follow status on mount if user/mentor is logged in
+  // Listen for global interaction events (from PostDetail or other cards)
   useEffect(() => {
-    if (isAuthed && author && author._id && !isOwnPost) {
-      fetch(`/api/users/${author._id}/follow-status`, {
-        credentials: 'include',
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setIsFollowing(data.isFollowing);
-          }
-        })
-        .catch(err => console.error('Error fetching follow status:', err));
-    }
-  }, [isAuthed, author, isOwnPost]);
-
-  // Listen for global follow status changes
-  useEffect(() => {
-    if (!author || !author._id || isOwnPost) return;
-
-    const handleFollowStatusChange = (event) => {
-      const { targetId, isFollowing: newFollowingStatus } = event.detail;
-      if (targetId === author._id.toString()) {
-        setIsFollowing(newFollowingStatus);
+    const handleGlobalUpdate = (event) => {
+      const { postId, isLiked, likesCount, isReposted, repostCount, commentsCount } = event.detail;
+      if (postId === post._id) {
+        setPostState(prev => ({
+          ...prev,
+          ...(isLiked !== undefined && { isLiked }),
+          ...(likesCount !== undefined && { likesCount }),
+          ...(isReposted !== undefined && { isReposted }),
+          ...(repostCount !== undefined && { repostCount }),
+          ...(commentsCount !== undefined && { commentsCount })
+        }));
       }
     };
 
-    window.addEventListener('followStatusChanged', handleFollowStatusChange);
-    return () => {
-      window.removeEventListener('followStatusChanged', handleFollowStatusChange);
-    };
-  }, [author, isOwnPost]);
+    window.addEventListener('postInteraction', handleGlobalUpdate);
+    return () => window.removeEventListener('postInteraction', handleGlobalUpdate);
+  }, [post._id]);
+
+  // Fetch follow status on mount
+  useEffect(() => {
+    if (isAuthed && author && author._id && !isOwnPost) {
+      fetch(`/api/users/${author._id}/follow-status`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setIsFollowing(data.isFollowing);
+        });
+    }
+  }, [isAuthed, author, isOwnPost]);
 
   const handleLinkClick = (e, url) => {
     e.stopPropagation();
@@ -246,7 +283,7 @@ const PostCard = ({ post }) => {
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    
+
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
@@ -298,7 +335,7 @@ const PostCard = ({ post }) => {
       `}</style>
       {/* Gradient hover effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#9f3562]/0 via-pink-500/0 to-purple-500/0 group-hover:from-[#9f3562]/2 group-hover:via-pink-500/2 group-hover:to-purple-500/2 transition-all duration-500 pointer-events-none" />
-      
+
       {/* Content */}
       <div className="relative z-10">
         {/* Post Header */}
@@ -310,7 +347,7 @@ const PostCard = ({ post }) => {
             <img
               src={author?.image || fallbackProfilePic}
               alt={author?.name || 'User'}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-contain ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (author?.username) {
@@ -324,7 +361,7 @@ const PostCard = ({ post }) => {
           </motion.div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 
+              <h3
                 className="font-bold text-gray-900 text-sm sm:text-base truncate cursor-pointer hover:text-[#9f3562] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -337,7 +374,7 @@ const PostCard = ({ post }) => {
               </h3>
             </div>
             {author?.username && (
-              <p 
+              <p
                 className="text-xs sm:text-sm text-gray-500 truncate cursor-pointer hover:text-[#9f3562] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -354,11 +391,10 @@ const PostCard = ({ post }) => {
               whileTap={{ scale: 0.95 }}
               onClick={handleFollow}
               disabled={isFollowingLoading}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 shadow-sm ${
-                isFollowing
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                  : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
-              }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 shadow-sm ${isFollowing
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
+                }`}
             >
               {isFollowingLoading ? (
                 <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -380,7 +416,7 @@ const PostCard = ({ post }) => {
 
         {/* Post Content */}
         <div className="px-5 sm:px-6 pb-4">
-          <div 
+          <div
             className="text-gray-800 break-words leading-relaxed text-sm sm:text-[15px] post-content"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
@@ -394,11 +430,11 @@ const PostCard = ({ post }) => {
               transition={{ duration: 0.4 }}
               src={post.image}
               alt="Post"
-              className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-cover"
+              className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain"
               loading="lazy"
               onDoubleClick={handleImageDoubleClick}
             />
-            
+
             {/* Double-tap like animation */}
             <AnimatePresence>
               {showLikeAnimation && (
@@ -457,7 +493,7 @@ const PostCard = ({ post }) => {
               <img
                 src={post.externalLink.preview.image}
                 alt="Link preview"
-                className="w-full h-44 sm:h-52 object-cover"
+                className="w-full h-44 sm:h-52 object-contain"
                 loading="lazy"
               />
             )}
@@ -470,20 +506,17 @@ const PostCard = ({ post }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleLike}
-            disabled={isLiking}
             className="flex items-center gap-2 group/like"
           >
-            <Heart 
-              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
-                isLiked 
-                  ? 'fill-red-500 text-red-500' 
-                  : 'text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110'
-              }`} 
+            <Heart
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${postState.isLiked
+                ? 'fill-red-500 text-red-500'
+                : 'text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110'
+                }`}
             />
-            <span className={`text-sm sm:text-base font-bold transition-colors ${
-              isLiked ? 'text-red-500' : 'text-gray-600 group-hover/like:text-red-500'
-            }`}>
-              {likesCount}
+            <span className={`text-sm sm:text-base font-bold transition-colors ${postState.isLiked ? 'text-red-500' : 'text-gray-600 group-hover/like:text-red-500'
+              }`}>
+              {postState.likesCount}
             </span>
           </motion.button>
 
@@ -497,24 +530,22 @@ const PostCard = ({ post }) => {
             className="flex items-center gap-2 text-gray-500 hover:text-[#9f3562] transition-colors group/comment"
           >
             <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 group-hover/comment:scale-110 transition-transform" />
-            <span className="text-sm sm:text-base font-bold">{post.commentsCount}</span>
+            <span className="text-sm sm:text-base font-bold">{postState.commentsCount}</span>
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleRepost}
-            disabled={isReposting || !user}
-            className={`flex items-center gap-2 transition-colors disabled:opacity-50 ${
-              isReposted 
-                ? 'text-[#9f3562]' 
-                : 'text-gray-500 hover:text-[#9f3562]'
-            }`}
+            className={`flex items-center gap-2 transition-colors ${postState.isReposted
+              ? 'text-[#9f3562]'
+              : 'text-gray-500 hover:text-[#9f3562]'
+              }`}
           >
-            <Repeat2 className={`w-5 h-5 sm:w-6 sm:h-6 ${isReposting ? 'animate-spin' : ''} ${isReposted ? 'fill-current' : ''}`} />
-            {post.repostCount > 0 && (
-              <span className={`text-sm sm:text-base font-bold ${isReposted ? 'text-[#9f3562]' : 'text-gray-600'}`}>
-                {post.repostCount}
+            <Repeat2 className={`w-5 h-5 sm:w-6 sm:h-6 ${postState.isReposted ? 'fill-current' : ''}`} />
+            {postState.repostCount > 0 && (
+              <span className={`text-sm sm:text-base font-bold ${postState.isReposted ? 'text-[#9f3562]' : 'text-gray-600'}`}>
+                {postState.repostCount}
               </span>
             )}
           </motion.button>

@@ -32,30 +32,32 @@ function getInitialUser() {
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(getInitialUser); // user object: { name, email, image, ... }
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
 
   // Verify authentication with server on mount and when location changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const verifyAuth = async () => {
+      setIsLoading(true);
       // Check if this is an OAuth redirect - check both location.search and window.location.search
       const searchParams = location.search || window.location.search;
       const urlParams = new URLSearchParams(searchParams);
       const oauthSuccessParam = urlParams.get('oauth_success');
       const isOAuthSuccess = oauthSuccessParam === 'true';
-      
+
       // If OAuth success, fetch user immediately
       if (isOAuthSuccess) {
         // Store the intended path and set OAuth flag
         const intendedPath = location.pathname;
         sessionStorage.setItem('oauth_in_progress', 'true');
         sessionStorage.setItem('oauth_intended_path', intendedPath);
-        
+
         // Remove the query parameter from URL (but keep the pathname)
         navigate(intendedPath, { replace: true });
-        
+
         // Retry function to fetch user data
         const fetchUserWithRetry = async (retries = 3, delay = 500) => {
           for (let i = 0; i < retries; i++) {
@@ -67,7 +69,7 @@ export function UserProvider({ children }) {
                 // First attempt: wait a bit longer to ensure cookies are set
                 await new Promise(resolve => setTimeout(resolve, 500));
               }
-              
+
               // Try to refresh token first (optional - tokens are fresh but this ensures they're valid)
               try {
                 const refreshRes = await fetch("/api/users/refresh", {
@@ -82,16 +84,16 @@ export function UserProvider({ children }) {
               } catch (refreshErr) {
                 console.warn(`Token refresh error (attempt ${i + 1}, non-fatal):`, refreshErr);
               }
-              
+
               // Fetch user data directly (tokens should be in cookies)
               const res = await fetch("/api/users/me", {
                 credentials: "include",
               });
-              
+
               if (res.ok) {
                 const data = await res.json();
                 let userObj = data.user;
-                
+
                 // Fetch profile picture
                 try {
                   const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
@@ -102,14 +104,14 @@ export function UserProvider({ children }) {
                 } catch (imageErr) {
                   console.warn('Failed to fetch profile picture:', imageErr);
                 }
-                
+
                 setUser(userObj);
                 // Navigation will be handled by the useEffect that watches for user changes
                 return true; // Success
               } else {
                 const errorData = await res.json().catch(() => ({}));
                 console.warn(`Failed to fetch user (attempt ${i + 1}/${retries}):`, res.status, errorData);
-                
+
                 // If it's the last attempt, give up
                 if (i === retries - 1) {
                   console.error('All retry attempts failed to fetch user after OAuth');
@@ -121,7 +123,7 @@ export function UserProvider({ children }) {
               }
             } catch (err) {
               console.warn(`Error fetching user (attempt ${i + 1}/${retries}):`, err);
-              
+
               // If it's the last attempt, give up
               if (i === retries - 1) {
                 console.error('OAuth verification failed after all retries:', err);
@@ -134,16 +136,17 @@ export function UserProvider({ children }) {
           }
           return false;
         };
-        
+
         // Start the retry process
         await fetchUserWithRetry();
+        setIsLoading(false);
         return;
       }
-      
+
       // Normal verification flow
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
       const hasStoredUser = localStorage.getItem(USER_STORAGE_KEY);
-      
+
       if (storedRole === 'user' && hasStoredUser) {
         try {
           // Always verify with server - localStorage is just a cache
@@ -177,6 +180,7 @@ export function UserProvider({ children }) {
           localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
         }
       }
+      setIsLoading(false);
     };
 
     verifyAuth();
@@ -185,17 +189,17 @@ export function UserProvider({ children }) {
   // Handle navigation after OAuth user is set
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Check if we just completed OAuth and user is now set
     // Look for oauth_success in sessionStorage as a flag
     const oauthInProgress = sessionStorage.getItem('oauth_in_progress');
     const intendedPath = sessionStorage.getItem('oauth_intended_path');
-    
+
     if (oauthInProgress === 'true' && user && intendedPath) {
       // Clear the flags
       sessionStorage.removeItem('oauth_in_progress');
       sessionStorage.removeItem('oauth_intended_path');
-      
+
       // Navigate to intended path if we're not already there
       if (location.pathname !== intendedPath) {
         setTimeout(() => {
@@ -208,7 +212,7 @@ export function UserProvider({ children }) {
   // Sync state across tabs when localStorage changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const handleStorageChange = (e) => {
       // Only sync if change came from another tab (not current tab)
       if (e.key === USER_STORAGE_KEY) {
@@ -317,7 +321,7 @@ export function UserProvider({ children }) {
   }
 
   return (
-    <UserContext.Provider value={{ user, setUser, fetchUser }}>
+    <UserContext.Provider value={{ user, setUser, fetchUser, isLoading }}>
       {children}
     </UserContext.Provider>
   );

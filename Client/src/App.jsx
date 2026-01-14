@@ -1,7 +1,7 @@
 import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
@@ -63,14 +63,53 @@ import MentorPost from './Pages/MentorPost';
 import Layout from './components/Layout';
 import Explore from "./Pages/Explore"
 import BottomNavBar from './components/BottomNavBar';
-import MentorForgotPassword from "./Pages/MentorForgotPassword";
-import MentorResetPassword from "./Pages/MentorResetPassword";
+import VerifyEmail from './Pages/VerifyEmail';
+
+import FeedbackBanner from './components/FeedbackBanner';
 
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const { user, setUser, fetchUser } = useUser();
   const { mentor } = useMentor();
+
+  // Username warning toast
+  useEffect(() => {
+    const isDismissed = sessionStorage.getItem('usernameWarningDismissed');
+    const loggedInAccount = user || mentor;
+    const hasNoUsername = loggedInAccount && !loggedInAccount.username;
+
+    // Don't show on auth pages or if already dismissed
+    const authPages = ['/login', '/mentors/login', '/mentors/register', '/onboarding', '/forgot-password', '/reset-password'];
+    const isAuthPage = authPages.some(path => location.pathname.startsWith(path));
+
+    if (hasNoUsername && !isDismissed && !isAuthPage) {
+      toast.info(
+        <div className="flex flex-col gap-1">
+          <p className="font-medium text-sm">Add username to make yourself visible</p>
+          <Link
+            to="/me"
+            className="text-xs underline font-bold hover:text-white transition-colors"
+            onClick={() => toast.dismiss('username-warning')}
+          >
+            Go to Profile
+          </Link>
+        </div>,
+        {
+          toastId: 'username-warning',
+          autoClose: false,
+          closeOnClick: false,
+          draggable: false,
+          position: "top-center",
+          className: "bg-[#9f3562] text-white",
+          progressClassName: "bg-white",
+          onClose: () => sessionStorage.setItem('usernameWarningDismissed', 'true'),
+        }
+      );
+    } else if (!hasNoUsername || isAuthPage) {
+      toast.dismiss('username-warning');
+    }
+  }, [user, mentor, location.pathname]);
 
   // Routes that use Layout component (Layout already includes Navbar and Sidebar)
   const layoutRoutes = [
@@ -102,7 +141,8 @@ function App() {
     '/mentors/register',
     '/onboarding',
     '/forgot-password',
-    '/reset-password'
+    '/reset-password',
+    '/verify-email'
   ];
 
   const isAuthPage = authPages.some(path =>
@@ -110,12 +150,15 @@ function App() {
   );
 
   // Show old Navbar only on non-Layout, non-admin, non-auth routes
-  const shouldShowOldNavbar = !isAdminRoute && !usesLayout && !isAuthPage;
+  const shouldShowOldNavbar = !isAdminRoute && !usesLayout && !isAuthPage && location.pathname !== '/me/edit';
 
   return (
     <>
       {/* Old Navbar - only show on pages that don't use Layout (Layout has its own Navbar) */}
       {shouldShowOldNavbar && <Navbar />}
+
+      {/* Feedback Banner - Global (except auth pages) */}
+      {!isAuthPage && <FeedbackBanner />}
 
       <ToastContainer
         position="top-right"
@@ -186,11 +229,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-           <Route path="/mentors/:username" element={<MentorProfile />} />
-           
-            {/* Mentor Password Reset */}
-          <Route path="/mentors/forgot-password" element={<MentorForgotPassword />} />
-          <Route path="/mentors/reset-password/:token" element={<MentorResetPassword />} />
 
           {/* Posts */}
           <Route path="/posts/:postId" element={<PostDetail />} />
@@ -206,6 +244,7 @@ function App() {
         <Route path="/onboarding/:id" element={<Onboarding />} />
         <Route path="/mentors/login" element={<MentorsLogin />} />
         <Route path="/mentors/register" element={<MentorRegistration />} />
+        <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
         {/* Profile Edit Route - outside Layout */}
         <Route
@@ -260,7 +299,7 @@ function App() {
       {/* <ScrollUpButton /> */}
 
       {/* Footer - show on non-Layout, non-admin routes (Layout pages handle their own footer) */}
-      {!isAdminRoute && !usesLayout && !isAuthPage && <Footer />}
+      {!isAdminRoute && !usesLayout && !isAuthPage && location.pathname !== '/me' && location.pathname !== '/me/edit' && <Footer />}
     </>
   )
 }

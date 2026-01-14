@@ -31,11 +31,16 @@ async function authenticateJWT(req, res, next) {
             req.session.userRole = 'user';
             // Clear mentor session if exists
             delete req.session.mentorId;
-            // Force session save
-            req.session.save((err) => {
-                if (err) {
-                    console.error('Error saving user session:', err);
-                }
+            // Force session save - await to ensure it's saved before proceeding
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) {
+                        console.error('Error saving user session:', err);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
             });
         }
         

@@ -4,6 +4,7 @@ import { FaSearch, FaArrowLeft, FaUser, FaCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useSocket } from '../context/SocketContext';
 import { useUser } from '../context/UserContext';
+import SEO from '../components/SEO';
 
 const Chats = () => {
   const [chats, setChats] = useState([]);
@@ -133,7 +134,12 @@ const Chats = () => {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden p-4 sm:p-6 lg:p-8 transition-all duration-300 selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
-      
+      <SEO
+        title="Chats - Connect with Mentors | Admeasy"
+        description="Connect with verified mentors and access premium study notes. Your complete guide to college admissions and academic success."
+        keywords="chats, mentors, study notes, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search"
+        url="https://admeasy.in/chats"
+      />
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />

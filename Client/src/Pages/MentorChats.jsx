@@ -96,7 +96,7 @@ const MentorChats = () => {
       <div className="max-w-4xl mx-auto mb-6 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-admeasy-bold text-gray-900">
-            Student Messages
+            Chats
           </h1>
           <button
             onClick={() => navigate('/mentors')}

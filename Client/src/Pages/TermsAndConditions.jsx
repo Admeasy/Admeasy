@@ -8,7 +8,7 @@ const TermsAndConditions = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  
+
   return (
     <section className="bg-white  p-8 rounded-2xl shadow-3d max-w-4xl mx-auto my-12 text-gray-800">
       <h1 className="text-3xl  my-6 font-bold text-center">
@@ -72,7 +72,7 @@ const TermsAndConditions = () => {
         <h2 className="text-2xl font-admeasy-extrabold mb-3 flex items-center gap-2"> Contact Us</h2>
         <p className="mb-1">If you have any questions about this document, please contact:</p>
         <p className="mb-1"> Contact us with any concerns at: <strong>support@admeasy.in</strong></p>
-        <p><strong>Admeasy Addmission Solutions Pvt Ltd</strong></p>
+        <p><strong>Admeasy</strong></p>
       </div>
     </section>
   );

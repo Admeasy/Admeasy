@@ -14,10 +14,10 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
   const { mentor } = useMentor();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const loggedInAccount = user || mentor;
   const isUserAccount = Boolean(user);
-  
+
   const [searchActive, setSearchActive] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [query, setQuery] = useState("");
@@ -30,13 +30,13 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
     imageError
       ? fallbackProfilePic
       : (isUserAccount
-          ? user?.imageUrl || user?.image
-          : mentor?.imageUrl || mentor?.image) || fallbackProfilePic;
+        ? user?.imageUrl || user?.image
+        : mentor?.imageUrl || mentor?.image) || fallbackProfilePic;
 
   // Single unified search handler
   const handleSearch = (e) => {
     if (e) e.preventDefault();
-    
+
     if (query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query)}`);
       setSearchActive(false);
@@ -60,7 +60,7 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
   return (
     <nav className="fixed top-0 left-0 w-full h-16 bg-white z-[1000] border-b border-gray-200">
       <div className="h-full px-4 flex items-center">
-        
+
         {/* ================= LOGO ================= */}
         {/* Removed Hamburger button here */}
         <Link to="/feed" className="flex items-center gap-2 shrink-0">
@@ -78,13 +78,16 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
         <div className="hidden lg:flex items-center gap-6 ml-auto text-sm font-medium text-gray-700">
           {/* Desktop Auth */}
           {loggedInAccount ? (
-            <Link to={"/me"}>
+            <Link to={"/me"} className="relative">
               <img
                 src={profileImage}
                 onError={() => setImageError(true)}
                 alt="Profile"
                 className="w-9 h-9 rounded-full object-cover border border-gray-200 hover:border-[#9f3562] transition-colors"
               />
+              {!loggedInAccount.username && (
+                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+              )}
             </Link>
           ) : (
             <Link to="/login">

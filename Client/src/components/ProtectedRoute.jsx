@@ -4,15 +4,15 @@ import 'react-toastify/dist/ReactToastify.css'
 
 const ProtectedRoute = ({ user, mentor, children }) => {
   const location = useLocation();
-  
+
   // Check if OAuth is in progress - check both sessionStorage and URL parameter
   const urlParams = new URLSearchParams(location.search);
   const oauthSuccessParam = urlParams.get('oauth_success');
   const oauthInProgress = typeof window !== 'undefined' && (
-    sessionStorage.getItem('oauth_in_progress') === 'true' || 
+    sessionStorage.getItem('oauth_in_progress') === 'true' ||
     oauthSuccessParam === 'true'
   );
-  
+
   // If OAuth is detected in URL, set the flag immediately
   if (oauthSuccessParam === 'true' && typeof window !== 'undefined') {
     sessionStorage.setItem('oauth_in_progress', 'true');
@@ -20,7 +20,7 @@ const ProtectedRoute = ({ user, mentor, children }) => {
       sessionStorage.setItem('oauth_intended_path', location.pathname);
     }
   }
-  
+
   // Handle different types of protection
   if (mentor === true) {
     // This route requires mentor authentication
