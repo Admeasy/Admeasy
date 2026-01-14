@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
   const pathname = useLocation();
- const location = useLocation()
+  const location = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
@@ -29,7 +29,7 @@ const PrivacyPolicy = () => {
         <p className="font-bold mb-4">Effective Date: <span className="text-gray-700">1 June 2025</span></p>
 
         <p className="mb-6">
-          Welcome to <strong>Admeasy</strong>, a product of <span className="text-[#82a9e0] font-bold"> Admeasy Admission Solutions Pvt. Ltd.</span>
+          Welcome to <strong>Admeasy</strong>, a product of <span className="text-[#82a9e0] font-bold"> Admeasy</span>
           Your trust is important to us. This document outlines our Privacy Policy and Terms & Conditions,
           which govern your use of our website and services. By accessing or using our platform, you agree to these terms.
         </p>
@@ -87,7 +87,7 @@ const PrivacyPolicy = () => {
         <section id='Cookies' className="mb-8">
           <h3 className="text-2xl font-admeasy-extrabold mb-3">5. Cookies & Tracking</h3>
           <p>
-           We don’t use cookies to track you around the internet or show you weird ads later. That’s not how we roll. The only cookies involved here come from Google Analytics  just so we can understand how people use our site and make it better for everyone. Nothing personal, nothing shady. Just simple, anonymous insights. That’s it.
+            We don’t use cookies to track you around the internet or show you weird ads later. That’s not how we roll. The only cookies involved here come from Google Analytics  just so we can understand how people use our site and make it better for everyone. Nothing personal, nothing shady. Just simple, anonymous insights. That’s it.
           </p>
         </section>
 
@@ -119,7 +119,7 @@ const PrivacyPolicy = () => {
           <p>
             Contact us with any concerns at: <strong>support@admeasy.in</strong>
           </p>
-          <p>Admeasy Admission Solutions Pvt. Ltd.</p>
+          <p>Admeasy</p>
         </div>
       </section>
     </div>

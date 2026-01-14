@@ -23,22 +23,22 @@ const verifyAdminFromCookie = (req) => {
 // Helper: generate JWT with role
 const generateAccessToken = (mentor) => {
     return jwt.sign(
-        { 
+        {
             id: mentor._id,
             role: 'mentor'  // Add role to distinguish from user
-        }, 
-        process.env.JWT_ACCESS_SECRET, 
+        },
+        process.env.JWT_ACCESS_SECRET,
         { expiresIn: '12hr' }
     );
 }
 
 const generateRefreshToken = (mentor) => {
     return jwt.sign(
-        { 
+        {
             id: mentor._id,
             role: 'mentor'  // Add role to distinguish from user
-        }, 
-        process.env.JWT_REFRESH_SECRET, 
+        },
+        process.env.JWT_REFRESH_SECRET,
         { expiresIn: '28d' }
     );
 }
@@ -57,7 +57,17 @@ const getPublicIdFromUrl = (imageUrl) => {
 // GET ALL MENTORS
 router.get('/', async (req, res) => {
     try {
-        const mentors = await Mentor.find();
+        const admin = verifyAdminFromCookie(req);
+
+        // Base exclusions (always exclude auth tokens/hashes)
+        let selectFields = '-password -refreshToken';
+
+        // If NOT admin, also exclude sensitive private contact info
+        if (!admin) {
+            selectFields += ' -email -phone';
+        }
+
+        const mentors = await Mentor.find().select(selectFields);
         res.status(200).json(mentors);
     } catch (error) {
         console.log(error);
@@ -197,6 +207,22 @@ router.get('/me', authenticateMentorJWT, async (req, res) => {
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
+
+        // CRITICAL: Ensure session is set for Socket.io
+        if (req.session) {
+            req.session.mentorId = mentor._id;
+            req.session.userRole = 'mentor';
+            // Clear user session if exists
+            delete req.session.userId;
+            // Explicitly save session
+            await new Promise((resolve) => {
+                req.session.save((err) => {
+                    if (err) console.error('Error saving mentor session in /me:', err);
+                    resolve();
+                });
+            });
+        }
+
         res.json({ success: true, mentor });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -237,7 +263,7 @@ router.get('/:id/pic', async (req, res) => {
 // GET MENTOR BY ID (must be before /:username route to avoid conflicts)
 router.get('/id/:id', async (req, res) => {
     try {
-        const mentor = await Mentor.findById(req.params.id);
+        const mentor = await Mentor.findById(req.params.id).select('-password -refreshToken -email');
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
@@ -251,7 +277,7 @@ router.get('/id/:id', async (req, res) => {
 // GET MENTOR BY USERNAME
 router.get('/:username', async (req, res) => {
     try {
-        const mentor = await Mentor.findOne({ username: req.params.username });
+        const mentor = await Mentor.findOne({ username: req.params.username }).select('-password -refreshToken -email');
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
@@ -319,17 +345,17 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
             const normalizedUsername = username.trim().toLowerCase();
             // Escape special regex characters to match literally
             const escapedUsername = normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            
+
             // Check if username is already taken by another mentor
-            const mentorWithUsername = await Mentor.findOne({ 
+            const mentorWithUsername = await Mentor.findOne({
                 username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') },
                 _id: { $ne: req.params.id }
             });
-            
+
             // Also check if username is taken by a user
             const User = require('../models/userSchema');
-            const userWithUsername = await User.findOne({ 
-                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
+            const userWithUsername = await User.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
             });
 
             if (mentorWithUsername || userWithUsername) {

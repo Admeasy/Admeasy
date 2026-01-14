@@ -81,7 +81,7 @@ const RatingBar = ({ rating, label }) => {
   );
 };
 
-export default function Tabs({college = {} }) {
+export default function Tabs({ college = {} }) {
   // Tabs component initialization
   const { user } = useUser();
   const { mentor } = useMentor();

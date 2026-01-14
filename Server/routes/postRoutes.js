@@ -4,7 +4,9 @@ const Post = require("../models/postSchema");
 const Mentor = require("../models/mentorSchema");
 const User = require("../models/userSchema");
 const { Users } = require("../db");
-const authenticateMentorJWT  = require("../middleware/mentorAuth");
+
+const apiCache = require('../middleware/apiCache');
+const authenticateMentorJWT = require("../middleware/mentorAuth");
 const authenticateJWT = require("../middleware/userAuth");
 const { authenticateRequired } = require("../middleware/combinedAuth");
 const upload = require('../middleware/multer');
@@ -68,7 +70,7 @@ async function populateUsers(userIds) {
     const users = await UserModel.find({ _id: { $in: uniqueIds } })
       .select('name image')
       .lean();
-    
+
     // Create a map for quick lookup
     const userMap = {};
     users.forEach(user => {
@@ -88,7 +90,7 @@ async function getOptionalUser(req) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const Mentor = require('../models/mentorSchema');
-    
+
     // Support both users and mentors
     if (decoded.role === 'mentor') {
       const mentor = await Mentor.findById(decoded.id || decoded._id)
@@ -111,11 +113,13 @@ async function getOptionalUser(req) {
   }
 }
 
+
 /**
  * GET /api/posts
  * Public: list posts (from both mentors and users)
+ * Cached for 10 minutes to improve performance
  */
-router.get("/", async (req, res) => {
+router.get("/", apiCache(600), async (req, res) => {
   try {
     const currentUser = await getOptionalUser(req);
     const page = parseInt(req.query.page) || 1;
@@ -135,7 +139,7 @@ router.get("/", async (req, res) => {
     // 2. Post likes
     const allUserIds = new Set();
     const postAuthorUserIds = [];
-    
+
     posts.forEach(post => {
       // Collect post author user IDs
       if (post.userId) {
@@ -225,8 +229,8 @@ router.get("/", async (req, res) => {
         repostCount: post.repostCount || 0,
         isLiked: currentUser
           ? populatedLikes.some(
-              like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
-            )
+            like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
+          )
           : false,
         isFollowing,
         isReposted,
@@ -333,8 +337,8 @@ router.get("/user/:userId", async (req, res) => {
         repostCount: post.repostCount || 0,
         isLiked: currentUser
           ? populatedLikes.some(
-              like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
-            )
+            like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
+          )
           : false,
         isFollowing: false,
         isReposted,
@@ -444,8 +448,8 @@ router.get("/mentor/:mentorId", async (req, res) => {
         repostCount: post.repostCount || 0,
         isLiked: currentUser
           ? populatedLikes.some(
-              like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
-            )
+            like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
+          )
           : false,
         isFollowing,
         isReposted,
@@ -479,7 +483,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
 router.get("/:postId", async (req, res) => {
   try {
     const currentUser = await getOptionalUser(req);
-    
+
     const post = await Post.findById(req.params.postId)
       .populate('mentorId', 'name username image bio tagline')
       .lean();
@@ -494,17 +498,17 @@ router.get("/:postId", async (req, res) => {
     // 2. Likes
     // 3. Comments and replies
     const allUserIds = new Set();
-    
+
     // Collect post author user ID
     if (post.userId) {
       allUserIds.add(post.userId.toString());
     }
-    
+
     // Collect from likes
     (post.likes || []).forEach(like => {
       if (like.userId) allUserIds.add(like.userId.toString());
     });
-    
+
     // Collect from comments and replies
     const allComments = (post.comments || []).filter(c => !c.deleted);
     allComments.forEach(comment => {
@@ -563,15 +567,15 @@ router.get("/:postId", async (req, res) => {
 
     // Organize comments by parent/child
     const topLevelComments = allComments.filter(c => !c.parentCommentId);
-    
+
     // Populate comments using pre-fetched users
     const populatedComments = topLevelComments.map(comment => {
-      const populatedUser = comment.userId 
+      const populatedUser = comment.userId
         ? (usersMap.get(comment.userId.toString()) || { _id: comment.userId })
         : null;
 
       // Get replies for this comment
-      const replies = allComments.filter(c => 
+      const replies = allComments.filter(c =>
         c.parentCommentId && c.parentCommentId.toString() === comment._id.toString()
       );
 
@@ -581,9 +585,9 @@ router.get("/:postId", async (req, res) => {
           : null;
 
         const isLiked = currentUser && reply.likes
-          ? reply.likes.some(like => 
-              like.userId && like.userId.toString() === currentUser._id.toString()
-            )
+          ? reply.likes.some(like =>
+            like.userId && like.userId.toString() === currentUser._id.toString()
+          )
           : false;
 
         return {
@@ -598,9 +602,9 @@ router.get("/:postId", async (req, res) => {
       });
 
       const isLiked = currentUser && comment.likes
-        ? comment.likes.some(like => 
-            like.userId && like.userId.toString() === currentUser._id.toString()
-          )
+        ? comment.likes.some(like =>
+          like.userId && like.userId.toString() === currentUser._id.toString()
+        )
         : false;
 
       return {
@@ -650,8 +654,8 @@ router.get("/:postId", async (req, res) => {
       commentsCount: post.commentsCount,
       isLiked: currentUser
         ? populatedLikes.some(
-            like => like.user && like.user._id && like.user._id.toString() === currentUser._id.toString()
-          )
+          like => like.user && like.user._id && like.user._id.toString() === currentUser._id.toString()
+        )
         : false,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
@@ -671,18 +675,18 @@ router.get("/:postId", async (req, res) => {
 router.post("/", authenticateRequired, upload.single("image"), async (req, res) => {
   try {
     const { content } = req.body;
-    
+
     if (!content || !content.trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Content is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Content is required"
       });
     }
 
     // Detect URL in content
     const detectedUrl = detectUrl(content);
     let linkPreview = null;
-    
+
     if (detectedUrl) {
       try {
         linkPreview = await generateLinkPreview(detectedUrl);
@@ -699,9 +703,9 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
         imageUrl = await uploadToCloudinary(req.file.path, 'posts');
       } catch (uploadError) {
         console.error('Error uploading image:', uploadError);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Error uploading image' 
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading image'
         });
       }
     }
@@ -745,21 +749,21 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
     }
 
     // Format response based on author type
-    const author = post.mentorId 
+    const author = post.mentorId
       ? {
-          _id: post.mentorId._id,
-          name: post.mentorId.name,
-          username: post.mentorId.username,
-          image: post.mentorId.image,
-        }
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
+      }
       : post.userId
-      ? {
+        ? {
           _id: post.userId._id,
           name: post.userId.name,
           username: post.userId.username || null,
           image: post.userId.image,
         }
-      : null;
+        : null;
 
     res.status(201).json({
       success: true,
@@ -797,20 +801,20 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
     }
 
     // Check authorization: user must be the creator
-    const isAuthorized = 
+    const isAuthorized =
       (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
       (req.user && post.userId && post.userId.toString() === req.user._id.toString());
 
     if (!isAuthorized) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "You can only edit your own posts" 
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own posts"
       });
     }
 
     if (content && content.trim()) {
       post.content = content.trim();
-      
+
       const detectedUrl = detectUrl(content);
       if (detectedUrl) {
         try {
@@ -847,14 +851,14 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
           console.error('Error deleting old image:', deleteError);
         }
       }
-      
+
       try {
         post.image = await uploadToCloudinary(req.file.path, 'posts');
       } catch (uploadError) {
         console.error('Error uploading image:', uploadError);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Error uploading image' 
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading image'
         });
       }
     }
@@ -870,21 +874,21 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
     }
 
     // Format response based on author type
-    const author = post.mentorId 
+    const author = post.mentorId
       ? {
-          _id: post.mentorId._id,
-          name: post.mentorId.name,
-          username: post.mentorId.username,
-          image: post.mentorId.image,
-        }
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
+      }
       : post.userId
-      ? {
+        ? {
           _id: post.userId._id,
           name: post.userId.name,
           username: post.userId.username || null,
           image: post.userId.image,
         }
-      : null;
+        : null;
 
     res.json({
       success: true,
@@ -921,14 +925,14 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
     }
 
     // Check authorization: user must be the creator
-    const isAuthorized = 
+    const isAuthorized =
       (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
       (req.user && post.userId && post.userId.toString() === req.user._id.toString());
 
     if (!isAuthorized) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "You can only delete your own posts" 
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own posts"
       });
     }
 
@@ -998,11 +1002,11 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
 router.post("/:postId/comment", authenticateRequired, async (req, res) => {
   try {
     const { content } = req.body;
-    
+
     if (!content || !content.trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Comment content is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Comment content is required"
       });
     }
 
@@ -1023,7 +1027,7 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     post.commentsCount = post.commentsCount + 1;
 
     await post.save();
-    
+
     // Manually populate user data for the new comment (cross-connection population)
     const newComment = post.comments[post.comments.length - 1];
     const user = req.user ? await populateUser(newComment.userId) : await populateMentor(newComment.userId);
@@ -1096,7 +1100,7 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
     
     // Increment repost count on original post
     originalPost.repostCount = (originalPost.repostCount || 0) + 1;
-    
+
     await user.save();
     await originalPost.save();
 
@@ -1165,11 +1169,11 @@ router.post("/:postId/comments/:commentId/like", authenticateRequired, async (re
 router.post("/:postId/comments/:commentId/reply", authenticateRequired, async (req, res) => {
   try {
     const { content } = req.body;
-    
+
     if (!content || !content.trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Reply content is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Reply content is required"
       });
     }
 
@@ -1201,7 +1205,7 @@ router.post("/:postId/comments/:commentId/reply", authenticateRequired, async (r
 
     // Get the newly added reply
     const newReply = post.comments[post.comments.length - 1];
-    
+
     // Manually populate the reply's user data (cross-DB population)
     const populatedUser = req.user 
       ? await populateUser(newReply.userId) 

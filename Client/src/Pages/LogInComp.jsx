@@ -12,7 +12,7 @@ import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 
 
-const LogInComp = ({ setAuthMode }) => {
+const LogInComp = ({ setAuthMode, onNotVerified }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,10 +21,10 @@ const LogInComp = ({ setAuthMode }) => {
   const navigate = useNavigate();
   const { fetchUser } = useUser();
   const { setMentor } = useMentor();
-const fadeUpVariant = {
-  hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0 },
-};
+  const fadeUpVariant = {
+    hidden: { opacity: 0, y: 60 },
+    visible: { opacity: 1, y: 0 },
+  };
 
   const validateEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
   const validatePassword = (password) =>
@@ -66,7 +66,12 @@ const fadeUpVariant = {
         toast.success("You're all set!");
         navigate('/');
       } else {
-        setError(data.message || 'An error occurred. Please try again.');
+        if (data.isNotVerified) {
+          onNotVerified(email);
+          setError(''); // Clear error if we're showing the modal
+        } else {
+          setError(data.message || 'An error occurred. Please try again.');
+        }
       }
     } catch (err) {
       setError(err.message || 'An error occurred. Please try again.');
@@ -147,14 +152,14 @@ const fadeUpVariant = {
         </div>
 
         {/* Submit Button */}
-           {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'blue'}/>
-        :   <button
-          type="submit"
-          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          disabled={isSubmitting}
-        >
-          Log In
-        </button>
+        {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'blue'} />
+          : <button
+            type="submit"
+            className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+            disabled={isSubmitting}
+          >
+            Log In
+          </button>
         }
       </form>
 

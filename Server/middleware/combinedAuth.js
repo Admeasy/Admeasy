@@ -9,15 +9,15 @@ const Mentor = require('../models/mentorSchema');
  */
 const authenticateOptional = async (req, res, next) => {
   const token = req.cookies?.accessToken;
-  
+
   if (!token) {
     // No token, continue without auth
     return next();
   }
-  
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    
+
     // Check role and authenticate accordingly
     if (decoded.role === 'mentor') {
       const mentor = await Mentor.findById(decoded.id || decoded._id);
@@ -47,7 +47,7 @@ const authenticateOptional = async (req, res, next) => {
     // Token invalid/expired, continue without auth
     console.log('Optional auth failed:', error.message);
   }
-  
+
   next();
 };
 
@@ -58,17 +58,17 @@ const authenticateOptional = async (req, res, next) => {
  */
 const authenticateRequired = async (req, res, next) => {
   const token = req.cookies?.accessToken;
-  
+
   if (!token) {
     return res.status(401).json({
       success: false,
       message: 'Authentication required',
     });
   }
-  
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    
+
     if (decoded.role === 'mentor') {
       const mentor = await Mentor.findById(decoded.id || decoded._id);
       if (!mentor) {
@@ -110,10 +110,29 @@ const authenticateRequired = async (req, res, next) => {
     });
   }
 };
+// Should be admin or owner of account to delete the account
+const requireSelfOrAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  const isOwner = req.user._id.toString() === req.params.userId;
+  const isAdmin = req.user.role === 'ADMIN';
+
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: 'You are not allowed to delete this account'
+    });
+  }
+
+  next();
+};
 
 module.exports = {
   authenticateOptional,
   authenticateRequired,
+  requireSelfOrAdmin,
 };
 
 

@@ -28,7 +28,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   console.warn('Warning: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set. Google OAuth will not work.');
 } else {
   const callbackURL = getCallbackURL();
-  
+
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -42,33 +42,35 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 
       // Check if user already exists with this Google ID
       let user = await User.findOne({ googleId: profile.id });
-      
+
       if (user) {
         // User exists, return user
         return done(null, user);
       }
-      
+
       // Check if user exists with this email (for users who signed up with email/password)
       user = await User.findOne({ email: profile.emails[0].value });
-      
+
       if (user) {
         // Link Google account to existing user
         user.googleId = profile.id;
         if (!user.image && profile.photos && profile.photos[0]) {
           user.image = profile.photos[0].value;
         }
+        user.isVerified = true;
         await user.save();
         return done(null, user);
       }
-      
+
       // Create new user
       user = new User({
         googleId: profile.id,
         email: profile.emails[0].value,
         name: profile.displayName || profile.name?.givenName || '',
-        image: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined
+        image: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined,
+        isVerified: true
       });
-      
+
       await user.save();
       return done(null, user);
     } catch (err) {

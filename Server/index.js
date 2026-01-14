@@ -7,6 +7,8 @@ const socketIo = require('socket.io');
 const redis = require('redis');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const cookie = require('cookie');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
@@ -23,11 +25,14 @@ const SitemapRoutes = require('./routes/sitemapRoutes')
 const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
+const User = require('./models/userSchema');
+const Mentor = require('./models/mentorSchema');
 const app = express();
 const server = http.createServer(app);
 
 const allowedOrigins = [
   'https://admeasy.in',
+  'https://development.admeasy.in',
   'http://localhost:5173',
 ].filter(Boolean);
 
@@ -145,6 +150,48 @@ const setPresence = async (userId, role, isOnline) => {
   }
   presenceStore.set(`${role}:${userId}`, isOnline ? 'online' : 'offline');
 };
+
+// Extract JWT from socket handshake (cookies > auth header > query/auth payload)
+const getSocketToken = (socket) => {
+  const cookies = cookie.parse(socket.handshake.headers?.cookie || '');
+  const authHeader = socket.handshake.headers?.authorization || '';
+  if (socket.handshake.auth?.token) return socket.handshake.auth.token;
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice(7);
+  return cookies.accessToken || socket.handshake.query?.token;
+};
+
+// Socket.io JWT authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = getSocketToken(socket);
+    if (!token) {
+      return next(new Error('AUTH_REQUIRED'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const id = decoded.id || decoded._id;
+    const role = decoded.role === 'mentor' ? 'mentor' : 'user';
+
+    if (!id) {
+      return next(new Error('INVALID_TOKEN'));
+    }
+
+    if (role === 'mentor') {
+      const mentor = await Mentor.findById(id).select('_id');
+      if (!mentor) return next(new Error('INVALID_MENTOR'));
+      socket.authContext = { role: 'mentor', id: mentor._id.toString() };
+    } else {
+      const user = await User.findById(id).select('_id');
+      if (!user) return next(new Error('INVALID_USER'));
+      socket.authContext = { role: 'user', id: user._id.toString() };
+    }
+
+    return next();
+  } catch (error) {
+    console.error('Socket auth error:', error.message);
+    return next(new Error('AUTH_ERROR'));
+  }
+});
 
 // Serve uploaded blog images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -266,117 +313,103 @@ app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', PostRoutes);
 app.use("/api", SearchRoutes);
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
-// Socket.io connection handling with session authentication
+// Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
-  // Access session data - CRITICAL FIX
-  const session = socket.request.session;
-  
-  if (!session) {
-    console.error('No session found for socket:', socket.id);
-    socket.emit('auth_error', { message: 'No session found' });
+  const emitAuthenticated = () => {
+    const id = socket.userRole === 'mentor' ? socket.mentorId : socket.userId;
+    if (id) {
+      socket.emit('authenticated', { role: socket.userRole, id });
+    }
+  };
+
+  const { role, id } = socket.authContext || {};
+  if (!role || !id) {
+    console.error('Socket missing auth context, disconnecting:', socket.id);
+    socket.emit('auth_error', { message: 'Authentication required' });
+    socket.disconnect(true);
     return;
   }
 
-  // Authenticate user or mentor from session
-  const userId = session.userId;
-  const mentorId = session.mentorId;
-  const userRole = session.userRole; // 'user' or 'mentor'
-
-  console.log('Socket connection session check:', {
-    socketId: socket.id,
-    userId,
-    mentorId,
-    userRole,
-    sessionKeys: Object.keys(session)
-  });
-
-  if (!userId && !mentorId) {
-    console.log('Unauthenticated socket connection:', socket.id, 'Session data:', session);
-    // Emit auth_required so client knows to wait for session to be set
-    socket.emit('auth_required', { message: 'Session not authenticated. Please make an authenticated HTTP request first.' });
-    // Don't disconnect - allow re-authentication when session is set
-    return;
-  }
-
-  // Auto-join based on session authentication and role
-  if (userId && userRole === 'user') {
-    socket.userId = userId;
+  if (role === 'user') {
+    socket.userId = id;
     socket.userRole = 'user';
-    socket.join(`user:${userId}`);
-    
-    setPresence(userId, 'user', true).then(() => {
-      socket.broadcast.emit('user_online', { userId });
-      console.log(`User ${userId} auto-joined and set online`);
-      // Emit authenticated event so client knows connection is ready
-      socket.emit('authenticated', { role: 'user', id: userId });
-    });
-  } else if (mentorId && userRole === 'mentor') {
-    socket.mentorId = mentorId;
-    socket.userRole = 'mentor';
-    socket.join(`mentor:${mentorId}`);
-    
-    setPresence(mentorId, 'mentor', true).then(() => {
-      socket.broadcast.emit('mentor_online', { mentorId });
-      console.log(`Mentor ${mentorId} auto-joined and set online`);
-      // Emit authenticated event so client knows connection is ready
-      socket.emit('authenticated', { role: 'mentor', id: mentorId });
+    socket.join(`user:${id}`);
+
+    setPresence(id, 'user', true).then(() => {
+      socket.broadcast.emit('user_online', { userId: id });
+      console.log(`User ${id} connected and set online`);
+      emitAuthenticated();
+    }).catch((error) => {
+      console.error('Presence error (user):', error);
+      emitAuthenticated();
     });
   } else {
-    // Session has userId/mentorId but missing userRole - emit auth_required
-    socket.emit('auth_required', { message: 'Session incomplete. Please refresh.' });
+    socket.mentorId = id;
+    socket.userRole = 'mentor';
+    socket.join(`mentor:${id}`);
+
+    setPresence(id, 'mentor', true).then(() => {
+      socket.broadcast.emit('mentor_online', { mentorId: id });
+      console.log(`Mentor ${id} connected and set online`);
+      emitAuthenticated();
+    }).catch((error) => {
+      console.error('Presence error (mentor):', error);
+      emitAuthenticated();
+    });
   }
 
-  // Manual join handlers (kept for backward compatibility)
-  socket.on('join_user', async (userIdParam) => {
-    try {
-      // Verify session matches and role is correct
-      if (session.userId && session.userId.toString() === userIdParam.toString() && session.userRole === 'user') {
-        socket.userId = userIdParam;
-        socket.userRole = 'user';
-        socket.join(`user:${userIdParam}`);
-        await setPresence(userIdParam, 'user', true);
-        socket.broadcast.emit('user_online', { userId: userIdParam });
-        console.log(`User ${userIdParam} manually joined`);
-        // Emit authenticated event so client knows connection is ready
-        socket.emit('authenticated', { role: 'user', id: userIdParam });
-      } else {
-        console.error('Session userId mismatch or wrong role:', session.userId, userIdParam, session.userRole);
-        socket.emit('auth_error', { message: 'Authentication mismatch' });
-      }
-    } catch (error) {
-      console.error('Error joining user:', error);
-      socket.emit('auth_error', { message: 'Failed to join' });
+  // Manual join handlers retained for backward compatibility
+  socket.on('join_user', async () => {
+    if (socket.userRole !== 'user' || !socket.userId) {
+      socket.emit('auth_error', { message: 'Not authorized as user' });
+      return;
     }
+    socket.join(`user:${socket.userId}`);
+    emitAuthenticated();
   });
 
-  socket.on('join_mentor', async (mentorIdParam) => {
-    try {
-      // Verify session matches and role is correct
-      if (session.mentorId && session.mentorId.toString() === mentorIdParam.toString() && session.userRole === 'mentor') {
-        socket.mentorId = mentorIdParam;
-        socket.userRole = 'mentor';
-        socket.join(`mentor:${mentorIdParam}`);
-        await setPresence(mentorIdParam, 'mentor', true);
-        socket.broadcast.emit('mentor_online', { mentorId: mentorIdParam });
-        console.log(`Mentor ${mentorIdParam} manually joined`);
-        // Emit authenticated event so client knows connection is ready
-        socket.emit('authenticated', { role: 'mentor', id: mentorIdParam });
-      } else {
-        console.error('Session mentorId mismatch or wrong role:', session.mentorId, mentorIdParam, session.userRole);
-        socket.emit('auth_error', { message: 'Authentication mismatch' });
-      }
-    } catch (error) {
-      console.error('Error joining mentor:', error);
-      socket.emit('auth_error', { message: 'Failed to join' });
+  socket.on('join_mentor', async () => {
+    if (socket.userRole !== 'mentor' || !socket.mentorId) {
+      socket.emit('auth_error', { message: 'Not authorized as mentor' });
+      return;
     }
+    socket.join(`mentor:${socket.mentorId}`);
+    emitAuthenticated();
   });
 
-  // Join chat room
-  socket.on('join_chat', (chatId) => {
-    socket.join(`chat:${chatId}`);
-    console.log(`Socket ${socket.id} joined chat ${chatId}`);
+  // Join chat room (with participant verification)
+  socket.on('join_chat', async (chatId) => {
+    try {
+      if (!chatId) {
+        socket.emit('auth_error', { message: 'Chat ID required' });
+        return;
+      }
+
+      const Chat = require('./models/chatSchema');
+      const chat = await Chat.findById(chatId).select('userId mentorId isActive');
+
+      if (!chat || chat.isActive === false) {
+        socket.emit('auth_error', { message: 'Chat not found or inactive' });
+        return;
+      }
+
+      const isParticipant = socket.userRole === 'user'
+        ? chat.userId.toString() === socket.userId
+        : chat.mentorId.toString() === socket.mentorId;
+
+      if (!isParticipant) {
+        socket.emit('auth_error', { message: 'Not a participant in this chat' });
+        return;
+      }
+
+      socket.join(`chat:${chatId}`);
+      console.log(`Socket ${socket.id} joined chat ${chatId}`);
+    } catch (error) {
+      console.error('Error joining chat:', error);
+      socket.emit('auth_error', { message: 'Failed to join chat' });
+    }
   });
 
   // Leave chat room
@@ -386,21 +419,18 @@ io.on('connection', (socket) => {
   });
 
   // Send message
-  socket.on('send_message', async (data) => {
+  socket.on('send_message', async (data = {}) => {
     try {
-      const { chatId, senderId, message, senderRole } = data;
+      const { chatId, message } = data;
+      const senderRole = socket.userRole;
+      const senderId = senderRole === 'user' ? socket.userId : socket.mentorId;
 
-      if (!chatId || !senderId || !message || !senderRole) {
+      if (!chatId || !message) {
         socket.emit('message_error', { message: 'Invalid message data' });
         return;
       }
 
-      // Verify sender matches session
-      if (senderRole === 'user' && session.userId?.toString() !== senderId.toString()) {
-        socket.emit('message_error', { message: 'Unauthorized sender' });
-        return;
-      }
-      if (senderRole === 'mentor' && session.mentorId?.toString() !== senderId.toString()) {
+      if (!senderId || !senderRole) {
         socket.emit('message_error', { message: 'Unauthorized sender' });
         return;
       }

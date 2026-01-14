@@ -100,7 +100,7 @@ function MentorsLogin({ onLoginSuccess }) {
         initial="hidden"
         animate="visible"
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl">
+        className="w-full max-w-md p-2 py-5 bg-white shadow-lg rounded-2xl">
         <SEO
           title="Mentors Login | Admeasy"
           description="Login to your Mentor account to access your dashboard and start mentoring students."

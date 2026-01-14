@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 import PostCard from '../components/PostCard';
@@ -26,12 +26,66 @@ export default function Profile() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsPage, setPostsPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
+
+  // New State for Tabs and Reposts
+  const [activeTab, setActiveTab] = useState('posts');
+  const [reposts, setReposts] = useState([]);
+  const [repostsLoading, setRepostsLoading] = useState(false);
+
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('followers'); // 'followers' or 'following'
+
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+  const { setUser } = useUser();
+  const { setMentor } = useMentor();
+
+  const handleLogout = async () => {
+    setShowMenu(false);
+    try {
+      const isMentor = !!currentMentor;
+      const url = isMentor ? '/api/mentors/logout' : '/api/users/logout';
+
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        if (isMentor && setMentor) setMentor(null);
+        if (!isMentor && setUser) setUser(null);
+        localStorage.clear();
+        toast.success('Logged out successfully');
+        window.location.href = '/';
+      } else {
+        toast.error('Failed to logout');
+      }
+    } catch (err) {
+      console.error('Logout failed:', err);
+      toast.error('Failed to logout');
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
   useEffect(() => {
     if (mentorLoading || userLoading) {
@@ -179,10 +233,10 @@ export default function Profile() {
     const fetchPosts = async () => {
       setPostsLoading(true);
       try {
-        const endpoint = profileType === 'mentor' 
+        const endpoint = profileType === 'mentor'
           ? `/api/posts/mentor/${profile._id}`
           : `/api/posts/user/${profile._id}`;
-        
+
         const response = await fetch(`${endpoint}?page=1&limit=10`, {
           credentials: 'include',
         });
@@ -203,8 +257,44 @@ export default function Profile() {
       }
     };
 
+
     fetchPosts();
   }, [profile, profileType]);
+
+  // Fetch reposts when tab changes
+  useEffect(() => {
+    if (activeTab === 'reposts' && reposts.length === 0 && profile?.reposts?.length > 0) {
+      const fetchReposts = async () => {
+        setRepostsLoading(true);
+        try {
+          const promises = profile.reposts.map(async (id) => {
+            try {
+              const res = await fetch(`/api/posts/${id}`);
+              if (!res.ok) return null;
+              const data = await res.json();
+              return data.success ? data.post : null;
+            } catch (e) {
+              console.error(`Error fetching repost ${id}:`, e);
+              return null;
+            }
+          });
+
+          const results = await Promise.all(promises);
+          // Filter out nulls and duplicates (just in case)
+          const validPosts = results.filter(p => p !== null);
+          const uniquePosts = Array.from(new Map(validPosts.map(p => [p._id, p])).values());
+
+          setReposts(uniquePosts);
+        } catch (err) {
+          console.error('Error fetching reposts:', err);
+        } finally {
+          setRepostsLoading(false);
+        }
+      };
+
+      fetchReposts();
+    }
+  }, [activeTab, profile]);
 
   // Fetch followers and following counts
   useEffect(() => {
@@ -264,7 +354,7 @@ export default function Profile() {
   const handleFollow = async () => {
     if (!currentUser && !currentMentor) {
       toast.info('Log in to follow users and mentors');
-      navigate('/login');
+      // navigate('/login');
       return;
     }
     if (isFollowingLoading || !profile || !profile._id) return;
@@ -465,7 +555,7 @@ export default function Profile() {
 
               {/* Action Buttons */}
               {isOwnProfile && (
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 items-center">
                   <Link
                     to="/me/edit"
                     className="px-4 sm:px-6 py-2 bg-white border border-slate-200 hover:bg-gray-200 shadow-sm rounded-xl font-semibold text-sm text-gray-800 transition-colors flex items-center gap-2"
@@ -505,6 +595,29 @@ export default function Profile() {
 
                     {copied ? "Shared🎉" : "Share"}
                   </button>
+
+                  {/* 3-dots menu with logout */}
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                      aria-label="More options"
+                    >
+                      <MoreVertical size={20} />
+                    </button>
+
+                    {showMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut size={18} />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -645,11 +758,10 @@ export default function Profile() {
                       whileTap={{ scale: 0.98 }}
                       onClick={handleFollow}
                       disabled={isFollowingLoading}
-                      className={`flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all disabled:opacity-50 shadow-md ${
-                        isFollowing
-                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                          : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
-                      }`}
+                      className={`flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all disabled:opacity-50 shadow-md ${isFollowing
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                        : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
+                        }`}
                     >
                       {isFollowingLoading ? (
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -690,7 +802,7 @@ export default function Profile() {
                         toast.info('Please login to subscribe', {
                           position: 'top-center',
                         });
-                        navigate('/login');
+                        // navigate('/login');
                         return;
                       }
                       // Navigate to subscription page or show subscription plans
@@ -801,39 +913,117 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Posts Section */}
-        <div className="bg-white rounded-2xl shadow-lg mt-6 p-4 sm:p-6">
-          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
-            <div className="p-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg">
-              <MessagesSquare className="text-white" size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Posts</h2>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {postsLoading ? 'Loading...' : `${posts.length} post${posts.length !== 1 ? 's' : ''}`}
-              </p>
-            </div>
+        {/* Tabs Section */}
+        <div className="bg-white rounded-2xl shadow-lg mt-6 overflow-hidden">
+          {/* Tabs Header */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('posts')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm sm:text-base font-medium transition-all relative ${activeTab === 'posts'
+                ? 'text-blue-600 bg-blue-50/50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <MessagesSquare size={20} className={activeTab === 'posts' ? 'text-blue-600' : 'text-gray-400'} />
+              Posts
+              {posts.length > 0 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'posts' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {posts.length}
+                </span>
+              )}
+              {activeTab === 'posts' && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reposts')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm sm:text-base font-medium transition-all relative ${activeTab === 'reposts'
+                ? 'text-blue-600 bg-blue-50/50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <Repeat size={20} className={activeTab === 'reposts' ? 'text-blue-600' : 'text-gray-400'} />
+              Reposts
+              {profile.reposts && profile.reposts.length > 0 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'reposts' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {profile.reposts.length}
+                </span>
+              )}
+              {activeTab === 'reposts' && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
           </div>
 
-          {postsLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : posts.length > 0 ? (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <PostCard key={post._id} post={post} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
-              <p className="text-sm text-gray-500">
-                {isOwnProfile ? 'Start sharing your thoughts and experiences!' : 'This user hasn\'t posted anything yet.'}
-              </p>
-            </div>
-          )}
+          {/* Tab Content */}
+          <div className="p-4 sm:p-6">
+            <AnimatePresence mode="wait">
+              {activeTab === 'posts' ? (
+                <motion.div
+                  key="posts"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {postsLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : posts.length > 0 ? (
+                    <div className="space-y-4">
+                      {posts.map((post) => (
+                        <PostCard key={post._id} post={post} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+                      <p className="text-sm text-gray-500">
+                        {isOwnProfile ? 'Start sharing your thoughts and experiences!' : 'This user hasn\'t posted anything yet.'}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="reposts"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {repostsLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : reposts.length > 0 ? (
+                    <div className="space-y-4">
+                      {reposts.map((post) => (
+                        <PostCard key={post._id} post={post} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Repeat className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No reposts yet</h3>
+                      <p className="text-sm text-gray-500">
+                        {isOwnProfile ? 'Reposts will appear here.' : 'This user hasn\'t reposted anything yet.'}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

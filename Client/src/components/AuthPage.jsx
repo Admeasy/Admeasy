@@ -3,6 +3,7 @@ import MentorPortal from '../Pages/MentorsLogin';
 import Signup from '../Pages/SignUp';
 import LogInComp from '../Pages/LogInComp';
 import SEO from '../components/SEO';
+import EmailVerificationModal from '../components/EmailVerificationModal';
 
 
 const fadeUpVariant = {
@@ -13,10 +14,17 @@ const fadeUpVariant = {
 const AuthPage = () => {
   const [activeTab, setActiveTab] = useState('student'); // 'student' or 'mentor'
   const [authMode, setAuthMode] = useState('login'); // 'signup' or 'login' (for students only)
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const handleNotVerified = (email) => {
+    setUserEmail(email);
+    setShowVerifyModal(true);
+  };
 
   return (
     <div className="mt-20 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 p-6 relative overflow-x-hidden">
@@ -34,21 +42,19 @@ const AuthPage = () => {
               setActiveTab('student');
               setAuthMode('login');
             }}
-            className={`px-8 py-3 rounded-full font-bold text-lg transition-all duration-300 ${
-              activeTab === 'student'
-                ? 'bg-brand-light text-white shadow-lg scale-105'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
+            className={`px-8 py-3 rounded-full font-bold text-lg transition-all duration-300 ${activeTab === 'student'
+              ? 'bg-brand-light text-white shadow-lg scale-105'
+              : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
           >
             Student
           </button>
           <button
             onClick={() => setActiveTab('mentor')}
-            className={`px-8 py-3 rounded-full font-bold text-lg transition-all duration-300 ${
-              activeTab === 'mentor'
-                ? 'bg-purple-900 text-white shadow-lg scale-105'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
+            className={`px-8 py-3 rounded-full font-bold text-lg transition-all duration-300 ${activeTab === 'mentor'
+              ? 'bg-purple-900 text-white shadow-lg scale-105'
+              : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
           >
             Mentor
           </button>
@@ -59,12 +65,19 @@ const AuthPage = () => {
           authMode === 'signup' ? (
             <Signup setAuthMode={setAuthMode} />
           ) : (
-            <LogInComp setAuthMode={setAuthMode} />
+            <LogInComp setAuthMode={setAuthMode} onNotVerified={handleNotVerified} />
           )
         ) : (
           <MentorPortal />
         )}
       </div>
+
+      {/* Email Verification Pop-up */}
+      <EmailVerificationModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        email={userEmail}
+      />
     </div>
   );
 };

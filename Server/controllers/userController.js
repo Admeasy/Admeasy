@@ -1,4 +1,4 @@
-const User = require('../models/userSchema')
+const User = require("../models/userSchema")
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
@@ -86,4 +86,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = {forgotPassword,resetPassword}
+module.exports = { forgotPassword, resetPassword }

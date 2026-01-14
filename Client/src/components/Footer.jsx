@@ -23,7 +23,7 @@ const Footer = () => {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (form.email === ""||form.msg === "") {
+    if (form.email === "" || form.msg === "") {
       toast.error("Buddy! Empty Fields Are not really cool🫤")
       return;
     }
@@ -52,8 +52,8 @@ const Footer = () => {
       toast.error('Ahhh! An Error Occurred...😑')
     }
     setForm({
-      email:'',
-      msg:''
+      email: '',
+      msg: ''
     })
   };
 
@@ -249,7 +249,7 @@ const Footer = () => {
 
             {/* Social/proffesional Links In foooter */}
             <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
-         
+
 
               <li>
                 <a
@@ -293,7 +293,7 @@ const Footer = () => {
         <div className="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800">
           <div className="sm:flex sm:justify-between">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              &copy; 2026. Admeasy Admission Solutions Private Limited. All Rights Reserved.
+              &copy; 2026. Admeasy
             </p>
 
             <ul className="mt-8 flex flex-wrap justify-start gap-4 text-xs sm:mt-0 lg:justify-end">

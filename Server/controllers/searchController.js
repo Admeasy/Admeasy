@@ -1,4 +1,4 @@
-const Blog = require("../models/BlogSchema");
+const Blog = require("../models/blogSchema");
 const Mentor = require("../models/mentorSchema");
 const Note = require("../models/noteSchema");
 const College = require("../models/collegeSchema");
@@ -39,7 +39,8 @@ exports.globalSearch = async (req, res) => {
             notesUploaded
             username
           `)
-          .limit(50); // Get more to shuffle
+          .limit(50)
+          .lean(); // Get more to shuffle
         results.mentors = shuffleArray(allMentors).slice(0, 15);
       }
 
@@ -56,7 +57,8 @@ exports.globalSearch = async (req, res) => {
             city
             state
           `)
-          .limit(50);
+          .limit(50)
+          .lean();
         results.colleges = shuffleArray(allColleges).slice(0, 15);
       }
 
@@ -72,7 +74,8 @@ exports.globalSearch = async (req, res) => {
             readingTime
             createdAt
           `)
-          .limit(50);
+          .limit(50)
+          .lean();
         results.blogs = shuffleArray(allBlogs).slice(0, 15);
       }
 
@@ -89,7 +92,8 @@ exports.globalSearch = async (req, res) => {
             views
             createdAt
           `)
-          .limit(50);
+          .limit(50)
+          .lean();
         results.notes = shuffleArray(allNotes).slice(0, 15);
       }
 
@@ -113,20 +117,21 @@ exports.globalSearch = async (req, res) => {
           { course: regex },
           { bio: regex },
           { expertise: regex },
-          {username: regex}
+          { username: regex }
         ]
       })
         .select(`
-          name
-          image
-          imageUrl
-          college
-          course
-          expertise
-          notesUploaded
-          username
-        `)
-        .limit(20);
+        name
+        image
+        imageUrl
+        college
+        course
+        expertise
+        notesUploaded
+        username
+          `)
+        .limit(20)
+        .lean();
     }
 
     /* ===================== COLLEGES ===================== */
@@ -141,16 +146,17 @@ exports.globalSearch = async (req, res) => {
         ]
       })
         .select(`
-          name
-          logo
-          desc
-          rating
-          placements
-          location
-          city
-          state
-        `)
-        .limit(20);
+        name
+        logo
+        desc
+        rating
+        placements
+        location
+        city
+        state
+          `)
+        .limit(20)
+        .lean();
     }
 
     /* ===================== BLOGS ===================== */
@@ -164,15 +170,16 @@ exports.globalSearch = async (req, res) => {
         ]
       })
         .select(`
-          Author
-          Title
-          Thumbnail
-          content
-          category
-          readingTime
-          createdAt
-        `)
-        .limit(20);
+        Author
+        Title
+        Thumbnail
+        content
+        category
+        readingTime
+        createdAt
+          `)
+        .limit(20)
+        .lean();
     }
 
     /* ===================== NOTES ===================== */
@@ -186,16 +193,17 @@ exports.globalSearch = async (req, res) => {
         ]
       })
         .select(`
-          title
-          description
-          subject
-          uploader
-          uploaderName
-          likes
-          views
-          createdAt
-        `)
-        .limit(20);
+        title
+        description
+        subject
+        uploader
+        uploaderName
+        likes
+        views
+        createdAt
+          `)
+        .limit(20)
+        .lean();
     }
 
     return res.status(200).json({

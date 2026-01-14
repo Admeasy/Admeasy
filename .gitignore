@@ -7,3 +7,6 @@ Server/node_modules/
 Server/.env
 
 push.ps1
+Client/.env
+Client/.env.local
+Client/.env.*.local

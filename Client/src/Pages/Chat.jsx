@@ -280,12 +280,7 @@ const Chat = () => {
 
   return (
     <main
-      className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]"
-      style={{
-        width: '100vw',
-        marginLeft: 'calc(-50vw + 50%)',
-        marginRight: 'calc(-50vw + 50%)'
-      }}
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative selection:bg-[#9f3562]/20 selection:text-[#9f3562]"
     >
       <SEO
         title={`${mentor?.name || 'Mentor'} | Admeasy`}
@@ -302,7 +297,7 @@ const Chat = () => {
       </div>
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 z-50 relative">
+      <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 z-50 sticky top-0">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
@@ -359,7 +354,7 @@ const Chat = () => {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pt-32 pb-24 relative z-10">
+      <div className="flex-1 px-4 py-4 pt-32 pb-24 relative z-10">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="text-center py-8 bg-white/95 backdrop-blur-xl rounded-2xl border border-red-200 shadow-xl shadow-gray-200/50">
