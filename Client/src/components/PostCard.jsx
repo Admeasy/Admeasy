@@ -25,7 +25,19 @@ const PostCard = ({ post, onPostUpdate }) => {
   // But only if we aren't currently middle of an interaction to avoid snap-backs
   useEffect(() => {
     if (!isInteracting.current.like && !isInteracting.current.repost) {
-      setPostState(post);
+      // Always sync isLiked, likesCount, and other state from props to ensure consistency
+      setPostState(prev => {
+        // Only update if there are actual changes to avoid unnecessary re-renders
+        if (prev._id !== post._id || 
+            prev.isLiked !== post.isLiked || 
+            prev.likesCount !== post.likesCount ||
+            prev.isReposted !== post.isReposted ||
+            prev.repostCount !== post.repostCount ||
+            prev.commentsCount !== post.commentsCount) {
+          return { ...post };
+        }
+        return prev;
+      });
     }
     if (!isInteracting.current.follow) {
       setIsFollowing(post.isFollowing || false);
@@ -50,6 +62,9 @@ const PostCard = ({ post, onPostUpdate }) => {
     // Prevent spam/race conditions
     if (isInteracting.current.like) return;
     isInteracting.current.like = true;
+
+    // Capture previous state BEFORE optimistic update for rollback
+    const previousState = { ...postState };
 
     // OPTIMISTIC UPDATE
     const wasLiked = postState.isLiked;
@@ -77,8 +92,9 @@ const PostCard = ({ post, onPostUpdate }) => {
       const data = await res.json();
 
       if (data.success) {
+        // Use the optimistic post as base, then merge API response
         const syncedPost = {
-          ...postState,
+          ...optimisticPost,
           isLiked: data.isLiked,
           likesCount: data.likesCount
         };
@@ -94,9 +110,9 @@ const PostCard = ({ post, onPostUpdate }) => {
         throw new Error();
       }
     } catch (error) {
-      // ROLLBACK
-      setPostState(postState); // Revert to previous valid state
-      if (onPostUpdate) onPostUpdate(postState);
+      // ROLLBACK to previous state
+      setPostState(previousState);
+      if (onPostUpdate) onPostUpdate(previousState);
       toast.error('Failed to like post');
     } finally {
       isInteracting.current.like = false;

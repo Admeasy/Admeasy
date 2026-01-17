@@ -4,8 +4,14 @@ import { useState, useEffect } from 'react'
 const AddPlanModal = ({ onClose, onSubmit, editData = null }) => {
     const [formData, setFormData] = useState({
         name: '',
-        price: '',
-        originalPrice: '',
+        price: {
+            monthly: '',
+            yearly: ''
+        },
+        originalPrice: {
+            monthly: '',
+            yearly: ''
+        },
         features: ['']
     })
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -14,8 +20,14 @@ const AddPlanModal = ({ onClose, onSubmit, editData = null }) => {
         if (editData) {
             setFormData({
                 name: editData.name || '',
-                price: editData.price || '',
-                originalPrice: editData.originalPrice || '',
+                price: {
+                    monthly: editData.price?.monthly || '',
+                    yearly: editData.price?.yearly || ''
+                },
+                originalPrice: {
+                    monthly: editData.originalPrice?.monthly || '',
+                    yearly: editData.originalPrice?.yearly || ''
+                },
                 features: editData.features && editData.features.length > 0 
                     ? editData.features 
                     : ['']
@@ -28,6 +40,16 @@ const AddPlanModal = ({ onClose, onSubmit, editData = null }) => {
         setFormData(prev => ({
             ...prev,
             [name]: value
+        }))
+    }
+
+    const handlePriceChange = (period, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: {
+                ...prev[field],
+                [period]: value
+            }
         }))
     }
 
@@ -73,8 +95,14 @@ const AddPlanModal = ({ onClose, onSubmit, editData = null }) => {
 
         const planData = {
             name: formData.name.trim(),
-            price: Number(formData.price),
-            originalPrice: Number(formData.originalPrice),
+            price: {
+                monthly: Number(formData.price.monthly),
+                yearly: Number(formData.price.yearly)
+            },
+            originalPrice: {
+                monthly: Number(formData.originalPrice.monthly),
+                yearly: Number(formData.originalPrice.yearly)
+            },
             features: filteredFeatures
         }
 
@@ -119,40 +147,82 @@ const AddPlanModal = ({ onClose, onSubmit, editData = null }) => {
                         />
                     </div>
 
-                    {/* Price Field */}
+                    {/* Price Fields */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
                             Price (₹) <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            type="number"
-                            name="price"
-                            value={formData.price}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
-                            placeholder="Enter price"
-                            min="0"
-                            step="0.01"
-                            required
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-2">
+                                    Monthly Price
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.price.monthly}
+                                    onChange={(e) => handlePriceChange('monthly', 'price', e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
+                                    placeholder="Monthly price"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-2">
+                                    Yearly Price
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.price.yearly}
+                                    onChange={(e) => handlePriceChange('yearly', 'price', e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
+                                    placeholder="Yearly price"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Original Price Field */}
+                    {/* Original Price Fields */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
                             Original Price (₹) <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            type="number"
-                            name="originalPrice"
-                            value={formData.originalPrice}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
-                            placeholder="Enter original price"
-                            min="0"
-                            step="0.01"
-                            required
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-2">
+                                    Monthly Original Price
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.originalPrice.monthly}
+                                    onChange={(e) => handlePriceChange('monthly', 'originalPrice', e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
+                                    placeholder="Monthly original price"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-2">
+                                    Yearly Original Price
+                                </label>
+                                <input
+                                    type="number"
+                                    value={formData.originalPrice.yearly}
+                                    onChange={(e) => handlePriceChange('yearly', 'originalPrice', e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
+                                    placeholder="Yearly original price"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Features Field */}

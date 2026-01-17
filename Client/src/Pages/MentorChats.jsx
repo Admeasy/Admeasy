@@ -12,7 +12,7 @@ const MentorChats = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { mentor } = useMentor();
-  const { isUserOnline } = useSocket();
+  const { isUserOnline, getOnlineStatus, socket, isConnected } = useSocket();
 
   useEffect(() => {
     // Only mentors can access this route
@@ -23,6 +23,17 @@ const MentorChats = () => {
 
     fetchChats();
   }, [mentor, navigate]);
+
+  // Query online status for all users in chats when chats are loaded and socket is connected
+  useEffect(() => {
+    if (chats.length > 0 && isConnected && socket) {
+      chats.forEach(chat => {
+        if (chat.userId) {
+          getOnlineStatus(String(chat.userId), null);
+        }
+      });
+    }
+  }, [chats, isConnected, socket, getOnlineStatus]);
 
   const fetchChats = async () => {
     try {

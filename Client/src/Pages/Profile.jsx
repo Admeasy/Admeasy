@@ -802,13 +802,15 @@ export default function Profile() {
                         toast.info('Please login to subscribe', {
                           position: 'top-center',
                         });
-                        // navigate('/login');
+                        navigate('/login');
                         return;
                       }
-                      // Navigate to subscription page or show subscription plans
-                      toast.info('Subscription feature coming soon!', {
-                        position: 'top-center',
-                      });
+                      // Navigate to subscription plans page with mentor ID
+                      if (isMentor && profile._id) {
+                        navigate(`/subscription-plans?mentorId=${profile._id}`);
+                      } else {
+                        toast.error('Mentor information not available');
+                      }
                     }}
                     className="w-full py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent flex items-center justify-center gap-2 shadow-md cursor-pointer"
                   >

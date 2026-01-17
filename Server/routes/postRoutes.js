@@ -14,6 +14,7 @@ const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinar
 const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const { verifyAdminToken } = require('../middleware/adminAuth');
 
 const getPublicIdFromUrl = (imageUrl) => {
   const parts = imageUrl.split('/upload/');
@@ -113,13 +114,70 @@ async function getOptionalUser(req) {
   }
 }
 
+/**
+ * GET /api/posts/admin
+ * Admin: list all posts with basic author info
+ */
+router.get("/admin", verifyAdminToken, async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .populate('mentorId', 'name username image')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formattedPosts = await Promise.all(
+      posts.map(async (post) => {
+        let author = null;
+
+        if (post.mentorId) {
+          author = {
+            _id: post.mentorId._id,
+            name: post.mentorId.name,
+            username: post.mentorId.username,
+            image: post.mentorId.image,
+            role: 'mentor',
+          };
+        } else if (post.userId) {
+          const user = await populateUser(post.userId);
+          author = user
+            ? { ...user, role: 'user' }
+            : {
+                _id: post.userId,
+                name: null,
+                username: null,
+                image: null,
+                role: 'user',
+              };
+        }
+
+        return {
+          _id: post._id,
+          author,
+          content: post.content,
+          image: post.image,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      posts: formattedPosts,
+    });
+  } catch (error) {
+    console.error("Error fetching posts for admin:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
 
 /**
  * GET /api/posts
  * Public: list posts (from both mentors and users)
- * Cached for 10 minutes to improve performance
+ * Cached for 10 minutes to improve performance (user-specific cache)
  */
-router.get("/", apiCache(600), async (req, res) => {
+router.get("/", apiCache(600, { userSpecific: true }), async (req, res) => {
   try {
     const currentUser = await getOptionalUser(req);
     const page = parseInt(req.query.page) || 1;
@@ -217,6 +275,18 @@ router.get("/", apiCache(600), async (req, res) => {
         ? currentUser.reposts.some(id => id.toString() === post._id.toString())
         : false;
 
+      // Check if current user/mentor liked this post
+      // Handle both ObjectId directly or populated user object
+      let isLiked = false;
+      if (currentUser) {
+        isLiked = (post.likes || []).some(like => {
+          if (!like.userId) return false;
+          // like.userId can be ObjectId directly (when using .lean()) or populated
+          const likeUserId = like.userId._id ? like.userId._id.toString() : like.userId.toString();
+          return likeUserId === currentUser._id.toString();
+        });
+      }
+
       return {
         _id: post._id,
         mentor: author, // Keep 'mentor' key for backward compatibility
@@ -227,11 +297,7 @@ router.get("/", apiCache(600), async (req, res) => {
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
         repostCount: post.repostCount || 0,
-        isLiked: currentUser
-          ? populatedLikes.some(
-            like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
-          )
-          : false,
+        isLiked,
         isFollowing,
         isReposted,
         createdAt: post.createdAt,
@@ -436,6 +502,18 @@ router.get("/mentor/:mentorId", async (req, res) => {
         ? currentUser.reposts.some(id => id.toString() === post._id.toString())
         : false;
 
+      // Check if current user/mentor liked this post
+      // Handle both ObjectId directly or populated user object
+      let isLiked = false;
+      if (currentUser) {
+        isLiked = (post.likes || []).some(like => {
+          if (!like.userId) return false;
+          // like.userId can be ObjectId directly (when using .lean()) or populated
+          const likeUserId = like.userId._id ? like.userId._id.toString() : like.userId.toString();
+          return likeUserId === currentUser._id.toString();
+        });
+      }
+
       return {
         _id: post._id,
         mentor: author,
@@ -446,11 +524,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
         repostCount: post.repostCount || 0,
-        isLiked: currentUser
-          ? populatedLikes.some(
-            like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
-          )
-          : false,
+        isLiked,
         isFollowing,
         isReposted,
         createdAt: post.createdAt,
@@ -641,6 +715,17 @@ router.get("/:postId", async (req, res) => {
       };
     }
 
+    // Check if current user/mentor is following the author (can be user or mentor)
+    let isFollowing = false;
+    if (currentUser && currentUser.following && author) {
+      isFollowing = currentUser.following.some(id => id.toString() === author._id.toString());
+    }
+
+    // Check if user has reposted this
+    const isReposted = currentUser && currentUser.reposts
+      ? currentUser.reposts.some(id => id.toString() === post._id.toString())
+      : false;
+
     const formattedPost = {
       _id: post._id,
       mentor: author, // Keep 'mentor' key for backward compatibility
@@ -652,11 +737,14 @@ router.get("/:postId", async (req, res) => {
       likesCount: post.likesCount,
       comments: populatedComments,
       commentsCount: post.commentsCount,
+      repostCount: post.repostCount || 0,
       isLiked: currentUser
         ? populatedLikes.some(
           like => like.user && like.user._id && like.user._id.toString() === currentUser._id.toString()
         )
         : false,
+      isFollowing,
+      isReposted,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
     };
@@ -957,6 +1045,38 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
 });
 
 /**
+ * DELETE /api/posts/admin/:postId
+ * Admin: delete any post
+ */
+router.delete("/admin/:postId", verifyAdminToken, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    if (post.image) {
+      try {
+        const publicId = getPublicIdFromUrl(post.image);
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+        }
+      } catch (deleteError) {
+        console.error('Error deleting image (admin):', deleteError);
+      }
+    }
+
+    await Post.findByIdAndDelete(req.params.postId);
+
+    res.json({ success: true, message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post (admin):", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
  * POST /api/posts/:postId/like
  * Like/Unlike a post (authenticated users and mentors)
  */
@@ -983,6 +1103,10 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
     }
 
     await post.save();
+
+    // Clear cache for posts feed to ensure fresh data on next load
+    // Clear all user-specific caches for /api/posts
+    apiCache.clear('/api/posts');
 
     res.json({
       success: true,

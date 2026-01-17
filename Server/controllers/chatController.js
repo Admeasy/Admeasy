@@ -88,7 +88,7 @@ const getMentorChats = async (req, res) => {
 
                 return {
                     chatId: chat._id,
-                    userId: chat.userId,
+                    userId: String(chat.userId), // Ensure userId is a string
                     userName: user.name || 'Student',
                     userCourse: user.course || '',
                     userImage: user.image || null,

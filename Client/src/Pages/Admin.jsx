@@ -181,10 +181,22 @@ const Admin = () => {
                 <p className="text-gray-600">Review and manage uploaded notes</p>
               </div>
             </Link>
+            <Link to="/admin/posts">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Posts</h2>
+                <p className="text-gray-600">Manage posts</p>
+              </div>
+            </Link>
             <Link to="/admin/subscription-plans">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Subscription Plans</h2>
                 <p className="text-gray-600">Add, edit, or remove subscription plans</p>
+              </div>
+            </Link>
+            <Link to="/admin/payments">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Check Payments</h2>
+                <p className="text-gray-600">View all payments with transaction details</p>
               </div>
             </Link>
           </div>

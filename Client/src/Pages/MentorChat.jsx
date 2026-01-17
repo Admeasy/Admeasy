@@ -10,7 +10,7 @@ const MentorChat = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { mentor } = useMentor();
-  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isUserOnline } = useSocket();
+  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isUserOnline, getOnlineStatus } = useSocket();
   const [user, setUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -45,6 +45,11 @@ const MentorChat = () => {
 
       // Fetch user details and messages
       await Promise.all([fetchUserDetails(), fetchMessages()]);
+
+      // Query online status for this user
+      if (isConnected && socket && userId) {
+        getOnlineStatus(String(userId), null);
+      }
 
       // Join socket room in background (non-blocking)
       if (isConnected && socket && chatId) {

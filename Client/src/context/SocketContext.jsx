@@ -96,30 +96,62 @@ export const SocketProvider = ({ children }) => {
     // Presence tracking events
     socket.on('user_online', (data) => {
       console.log('User came online:', data.userId);
-      setOnlineUsers(prev => new Set([...prev, data.userId]));
+      const userId = String(data.userId);
+      setOnlineUsers(prev => new Set([...prev, userId]));
     });
 
     socket.on('user_offline', (data) => {
       console.log('User went offline:', data.userId);
+      const userId = String(data.userId);
       setOnlineUsers(prev => {
         const newSet = new Set(prev);
-        newSet.delete(data.userId);
+        newSet.delete(userId);
         return newSet;
       });
     });
 
     socket.on('mentor_online', (data) => {
       console.log('Mentor came online:', data.mentorId);
-      setOnlineMentors(prev => new Set([...prev, data.mentorId]));
+      const mentorId = String(data.mentorId);
+      setOnlineMentors(prev => new Set([...prev, mentorId]));
     });
 
     socket.on('mentor_offline', (data) => {
       console.log('Mentor went offline:', data.mentorId);
+      const mentorId = String(data.mentorId);
       setOnlineMentors(prev => {
         const newSet = new Set(prev);
-        newSet.delete(data.mentorId);
+        newSet.delete(mentorId);
         return newSet;
       });
+    });
+
+    // Listen for online_status responses
+    socket.on('online_status', (status) => {
+      if (status.userOnline && status.userId) {
+        const userId = String(status.userId);
+        if (status.userOnline) {
+          setOnlineUsers(prev => new Set([...prev, userId]));
+        } else {
+          setOnlineUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(userId);
+            return newSet;
+          });
+        }
+      }
+      if (status.mentorOnline !== undefined && status.mentorId) {
+        const mentorId = String(status.mentorId);
+        if (status.mentorOnline) {
+          setOnlineMentors(prev => new Set([...prev, mentorId]));
+        } else {
+          setOnlineMentors(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(mentorId);
+            return newSet;
+          });
+        }
+      }
     });
 
     return () => {
@@ -181,8 +213,8 @@ export const SocketProvider = ({ children }) => {
     leaveChat,
     sendMessage,
     getOnlineStatus,
-    isUserOnline: (userId) => onlineUsers.has(userId),
-    isMentorOnline: (mentorId) => onlineMentors.has(mentorId)
+    isUserOnline: (userId) => userId ? onlineUsers.has(String(userId)) : false,
+    isMentorOnline: (mentorId) => mentorId ? onlineMentors.has(String(mentorId)) : false
   };
 
   return (

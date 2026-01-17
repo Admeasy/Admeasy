@@ -201,17 +201,33 @@ const ManageSubscriptionPlans = () => {
                         >
                             <div className="flex-1 mb-4">
                                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{plan.name}</h3>
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Price:</span>
-                                        <span className="text-lg font-bold text-[#9f3562]">₹{plan.price}</span>
+                                <div className="space-y-3 mb-4">
+                                    {/* Monthly Pricing */}
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                        <div className="text-xs font-semibold text-gray-500 mb-2">MONTHLY</div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm text-gray-600">Price:</span>
+                                            <span className="text-base font-bold text-[#9f3562]">₹{plan.price?.monthly || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-600">Original:</span>
+                                            <span className="text-sm font-medium text-gray-500 line-through">₹{plan.originalPrice?.monthly || 'N/A'}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Original Price:</span>
-                                        <span className="text-lg font-bold text-gray-500 line-through">₹{plan.originalPrice}</span>
+                                    {/* Yearly Pricing */}
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                        <div className="text-xs font-semibold text-gray-500 mb-2">YEARLY</div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm text-gray-600">Price:</span>
+                                            <span className="text-base font-bold text-[#9f3562]">₹{plan.price?.yearly || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-600">Original:</span>
+                                            <span className="text-sm font-medium text-gray-500 line-through">₹{plan.originalPrice?.yearly || 'N/A'}</span>
+                                        </div>
                                     </div>
                                     {plan.features && plan.features.length > 0 && (
-                                        <div className="mt-3">
+                                        <div className="mt-3 pt-3 border-t border-gray-200">
                                             <span className="text-sm font-medium text-gray-700">Features:</span>
                                             <ul className="mt-2 space-y-1">
                                                 {plan.features.slice(0, 3).map((feature, idx) => (

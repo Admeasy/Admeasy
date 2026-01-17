@@ -4,7 +4,6 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
-const redis = require('redis');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookie = require('cookie');
@@ -25,6 +24,7 @@ const SitemapRoutes = require('./routes/sitemapRoutes')
 const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
+const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const app = express();
@@ -99,56 +99,59 @@ const io = socketIo(server, {
 // Share session with Socket.io - CRITICAL FIX
 io.engine.use(sessionMiddleware);
 
-// Redis client for presence tracking
-let redisClient;
-try {
-  redisClient = redis.createClient({
-    url: process.env.REDIS_URL,
-  });
-  redisClient.on('error', (err) => {
-    console.error('Redis Client Error:', err);
-  });
-  redisClient.connect().then(() => {
-    console.log('Redis connected successfully');
-  }).catch(err => {
-    console.error('Redis connection failed:', err);
-    redisClient = null;
-  });
-} catch (error) {
-  console.error('Redis initialization failed:', error.message);
-  redisClient = null;
-}
-
-// In-memory presence tracking as fallback
+// In-memory presence tracking using Map
+// Structure: Map<"role:id", { status: 'online'|'offline', lastSeen: timestamp }>
 const presenceStore = new Map();
+const PRESENCE_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-const getPresence = async (userId, role) => {
-  if (redisClient && redisClient.isOpen) {
-    try {
-      const key = `${role}:${userId}`;
-      const status = await redisClient.get(key);
-      return status === 'online';
-    } catch (error) {
-      console.error('Redis get error:', error);
+// Clean up stale presence entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of presenceStore.entries()) {
+    if (value.status === 'online' && (now - value.lastSeen) > PRESENCE_TIMEOUT) {
+      presenceStore.set(key, { status: 'offline', lastSeen: now });
+      // Extract role and id from key (format: "role:id")
+      const [role, id] = key.split(':');
+      // Broadcast offline status
+      if (role === 'user') {
+        io.emit('user_offline', { userId: id });
+      } else if (role === 'mentor') {
+        io.emit('mentor_offline', { mentorId: id });
+      }
     }
   }
-  return presenceStore.get(`${role}:${userId}`) === 'online';
+}, 60000); // Check every minute
+
+const getPresence = (userId, role) => {
+  const key = `${role}:${userId}`;
+  const presence = presenceStore.get(key);
+  if (!presence) {
+    return false;
+  }
+  
+  // If online, check if still within timeout window
+  if (presence.status === 'online') {
+    const now = Date.now();
+    if ((now - presence.lastSeen) > PRESENCE_TIMEOUT) {
+      // Update to offline if timeout exceeded
+      presenceStore.set(key, { status: 'offline', lastSeen: now });
+      return false;
+    }
+    return true;
+  }
+  
+  return false;
 };
 
-const setPresence = async (userId, role, isOnline) => {
-  if (redisClient && redisClient.isOpen) {
-    try {
-      const key = `${role}:${userId}`;
-      if (isOnline) {
-        await redisClient.setEx(key, 300, 'online'); // 5 minutes expiry
-      } else {
-        await redisClient.del(key);
-      }
-    } catch (error) {
-      console.error('Redis set error:', error);
-    }
+const setPresence = (userId, role, isOnline) => {
+  const key = `${role}:${userId}`;
+  const now = Date.now();
+  
+  if (isOnline) {
+    presenceStore.set(key, { status: 'online', lastSeen: now });
+  } else {
+    presenceStore.set(key, { status: 'offline', lastSeen: now });
   }
-  presenceStore.set(`${role}:${userId}`, isOnline ? 'online' : 'offline');
 };
 
 // Extract JWT from socket handshake (cookies > auth header > query/auth payload)
@@ -313,6 +316,7 @@ app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', PostRoutes);
 app.use("/api", SearchRoutes);
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
+app.use('/api/subscriptions', SubscriptionRoutes);
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
@@ -333,31 +337,41 @@ io.on('connection', (socket) => {
   }
 
   if (role === 'user') {
-    socket.userId = id;
+    socket.userId = String(id);
     socket.userRole = 'user';
-    socket.join(`user:${id}`);
+    socket.join(`user:${socket.userId}`);
 
-    setPresence(id, 'user', true).then(() => {
-      socket.broadcast.emit('user_online', { userId: id });
-      console.log(`User ${id} connected and set online`);
-      emitAuthenticated();
-    }).catch((error) => {
-      console.error('Presence error (user):', error);
-      emitAuthenticated();
-    });
+    setPresence(socket.userId, 'user', true);
+    // Broadcast to all other clients
+    socket.broadcast.emit('user_online', { userId: socket.userId });
+    // Also emit to self so the client knows they're online
+    socket.emit('user_online', { userId: socket.userId });
+    console.log(`User ${socket.userId} connected and set online`);
+    emitAuthenticated();
   } else {
-    socket.mentorId = id;
+    socket.mentorId = String(id);
     socket.userRole = 'mentor';
-    socket.join(`mentor:${id}`);
+    socket.join(`mentor:${socket.mentorId}`);
 
-    setPresence(id, 'mentor', true).then(() => {
-      socket.broadcast.emit('mentor_online', { mentorId: id });
-      console.log(`Mentor ${id} connected and set online`);
-      emitAuthenticated();
-    }).catch((error) => {
-      console.error('Presence error (mentor):', error);
-      emitAuthenticated();
-    });
+    setPresence(socket.mentorId, 'mentor', true);
+    // Broadcast to all other clients
+    socket.broadcast.emit('mentor_online', { mentorId: socket.mentorId });
+    // Also emit to self so the client knows they're online
+    socket.emit('mentor_online', { mentorId: socket.mentorId });
+    
+    // Send current online users to the newly connected mentor
+    // This helps mentors see which users are already online
+    setTimeout(() => {
+      for (const [key, value] of presenceStore.entries()) {
+        if (key.startsWith('user:') && value.status === 'online') {
+          const userId = key.split(':')[1];
+          socket.emit('user_online', { userId });
+        }
+      }
+    }, 500); // Small delay to ensure presence is set
+    
+    console.log(`Mentor ${socket.mentorId} connected and set online`);
+    emitAuthenticated();
   }
 
   // Manual join handlers retained for backward compatibility
@@ -518,6 +532,13 @@ io.on('connection', (socket) => {
         createdAt: newMessage.createdAt
       };
 
+      // Update presence (keep user/mentor active when they send messages)
+      if (senderRole === 'user' && socket.userId) {
+        setPresence(socket.userId, 'user', true);
+      } else if (senderRole === 'mentor' && socket.mentorId) {
+        setPresence(socket.mentorId, 'mentor', true);
+      }
+
       // Broadcast to chat room
       io.to(`chat:${chatId}`).emit('receive_message', formattedMessage);
 
@@ -531,16 +552,20 @@ io.on('connection', (socket) => {
   });
 
   // Get online status
-  socket.on('get_online_status', async (data) => {
+  socket.on('get_online_status', (data) => {
     try {
       const { userId, mentorId } = data;
       let status = {};
 
       if (userId) {
-        status.userOnline = await getPresence(userId, 'user');
+        const userIdStr = String(userId);
+        status.userId = userIdStr;
+        status.userOnline = getPresence(userIdStr, 'user');
       }
       if (mentorId) {
-        status.mentorOnline = await getPresence(mentorId, 'mentor');
+        const mentorIdStr = String(mentorId);
+        status.mentorId = mentorIdStr;
+        status.mentorOnline = getPresence(mentorIdStr, 'mentor');
       }
 
       socket.emit('online_status', status);
@@ -551,15 +576,19 @@ io.on('connection', (socket) => {
   });
 
   // Handle disconnection
-  socket.on('disconnect', async () => {
+  socket.on('disconnect', () => {
     try {
       if (socket.userId && socket.userRole === 'user') {
-        await setPresence(socket.userId, 'user', false);
+        setPresence(socket.userId, 'user', false);
         socket.broadcast.emit('user_offline', { userId: socket.userId });
+        // Also emit to self for consistency
+        socket.emit('user_offline', { userId: socket.userId });
         console.log(`User ${socket.userId} disconnected`);
       } else if (socket.mentorId && socket.userRole === 'mentor') {
-        await setPresence(socket.mentorId, 'mentor', false);
+        setPresence(socket.mentorId, 'mentor', false);
         socket.broadcast.emit('mentor_offline', { mentorId: socket.mentorId });
+        // Also emit to self for consistency
+        socket.emit('mentor_offline', { mentorId: socket.mentorId });
         console.log(`Mentor ${socket.mentorId} disconnected`);
       }
     } catch (error) {
