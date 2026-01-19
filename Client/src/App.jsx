@@ -2,7 +2,6 @@ import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
-import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
 import Footer from './components/Footer'
@@ -64,6 +63,8 @@ import Layout from './components/Layout';
 import Explore from "./Pages/Explore"
 import BottomNavBar from './components/BottomNavBar';
 import VerifyEmail from './Pages/VerifyEmail';
+import { enableNotifications } from './Firebase/enableNotifications';
+
 
 import FeedbackBanner from './components/FeedbackBanner';
 
@@ -111,6 +112,21 @@ function App() {
     }
   }, [user, mentor, location.pathname]);
 
+  // Notification Permission Trigger
+  useEffect(() => {
+    const loggedInAccount = user || mentor;
+    const role = mentor ? 'mentor' : 'user';
+
+    if (loggedInAccount && Notification.permission !== 'granted') {
+      // Small delay to not interfere with initial page load
+      const timer = setTimeout(() => {
+        enableNotifications(loggedInAccount._id, role);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, mentor, location.pathname]);
+
+
   // Routes that use Layout component (Layout already includes Navbar and Sidebar)
   const layoutRoutes = [
     '/',
@@ -154,9 +170,6 @@ function App() {
 
   return (
     <>
-      {/* Old Navbar - only show on pages that don't use Layout (Layout has its own Navbar) */}
-      {shouldShowOldNavbar && <Navbar />}
-
       {/* Feedback Banner - Global (except auth pages) */}
       {!isAuthPage && <FeedbackBanner />}
 

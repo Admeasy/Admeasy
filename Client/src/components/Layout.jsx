@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
-import Navbar from "./Navbar";
 import LeftSidebar from "./LeftSidebar";
 import BottomNavBar from "./BottomNavBar";
 
@@ -38,13 +37,6 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
       <LeftSidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -55,7 +47,7 @@ const Layout = () => {
       <BottomNavBar />
 
       <main
-        className="pt-20 pb-20 md:pt-[36px] md:pb-0 transition-all duration-300"
+        className="pb-20 md:pb-0 transition-all duration-300"
         style={{ marginLeft: `${sidebarWidth}px` }}
       >
         <Outlet />

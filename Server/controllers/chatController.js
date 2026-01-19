@@ -3,6 +3,7 @@ const ChatMessage = require('../models/chatMessageSchema');
 const User = require('../models/userSchema');
 const Mentor = require('../models/mentorSchema');
 const { Users } = require('../db');
+const NotificationService = require('../services/notificationService');
 //Ahsan Code
 // Get user's chat inbox (all mentors they've chatted with)
 const getUserChats = async (req, res) => {
@@ -13,15 +14,15 @@ const getUserChats = async (req, res) => {
             userId,
             isActive: true
         })
-        .sort({ updatedAt: -1 })
-        .lean();
+            .sort({ updatedAt: -1 })
+            .lean();
 
         // Manually fetch mentor data (can't rely on populate due to ref mismatch or cross-DB issues)
         const formattedChats = await Promise.all(chats.map(async (chat) => {
             try {
                 // Fetch mentor data manually
                 const mentor = await Mentor.findById(chat.mentorId).select('name username image').lean();
-                
+
                 // Skip chats where mentor doesn't exist (deleted mentors)
                 if (!mentor) {
                     return null;
@@ -72,15 +73,15 @@ const getMentorChats = async (req, res) => {
             mentorId,
             isActive: true
         })
-        .sort({ updatedAt: -1 })
-        .lean();
+            .sort({ updatedAt: -1 })
+            .lean();
 
         // Manually fetch user data from Users database (can't use populate across different DB connections)
         const UserModel = Users.model('Users');
         const formattedChats = await Promise.all(chats.map(async (chat) => {
             try {
                 const user = await UserModel.findById(chat.userId).select('name course image').lean();
-                
+
                 // Skip chats where user doesn't exist (deleted users)
                 if (!user) {
                     return null;
@@ -130,8 +131,8 @@ const getChatMessages = async (req, res) => {
         const messages = await ChatMessage.find({
             chatId
         })
-        .sort({ createdAt: 1 })
-        .lean();
+            .sort({ createdAt: 1 })
+            .lean();
 
         // Mark messages as read for the current user
         if (userId) {
@@ -321,6 +322,28 @@ const sendMessage = async (req, res) => {
             success: true,
             message: formattedMessage
         });
+
+        // Notify recipient
+        (async () => {
+            try {
+                const recipientId = senderRole === 'user' ? req.chat.mentorId : req.chat.userId;
+                const senderName = sender?.name || 'Someone';
+
+                await NotificationService.sendToUser(
+                    recipientId,
+                    'New Message',
+                    `${senderName} sent you a message`,
+                    {
+                        type: 'chat',
+                        chatId: chatId.toString(),
+                        senderId: senderId.toString()
+                    },
+                    senderId
+                );
+            } catch (notifyError) {
+                console.error('Error sending chat notification:', notifyError);
+            }
+        })();
     } catch (error) {
         console.error('Error sending message:', error);
         res.status(500).json({

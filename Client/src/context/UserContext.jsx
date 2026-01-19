@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 const UserContext = createContext();
 
@@ -202,10 +204,15 @@ export function UserProvider({ children }) {
 
       // Navigate to intended path if we're not already there
       if (location.pathname !== intendedPath) {
+        if (user && user._id) {
+          enableNotifications(user._id, "user", true);
+        }
         setTimeout(() => {
           navigate(intendedPath, { replace: true });
         }, 50);
       }
+
+
     }
   }, [user, location.pathname, navigate]);
 
@@ -315,10 +322,13 @@ export function UserProvider({ children }) {
         userObj.imageUrl = imageUrl;
       }
       setUser(userObj);
+      return userObj;
     } else {
       setUser(null);
+      return null;
     }
   }
+
 
   return (
     <UserContext.Provider value={{ user, setUser, fetchUser, isLoading }}>

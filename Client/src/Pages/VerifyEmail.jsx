@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Loader2, Home, ArrowRight } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { toast } from 'react-toastify';
+import { enableNotifications } from '../Firebase/enableNotifications';
+
 
 const VerifyEmail = () => {
     const { token } = useParams();
@@ -63,7 +65,12 @@ const VerifyEmail = () => {
                     toast.success("Welcome! Your email has been verified.");
 
                     // Re-fetch user context because backend auto-logs in
-                    await fetchUser();
+                    const verifiedUser = await fetchUser();
+                    if (verifiedUser) {
+                        enableNotifications(verifiedUser._id, "user", true);
+                    }
+
+
 
                     // Redirect after 2.5 seconds
                     setTimeout(() => {

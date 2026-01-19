@@ -943,11 +943,11 @@ const PostDetail = () => {
                           />
                         </Link>
                       ) : (
-                        <Link to={`/me`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                        <Link to={`/${comment.user?.username || comment.user?._id}`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                           <img
                             src={comment.user?.image || fallbackProfilePic}
                             alt={comment.user?.name || 'User'}
-                            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover aspect-square flex-shrink-0 ring-2 ring-gray-100"
+                            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover aspect-square flex-shrink-0 ring-2 ring-gray-100 group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
                             onError={(e) => { e.target.src = fallbackProfilePic; }}
                           />
                         </Link>
@@ -961,9 +961,11 @@ const PostDetail = () => {
                               </p>
                             </Link>
                           ) : (
-                            <p className="font-semibold text-xs sm:text-sm text-gray-900">
-                              {comment.user?.name || 'Unknown User'}
-                            </p>
+                            <Link to={`/${comment.user?.username || comment.user?._id}`} onClick={(e) => e.stopPropagation()} className="block">
+                              <p className="font-semibold text-xs sm:text-sm text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
+                                {comment.user?.name || 'Unknown User'}
+                              </p>
+                            </Link>
                           )}
                           <p className="text-gray-800 mt-0.5 sm:mt-1 text-xs sm:text-sm md:text-base break-words">
                             {comment.content}
@@ -1010,14 +1012,14 @@ const PostDetail = () => {
                                     />
                                   </Link>
                                 ) : (
-                                  <div className="flex-shrink-0">
+                                  <Link to={`/${reply.user?.username || reply.user?._id}`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                                     <img
                                       src={reply.user?.image || fallbackProfilePic}
                                       alt={reply.user?.name || 'User'}
-                                      className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover aspect-square ring-2 ring-gray-100"
+                                      className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover aspect-square ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
                                       onError={(e) => { e.target.src = fallbackProfilePic; }}
                                     />
-                                  </div>
+                                  </Link>
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <div className="bg-gray-50 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-100">
@@ -1028,7 +1030,11 @@ const PostDetail = () => {
                                         </p>
                                       </Link>
                                     ) : (
-                                      <p className="font-semibold text-[10px] sm:text-xs text-gray-900">{reply.user?.name || 'Unknown User'}</p>
+                                      <Link to={`/${reply.user?.username || reply.user?._id}`} onClick={(e) => e.stopPropagation()} className="block">
+                                        <p className="font-semibold text-[10px] sm:text-xs text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
+                                          {reply.user?.name || 'Unknown User'}
+                                        </p>
+                                      </Link>
                                     )}
                                     <p className="text-gray-800 mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm break-words">{reply.content}</p>
                                   </div>

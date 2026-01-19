@@ -82,6 +82,61 @@ const Feed = () => {
     setPage(nextPage);
     fetchPosts(nextPage, true);
   };
+  const [randomHeading, setRandomHeading] = useState({ title: '', subtitle: '' });
+
+  useEffect(() => {
+    const userName = (user?.name || "").split(' ')[0] || "there";
+    const mentorName = (mentor?.name || "").split(' ')[0] || "there";
+
+    const userHeadings = [
+      { title: "Yeh feed marks badhane wali hai", subtitle: "Your study-first community feed" },
+      { title: "Mentors ne bola, sunna padega", subtitle: "Your study-first community feed" },
+      {
+        title: "Scroll less nonsense. Scroll real study advice.",
+        subtitle: "A feed made only for students."
+      },
+      { title: "College clarity starts here", subtitle: "Your study-first community feed" },
+      { title: `Hey ${userName} 👋, mentors have dropped something useful`, subtitle: "Your study-first community feed" },
+      { title: `Welcome back, ${userName}! Top mentors are active`, subtitle: "Your study-first community feed" },
+      { title: "Marks, boards, college, sab ka scene clear hoga", subtitle: "Step-by-step guidance from real seniors" },
+      {
+        title: "Talk to seniors who’ve already cracked what you’re preparing for.", subtitle: "No guessing. No YouTube overload. Just clear direction"
+      },
+      {
+        title: "Not teachers. Not influencers. Seniors who actually care.", subtitle: "Real experiences. Honest mistakes. Practical guidance."
+      },
+      {
+        title: "One right suggestion > 100 random videos",
+        subtitle: "Ask seniors. Save time. Reduce stress."
+      },
+      {
+        title: "Jo galti tum kar rahe ho, hum already kar chuke hain.",
+        subtitle: "Learn from seniors. Don’t repeat mistakes."
+      },
+    ];
+
+    const mentorHeadings = [
+      { title: `${mentorName}, Students need your guidance today`, subtitle: "Your experience matters" },
+      { title: "Your experience can change someone’s college decision", subtitle: "Help them make the right choice" },
+      { title: `${mentorName}, Help someone choose better`, subtitle: "Your guidance is valuable" },
+      { title: `${mentorName}, Answer a student’s doubt`, subtitle: "Clear their path to success" },
+      { title: `${mentorName}, Guide students today`, subtitle: "Inspire the next batch" }
+    ];
+
+    if (user) {
+      const random = userHeadings[Math.floor(Math.random() * userHeadings.length)];
+      setRandomHeading(random);
+    } else if (mentor) {
+      const random = mentorHeadings[Math.floor(Math.random() * mentorHeadings.length)];
+      setRandomHeading(random);
+    } else {
+      setRandomHeading({
+        title: "Introducing Admeasy Feed",
+        subtitle: "Your study-first community feed"
+      });
+    }
+  }, [user, mentor]);
+
   // Loading state
   if (loading) {
     return (
@@ -106,24 +161,42 @@ const Feed = () => {
         <div className="w-full max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
 
           {/* Header */}
-          <div className="mb-10 sm:mb-14">
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-              <div>
-                <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
-                  Introducing Admeasy{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] to-[#701a3c]">
-                    Feed
-                  </span>
+          <div className="mb-8 sm:mb-14">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+              <div className="flex-1">
+                <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+                  {user || mentor ? (
+                    <>
+                      {randomHeading.title.includes(user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0]) ? (
+                        <>
+                          {randomHeading.title.split(user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0])[0]}
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] to-[#701a3c]">
+                            {user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0]}
+                          </span>
+                          {randomHeading.title.split(user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0])[1]}
+                        </>
+                      ) : (
+                        randomHeading.title
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      Introducing Admeasy{' '}
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] to-[#701a3c]">
+                        Feed
+                      </span>
+                    </>
+                  )}
                 </h1>
-                <p className="text-gray-600 mt-2">
-                  Your study-first community feed
+                <p className="text-gray-600 mt-2 text-xs sm:text-base md:text-lg">
+                  {randomHeading.subtitle}
                 </p>
               </div>
 
               {!user && !mentor && (
                 <button
                   onClick={() => navigate('/login')}
-                  className="px-6 py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl"
+                  className="whitespace-nowrap px-8 py-3.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-2xl font-bold shadow-lg shadow-[#9f3562]/20 hover:shadow-xl hover:shadow-[#9f3562]/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Log in to interact
                 </button>

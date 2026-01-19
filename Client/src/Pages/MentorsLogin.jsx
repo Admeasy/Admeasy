@@ -9,6 +9,8 @@ import { useUser } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import LoadingButton from "../components/LoadingButton";
 import SEO from "../components/SEO";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 // Animation variant
 const fadeUpVariant = {
@@ -65,7 +67,12 @@ function MentorsLogin({ onLoginSuccess }) {
       if (res.ok) {
         // Fetch mentor data and store in context
         setUser(null); // ensure user session is cleared
-        await fetchMentor();
+        const loggedInMentor = await fetchMentor();
+        if (loggedInMentor) {
+          enableNotifications(loggedInMentor._id, "mentor", true);
+        }
+
+
 
         // Wait for mentor to be available in localStorage (set by MentorContext)
         // This ensures the ProtectedRoute will see the mentor in context

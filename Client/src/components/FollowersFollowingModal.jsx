@@ -76,10 +76,7 @@ const FollowersFollowingModal = ({
   };
 
   const getProfileUrl = (item) => {
-    if (item.type === 'mentor') {
-      return `/mentors/${item.username || item._id}`;
-    }
-    return `/profile/${item.username || item._id}`;
+    return `/${item.username || item._id}`;
   };
 
   if (!isOpen) return null;

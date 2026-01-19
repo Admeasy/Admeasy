@@ -10,6 +10,8 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 
 const LogInComp = ({ setAuthMode, onNotVerified }) => {
@@ -62,10 +64,15 @@ const LogInComp = ({ setAuthMode, onNotVerified }) => {
         setEmail('');
         setPassword('');
         setMentor(null);
-        await fetchUser();
+        const loggedInUser = await fetchUser();
+        if (loggedInUser) {
+          enableNotifications(loggedInUser._id, "user", true);
+        }
+
         toast.success("You're all set!");
         navigate('/');
       } else {
+
         if (data.isNotVerified) {
           onNotVerified(email);
           setError(''); // Clear error if we're showing the modal

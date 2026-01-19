@@ -53,7 +53,7 @@ const getCachedResults = (query, tab) => {
 const setCachedResults = (query, tab, data) => {
   try {
     sessionStorage.setItem(getCacheKey(query, tab), JSON.stringify(data));
-  } catch {}
+  } catch { }
 };
 
 /* ================= COMPONENT ================= */
@@ -205,17 +205,15 @@ const Explore = () => {
                   onClick={() => setActiveTab(tab.value)}
                   className={`
                     flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap cursor-pointer border
-                    ${
-                      isActive
-                        ? "bg-[#9f3562] hover:bg-[#b86286] text-white border-transparent shadow-md shadow-pink-200"
-                        : "bg-white text-gray-600 hover:bg-gray-200 border-gray-200 hover:border-gray-300"
+                    ${isActive
+                      ? "bg-[#9f3562] hover:bg-[#b86286] text-white border-transparent shadow-md shadow-pink-200"
+                      : "bg-white text-gray-600 hover:bg-gray-200 border-gray-200 hover:border-gray-300"
                     }
                   `}
                 >
                   <Icon
-                    className={`w-4 h-4 ${
-                      isActive ? "text-white" : "text-gray-500"
-                    }`}
+                    className={`w-4 h-4 ${isActive ? "text-white" : "text-gray-500"
+                      }`}
                   />
                   {tab.label}
                 </button>
@@ -323,8 +321,10 @@ const Explore = () => {
                 <div className="flex items-center gap-3 mb-4">
                   <Users className="w-6 h-6 text-[#9f3562]" />
                   <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
-                  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
-                    {filteredResults.mentors.length}
+                  <span
+                    onClick={() => navigate(`/mentors`)}
+                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
+                    View More
                   </span>
                 </div>
 
@@ -332,7 +332,7 @@ const Explore = () => {
                   {filteredResults.mentors.map((mentor) => {
                     const mentorName = renderText(mentor.name) || "Anonymous";
                     const collegeName = renderText(mentor.college) || "";
-                    
+
                     return (
                       <div
                         key={mentor._id}
@@ -377,6 +377,7 @@ const Explore = () => {
 
                           {/* Button */}
                           <button
+
                             onClick={() => navigate(`/${mentor.username}`)}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"
                           >
@@ -419,7 +420,7 @@ const Explore = () => {
                       const collegeName = renderText(college.name) || "Unknown College";
                       const collegeDesc = renderText(college.desc) || "";
                       const collegeLocation = renderText(college.location) || "";
-                      
+
                       // Handle rating object safely
                       let ratingDisplay = "";
                       if (college.rating) {
@@ -431,7 +432,7 @@ const Explore = () => {
                       }
 
                       const placementsText = renderText(college.placements) || "";
-                      
+
                       return (
                         <div
                           key={college._id}
@@ -525,7 +526,7 @@ const Explore = () => {
                     const blogContent = renderText(blog.content) || "";
                     const blogCategory = renderText(blog.category) || "";
                     const blogAuthor = renderText(blog.Author) || "";
-                    
+
                     return (
                       <div
                         key={blog._id}
@@ -549,11 +550,11 @@ const Explore = () => {
                           </h3>
 
                           {blogContent && (
-                            
-                            <div 
-                             dangerouslySetInnerHTML={{ __html: blog.content }}
-                            className="text-sm text-gray-600 mb-4 line-clamp-2">
-                              
+
+                            <div
+                              dangerouslySetInnerHTML={{ __html: blog.content }}
+                              className="text-sm text-gray-600 mb-4 line-clamp-2">
+
                             </div>
                           )}
 

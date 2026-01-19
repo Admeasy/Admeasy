@@ -92,52 +92,6 @@ const LeftSidebar = ({
 
   return (
     <>
-      {/* ================= MOBILE MENU BUTTON (below 768px) ================= */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 right-4 z-50 w-12 h-12 rounded-xl bg-white/95 backdrop-blur-xl shadow-lg flex items-center justify-center border border-gray-100 hover:shadow-xl hover:border-[#9f3562]/20 transition-all active:scale-90"
-      >
-        <AnimatePresence mode="wait">
-          {isMobileMenuOpen ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <X className="w-5 h-5 text-[#9f3562]" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="menu"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Menu className="w-5 h-5 text-[#9f3562]" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
-
-      {/* Mobile Backdrop */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-
       {/* ================= DESKTOP SIDEBAR (768px and above) ================= */}
       <motion.aside
         initial="expanded"
@@ -151,14 +105,14 @@ const LeftSidebar = ({
           collapsed: { width: "5.5rem" }
         }}
         transition={sidebarTransition}
-        className="hidden md:flex fixed left-0 top-16 h-[calc(100vh-3rem)] bg-white/95 backdrop-blur-2xl border-r border-gray-100 shadow-xl z-40 flex-col py-8 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+        className="hidden md:flex fixed left-0 top-0 h-screen bg-white/95 backdrop-blur-2xl border-r border-gray-100 shadow-xl z-40 flex-col py-8 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
       >
         {/* Toggle Button */}
         <motion.button
           onClick={() => setIsCollapsed(!isCollapsed)}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="absolute right-6 top-2 w-7 h-7 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center cursor-pointer z-50 hover:border-[#9f3562] group"
+          className="absolute right-6 top-1 w-5 h-5 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center cursor-pointer z-50 hover:border-[#9f3562] group"
         >
           <motion.div
             animate={{ rotate: isCollapsed ? 180 : 0 }}
@@ -169,7 +123,7 @@ const LeftSidebar = ({
         </motion.button>
 
         {/* Header */}
-        <div className={`flex items-center gap-3 ${isCollapsed ? 'mt-6' : 'mt-0'} mb-8 px-5 ${isCollapsed ? 'justify-center' : ''} h-12`}>
+        <div className={`flex items-center gap-3 mt-0 mb-8 px-5 ${isCollapsed ? 'justify-center' : ''} h-12`}>
           <motion.div
             onClick={() => navigate('/')}
             layout // Magic framer motion prop for smooth layout shifts
@@ -316,65 +270,6 @@ const LeftSidebar = ({
           </motion.div>
         )}
       </motion.aside>
-
-      {/* ================= MOBILE SIDEBAR (below 768px) ================= */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.aside
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="md:hidden fixed left-0 top-0 h-screen w-[85vw] min-w-[70vw] sm:w-[85vw]
-             bg-white/98 backdrop-blur-2xl border-r border-gray-100 shadow-2xl z-50
-             flex flex-col py-8 px-5"
-          >
-            <div className="flex items-center gap-3 px-3 mb-10 mt-12">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ffffff] via-[#ddd8da] to-[#fff1f7] flex items-center justify-center shadow-lg shadow-[#9f3562]/30">
-                <img src={logo} alt="logo" />
-              </div>
-              <div>
-                <h2 className="font-bold text-xl text-gray-900">Admeasy</h2>
-                <p className="text-xs text-gray-500">Your Education Hub</p>
-              </div>
-            </div>
-
-            <nav className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                let isActive;
-                if (item.matchPaths) {
-                  isActive = item.matchPaths.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
-                } else {
-                  isActive = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
-                }
-
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={closeMobileMenu}
-                    className={() => `
-                      w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden
-                      ${isActive ? 'text-white shadow-md shadow-[#9f3562]/25' : 'text-gray-700 hover:bg-gray-50 hover:text-[#9f3562]'}
-                    `}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="mobileActiveBg"
-                        className="absolute inset-0 bg-gradient-to-r from-[#9f3562] to-[#b14270]"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
-                    )}
-                    <Icon className="w-5 h-5 relative z-10" />
-                    <span className="font-medium text-sm relative z-10">{item.label}</span>
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </motion.aside>
-        )}
-      </AnimatePresence>
     </>
   );
 };

@@ -8,6 +8,8 @@ import LoadingButton from "../components/LoadingButton";
 import Logo from "../assets/Admeasy/AdmeasyLatest.png";
 import EmailVerificationModal from "../components/EmailVerificationModal";
 import { toast } from "react-toastify";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -152,11 +154,15 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
 
     if (isNewSignup === 'true' && id) {
       // New user - redirect to onboarding
+      enableNotifications(id, "user", true);
       navigate(`/onboarding/${id}`);
     } else {
       // Logged-in user or edge case - redirect to home
+      if (id) enableNotifications(id, "user", true);
       navigate('/');
     }
+
+
 
     // Clean up localStorage flags
     localStorage.removeItem('new_signup_verification');

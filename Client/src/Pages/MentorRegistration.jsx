@@ -7,6 +7,8 @@ import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 // Animation variants
 const fadeUpVariant = {
@@ -83,15 +85,15 @@ const MentorRegistration = () => {
         }
 
         setError("");
-        
+
         // Second verification using verify2 route
         try {
             const res = await fetch('/api/apply/mentorship/verify2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email: formData.email.trim(),
-                    id: id 
+                    id: id
                 }),
                 credentials: 'include'
             });
@@ -149,13 +151,17 @@ const MentorRegistration = () => {
 
             if (res.ok) {
                 toast.success("Account created successfully!");
-                
+
                 // Clear any user session to ensure we're in mentor mode
                 setUser(null);
-                
+
                 // Fetch mentor data and store in context
-                await fetchMentor();
-                
+                const registeredMentor = await fetchMentor();
+                if (registeredMentor) {
+                    enableNotifications(registeredMentor._id, "mentor", true);
+                }
+
+
                 // Wait for mentor to be available in localStorage (set by MentorContext)
                 // This ensures the ProtectedRoute will see the mentor in context
                 let attempts = 0;
@@ -168,7 +174,7 @@ const MentorRegistration = () => {
                     await new Promise(resolve => setTimeout(resolve, 50));
                     attempts++;
                 }
-                
+
                 // Navigate to feed page after successful registration
                 navigate('/');
             } else {

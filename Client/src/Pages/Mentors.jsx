@@ -438,7 +438,7 @@ const Mentors = () => {
                                     className={`group bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col min-h-[320px] ${mentorCard.username ? 'cursor-pointer' : ''}`}
                                     onClick={() => {
                                         if (mentorCard.username) {
-                                            navigate(`/mentors/${mentorCard.username}`);
+                                            navigate(`/${mentorCard.username}`);
                                         }
                                     }}
                                 >

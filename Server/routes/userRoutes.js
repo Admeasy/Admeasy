@@ -14,6 +14,7 @@ require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db.js');
+const NotificationService = require('../services/notificationService');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const passport = require('../middleware/passport');
 const { authenticateRequired, requireSelfOrAdmin } = require('../middleware/combinedAuth');
@@ -1149,7 +1150,31 @@ router.post('/:targetId/follow', async (req, res) => {
             follower.following.push(target._id);
             target.followers.push(follower._id);
             await follower.save();
+            await follower.save();
             await target.save();
+
+            // Notify target
+            (async () => {
+                try {
+                    const isFollowBack = target.following && target.following.some(id => id.toString() === follower._id.toString());
+                    const followerName = follower.name || follower.username || 'Someone';
+                    // Message: "{X} started following you" OR "{Y} followed you back"
+                    const body = isFollowBack ? `${followerName} followed you back` : `${followerName} started following you`;
+
+                    await NotificationService.sendToUser(
+                        target._id,
+                        'New Follower',
+                        body,
+                        {
+                            type: 'profile',
+                            userId: follower._id.toString()
+                        },
+                        follower._id
+                    );
+                } catch (notifyError) {
+                    console.error('Error sending follow notification:', notifyError);
+                }
+            })();
 
             return res.json({
                 success: true,

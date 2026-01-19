@@ -33,11 +33,11 @@ export function MentorProvider({ children }) {
       setIsLoading(false);
       return;
     }
-    
+
     const verifyAuth = async () => {
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
       const hasStoredMentor = localStorage.getItem(MENTOR_STORAGE_KEY);
-      
+
       if (storedRole === 'mentor' && hasStoredMentor) {
         try {
           // Always verify with server - localStorage is just a cache
@@ -83,7 +83,7 @@ export function MentorProvider({ children }) {
   // Sync state across tabs when localStorage changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const handleStorageChange = (e) => {
       // Only sync if change came from another tab (not current tab)
       if (e.key === MENTOR_STORAGE_KEY) {
@@ -189,10 +189,13 @@ export function MentorProvider({ children }) {
         }
       }
       setMentor(mentorObj);
+      return mentorObj;
     } else {
       setMentor(null);
+      return null;
     }
   }, []);
+
 
   // Memoize mentor data to prevent unnecessary re-renders
   const mentorMemo = useMemo(() => mentor, [mentor]);

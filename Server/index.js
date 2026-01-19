@@ -23,6 +23,8 @@ const SitemapRoutes = require('./routes/sitemapRoutes')
 const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
+const NotificationRoutes = require('./routes/notificationRoutes');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -188,23 +190,23 @@ app.get('/api/check-username/:username', async (req, res) => {
 
     const normalizedUsername = username.trim().toLowerCase();
     const escapedUsername = escapeRegex(normalizedUsername);
-    
+
     // Check both mentors and users
     const Mentor = require('./models/mentorSchema');
     const User = require('./models/userSchema');
-    
-    const existingMentor = await Mentor.findOne({ 
-      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
+
+    const existingMentor = await Mentor.findOne({
+      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
     });
-    
-    const existingUser = await User.findOne({ 
-      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') } 
+
+    const existingUser = await User.findOne({
+      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
     });
 
     const isAvailable = !existingMentor && !existingUser;
-    
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       available: isAvailable,
       message: isAvailable ? 'Username is available' : 'Username is already taken'
     });
@@ -218,32 +220,32 @@ app.get('/api/check-username/:username', async (req, res) => {
 app.get('/api/profile/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    
+
     const Mentor = require('./models/mentorSchema');
     const User = require('./models/userSchema');
-    
+
     // Check mentor first
     let mentor = await Mentor.findOne({ username });
     if (mentor) {
-      return res.status(200).json({ 
-        success: true, 
-        type: 'mentor', 
-        profile: mentor 
+      return res.status(200).json({
+        success: true,
+        type: 'mentor',
+        profile: mentor
       });
     }
-    
+
     // Check user
     let user = await User.findOne({ username }).select('-password -refreshToken');
     if (user) {
       // Process image if needed
       const processedUser = await processUserImage(user.toObject());
-      return res.status(200).json({ 
-        success: true, 
-        type: 'user', 
-        profile: processedUser 
+      return res.status(200).json({
+        success: true,
+        type: 'user',
+        profile: processedUser
       });
     }
-    
+
     return res.status(404).json({ success: false, message: 'Profile not found' });
   } catch (error) {
     console.log(error);
@@ -266,13 +268,15 @@ app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', PostRoutes);
 app.use("/api", SearchRoutes);
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
+app.use('/api/notifications', NotificationRoutes);
+
 // Socket.io connection handling with session authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   // Access session data - CRITICAL FIX
   const session = socket.request.session;
-  
+
   if (!session) {
     console.error('No session found for socket:', socket.id);
     socket.emit('auth_error', { message: 'No session found' });
@@ -305,7 +309,7 @@ io.on('connection', (socket) => {
     socket.userId = userId;
     socket.userRole = 'user';
     socket.join(`user:${userId}`);
-    
+
     setPresence(userId, 'user', true).then(() => {
       socket.broadcast.emit('user_online', { userId });
       console.log(`User ${userId} auto-joined and set online`);
@@ -316,7 +320,7 @@ io.on('connection', (socket) => {
     socket.mentorId = mentorId;
     socket.userRole = 'mentor';
     socket.join(`mentor:${mentorId}`);
-    
+
     setPresence(mentorId, 'mentor', true).then(() => {
       socket.broadcast.emit('mentor_online', { mentorId });
       console.log(`Mentor ${mentorId} auto-joined and set online`);

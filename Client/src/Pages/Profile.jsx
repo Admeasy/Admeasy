@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
 import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat } from 'lucide-react';
@@ -13,6 +13,12 @@ const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank
 export default function Profile() {
   const { username } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
   const { mentor: currentMentor, isLoading: mentorLoading } = useMentor();
   const { user: currentUser, isLoading: userLoading } = useUser();
   const [profile, setProfile] = useState(null);
@@ -43,6 +49,11 @@ export default function Profile() {
   const menuRef = useRef(null);
   const { setUser } = useUser();
   const { setMentor } = useMentor();
+  const postsSectionRef = useRef(null);
+
+  const handleScrollToPosts = () => {
+    postsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -634,7 +645,10 @@ export default function Profile() {
 
               {/* Stats Row */}
               <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
-                <button className="text-center cursor-pointer hover:opacity-70 transition-opacity">
+                <button
+                  onClick={handleScrollToPosts}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
                   <div className="text-lg sm:text-xl font-bold text-gray-900">{posts.length}</div>
                   <div className="text-xs sm:text-sm text-gray-500">Posts</div>
                 </button>
@@ -914,7 +928,7 @@ export default function Profile() {
         )}
 
         {/* Tabs Section */}
-        <div className="bg-white rounded-2xl shadow-lg mt-6 overflow-hidden">
+        <div ref={postsSectionRef} className="bg-white rounded-2xl shadow-lg mt-6 overflow-hidden">
           {/* Tabs Header */}
           <div className="flex border-b border-gray-200">
             <button
