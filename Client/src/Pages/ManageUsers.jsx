@@ -19,12 +19,42 @@ const ManageUsers = () => {
     const [unlockingImage, setUnlockingImage] = useState(null)
     const { user: currentUser } = useUser()
     const [userCount,SetUserCount] = useState(0)
+    const [userSubscriptions, setUserSubscriptions] = useState({})
+    const [loadingSubscriptions, setLoadingSubscriptions] = useState(false)
     const showError = (error) => { toast.error(error); return "" }
     const showSuccess = (msg) => toast.success(msg)
 
     useEffect(() => {
         fetchUsers()
+        fetchAllSubscriptions()
     }, [])
+
+    const fetchAllSubscriptions = async () => {
+        setLoadingSubscriptions(true)
+        try {
+            const response = await fetch('/api/subscriptions/all', { credentials: 'include' })
+            if (!response.ok) {
+                throw new Error('Failed to fetch subscriptions')
+            }
+            const data = await response.json()
+            if (data.success) {
+                // Group subscriptions by user ID
+                const subscriptionsByUser = {}
+                data.subscriptions.forEach(sub => {
+                    const userId = sub.user._id || sub.user
+                    if (!subscriptionsByUser[userId]) {
+                        subscriptionsByUser[userId] = []
+                    }
+                    subscriptionsByUser[userId].push(sub)
+                })
+                setUserSubscriptions(subscriptionsByUser)
+            }
+        } catch (err) {
+            console.error('Error fetching subscriptions:', err)
+        } finally {
+            setLoadingSubscriptions(false)
+        }
+    }
 
     const fetchUsers = async () => {
         try {
@@ -222,6 +252,28 @@ const ManageUsers = () => {
                                             <span className="truncate">{user.institute}</span>
                                         </div>
                                     )}
+                                    {/* Subscription Info */}
+                                    {userSubscriptions[user._id] && userSubscriptions[user._id].length > 0 && (
+                                        <div className="mt-3 pt-3 border-t border-gray-200">
+                                            <div className="flex items-center text-[#9f3562] font-semibold mb-2">
+                                                <FaUser className="w-4 h-4 mr-2" />
+                                                Subscriptions ({userSubscriptions[user._id].length})
+                                            </div>
+                                            <div className="space-y-1">
+                                                {userSubscriptions[user._id].slice(0, 2).map((sub, idx) => (
+                                                    <div key={idx} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                                        <div className="font-medium">{sub.mentor?.name || 'Unknown Mentor'}</div>
+                                                        <div className="text-gray-500">{sub.plan?.name || 'Unknown Plan'} • {sub.status}</div>
+                                                    </div>
+                                                ))}
+                                                {userSubscriptions[user._id].length > 2 && (
+                                                    <div className="text-xs text-gray-500 italic">
+                                                        +{userSubscriptions[user._id].length - 2} more
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                             </div>
@@ -375,6 +427,38 @@ const ManageUsers = () => {
                                         <div>
                                             <p className="text-sm text-gray-500">Institute</p>
                                             <p className="font-medium">{selectedUser.institute}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Subscriptions Section */}
+                                {userSubscriptions[selectedUser._id] && userSubscriptions[selectedUser._id].length > 0 && (
+                                    <div className="p-4 bg-gradient-to-br from-[#9f3562]/10 to-[#b14270]/10 rounded-lg border border-[#9f3562]/20">
+                                        <div className="flex items-center mb-3">
+                                            <FaUser className="w-5 h-5 text-[#9f3562] mr-2" />
+                                            <h4 className="font-semibold text-gray-900">Subscriptions ({userSubscriptions[selectedUser._id].length})</h4>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {userSubscriptions[selectedUser._id].map((sub, idx) => (
+                                                <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-medium text-gray-900">{sub.mentor?.name || sub.mentor?.username || 'Unknown Mentor'}</span>
+                                                        <span className={`text-xs px-2 py-1 rounded-full ${
+                                                            sub.status === 'active' ? 'bg-green-100 text-green-700' :
+                                                            sub.status === 'expired' ? 'bg-gray-100 text-gray-700' :
+                                                            'bg-red-100 text-red-700'
+                                                        }`}>
+                                                            {sub.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-sm text-gray-600">
+                                                        <div>Plan: {sub.plan?.name || 'Unknown Plan'}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}

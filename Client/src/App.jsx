@@ -53,6 +53,7 @@ import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
+import ManagePosts from './Pages/ManagePosts';
 import BlogDetail from './Pages/BlogDetail';
 import { AnimatePresence, motion } from 'framer-motion';
 import AuthPage from './components/AuthPage';
@@ -65,8 +66,10 @@ import BottomNavBar from './components/BottomNavBar';
 import VerifyEmail from './Pages/VerifyEmail';
 import { enableNotifications } from './Firebase/enableNotifications';
 
-
 import FeedbackBanner from './components/FeedbackBanner';
+import SubscriptionPlans from './Pages/SubscriptionPlans';
+import MySubscriptions from './Pages/MySubscriptions';
+import CheckPayments from './Pages/CheckPayments';
 
 function App() {
   const location = useLocation();
@@ -130,6 +133,9 @@ function App() {
   // Routes that use Layout component (Layout already includes Navbar and Sidebar)
   const layoutRoutes = [
     '/',
+    '/subscription-plans',
+    '/my-subscriptions',
+    '/:username',
     '/explore',
     '/mentors',
     '/colleges',
@@ -142,10 +148,25 @@ function App() {
     '/home-classic'
   ];
 
+  // Known single-segment routes that are NOT username routes
+  const knownSingleSegmentRoutes = ['/about', '/contact', '/login', '/signup', '/policies', '/t&c'];
+
   // Check if current route uses Layout
   const usesLayout = layoutRoutes.some(path => {
     if (path === '/') {
       return location.pathname === '/';
+    }
+    if (path === '/:username') {
+      // Check if pathname is a single segment and not a known route
+      const isSingleSegment = /^\/[^\/]+$/.test(location.pathname);
+      const isKnownRoute = knownSingleSegmentRoutes.includes(location.pathname) ||
+        location.pathname.startsWith('/admin') ||
+        location.pathname.startsWith('/mentors/') ||
+        location.pathname.startsWith('/reset-password') ||
+        location.pathname.startsWith('/verify-email') ||
+        location.pathname.startsWith('/onboarding') ||
+        location.pathname.startsWith('/forgot-password');
+      return isSingleSegment && !isKnownRoute;
     }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   });
@@ -223,6 +244,17 @@ function App() {
           <Route path="/notes/:id" element={<NotesPage />} />
           <Route path="/notes-search" element={<NotesSearch />} />
           <Route path="/add-note" element={<AddNote />} />
+
+          {/* Subscriptions */}
+          <Route path="/subscription-plans" element={<SubscriptionPlans />} />
+          <Route
+            path="/my-subscriptions"
+            element={
+              <ProtectedRoute user={true}>
+                <MySubscriptions />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Chats */}
           <Route
@@ -302,7 +334,9 @@ function App() {
         <Route path="/admin/applications" element={<ManageApplications />} />
         <Route path="/admin/applications/:job" element={<JobApplications />} />
         <Route path="/admin/notes" element={<ManageNotes />} />
+        <Route path="/admin/posts" element={<ManagePosts />} />
         <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
+        <Route path="/admin/payments" element={<CheckPayments />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />

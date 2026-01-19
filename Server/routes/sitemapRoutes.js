@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const College = require('../models/collegeSchema');
-const Blog = require('../models/BlogSchema');
+const Blog = require('../models/blogSchema');
 const Note = require('../models/noteSchema');
 
 router.get('/sitemap.xml', async (req, res) => {

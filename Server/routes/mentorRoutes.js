@@ -162,7 +162,7 @@ router.post('/login', async (req, res) => {
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
         await mentor.save();
-
+        
         // CRITICAL: Set session for Socket.io compatibility
         if (req.session) {
             req.session.mentorId = mentor._id;
@@ -181,7 +181,7 @@ router.post('/login', async (req, res) => {
                 });
             });
         }
-
+        
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -423,7 +423,7 @@ router.post('/refresh', async (req, res) => {
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(mentor);
-
+            
             // CRITICAL: Set session for Socket.io compatibility
             if (req.session) {
                 req.session.mentorId = mentor._id;
@@ -442,7 +442,7 @@ router.post('/refresh', async (req, res) => {
                     });
                 });
             }
-
+            
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',

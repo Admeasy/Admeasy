@@ -152,7 +152,7 @@ const Feed = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden">
       <SEO
-        title="Admeasy Feed"
+        title="Admeasy"
         description="Discover knowledge shared by mentors"
         url="https://admeasy.in"
       />
@@ -193,10 +193,11 @@ const Feed = () => {
                 </p>
               </div>
 
+
               {!user && !mentor && (
                 <button
                   onClick={() => navigate('/login')}
-                  className="whitespace-nowrap px-8 py-3.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-2xl font-bold shadow-lg shadow-[#9f3562]/20 hover:shadow-xl hover:shadow-[#9f3562]/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                  className="w-fit h-fit px-1 py-1 font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl cursor-pointer hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-1500"
                 >
                   Log in to interact
                 </button>

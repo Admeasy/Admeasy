@@ -2,7 +2,20 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
-import { Heart, MessageCircle, Share2, ExternalLink, Youtube, ArrowLeft, Send, Trash2, Reply, UserPlus, UserCheck, Repeat2 } from 'lucide-react';
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  ExternalLink,
+  Youtube,
+  ArrowLeft,
+  Send,
+  Trash2,
+  Reply,
+  UserPlus,
+  UserCheck,
+  Repeat2,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
@@ -14,6 +27,7 @@ const PostDetail = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
   const viewer = user || mentor;
+
   const [loading, setLoading] = useState(true);
   const [postState, setPostState] = useState(null);
   const [comments, setComments] = useState([]);
@@ -37,7 +51,8 @@ const PostDetail = () => {
     parentCommentId: null,
   });
 
-  const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+  const fallbackProfilePic =
+    'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
 
   const fetchPost = useCallback(async () => {
     try {
@@ -80,10 +95,17 @@ const PostDetail = () => {
   // Listen for global post interaction changes
   useEffect(() => {
     const handlePostInteraction = (event) => {
-      const { postId: eventPostId, isLiked, likesCount, isReposted, repostCount, commentsCount } = event.detail;
+      const {
+        postId: eventPostId,
+        isLiked,
+        likesCount,
+        isReposted,
+        repostCount,
+        commentsCount,
+      } = event.detail;
 
       if (eventPostId === postId) {
-        setPostState(prev => {
+        setPostState((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
@@ -91,7 +113,7 @@ const PostDetail = () => {
             ...(likesCount !== undefined && { likesCount }),
             ...(isReposted !== undefined && { isReposted }),
             ...(repostCount !== undefined && { repostCount }),
-            ...(commentsCount !== undefined && { commentsCount })
+            ...(commentsCount !== undefined && { commentsCount }),
           };
         });
       }
@@ -134,13 +156,17 @@ const PostDetail = () => {
     const optimisticPost = {
       ...postState,
       isReposted: !wasReposted,
-      repostCount: wasReposted ? (postState.repostCount - 1) : (postState.repostCount + 1)
+      repostCount: wasReposted
+        ? postState.repostCount - 1
+        : postState.repostCount + 1,
     };
 
     setPostState(optimisticPost);
-    window.dispatchEvent(new CustomEvent('postInteraction', {
-      detail: { postId, isReposted: !wasReposted, repostCount: optimisticPost.repostCount }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('postInteraction', {
+        detail: { postId, isReposted: !wasReposted, repostCount: optimisticPost.repostCount },
+      }),
+    );
 
     try {
       const res = await fetch(`/api/posts/${postId}/repost`, {
@@ -153,20 +179,28 @@ const PostDetail = () => {
         const syncedPost = {
           ...postState,
           isReposted: data.isReposted,
-          repostCount: data.repostCount
+          repostCount: data.repostCount,
         };
         setPostState(syncedPost);
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId, ...data }
-        }));
+        window.dispatchEvent(
+          new CustomEvent('postInteraction', {
+            detail: { postId, ...data },
+          }),
+        );
       } else {
         throw new Error();
       }
     } catch (error) {
       setPostState(postState); // Rollback
-      window.dispatchEvent(new CustomEvent('postInteraction', {
-        detail: { postId, isReposted: wasReposted, repostCount: postState.repostCount }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('postInteraction', {
+          detail: {
+            postId,
+            isReposted: wasReposted,
+            repostCount: postState.repostCount,
+          },
+        }),
+      );
       toast.error('Failed to repost');
     } finally {
       isInteracting.current.repost = false;
@@ -187,13 +221,17 @@ const PostDetail = () => {
     const optimisticPost = {
       ...postState,
       isLiked: !wasLiked,
-      likesCount: wasLiked ? (postState.likesCount - 1) : (postState.likesCount + 1)
+      likesCount: wasLiked
+        ? postState.likesCount - 1
+        : postState.likesCount + 1,
     };
 
     setPostState(optimisticPost);
-    window.dispatchEvent(new CustomEvent('postInteraction', {
-      detail: { postId, isLiked: !wasLiked, likesCount: optimisticPost.likesCount }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('postInteraction', {
+        detail: { postId, isLiked: !wasLiked, likesCount: optimisticPost.likesCount },
+      }),
+    );
 
     try {
       const res = await fetch(`/api/posts/${postId}/like`, {
@@ -203,22 +241,26 @@ const PostDetail = () => {
       const data = await res.json();
 
       if (data.success) {
-        setPostState(prev => ({
+        setPostState((prev) => ({
           ...prev,
           isLiked: data.isLiked,
-          likesCount: data.likesCount
+          likesCount: data.likesCount,
         }));
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId, ...data }
-        }));
+        window.dispatchEvent(
+          new CustomEvent('postInteraction', {
+            detail: { postId, ...data },
+          }),
+        );
       } else {
         throw new Error();
       }
     } catch (error) {
       setPostState(postState); // Rollback
-      window.dispatchEvent(new CustomEvent('postInteraction', {
-        detail: { postId, isLiked: wasLiked, likesCount: postState.likesCount }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('postInteraction', {
+          detail: { postId, isLiked: wasLiked, likesCount: postState.likesCount },
+        }),
+      );
     } finally {
       isInteracting.current.like = false;
     }
@@ -261,7 +303,10 @@ const PostDetail = () => {
       return;
     }
 
-    const isOwnPost = viewer._id && authorId && viewer._id.toString() === authorId.toString();
+    const isOwnPost =
+      viewer._id &&
+      authorId &&
+      viewer._id.toString() === authorId.toString();
     if (isOwnPost) {
       isInteracting.current.follow = false;
       return;
@@ -275,21 +320,23 @@ const PostDetail = () => {
       method: 'POST',
       credentials: 'include',
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           setIsFollowing(data.isFollowing);
-          window.dispatchEvent(new CustomEvent('followStatusChanged', {
-            detail: {
-              targetId: authorId.toString(),
-              isFollowing: data.isFollowing
-            }
-          }));
+          window.dispatchEvent(
+            new CustomEvent('followStatusChanged', {
+              detail: {
+                targetId: authorId.toString(),
+                isFollowing: data.isFollowing,
+              },
+            }),
+          );
         } else {
           setIsFollowing(previousFollowing);
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error following:', error);
         setIsFollowing(previousFollowing);
       })
@@ -323,15 +370,16 @@ const PostDetail = () => {
       createdAt: new Date().toISOString(),
     };
 
-    setComments(prev => [...prev, optimisticComment]);
-    setPostState(prev => ({
+    setComments((prev) => [...prev, optimisticComment]);
+    setPostState((prev) => ({
       ...prev,
       commentsCount: (prev?.commentsCount || 0) + 1,
     }));
-    // Synchronize count globally
-    window.dispatchEvent(new CustomEvent('postInteraction', {
-      detail: { postId, commentsCount: (postState.commentsCount || 0) + 1 }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('postInteraction', {
+        detail: { postId, commentsCount: (postState?.commentsCount || 0) + 1 },
+      }),
+    );
     setNewComment('');
     setIsSubmittingComment(true);
 
@@ -341,34 +389,63 @@ const PostDetail = () => {
       credentials: 'include',
       body: JSON.stringify({ content: commentContent }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setComments(prev =>
-            prev.map(comment =>
-              comment._id === tempCommentId ? { ...data.comment, replies: [] } : comment
-            )
+          setComments((prev) =>
+            prev.map((comment) =>
+              comment._id === tempCommentId
+                ? { ...data.comment, replies: [] }
+                : comment,
+            ),
           );
-          setPostState(prev => ({ ...prev, commentsCount: data.commentsCount }));
-          window.dispatchEvent(new CustomEvent('postInteraction', {
-            detail: { postId, commentsCount: data.commentsCount }
+          setPostState((prev) => ({
+            ...prev,
+            commentsCount: data.commentsCount,
           }));
+          window.dispatchEvent(
+            new CustomEvent('postInteraction', {
+              detail: { postId, commentsCount: data.commentsCount },
+            }),
+          );
         } else {
-          setComments(prev => prev.filter(c => c._id !== tempCommentId));
-          setPostState(prev => ({ ...prev, commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1) }));
-          window.dispatchEvent(new CustomEvent('postInteraction', {
-            detail: { postId, commentsCount: Math.max(0, (postState.commentsCount || 0) - 1) }
+          setComments((prev) => prev.filter((c) => c._id !== tempCommentId));
+          setPostState((prev) => ({
+            ...prev,
+            commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
           }));
+          window.dispatchEvent(
+            new CustomEvent('postInteraction', {
+              detail: {
+                postId,
+                commentsCount: Math.max(
+                  0,
+                  (postState?.commentsCount || 0) - 1,
+                ),
+              },
+            }),
+          );
           setNewComment(commentContent);
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error adding comment:', error);
-        setComments(prev => prev.filter(c => c._id !== tempCommentId));
-        setPostState(prev => ({ ...prev, commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1) }));
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId, commentsCount: Math.max(0, (postState.commentsCount || 0) - 1) }
+        setComments((prev) => prev.filter((c) => c._id !== tempCommentId));
+        setPostState((prev) => ({
+          ...prev,
+          commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
         }));
+        window.dispatchEvent(
+          new CustomEvent('postInteraction', {
+            detail: {
+              postId,
+              commentsCount: Math.max(
+                0,
+                (postState?.commentsCount || 0) - 1,
+              ),
+            },
+          }),
+        );
         setNewComment(commentContent);
       })
       .finally(() => {
@@ -399,15 +476,21 @@ const PostDetail = () => {
       createdAt: new Date().toISOString(),
     };
 
-    setComments(prev =>
-      prev.map(comment => {
+    setComments((prev) =>
+      prev.map((comment) => {
         if (comment._id === commentId) {
-          return { ...comment, replies: [...(comment.replies || []), optimisticReply] };
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), optimisticReply],
+          };
         }
         return comment;
-      })
+      }),
     );
-    setPostState(prev => ({ ...prev, commentsCount: (prev?.commentsCount || 0) + 1 }));
+    setPostState((prev) => ({
+      ...prev,
+      commentsCount: (prev?.commentsCount || 0) + 1,
+    }));
     setReplyingTo(null);
     setReplyContent('');
     setIsSubmittingReply(true);
@@ -418,55 +501,92 @@ const PostDetail = () => {
       credentials: 'include',
       body: JSON.stringify({ content: replyText }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setComments(prev =>
-            prev.map(comment => {
+          setComments((prev) =>
+            prev.map((comment) => {
               if (comment._id === commentId) {
                 return {
                   ...comment,
-                  replies: comment.replies.map(reply => reply._id === tempReplyId ? data.reply : reply),
+                  replies: comment.replies.map((reply) =>
+                    reply._id === tempReplyId ? data.reply : reply,
+                  ),
                 };
               }
               return comment;
-            })
+            }),
           );
-          setPostState(prev => ({ ...prev, commentsCount: data.commentsCount }));
-          window.dispatchEvent(new CustomEvent('postInteraction', {
-            detail: { postId, commentsCount: data.commentsCount }
+          setPostState((prev) => ({
+            ...prev,
+            commentsCount: data.commentsCount,
           }));
+          window.dispatchEvent(
+            new CustomEvent('postInteraction', {
+              detail: { postId, commentsCount: data.commentsCount },
+            }),
+          );
         } else {
-          setComments(prev =>
-            prev.map(comment => {
+          setComments((prev) =>
+            prev.map((comment) => {
               if (comment._id === commentId) {
-                return { ...comment, replies: comment.replies.filter(r => r._id !== tempReplyId) };
+                return {
+                  ...comment,
+                  replies: comment.replies.filter(
+                    (r) => r._id !== tempReplyId,
+                  ),
+                };
               }
               return comment;
-            })
+            }),
           );
-          setPostState(prev => ({ ...prev, commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1) }));
-          window.dispatchEvent(new CustomEvent('postInteraction', {
-            detail: { postId, commentsCount: Math.max(0, (postState.commentsCount || 0) - 1) }
+          setPostState((prev) => ({
+            ...prev,
+            commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
           }));
+          window.dispatchEvent(
+            new CustomEvent('postInteraction', {
+              detail: {
+                postId,
+                commentsCount: Math.max(
+                  0,
+                  (postState?.commentsCount || 0) - 1,
+                ),
+              },
+            }),
+          );
           setReplyingTo(commentId);
           setReplyContent(replyText);
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error adding reply:', error);
-        setComments(prev =>
-          prev.map(comment => {
+        setComments((prev) =>
+          prev.map((comment) => {
             if (comment._id === commentId) {
-              return { ...comment, replies: comment.replies.filter(r => r._id !== tempReplyId) };
+              return {
+                ...comment,
+                replies: comment.replies.filter((r) => r._id !== tempReplyId),
+              };
             }
             return comment;
-          })
+          }),
         );
-        setPostState(prev => ({ ...prev, commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1) }));
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId, commentsCount: Math.max(0, (postState.commentsCount || 0) - 1) }
+        setPostState((prev) => ({
+          ...prev,
+          commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
         }));
+        window.dispatchEvent(
+          new CustomEvent('postInteraction', {
+            detail: {
+              postId,
+              commentsCount: Math.max(
+                0,
+                (postState?.commentsCount || 0) - 1,
+              ),
+            },
+          }),
+        );
         setReplyingTo(commentId);
         setReplyContent(replyText);
       })
@@ -475,7 +595,8 @@ const PostDetail = () => {
       });
   };
 
-  const handleCommentLike = async (commentId, currentLiked) => {
+  // FIXED: like comment / like reply logic (removed malformed ternary / extra object)
+  const handleCommentLike = async (commentId) => {
     if (!viewer) {
       toast.info('Log in to like comments');
       return;
@@ -486,93 +607,139 @@ const PostDetail = () => {
     let previousCount = 0;
     let parentCommentId = null;
 
-    setComments((prev) => {
-      return prev.map((comment) => {
+    setComments((prev) =>
+      prev.map((comment) => {
         if (comment._id === commentId) {
           previousLiked = comment.isLiked;
           previousCount = comment.likesCount || 0;
           return {
             ...comment,
             isLiked: !comment.isLiked,
-            likesCount: comment.isLiked ? (comment.likesCount || 0) - 1 : (comment.likesCount || 0) + 1,
+            likesCount: comment.isLiked
+              ? (comment.likesCount || 0) - 1
+              : (comment.likesCount || 0) + 1,
           };
         }
-        if (comment.replies && comment.replies.some(reply => reply._id === commentId)) {
+
+        if (comment.replies && comment.replies.some((r) => r._id === commentId)) {
           parentCommentId = comment._id;
-          const reply = comment.replies.find(r => r._id === commentId);
-          previousLiked = reply?.isLiked || false;
-          previousCount = reply?.likesCount || 0;
           return {
             ...comment,
-            replies: comment.replies.map((reply) =>
-              reply._id === commentId
-                ? {
+            replies: comment.replies.map((reply) => {
+              if (reply._id === commentId) {
+                previousLiked = reply.isLiked;
+                previousCount = reply.likesCount || 0;
+                return {
                   ...reply,
                   isLiked: !reply.isLiked,
-                  likesCount: reply.isLiked ? (reply.likesCount || 0) - 1 : (reply.likesCount || 0) + 1,
-                }
-                : reply
-            ),
+                  likesCount: reply.isLiked
+                    ? (reply.likesCount || 0) - 1
+                    : (reply.likesCount || 0) + 1,
+                };
+              }
+              return reply;
+            }),
           };
         }
+
         return comment;
-      });
-    });
+      }),
+    );
 
     setLikingCommentId(commentId);
     fetch(`/api/posts/${postId}/comments/${commentId}/like`, {
       method: 'POST',
       credentials: 'include',
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           setComments((prev) =>
             prev.map((comment) => {
-              if (comment._id === commentId) return { ...comment, isLiked: data.isLiked, likesCount: data.likesCount };
-              if (comment.replies && comment.replies.some(reply => reply._id === commentId)) {
+              if (comment._id === commentId) {
+                return {
+                  ...comment,
+                  isLiked: data.isLiked,
+                  likesCount: data.likesCount,
+                };
+              }
+              if (
+                comment.replies &&
+                comment.replies.some((reply) => reply._id === commentId)
+              ) {
                 return {
                   ...comment,
                   replies: comment.replies.map((reply) =>
-                    reply._id === commentId ? { ...reply, isLiked: data.isLiked, likesCount: data.likesCount } : reply
+                    reply._id === commentId
+                      ? {
+                        ...reply,
+                        isLiked: data.isLiked,
+                        likesCount: data.likesCount,
+                      }
+                      : reply,
                   ),
                 };
               }
               return comment;
-            })
+            }),
           );
         } else {
+          // rollback
           setComments((prev) =>
             prev.map((comment) => {
-              if (comment._id === commentId) return { ...comment, isLiked: previousLiked, likesCount: previousCount };
+              if (comment._id === commentId) {
+                return {
+                  ...comment,
+                  isLiked: previousLiked,
+                  likesCount: previousCount,
+                };
+              }
               if (comment._id === parentCommentId) {
                 return {
                   ...comment,
                   replies: comment.replies.map((reply) =>
-                    reply._id === commentId ? { ...reply, isLiked: previousLiked, likesCount: previousCount } : reply
+                    reply._id === commentId
+                      ? {
+                        ...reply,
+                        isLiked: previousLiked,
+                        likesCount: previousCount,
+                      }
+                      : reply,
                   ),
                 };
               }
               return comment;
-            })
+            }),
           );
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error liking comment:', error);
         setComments((prev) =>
           prev.map((comment) => {
-            if (comment._id === commentId) return { ...comment, isLiked: previousLiked, likesCount: previousCount };
+            if (comment._id === commentId) {
+              return {
+                ...comment,
+                isLiked: previousLiked,
+                likesCount: previousCount,
+              };
+            }
             if (comment._id === parentCommentId) {
               return {
                 ...comment,
                 replies: comment.replies.map((reply) =>
-                  reply._id === commentId ? { ...reply, isLiked: previousLiked, likesCount: previousCount } : reply
+                  reply._id === commentId
+                    ? {
+                      ...reply,
+                      isLiked: previousLiked,
+                      likesCount: previousCount,
+                    }
+                    : reply,
                 ),
               };
             }
             return comment;
-          })
+          }),
         );
       })
       .finally(() => {
@@ -580,12 +747,20 @@ const PostDetail = () => {
       });
   };
 
-  const handleCommentDeleteClick = (commentId, isReply = false, parentCommentId = null) => {
+  const handleCommentDeleteClick = (
+    commentId,
+    isReply = false,
+    parentCommentId = null,
+  ) => {
     if (!viewer) return;
     setConfirmModal({ isOpen: true, commentId, isReply, parentCommentId });
   };
 
-  const handleCommentDelete = async (commentId, isReplyParam = false, parentCommentIdParam = null) => {
+  const handleCommentDelete = async (
+    commentId,
+    isReplyParam = false,
+    parentCommentIdParam = null,
+  ) => {
     if (deletingCommentId === commentId) return;
 
     let deletedComment = null;
@@ -598,68 +773,101 @@ const PostDetail = () => {
           deletedComment = comment;
           return null;
         }
-        if (comment.replies && comment.replies.some(reply => reply._id === commentId)) {
+        if (comment.replies && comment.replies.some((reply) => reply._id === commentId)) {
           isReply = true;
           parentCommentId = comment._id;
-          deletedComment = comment.replies.find(r => r._id === commentId);
+          deletedComment = comment.replies.find((r) => r._id === commentId);
           return {
             ...comment,
-            replies: comment.replies.filter(reply => reply._id !== commentId),
+            replies: comment.replies.filter((reply) => reply._id !== commentId),
           };
         }
         return comment;
       });
-      return newComments.filter(c => c !== null);
+      return newComments.filter((c) => c !== null);
     });
 
-    setPostState(prev => ({ ...prev, commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1) }));
-    window.dispatchEvent(new CustomEvent('postInteraction', {
-      detail: { postId, commentsCount: Math.max(0, (postState.commentsCount || 0) - 1) }
+    setPostState((prev) => ({
+      ...prev,
+      commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
     }));
+    window.dispatchEvent(
+      new CustomEvent('postInteraction', {
+        detail: {
+          postId,
+          commentsCount: Math.max(0, (postState?.commentsCount || 0) - 1),
+        },
+      }),
+    );
 
     setDeletingCommentId(commentId);
     fetch(`/api/posts/${postId}/comments/${commentId}`, {
       method: 'DELETE',
       credentials: 'include',
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setPostState(prev => ({ ...prev, commentsCount: data.commentsCount }));
-          window.dispatchEvent(new CustomEvent('postInteraction', {
-            detail: { postId, commentsCount: data.commentsCount }
+          setPostState((prev) => ({
+            ...prev,
+            commentsCount: data.commentsCount,
           }));
-        } else {
-          if (isReply && parentCommentId) {
-            setComments(prev =>
-              prev.map(comment =>
-                comment._id === parentCommentId ? { ...comment, replies: [...(comment.replies || []), deletedComment] } : comment
-              )
-            );
-          } else {
-            setComments(prev => [...prev, deletedComment]);
-          }
-          setPostState(prev => ({ ...prev, commentsCount: (prev?.commentsCount || 0) + 1 }));
-          window.dispatchEvent(new CustomEvent('postInteraction', {
-            detail: { postId, commentsCount: (postState.commentsCount || 0) }
-          }));
-        }
-      })
-      .catch(error => {
-        console.error('Error deleting comment:', error);
-        if (isReply && parentCommentId) {
-          setComments(prev =>
-            prev.map(comment =>
-              comment._id === parentCommentId ? { ...comment, replies: [...(comment.replies || []), deletedComment] } : comment
-            )
+          window.dispatchEvent(
+            new CustomEvent('postInteraction', {
+              detail: { postId, commentsCount: data.commentsCount },
+            }),
           );
         } else {
-          setComments(prev => [...prev, deletedComment]);
+          if (isReply && parentCommentId) {
+            setComments((prev) =>
+              prev.map((comment) =>
+                comment._id === parentCommentId
+                  ? {
+                    ...comment,
+                    replies: [...(comment.replies || []), deletedComment],
+                  }
+                  : comment,
+              ),
+            );
+          } else {
+            setComments((prev) => [...prev, deletedComment]);
+          }
+          setPostState((prev) => ({
+            ...prev,
+            commentsCount: (prev?.commentsCount || 0) + 1,
+          }));
+          window.dispatchEvent(
+            new CustomEvent('postInteraction', {
+              detail: { postId, commentsCount: postState?.commentsCount || 0 },
+            }),
+          );
         }
-        setPostState(prev => ({ ...prev, commentsCount: (prev?.commentsCount || 0) + 1 }));
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId, commentsCount: postState.commentsCount }
+      })
+      .catch((error) => {
+        console.error('Error deleting comment:', error);
+        if (isReply && parentCommentId) {
+          setComments((prev) =>
+            prev.map((comment) =>
+              comment._id === parentCommentId
+                ? {
+                  ...comment,
+                  replies: [...(comment.replies || []), deletedComment],
+                }
+                : comment,
+            ),
+          );
+        } else {
+          setComments((prev) => [...prev, deletedComment]);
+        }
+        setPostState((prev) => ({
+          ...prev,
+          commentsCount: (prev?.commentsCount || 0) + 1,
         }));
+        window.dispatchEvent(
+          new CustomEvent('postInteraction', {
+            detail: { postId, commentsCount: postState?.commentsCount },
+          }),
+        );
       })
       .finally(() => {
         setDeletingCommentId(null);
@@ -680,21 +888,29 @@ const PostDetail = () => {
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
 
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-
+        <div
+          className="absolute bottom-1/4 right-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '1s' }}
+        />
         <div className="flex flex-col items-center gap-3 sm:gap-4 relative z-10 px-4">
           <div className="relative">
             <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin text-[#9f3562]" />
             <div className="absolute inset-0 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-[#9f3562]/10 animate-ping" />
           </div>
-          <p className="text-gray-600 font-medium text-sm sm:text-base">Loading post...</p>
+          <p className="text-gray-600 font-medium text-sm sm:text-base">
+            Loading post...
+          </p>
         </div>
       </div>
     );
@@ -702,11 +918,19 @@ const PostDetail = () => {
 
   if (!postState) return null;
 
+  const author = postState.mentor || postState.author;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+        <div
+          className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: '8s' }}
+        />
+        <div
+          className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: '10s' }}
+        />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
 
@@ -730,45 +954,63 @@ const PostDetail = () => {
             transition={{ duration: 0.4 }}
             className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg shadow-gray-200/50 overflow-hidden border border-gray-100"
           >
+            {/* Header */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 md:p-6 border-b border-gray-100 flex-wrap">
-              <Link to={`/${postState.mentor?.username || postState.author?.username}`} className="relative flex-shrink-0">
+              <Link
+                to={`/${author?.username || ''}`}
+                className="relative flex-shrink-0"
+              >
                 <img
-                  src={(postState.mentor || postState.author)?.image || fallbackProfilePic}
-                  alt={(postState.mentor || postState.author)?.name || 'User'}
+                  src={author?.image || fallbackProfilePic}
+                  alt={author?.name || 'User'}
                   className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover aspect-square ring-2 ring-gray-100 shadow-md"
-                  onError={(e) => { e.target.src = fallbackProfilePic; }}
+                  onError={(e) => {
+                    e.target.src = fallbackProfilePic;
+                  }}
                 />
               </Link>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900 text-sm sm:text-base md:text-lg cursor-pointer hover:text-[#9f3562] transition-colors"
+                <h3
+                  className="font-bold text-gray-900 text-sm sm:text-base md:text-lg cursor-pointer hover:text-[#9f3562] transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const username = (postState.mentor || postState.author)?.username;
+                    const username = author?.username;
                     if (username) navigate(`/${username}`);
-                  }}>
-                  {(postState.mentor || postState.author)?.name || 'User'}
+                  }}
+                >
+                  {author?.name || 'User'}
                 </h3>
-                {(postState.mentor || postState.author)?.username && (
-                  <p className="text-xs sm:text-sm text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors" onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/${(postState.mentor || postState.author).username}`);
-                  }}>@{(postState.mentor || postState.author).username}</p>
+                {author?.username && (
+                  <p
+                    className="text-xs sm:text-sm text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/${author.username}`);
+                    }}
+                  >
+                    @{author.username}
+                  </p>
                 )}
                 {postState.mentor?.tagline && (
-                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-1">{postState.mentor.tagline}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-1">
+                    {postState.mentor.tagline}
+                  </p>
                 )}
               </div>
-              {viewer && (postState.mentor?._id || postState.author?._id) &&
+
+              {viewer &&
+                (postState.mentor?._id || postState.author?._id) &&
                 viewer._id &&
-                (postState.mentor?._id || postState.author?._id).toString() !== viewer._id.toString() && (
+                (postState.mentor?._id || postState.author?._id).toString() !==
+                viewer._id.toString() && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleFollow}
                     disabled={isFollowingLoading}
                     className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all disabled:opacity-50 shadow-sm flex-shrink-0 ${isFollowing
-                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                      : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                        : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
                       }`}
                   >
                     {isFollowingLoading ? (
@@ -776,21 +1018,27 @@ const PostDetail = () => {
                     ) : isFollowing ? (
                       <>
                         <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden min-[360px]:inline">Following</span>
+                        <span className="hidden min-[360px]:inline">
+                          Following
+                        </span>
                       </>
                     ) : (
                       <>
                         <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden min-[360px]:inline">Follow</span>
+                        <span className="hidden min-[360px]:inline">
+                          Follow
+                        </span>
                       </>
                     )}
                   </motion.button>
                 )}
+
               <span className="text-[10px] sm:text-xs font-medium text-gray-400 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-50 rounded-full flex-shrink-0">
                 {formatDate(postState.createdAt)}
               </span>
             </div>
 
+            {/* Content */}
             <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5">
               <style>{`
                 .post-content h1, .post-content h2, .post-content h3 { font-weight: 700; margin-top: 0.5rem; margin-bottom: 0.5rem; }
@@ -814,6 +1062,7 @@ const PostDetail = () => {
               />
             </div>
 
+            {/* Image */}
             {postState.image && (
               <div className="w-full">
                 <img
@@ -825,6 +1074,7 @@ const PostDetail = () => {
               </div>
             )}
 
+            {/* External link preview */}
             {postState.externalLink && postState.externalLink.url && (
               <motion.div
                 whileHover={{ scale: 1.005 }}
@@ -851,7 +1101,9 @@ const PostDetail = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-xs sm:text-sm md:text-base text-gray-900 line-clamp-1">
-                      {postState.externalLink.preview?.title || postState.externalLink.preview?.domain || 'External Link'}
+                      {postState.externalLink.preview?.title ||
+                        postState.externalLink.preview?.domain ||
+                        'External Link'}
                     </p>
                     {postState.externalLink.preview?.domain && (
                       <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mt-0.5 sm:mt-1">
@@ -877,31 +1129,53 @@ const PostDetail = () => {
               </motion.div>
             )}
 
+            {/* Post actions */}
             <div className="flex items-center gap-4 sm:gap-6 md:gap-8 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5 border-t border-gray-100">
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isLiked ? 'text-red-500' : 'text-gray-600 hover:text-red-500'}`}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isLiked
+                    ? 'text-red-500'
+                    : 'text-gray-600 hover:text-red-500'
+                  }`}
               >
-                <Heart className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${postState.isLiked ? 'fill-current' : ''}`} />
-                <span className="text-sm sm:text-base md:text-lg font-bold">{postState.likesCount}</span>
+                <Heart
+                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${postState.isLiked ? 'fill-current' : ''
+                    }`}
+                />
+                <span className="text-sm sm:text-base md:text-lg font-bold">
+                  {postState.likesCount}
+                </span>
               </motion.button>
+
               <div className="flex items-center gap-1.5 sm:gap-2.5 text-gray-600">
                 <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-                <span className="text-sm sm:text-base md:text-lg font-bold">{postState.commentsCount}</span>
+                <span className="text-sm sm:text-base md:text-lg font-bold">
+                  {postState.commentsCount}
+                </span>
               </div>
+
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleRepost}
-                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isReposted ? 'text-[#9f3562]' : 'text-gray-600 hover:text-[#9f3562]'}`}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isReposted
+                    ? 'text-[#9f3562]'
+                    : 'text-gray-600 hover:text-[#9f3562]'
+                  }`}
               >
-                <Repeat2 className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${postState.isReposted ? 'fill-current' : ''}`} />
+                <Repeat2
+                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${postState.isReposted ? 'fill-current' : ''
+                    }`}
+                />
                 {postState.repostCount > 0 && (
-                  <span className="text-sm sm:text-base md:text-lg font-bold">{postState.repostCount}</span>
+                  <span className="text-sm sm:text-base md:text-lg font-bold">
+                    {postState.repostCount}
+                  </span>
                 )}
               </motion.button>
+
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 15 }}
                 whileTap={{ scale: 0.9 }}
@@ -912,18 +1186,24 @@ const PostDetail = () => {
               </motion.button>
             </div>
 
+            {/* Comments */}
             <div className="border-t border-gray-100 px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 bg-gray-50/50">
               <h3 className="font-bold text-gray-900 text-sm sm:text-base md:text-lg mb-3 sm:mb-4 md:mb-5">
                 Comments ({postState.commentsCount})
               </h3>
+
               <div className="space-y-3 sm:space-y-4 mb-3 sm:mb-4 md:mb-5 max-h-[400px] sm:max-h-[500px] overflow-y-auto custom-scrollbar">
                 {comments.length === 0 ? (
                   <div className="text-center py-8 sm:py-12 bg-white/80 rounded-xl sm:rounded-2xl border border-gray-100">
                     <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                       <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 font-medium text-sm sm:text-base">No comments yet</p>
-                    <p className="text-gray-400 text-xs sm:text-sm mt-1">Be the first to share your thoughts!</p>
+                    <p className="text-gray-500 font-medium text-sm sm:text-base">
+                      No comments yet
+                    </p>
+                    <p className="text-gray-400 text-xs sm:text-sm mt-1">
+                      Be the first to share your thoughts!
+                    </p>
                   </div>
                 ) : (
                   comments.map((comment) => (
@@ -934,16 +1214,26 @@ const PostDetail = () => {
                       className="flex items-start gap-2 sm:gap-3"
                     >
                       {viewer && comment.user?._id === viewer._id ? (
-                        <Link to={`/me`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                        <Link
+                          to="/me"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-shrink-0"
+                        >
                           <img
                             src={comment.user?.image || fallbackProfilePic}
                             alt={comment.user?.name || 'User'}
                             className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover aspect-square ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
-                            onError={(e) => { e.target.src = fallbackProfilePic; }}
+                            onError={(e) => {
+                              e.target.src = fallbackProfilePic;
+                            }}
                           />
                         </Link>
                       ) : (
-                        <Link to={`/${comment.user?.username || comment.user?._id}`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                        <Link
+                          to={`/${comment.user?.username || ''}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-shrink-0"
+                        >
                           <img
                             src={comment.user?.image || fallbackProfilePic}
                             alt={comment.user?.name || 'User'}
@@ -952,10 +1242,15 @@ const PostDetail = () => {
                           />
                         </Link>
                       )}
+
                       <div className="flex-1 min-w-0">
                         <div className="bg-white rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm border border-gray-100">
                           {viewer && comment.user?._id === viewer._id ? (
-                            <Link to={`/me`} onClick={(e) => e.stopPropagation()} className="block">
+                            <Link
+                              to="/me"
+                              onClick={(e) => e.stopPropagation()}
+                              className="block"
+                            >
                               <p className="font-semibold text-xs sm:text-sm text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
                                 {comment.user?.name || 'Unknown User'}
                               </p>
@@ -971,26 +1266,50 @@ const PostDetail = () => {
                             {comment.content}
                           </p>
                         </div>
+
                         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 mt-1.5 sm:mt-2 ml-2 sm:ml-4 flex-wrap">
                           <button
-                            onClick={() => handleCommentLike(comment._id, comment.isLiked)}
+                            onClick={() =>
+                              handleCommentLike(comment._id, comment.isLiked)
+                            }
                             disabled={likingCommentId === comment._id}
-                            className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${comment.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                            className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${comment.isLiked
+                                ? 'text-red-500'
+                                : 'text-gray-500 hover:text-red-500'
+                              }`}
                           >
-                            <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${comment.isLiked ? 'fill-current' : ''}`} />
+                            <Heart
+                              className={`w-3 h-3 sm:w-4 sm:h-4 ${comment.isLiked ? 'fill-current' : ''
+                                }`}
+                            />
                             <span>{comment.likesCount || 0}</span>
                           </button>
+
                           <button
-                            onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+                            onClick={() =>
+                              setReplyingTo(
+                                replyingTo === comment._id ? null : comment._id,
+                              )
+                            }
                             className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 hover:text-[#9f3562] transition-colors"
                           >
                             <Reply className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>Reply</span>
                           </button>
-                          <span className="text-[10px] sm:text-xs text-gray-500">{formatDate(comment.createdAt)}</span>
+
+                          <span className="text-[10px] sm:text-xs text-gray-500">
+                            {formatDate(comment.createdAt)}
+                          </span>
+
                           {viewer && comment.user?._id === viewer._id && (
                             <button
-                              onClick={() => handleCommentDeleteClick(comment._id, false, null)}
+                              onClick={() =>
+                                handleCommentDeleteClick(
+                                  comment._id,
+                                  false,
+                                  null,
+                                )
+                              }
                               disabled={deletingCommentId === comment._id}
                               className="ml-auto flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
                             >
@@ -998,17 +1317,28 @@ const PostDetail = () => {
                             </button>
                           )}
                         </div>
+
+                        {/* Replies */}
                         {comment.replies && comment.replies.length > 0 && (
                           <div className="mt-2 sm:mt-3 ml-2 sm:ml-4 space-y-2 sm:space-y-3 border-l-2 border-gray-100 pl-2 sm:pl-4">
                             {comment.replies.map((reply) => (
-                              <div key={reply._id} className="flex items-start gap-2 sm:gap-3">
+                              <div
+                                key={reply._id}
+                                className="flex items-start gap-2 sm:gap-3"
+                              >
                                 {viewer && reply.user?._id === viewer._id ? (
-                                  <Link to={`/me`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                                  <Link
+                                    to="/me"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-shrink-0"
+                                  >
                                     <img
                                       src={reply.user?.image || fallbackProfilePic}
                                       alt={reply.user?.name || 'User'}
                                       className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover aspect-square ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
-                                      onError={(e) => { e.target.src = fallbackProfilePic; }}
+                                      onError={(e) => {
+                                        e.target.src = fallbackProfilePic;
+                                      }}
                                     />
                                   </Link>
                                 ) : (
@@ -1021,10 +1351,15 @@ const PostDetail = () => {
                                     />
                                   </Link>
                                 )}
+
                                 <div className="flex-1 min-w-0">
                                   <div className="bg-gray-50 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-100">
                                     {viewer && reply.user?._id === viewer._id ? (
-                                      <Link to={`/me`} onClick={(e) => e.stopPropagation()} className="block">
+                                      <Link
+                                        to="/me"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="block"
+                                      >
                                         <p className="font-semibold text-[10px] sm:text-xs text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
                                           {reply.user?.name || 'Unknown User'}
                                         </p>
@@ -1036,21 +1371,40 @@ const PostDetail = () => {
                                         </p>
                                       </Link>
                                     )}
-                                    <p className="text-gray-800 mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm break-words">{reply.content}</p>
+                                    <p className="text-gray-800 mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm break-words">
+                                      {reply.content}
+                                    </p>
                                   </div>
+
                                   <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-1.5 ml-2 sm:ml-3 flex-wrap">
                                     <button
-                                      onClick={() => handleCommentLike(reply._id, reply.isLiked)}
+                                      onClick={() =>
+                                        handleCommentLike(reply._id, reply.isLiked)
+                                      }
                                       disabled={likingCommentId === reply._id}
-                                      className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${reply.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                                      className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${reply.isLiked
+                                          ? 'text-red-500'
+                                          : 'text-gray-500 hover:text-red-500'
+                                        }`}
                                     >
-                                      <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${reply.isLiked ? 'fill-current' : ''}`} />
+                                      <Heart
+                                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${reply.isLiked ? 'fill-current' : ''
+                                          }`}
+                                      />
                                       <span>{reply.likesCount || 0}</span>
                                     </button>
-                                    <span className="text-[10px] sm:text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                                    <span className="text-[10px] sm:text-xs text-gray-500">
+                                      {formatDate(reply.createdAt)}
+                                    </span>
                                     {viewer && reply.user?._id === viewer._id && (
                                       <button
-                                        onClick={() => handleCommentDeleteClick(reply._id, true, comment._id)}
+                                        onClick={() =>
+                                          handleCommentDeleteClick(
+                                            reply._id,
+                                            true,
+                                            comment._id,
+                                          )
+                                        }
                                         disabled={deletingCommentId === reply._id}
                                         className="ml-auto flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
                                       >
@@ -1063,6 +1417,8 @@ const PostDetail = () => {
                             ))}
                           </div>
                         )}
+
+                        {/* Reply input */}
                         {replyingTo === comment._id && (
                           <div className="mt-2 sm:mt-3 ml-2 sm:ml-4 flex gap-1.5 sm:gap-2 flex-wrap">
                             <input
@@ -1072,8 +1428,14 @@ const PostDetail = () => {
                               placeholder="Write a reply..."
                               className="flex-1 min-w-[120px] px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9f3562]/30 focus:border-[#9f3562] transition-all"
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReplySubmit(comment._id); }
-                                if (e.key === 'Escape') { setReplyingTo(null); setReplyContent(''); }
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleReplySubmit(comment._id);
+                                }
+                                if (e.key === 'Escape') {
+                                  setReplyingTo(null);
+                                  setReplyContent('');
+                                }
                               }}
                               autoFocus
                             />
@@ -1084,9 +1446,21 @@ const PostDetail = () => {
                               disabled={!replyContent.trim() || isSubmittingReply}
                               className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold"
                             >
-                              {isSubmittingReply ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                              {isSubmittingReply ? (
+                                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              )}
                             </motion.button>
-                            <button onClick={() => { setReplyingTo(null); setReplyContent(''); }} className="px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 hover:text-gray-800 transition-colors text-xs sm:text-sm">Cancel</button>
+                            <button
+                              onClick={() => {
+                                setReplyingTo(null);
+                                setReplyContent('');
+                              }}
+                              className="px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 hover:text-gray-800 transition-colors text-xs sm:text-sm"
+                            >
+                              Cancel
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1094,19 +1468,31 @@ const PostDetail = () => {
                   ))
                 )}
               </div>
-              <form onSubmit={handleCommentSubmit} className="flex items-start gap-2 sm:gap-3">
+
+              {/* Add comment */}
+              <form
+                onSubmit={handleCommentSubmit}
+                className="flex items-start gap-2 sm:gap-3"
+              >
                 <img
-                  src={(viewer && (viewer.imageUrl || viewer.image)) || fallbackProfilePic}
+                  src={
+                    (viewer && (viewer.imageUrl || viewer.image)) ||
+                    fallbackProfilePic
+                  }
                   alt={viewer?.name || 'User avatar'}
                   className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full object-cover aspect-square flex-shrink-0 ring-2 ring-gray-100"
-                  onError={(e) => { e.target.src = fallbackProfilePic; }}
+                  onError={(e) => {
+                    e.target.src = fallbackProfilePic;
+                  }}
                 />
                 <div className="flex-1 flex gap-1.5 sm:gap-2">
                   <input
                     type="text"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={viewer ? 'Add a comment...' : 'Log in to comment'}
+                    placeholder={
+                      viewer ? 'Add a comment...' : 'Log in to comment'
+                    }
                     disabled={!viewer}
                     className="flex-1 px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/30 focus:border-[#9f3562] disabled:bg-gray-100 disabled:text-gray-400 transition-all text-xs sm:text-sm md:text-base"
                   />
@@ -1114,10 +1500,16 @@ const PostDetail = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
-                    disabled={!viewer || !newComment.trim() || isSubmittingComment}
+                    disabled={
+                      !viewer || !newComment.trim() || isSubmittingComment
+                    }
                     className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg sm:rounded-xl hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 font-semibold text-xs sm:text-sm"
                   >
-                    {isSubmittingComment ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    {isSubmittingComment ? (
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                    )}
                   </motion.button>
                 </div>
               </form>
@@ -1125,15 +1517,36 @@ const PostDetail = () => {
           </motion.div>
         </div>
       </div>
+
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ isOpen: false, commentId: null, isReply: false, parentCommentId: null })}
+        onClose={() =>
+          setConfirmModal({
+            isOpen: false,
+            commentId: null,
+            isReply: false,
+            parentCommentId: null,
+          })
+        }
         onConfirm={() => {
-          setConfirmModal({ isOpen: false, commentId: null, isReply: false, parentCommentId: null });
-          handleCommentDelete(confirmModal.commentId, confirmModal.isReply, confirmModal.parentCommentId);
+          setConfirmModal({
+            isOpen: false,
+            commentId: null,
+            isReply: false,
+            parentCommentId: null,
+          });
+          handleCommentDelete(
+            confirmModal.commentId,
+            confirmModal.isReply,
+            confirmModal.parentCommentId,
+          );
         }}
         title="Delete Comment"
-        message={confirmModal.isReply ? "Are you sure you want to delete this reply? This action cannot be undone." : "Are you sure you want to delete this comment? This action cannot be undone."}
+        message={
+          confirmModal.isReply
+            ? 'Are you sure you want to delete this reply? This action cannot be undone.'
+            : 'Are you sure you want to delete this comment? This action cannot be undone.'
+        }
         confirmText="Delete"
         cancelText="Cancel"
         confirmColor="danger"

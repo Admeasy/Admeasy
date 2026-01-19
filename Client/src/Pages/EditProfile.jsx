@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaInfoCircle } from "react-icons/fa";
+import { X, Upload, RotateCw, Check } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useLocation } from 'react-router-dom';
@@ -8,6 +11,55 @@ import { useUser } from '../context/UserContext'
 import LoadingButton from '../components/LoadingButton';
 
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+// Crop helper function
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+
+async function getCroppedImg(imageSrc, pixelCrop, rotation = 0) {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const maxSize = Math.max(image.width, image.height);
+  const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+  canvas.width = safeArea;
+  canvas.height = safeArea;
+
+  ctx.translate(safeArea / 2, safeArea / 2);
+  ctx.rotate((rotation * Math.PI) / 180);
+  ctx.translate(-safeArea / 2, -safeArea / 2);
+
+  ctx.drawImage(
+    image,
+    safeArea / 2 - image.width * 0.5,
+    safeArea / 2 - image.height * 0.5
+  );
+
+  const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.putImageData(
+    data,
+    Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, 'image/jpeg', 0.95);
+  });
+}
 
 // Utility function to check if user profile is complete
 function isProfileComplete(user) {
@@ -46,6 +98,16 @@ const EditProfile = () => {
   const { user, setUser, fetchUser } = useUser();
   const [profilePic, setProfilePic] = useState(null);
   const [preview, setPreview] = useState(null);
+
+  // Image cropping states
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState({
     name: '',
     username: '',
@@ -236,15 +298,80 @@ const EditProfile = () => {
     setIsDirty(true);
   };
 
-  const handlePicChange = (e) => {
-    const file = e.target.files[0];
-    setProfilePic(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const onDrop = useCallback((acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    // Check file size (300KB = 307200 bytes)
+    if (file.size > 307200) {
+      toast.error('Image size must be less than 300KB');
+      return;
     }
-    setIsDirty(true);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTempImageSrc(reader.result);
+      setCropModalOpen(true);
+      setRotation(0);
+      setZoom(1);
+      setCrop({ x: 0, y: 0 });
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] },
+    maxFiles: 1,
+    multiple: false
+  });
+
+  const handleCropConfirm = async () => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(30);
+
+      const croppedBlob = await getCroppedImg(tempImageSrc, croppedAreaPixels, rotation);
+
+      setUploadProgress(60);
+
+      // Check if cropped image is still under 300KB
+      if (croppedBlob.size > 307200) {
+        toast.error('Cropped image is still too large. Please zoom in more or choose a different image.');
+        setIsUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+
+      const file = new File([croppedBlob], 'profile.jpg', { type: 'image/jpeg' });
+      setProfilePic(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+        setUploadProgress(100);
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadProgress(0);
+          setCropModalOpen(false);
+          setIsDirty(true);
+        }, 500);
+      };
+      reader.readAsDataURL(croppedBlob);
+    } catch (e) {
+      console.error('Error cropping image:', e);
+      toast.error('Error processing image');
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
   };
 
   const handleSubmit = async (e) => {
@@ -432,234 +559,314 @@ const EditProfile = () => {
   }
 
   return (
-    <main className="
+    <>
+      <main className="
   relative max-w-md mx-auto my-10 p-8 
   bg-primary rounded-2xl shadow-3d 
   backdrop-blur-lg border border-white/20
 ">
 
-      {/* TITLE */}
-      <h2 className="text-3xl font-admeasy-extrabold text-center mb-6 text-tprimary drop-shadow-sm">
-        My Profile
-      </h2>
+        {/* TITLE */}
+        <h2 className="text-3xl font-admeasy-extrabold text-center mb-6 text-tprimary drop-shadow-sm">
+          My Profile
+        </h2>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
-        {/* PROFILE IMAGE */}
-        <div className="flex flex-col items-center">
-          <label htmlFor="profile-pic" className="cursor-pointer group">
-            <img
-              src={preview || fallbackProfilePic}
-              alt="Profile Preview"
-              className="
+          {/* PROFILE IMAGE */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <img
+                src={preview || fallbackProfilePic}
+                alt="Profile Preview"
+                className="
             w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 
-            group-hover:border-tprimary transition
-            shadow-md group-hover:shadow-lg duration-200
+            shadow-md duration-200
           "
-              onError={e => e.target.src = fallbackProfilePic}
-            />
-          </label>
+                onError={e => e.target.src = fallbackProfilePic}
+              />
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full mb-2">
+                  <div className="text-white text-xs font-semibold">{uploadProgress}%</div>
+                </div>
+              )}
+            </div>
 
-          <input
-            id="profile-pic"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePicChange}
-          />
+            <div {...getRootProps()} className="mt-2 cursor-pointer">
+              <input {...getInputProps()} />
+              <div className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isDragActive
+                ? 'bg-blue-100 text-blue-700 border-2 border-blue-400 border-dashed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                }`}>
+                <Upload className="inline-block mr-2 w-4 h-4" />
+                {isDragActive ? 'Drop image here' : 'Upload Photo'}
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 mt-2">Max 300KB • JPG, PNG, GIF</span>
+          </div>
 
-          <span className="text-xs text-gray-600">
-            Click image to change
-          </span>
-        </div>
-
-        {/* FORM INPUTS */}
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Name
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            className="
+          {/* FORM INPUTS */}
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Name
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-tprimary
           transition
         "
-          />
-        </label>
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Username
-          <input
-            type="text"
-            name="username"
-            value={form.username}
-            onChange={handleChange}
-            className={`
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Username
+            <input
+              type="text"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              className={`
           w-full px-3 py-2 rounded-lg border shadow-sm
           bg-white/90
           focus:outline-none focus:ring-2 transition
           ${usernameStatus.available === false
-                ? 'border-red-300 focus:ring-red-500'
-                : usernameStatus.available === true
-                  ? 'border-green-300 focus:ring-green-500'
-                  : 'border-gray-300 focus:ring-tprimary'
-              }
+                  ? 'border-red-300 focus:ring-red-500'
+                  : usernameStatus.available === true
+                    ? 'border-green-300 focus:ring-green-500'
+                    : 'border-gray-300 focus:ring-tprimary'
+                }
         `}
-            placeholder="Choose a username"
-          />
-          {form.username && (
-            <span className={`text-xs mt-1 ${usernameStatus.available === true ? 'text-green-600' :
-              usernameStatus.available === false ? 'text-red-600' :
-                'text-gray-500'
-              }`}>
-              {usernameStatus.checking ? 'Checking...' : usernameStatus.message || ''}
-            </span>
-          )}
-        </label>
+              placeholder="Choose a username"
+            />
+            {form.username && (
+              <span className={`text-xs mt-1 ${usernameStatus.available === true ? 'text-green-600' :
+                usernameStatus.available === false ? 'text-red-600' :
+                  'text-gray-500'
+                }`}>
+                {usernameStatus.checking ? 'Checking...' : usernameStatus.message || ''}
+              </span>
+            )}
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Gender
-          <select
-            name="gender"
-            value={form.gender}
-            onChange={handleChange}
-            required
-            className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Gender
+            <select
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+              required
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-tprimary
         "
-          >
-            <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Rather not to say</option>
-          </select>
-        </label>
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Rather not to say</option>
+            </select>
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Email
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            disabled
-            className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Email
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              disabled
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-200 
           bg-gray-100 text-gray-400 cursor-not-allowed shadow-sm
         "
-          />
-        </label>
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Phone Number (+91)
-          <input
-            type="tel"
-            name="phone"
-            value={form.phone}
-            required
-            onChange={handleChange}
-            className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Phone Number (+91)
+            <input
+              type="tel"
+              name="phone"
+              value={form.phone}
+              required
+              onChange={handleChange}
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-tprimary
         "
-          />
-        </label>
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Institute / School
-          <input
-            type="text"
-            name="institute"
-            value={form.institute}
-            required
-            onChange={handleChange}
-            className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:ring-2 focus:ring-tprimary
-        "
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          Course
-          <select
-            name="course"
-            value={form.course}
-            onChange={handleChange}
-            required
-            className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:ring-2 focus:ring-tprimary
-        "
-          >
-            <option value="">Select Course</option>
-            <option value="Class 9th">Class 9th</option>
-            <option value="Class 10th">Class 10th</option>
-            <option value="Class 11th">Class 11th</option>
-            <option value="Class 12th">Class 12th</option>
-            <option value="Diploma">Diploma</option>
-            <option value="Post Diploma">Post Diploma</option>
-            <option value="Graduation">Graduation</option>
-            <option value="Post Graduation">Post Graduation</option>
-            <option value="Doctorate">Doctorate</option>
-          </select>
-        </label>
-
-        {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' && (
           <label className="flex flex-col gap-1 text-sm font-semibold">
-            Stream / Course Name + Year
+            Institute / School
             <input
               type="text"
-              name="streamOrYear"
-              value={form.streamOrYear}
+              name="institute"
+              value={form.institute}
+              required
+              onChange={handleChange}
+              className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:ring-2 focus:ring-tprimary
+        "
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Course
+            <select
+              name="course"
+              value={form.course}
               onChange={handleChange}
               required
-              placeholder="E.g., B.Tech Mechanical — 2nd Year"
               className="
+          w-full px-3 py-2 rounded-lg border border-gray-300 
+          bg-white/90 shadow-sm
+          focus:ring-2 focus:ring-tprimary
+        "
+            >
+              <option value="">Select Course</option>
+              <option value="Class 9th">Class 9th</option>
+              <option value="Class 10th">Class 10th</option>
+              <option value="Class 11th">Class 11th</option>
+              <option value="Class 12th">Class 12th</option>
+              <option value="Diploma">Diploma</option>
+              <option value="Post Diploma">Post Diploma</option>
+              <option value="Graduation">Graduation</option>
+              <option value="Post Graduation">Post Graduation</option>
+              <option value="Doctorate">Doctorate</option>
+            </select>
+          </label>
+
+          {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' && (
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              Stream / Course Name + Year
+              <input
+                type="text"
+                name="streamOrYear"
+                value={form.streamOrYear}
+                onChange={handleChange}
+                required
+                placeholder="E.g., B.Tech Mechanical — 2nd Year"
+                className="
             w-full px-3 py-2 rounded-lg border border-gray-300 
             bg-white/90 shadow-sm
             focus:ring-2 focus:ring-tprimary
           "
-            />
-          </label>
-        )}
+              />
+            </label>
+          )}
 
-        {/* BUTTONS */}
-        <div className="flex gap-4 justify-center mt-6">
+          {/* BUTTONS */}
+          <div className="flex gap-4 justify-center mt-6">
 
-          {isSubmitting ? <LoadingButton text={'Saving'} variant={'blue'} /> :
+            {isSubmitting ? <LoadingButton text={'Saving'} variant={'blue'} /> :
+              <button
+                type="submit"
+                className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                disabled={isSubmitting || isEmpty}>
+                Save
+              </button>
+            }
+
             <button
-              type="submit"
-              className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-              disabled={isSubmitting || isEmpty}>
-              Save
-            </button>
-          }
-
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="
+              type="button"
+              onClick={handleCancel}
+              className="
           px-6 py-2 rounded-lg border border-gray-300 bg-white 
           text-gray-700 font-semibold shadow-sm 
           hover:bg-gray-100 transition
           disabled:bg-gray-100 disabled:cursor-not-allowed
         "
-            disabled={!isDirty}
-          >
-            Cancel
-          </button>
+              disabled={!isDirty}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </main>
+
+      {/* Crop Modal */}
+      {cropModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-lg supports-[backdrop-filter]:backdrop-blur-2xl flex items-center justify-center z-[1001] p-4 transition-all duration-300">
+          {/* Allowing z-index more than navbar is not allowed, employees shall only use it on this pop-up  */}
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Crop Profile Picture</h3>
+              <button
+                onClick={() => setCropModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="relative h-96 bg-gray-100">
+              <Cropper
+                image={tempImageSrc}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Zoom</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleRotate}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md font-medium flex items-center justify-center gap-2"
+                >
+                  <RotateCw size={18} />
+                  Rotate 90°
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCropConfirm}
+                  disabled={isUploading}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <>Processing {uploadProgress}%</>
+                  ) : (
+                    <>
+                      <Check size={18} />
+                      Confirm
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </form>
-    </main>
+      )}
+    </>
 
   );
 }

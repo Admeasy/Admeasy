@@ -170,7 +170,7 @@ const FollowersFollowingModal = ({
                   {list.map((item) => (
                     <Link
                       key={item._id}
-                      to={getProfileUrl(item)}
+                      to={`/${item.username || item._id}`}
                       onClick={onClose}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group"
                     >

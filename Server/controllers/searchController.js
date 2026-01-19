@@ -1,4 +1,4 @@
-const Blog = require("../models/BlogSchema");
+const Blog = require("../models/blogSchema");
 const Mentor = require("../models/mentorSchema");
 const Note = require("../models/noteSchema");
 const College = require("../models/collegeSchema");

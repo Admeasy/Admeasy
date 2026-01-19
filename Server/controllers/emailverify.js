@@ -30,7 +30,7 @@ const sendEmailVerification = async (req, res) => {
         // VERIFY URL
         let verifyURL =
             process.env.NODE_ENV === "production"
-                ? `http://localhost:5173/verify-email/${token}`
+                ? `https://admeasy.in/verify-email/${token}`
                 : `http://localhost:5173/verify-email/${token}`;
 
         // SEND EMAIL

@@ -1,23 +1,24 @@
 const express = require('express');
 const { resetPassword, forgotPassword } = require('../controllers/userController.js')
 const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
-const { generateAccessToken, generateRefreshToken, setTokenCookies } = require('../utils/auth');
+const { generateAccessToken, generateRefreshToken, setTokenCookies } = require('../utils/auth.js');
 const router = express.Router();
-const User = require('../models/userSchema');
+const User = require('../models/userSchema.js');
 const crypto = require('crypto')
 const nodemailer = require('nodemailer')
 const multer = require('multer');
-const BackblazeB2Client = require('../b2Client');
+const BackblazeB2Client = require('../b2Client.js');
 const b2 = new BackblazeB2Client();
 const path = require('path');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary.js');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db.js');
-const NotificationService = require('../services/notificationService');
-const { verifyAdminToken } = require('../middleware/adminAuth');
-const passport = require('../middleware/passport');
-const { authenticateRequired, requireSelfOrAdmin } = require('../middleware/combinedAuth');
+const NotificationService = require('../services/notificationService.js');
+const { verifyAdminToken } = require('../middleware/adminAuth.js');
+const passport = require('../middleware/passport.js');
+const { authenticateRequired, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -32,7 +33,20 @@ function getFrontendUrl() {
     return process.env.NODE_ENV === 'production' ? 'https://admeasy.in' : 'http://localhost:5173';
 }
 
-// Helper: check if image is a Google URL and handle accordingly
+// Helper: Extract public_id from Cloudinary URL
+function extractCloudinaryPublicId(url) {
+    if (!url || typeof url !== 'string') return null;
+    
+    // Cloudinary URLs have format: https://res.cloudinary.com/{cloud_name}/image/upload/{folder}/{public_id}.{format}
+    // or: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
+    const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/);
+    if (match) {
+        return match[1];
+    }
+    return null;
+}
+
+// Helper: check if image is a Google URL, Cloudinary URL, or Backblaze file and handle accordingly
 async function processUserImage(user) {
     if (!user.image) return user;
 
@@ -41,8 +55,11 @@ async function processUserImage(user) {
         // Use proxy URL to avoid rate limiting
         user.image = `/api/users/proxy-image?url=${encodeURIComponent(user.image)}`;
         return user;
+    } else if (user.image.includes('cloudinary.com')) {
+        // It's a Cloudinary URL, return as-is (already public)
+        return user;
     } else {
-        // It's a Backblaze file, get authorized URL
+        // It's a Backblaze file, get authorized URL (for backward compatibility)
         try {
             const imageName = user.image;
             user.image = await b2.getDownloadAuthorization(imageName);
@@ -92,7 +109,7 @@ router.post('/signup', async (req, res) => {
         }
 
         // Also check if username is taken by a mentor
-        const Mentor = require('../models/mentorSchema');
+        const Mentor = require('../models/mentorSchema.js');
         const existingMentorUsername = await Mentor.findOne({
             username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
         });
@@ -183,7 +200,7 @@ router.post('/onboarding', async (req, res) => {
                 return res.status(409).json({ success: false, message: 'Username is already taken' });
             }
 
-            const Mentor = require('../models/mentorSchema');
+            const Mentor = require('../models/mentorSchema.js');
             const existingMentorUsername = await Mentor.findOne({
                 username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
             });
@@ -239,7 +256,7 @@ router.post('/onboarding', async (req, res) => {
             const existingUser = await User.findOne({
                 username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
             });
-            const Mentor = require('../models/mentorSchema');
+            const Mentor = require('../models/mentorSchema.js');
             const existingMentor = await Mentor.findOne({
                 username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
             });
@@ -712,7 +729,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
             });
 
             // Also check if username is taken by a mentor
-            const Mentor = require('../models/mentorSchema');
+            const Mentor = require('../models/mentorSchema.js');
             const mentorWithUsername = await Mentor.findOne({
                 username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
             });
@@ -758,10 +775,36 @@ router.put('/me', upload.single('image'), async (req, res) => {
         if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
         // Handle image upload if file provided
         if (req.file) {
-            const ext = path.extname(req.file.originalname).toLowerCase();
-            const fileName = `users/${user._id + ext}`;
-            await b2.uploadBuffer(req.file.buffer, fileName);
-            user.image = fileName;
+            try {
+                // Delete old image from Cloudinary if it exists and is a Cloudinary URL
+                if (user.image && user.image.includes('cloudinary.com')) {
+                    const publicId = extractCloudinaryPublicId(user.image);
+                    if (publicId) {
+                        try {
+                            await deleteFromCloudinary(publicId);
+                        } catch (deleteErr) {
+                            console.error('Error deleting old Cloudinary image:', deleteErr);
+                            // Continue with upload even if delete fails
+                        }
+                    }
+                }
+                // Also handle old Backblaze images for backward compatibility
+                else if (user.image && !user.image.includes('googleusercontent.com') && !user.image.includes('cloudinary.com')) {
+                    try {
+                        await b2.deleteFiles(user.image);
+                    } catch (deleteErr) {
+                        console.error('Error deleting old Backblaze image:', deleteErr);
+                        // Continue with upload even if delete fails
+                    }
+                }
+                
+                // Upload new image to Cloudinary
+                const cloudUrl = await uploadToCloudinary(req.file.buffer, 'users');
+                user.image = cloudUrl;
+            } catch (uploadError) {
+                console.error('Error uploading image to Cloudinary:', uploadError);
+                return res.status(500).json({ success: false, message: 'Error uploading image' });
+            }
         }
 
         await user.save();
@@ -826,8 +869,11 @@ router.get('/me/pic', async (req, res) => {
         if (user.image.includes('googleusercontent.com')) {
             // Return proxy URL to avoid rate limiting
             return res.json(`/api/users/proxy-image?url=${encodeURIComponent(user.image)}`);
+        } else if (user.image.includes('cloudinary.com')) {
+            // It's a Cloudinary URL, return as-is (already public)
+            return res.json(user.image);
         } else {
-            // It's a Backblaze file, get authorized URL
+            // It's a Backblaze file, get authorized URL (for backward compatibility)
             try {
                 const files = await b2.listFiles(user.image);
                 if (!files || files.length === 0) {
@@ -908,8 +954,11 @@ router.get('/:userId/image', verifyAdminToken, async (req, res) => {
         if (user.image.includes('googleusercontent.com')) {
             // Return proxy URL to avoid rate limiting
             return res.json(`/api/users/proxy-image?url=${encodeURIComponent(user.image)}`);
+        } else if (user.image.includes('cloudinary.com')) {
+            // It's a Cloudinary URL, return as-is (already public)
+            return res.json(user.image);
         } else {
-            // It's a Backblaze file, get authorized URL
+            // It's a Backblaze file, get authorized URL (for backward compatibility)
             try {
                 const files = await b2.listFiles(user.image);
                 if (!files || files.length === 0) {
@@ -940,12 +989,22 @@ router.delete(
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
 
-            // Delete manually uploaded image if present and not a Google image
+            // Delete image if present (handle Cloudinary, Backblaze, but not Google images)
             if (user.image && !user.image.includes('googleusercontent.com')) {
                 try {
-                    await b2.deleteFiles(user.image);
+                    if (user.image.includes('cloudinary.com')) {
+                        // Delete from Cloudinary
+                        const publicId = extractCloudinaryPublicId(user.image);
+                        if (publicId) {
+                            await deleteFromCloudinary(publicId);
+                        }
+                    } else {
+                        // Delete from Backblaze (for backward compatibility)
+                        await b2.deleteFiles(user.image);
+                    }
                 } catch (err) {
-                    return res.status(500).json({ success: false, message: 'Unable to delete User image.' });
+                    console.error('Error deleting user image:', err);
+                    // Continue with user deletion even if image deletion fails
                 }
             }
             // If this is self-deletion, flush and destroy the session
@@ -1022,12 +1081,12 @@ router.get('/:userId', async (req, res) => {
 
         // Check if this is a mentor by checking if there's a mentor with this ID
         // OPTIMIZED: Using lean() and parallel queries where possible
-        const Mentor = require('../models/mentorSchema');
+        const Mentor = require('../models/mentorSchema.js');
         const mentor = await Mentor.findById(decoded.id).lean();
 
         if (mentor) {
             // It's a mentor - verify they have a chat with this user
-            const Chat = require('../models/chatSchema');
+            const Chat = require('../models/chatSchema.js');
             const chat = await Chat.findOne({
                 userId,
                 mentorId: decoded.id,
@@ -1079,7 +1138,7 @@ router.post('/:targetId/follow', async (req, res) => {
 
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         const targetId = req.params.targetId;
-        const Mentor = require('../models/mentorSchema');
+        const Mentor = require('../models/mentorSchema.js');
 
         // Get the follower (can be user or mentor)
         let follower = null;
@@ -1202,7 +1261,7 @@ router.get('/:targetId/follow-status', async (req, res) => {
         if (token) {
             try {
                 const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-                const Mentor = require('../models/mentorSchema');
+                const Mentor = require('../models/mentorSchema.js');
 
                 // Get the current user/mentor
                 let currentUser = null;
@@ -1223,7 +1282,7 @@ router.get('/:targetId/follow-status', async (req, res) => {
         }
 
         // Find the target (can be user or mentor) to get followers count
-        const Mentor = require('../models/mentorSchema');
+        const Mentor = require('../models/mentorSchema.js');
         let target = await User.findById(targetId);
 
         if (!target) {
@@ -1250,7 +1309,7 @@ router.get('/:targetId/follow-status', async (req, res) => {
 router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
     try {
         const targetId = req.params.targetId;
-        const Mentor = require('../models/mentorSchema');
+        const Mentor = require('../models/mentorSchema.js');
 
         // Find the target (can be user or mentor)
         let target = await User.findById(targetId);
@@ -1303,7 +1362,7 @@ router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
 router.get('/:targetId/following', authenticateRequired, async (req, res) => {
     try {
         const targetId = req.params.targetId;
-        const Mentor = require('../models/mentorSchema');
+        const Mentor = require('../models/mentorSchema.js');
 
         // Find the target (can be user or mentor)
         let target = await User.findById(targetId);

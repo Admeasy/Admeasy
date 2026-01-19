@@ -439,8 +439,7 @@ export default function MentorProfile() {
               <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
                 <button
                   onClick={() => {
-                    // Posts are shown in the posts section below, so we can scroll or just show a message
-                    toast.info('Posts are shown below');
+                    e.preventDefault();
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
