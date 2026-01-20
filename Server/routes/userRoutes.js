@@ -1086,8 +1086,8 @@ router.get('/:userId', async (req, res) => {
 
         if (mentor) {
             // It's a mentor - verify they have a chat with this user
-            const Chat = require('../models/chatSchema.js');
-            const chat = await Chat.findOne({
+            const UserToMentorChat = require('../models/userToMentorChatSchema.js');
+            const chat = await UserToMentorChat.findOne({
                 userId,
                 mentorId: decoded.id,
                 isActive: true

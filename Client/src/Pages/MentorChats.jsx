@@ -12,7 +12,7 @@ const MentorChats = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const { mentor } = useMentor();
-  const { isUserOnline, getOnlineStatus, socket, isConnected } = useSocket();
+  const { isUserOnline, isMentorOnline, getOnlineStatus, socket, isConnected } = useSocket();
 
   useEffect(() => {
     // Only mentors can access this route
@@ -24,16 +24,74 @@ const MentorChats = () => {
     fetchChats();
   }, [mentor, navigate]);
 
-  // Query online status for all users in chats when chats are loaded and socket is connected
+  // Listen for real-time chat updates
   useEffect(() => {
-    if (chats.length > 0 && isConnected && socket) {
-      chats.forEach(chat => {
-        if (chat.userId) {
-          getOnlineStatus(String(chat.userId), null);
+    if (!socket || !isConnected) return;
+    
+    const handleNewMessage = (message) => {
+      setChats(prevChats => {
+        const chatIndex = prevChats.findIndex(chat => 
+          chat.chatId && message.chatId && chat.chatId.toString() === message.chatId.toString()
+        );
+        
+        if (chatIndex !== -1) {
+          const updatedChats = [...prevChats];
+          const isFromCurrentMentor = mentor && message.senderId && (
+            message.senderId.toString() === mentor._id.toString() || 
+            message.senderId.toString() === mentor.id?.toString()
+          );
+          const updatedChat = {
+            ...updatedChats[chatIndex],
+            lastMessage: message.message,
+            lastMessageTime: message.createdAt || new Date(),
+            unreadCount: isFromCurrentMentor 
+              ? updatedChats[chatIndex].unreadCount 
+              : (updatedChats[chatIndex].unreadCount || 0) + 1
+          };
+          updatedChats[chatIndex] = updatedChat;
+          const [movedChat] = updatedChats.splice(chatIndex, 1);
+          return [movedChat, ...updatedChats];
         }
+        return prevChats;
       });
-    }
-  }, [chats, isConnected, socket, getOnlineStatus]);
+    };
+
+    const handleMentorToMentorMessage = (message) => {
+      setChats(prevChats => {
+        const chatIndex = prevChats.findIndex(chat => 
+          chat.chatId && message.chatId && chat.chatId.toString() === message.chatId.toString()
+        );
+        
+        if (chatIndex !== -1) {
+          const updatedChats = [...prevChats];
+          const isFromCurrentMentor = mentor && message.senderId && (
+            message.senderId.toString() === mentor._id.toString() || 
+            message.senderId.toString() === mentor.id?.toString()
+          );
+          const updatedChat = {
+            ...updatedChats[chatIndex],
+            lastMessage: message.message,
+            lastMessageTime: message.createdAt || new Date(),
+            unreadCount: isFromCurrentMentor 
+              ? updatedChats[chatIndex].unreadCount 
+              : (updatedChats[chatIndex].unreadCount || 0) + 1
+          };
+          updatedChats[chatIndex] = updatedChat;
+          const [movedChat] = updatedChats.splice(chatIndex, 1);
+          return [movedChat, ...updatedChats];
+        }
+        return prevChats;
+      });
+    };
+    
+    socket.on('receive_message', handleNewMessage);
+    socket.on('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
+    
+    return () => {
+      socket.off('receive_message', handleNewMessage);
+      socket.off('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
+    };
+  }, [socket, isConnected, mentor]);
 
   const fetchChats = async () => {
     try {
@@ -74,6 +132,7 @@ const MentorChats = () => {
   const filteredChats = chats.filter(chat => {
     const searchLower = searchQuery.toLowerCase();
     return (
+      chat.otherUserName?.toLowerCase().includes(searchLower) ||
       chat.userName?.toLowerCase().includes(searchLower) ||
       chat.lastMessage?.toLowerCase().includes(searchLower) ||
       chat.userCourse?.toLowerCase().includes(searchLower)
@@ -159,71 +218,79 @@ const MentorChats = () => {
         )}
 
         <div className="space-y-3">
-          {filteredChats.map((chat) => (
-            <Link
-              key={chat.userId}
-              to={`/mentor/chats/${chat.userId}`}
-              className="block bg-white/95 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#9f3562]/30 group"
-            >
-              <div className="p-4 flex items-center gap-4">
-                {/* Student Avatar */}
-                <div className="flex-shrink-0 relative">
-                  <img
-                    src={chat.userImage || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
-                    alt={chat.userName}
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100 group-hover:ring-[#9f3562]/30 transition-all duration-300"
-                    onError={(e) => {
-                      e.target.src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-                    }}
-                  />
-                  <div className="absolute -bottom-0 -right-0">
-                    <FaCircle
-                      className={`text-sm ${
-                        isUserOnline(chat.userId) ? 'text-green-500' : 'text-gray-400'
-                      }`}
+          {filteredChats.map((chat) => {
+            const isMentorToMentor = chat.chatType === 'mentorToMentor';
+            const isMentorToUser = chat.chatType === 'mentorToUser';
+            const otherUserId = chat.otherUserId || chat.userId;
+            const otherUserName = chat.otherUserName || chat.userName;
+            const otherUserImage = chat.otherUserImage || chat.userImage;
+            const chatUrl = `/mentor/chats/${otherUserId}`;
+            
+            return (
+              <Link
+                key={chat.chatId || otherUserId}
+                to={chatUrl}
+                className="block bg-white/95 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#9f3562]/30 group"
+              >
+                <div className="p-4 flex items-center gap-4">
+                  <div className="flex-shrink-0 relative">
+                    <img
+                      src={otherUserImage || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                      alt={otherUserName}
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100 group-hover:ring-[#9f3562]/30 transition-all duration-300"
+                      onError={(e) => {
+                        e.target.src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+                      }}
                     />
-                  </div>
-                </div>
-
-                {/* Chat Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-[#9f3562] transition-colors">
-                      {chat.userName || 'Student'}
-                    </h3>
-                    <span className="text-sm text-gray-500 flex-shrink-0">
-                      {formatLastMessageTime(chat.lastMessageTime)}
-                    </span>
+                    <div className="absolute -bottom-0 -right-0">
+                      <FaCircle
+                        className={`text-sm ${
+                          (isMentorToUser && isUserOnline(otherUserId)) || (isMentorToMentor && isMentorOnline(otherUserId))
+                            ? 'text-green-500' 
+                            : 'text-gray-400'
+                        }`}
+                      />
+                    </div>
                   </div>
 
-                  {chat.userCourse && (
-                    <p className="text-sm text-gray-600 mb-1">
-                      {chat.userCourse} Student
-                    </p>
-                  )}
-
-                  <p className="text-gray-600 text-sm line-clamp-2">
-                    {chat.lastMessage || 'No messages yet'}
-                  </p>
-
-                  {chat.unreadCount > 0 && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#9f3562]/10 to-[#b14270]/10 text-[#9f3562] border border-[#9f3562]/20">
-                        {chat.unreadCount} new message{chat.unreadCount > 1 ? 's' : ''}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-[#9f3562] transition-colors">
+                        {otherUserName || (isMentorToUser ? 'Student' : 'Mentor')}
+                      </h3>
+                      <span className="text-sm text-gray-500 flex-shrink-0">
+                        {formatLastMessageTime(chat.lastMessageTime)}
                       </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Arrow Indicator */}
-                <div className="flex-shrink-0 text-gray-400 group-hover:text-[#9f3562] transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                    {chat.userCourse && (
+                      <p className="text-sm text-gray-600 mb-1">
+                        {chat.userCourse} Student
+                      </p>
+                    )}
+
+                    <p className="text-gray-600 text-sm line-clamp-2">
+                      {chat.lastMessage || 'No messages yet'}
+                    </p>
+
+                    {chat.unreadCount > 0 && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#9f3562]/10 to-[#b14270]/10 text-[#9f3562] border border-[#9f3562]/20">
+                          {chat.unreadCount} new message{chat.unreadCount > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-shrink-0 text-gray-400 group-hover:text-[#9f3562] transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </main>

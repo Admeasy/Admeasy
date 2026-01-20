@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 const { Admeasy } = require('../db');
 
-const chatMessageSchema = new mongoose.Schema({
-    // Reference to the chat this message belongs to
+const userToMentorMessageSchema = new mongoose.Schema({
+    // Reference to the user-to-mentor chat this message belongs to
     chatId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Chat',
+        ref: 'UserToMentorChat',
         required: true
     },
 
@@ -68,12 +68,12 @@ const chatMessageSchema = new mongoose.Schema({
 });
 
 // Indexes for efficient queries
-chatMessageSchema.index({ chatId: 1, createdAt: 1 }); // For fetching messages in chat order
-chatMessageSchema.index({ senderId: 1, createdAt: -1 }); // For user/mentor message history
-chatMessageSchema.index({ chatId: 1, senderId: 1, createdAt: -1 }); // For last message queries
+userToMentorMessageSchema.index({ chatId: 1, createdAt: 1 }); // For fetching messages in chat order
+userToMentorMessageSchema.index({ senderId: 1, createdAt: -1 }); // For user/mentor message history
+userToMentorMessageSchema.index({ chatId: 1, senderId: 1, createdAt: -1 }); // For last message queries
 
 // Pre-save middleware to validate sender exists in appropriate collection
-chatMessageSchema.pre('save', async function(next) {
+userToMentorMessageSchema.pre('save', async function(next) {
     try {
         const Model = this.senderRole === 'user'
             ? require('./userSchema')
@@ -90,4 +90,4 @@ chatMessageSchema.pre('save', async function(next) {
     }
 });
 
-module.exports = Admeasy.model('ChatMessage', chatMessageSchema);
+module.exports = Admeasy.model('UserToMentorMessage', userToMentorMessageSchema);

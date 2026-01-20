@@ -308,7 +308,7 @@ function App() {
         />
 
         <Route
-          path="/chats/:mentorId"
+          path="/chats/:id"
           element={
             <ProtectedRoute user={true}>
               <Chat />
@@ -317,7 +317,7 @@ function App() {
         />
 
         <Route
-          path="/mentor/chats/:userId"
+          path="/mentor/chats/:id"
           element={
             <ProtectedRoute mentor={true}>
               <MentorChat />

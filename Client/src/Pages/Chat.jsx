@@ -8,11 +8,12 @@ import { ArrowLeft } from 'lucide-react';
 import SEO from '../components/SEO';
 
 const Chat = () => {
-  const { mentorId } = useParams();
+  const { id } = useParams(); // Changed from mentorId to id
   const navigate = useNavigate();
   const { user } = useUser();
-  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isMentorOnline } = useSocket();
-  const [mentor, setMentor] = useState(null);
+  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isMentorOnline, isUserOnline } = useSocket();
+  const [otherPerson, setOtherPerson] = useState(null);
+  const [chatType, setChatType] = useState(null); // 'userToMentor' or 'userToUser'
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -32,71 +33,102 @@ const Chat = () => {
       return;
     }
 
-    if (mentorId && !initializationDone.current) {
+    if (id && !initializationDone.current) {
       initializationDone.current = true;
       initializeChat();
     }
-  }, [mentorId, user, navigate]);
+  }, [id, user, navigate]);
 
   const initializeChat = async () => {
     try {
       setIsLoading(true);
       setError(null);
       setConnectionError(false);
+      setChatType(null); // Reset chat type
+      setChatId(null); // Reset chat ID
 
-      // First, get or create the chat
-      const chatResponse = await fetch(`/api/chats/${mentorId}`, {
+      // Try user-to-mentor chat first
+      let chatResponse = await fetch(`/api/chats/${id}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      let chatData;
+      
+      if (chatResponse.ok) {
+        chatData = await chatResponse.json();
+        if (chatData.success && chatData.chat) {
+          // User-to-mentor chat
+          setChatType('userToMentor');
+          setChatId(chatData.chat.chatId);
+          setOtherPerson({
+            _id: chatData.chat.mentorId,
+            name: chatData.chat.mentorName,
+            username: chatData.chat.mentorUsername,
+            image: chatData.chat.mentorImage
+          });
+          await fetchMessages(chatData.chat.chatId, 'userToMentor');
+          
+          // Join socket room after setting chatType
+          if (isConnected && socket) {
+            joinChat(chatData.chat.chatId);
+          } else {
+            setTimeout(() => {
+              if (isConnected && socket && chatData.chat.chatId) {
+                joinChat(chatData.chat.chatId);
+              }
+            }, 100);
+            if (socket) {
+              socket.once('authenticated', () => {
+                if (chatData.chat.chatId) joinChat(chatData.chat.chatId);
+              });
+            }
+          }
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // If user-to-mentor failed (404 or other error), try user-to-user chat
+      chatResponse = await fetch(`/api/user-chats/${id}`, {
         method: 'POST',
         credentials: 'include'
       });
 
       if (!chatResponse.ok) {
-        throw new Error('Failed to access chat');
+        const errorData = await chatResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to access chat');
       }
 
-      const chatData = await chatResponse.json();
+      chatData = await chatResponse.json();
 
       if (!chatData.success || !chatData.chat) {
         throw new Error('Invalid chat response');
       }
 
+      // User-to-user chat
+      setChatType('userToUser');
       setChatId(chatData.chat.chatId);
+      setOtherPerson({
+        _id: chatData.chat.otherUserId,
+        name: chatData.chat.otherUserName,
+        username: chatData.chat.otherUserUsername,
+        image: chatData.chat.otherUserImage
+      });
+      await fetchMessages(chatData.chat.chatId, 'userToUser');
 
-      // Set mentor data from chat response
-      if (chatData.chat.mentorName) {
-        setMentor({
-          _id: chatData.chat.mentorId,
-          name: chatData.chat.mentorName,
-          username: chatData.chat.mentorUsername,
-          image: chatData.chat.mentorImage
-        });
-      }
-
-      // Fetch messages immediately (don't wait for socket)
-      await fetchMessages(chatData.chat.chatId);
-
-      // Join socket room in background (non-blocking)
+      // Join socket room after setting chatType
       if (isConnected && socket) {
-        joinChat(chatData.chat.chatId);
-        console.log('Successfully joined chat:', chatData.chat.chatId);
+        socket.emit('join_user_to_user_chat', chatData.chat.chatId);
       } else {
-        // If socket not ready, try to join when it becomes available
-        const tryJoinChat = () => {
+        setTimeout(() => {
           if (isConnected && socket && chatData.chat.chatId) {
-            joinChat(chatData.chat.chatId);
-            console.log('Successfully joined chat after socket ready:', chatData.chat.chatId);
+            socket.emit('join_user_to_user_chat', chatData.chat.chatId);
           }
-        };
-
-        // Try immediately
-        setTimeout(tryJoinChat, 100);
-
-        // Also set up a listener for when socket becomes connected
+        }, 100);
         if (socket) {
           socket.once('authenticated', () => {
-            if (chatData.chat.chatId) {
-              joinChat(chatData.chat.chatId);
-            }
+            if (chatData.chat.chatId) socket.emit('join_user_to_user_chat', chatData.chat.chatId);
           });
         }
       }
@@ -116,19 +148,22 @@ const Chat = () => {
 
   // Join chat room when socket becomes connected
   useEffect(() => {
-    if (isConnected && socket && chatId) {
-      joinChat(chatId);
-      console.log('Joined chat room:', chatId);
+    // Only join if we have all required data
+    if (isConnected && socket && chatId && chatType) {
+      if (chatType === 'userToMentor') {
+        joinChat(chatId);
+      } else if (chatType === 'userToUser') {
+        socket.emit('join_user_to_user_chat', chatId);
+      }
+      console.log('Joined chat room:', chatId, 'Type:', chatType);
     }
-  }, [isConnected, socket, chatId, joinChat]);
+  }, [isConnected, socket, chatId, chatType, joinChat]);
 
   // Socket.io listeners for real-time messages
   useEffect(() => {
-    if (!socket || !chatId) return;
+    if (!socket || !chatId || !chatType) return;
 
     const handleReceiveMessage = (message) => {
-      console.log('Received message:', message);
-      // Only add message if it belongs to this chat
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
@@ -139,9 +174,23 @@ const Chat = () => {
           }
           return prevMessages;
         });
-        // Clear sending state when message is received
         setIsSending(false);
-        // Scroll to bottom when new message arrives
+        setTimeout(() => scrollToBottom(), 100);
+      }
+    };
+
+    const handleUserToUserMessage = (message) => {
+      if (message.chatId && message.chatId.toString() === chatId.toString()) {
+        setMessages(prevMessages => {
+          const exists = prevMessages.some(m =>
+            m._id && message._id && m._id.toString() === message._id.toString()
+          );
+          if (!exists) {
+            return [...prevMessages, message];
+          }
+          return prevMessages;
+        });
+        setIsSending(false);
         setTimeout(() => scrollToBottom(), 100);
       }
     };
@@ -153,8 +202,6 @@ const Chat = () => {
     };
 
     const handleMessageSent = (message) => {
-      console.log('Message sent successfully:', message);
-      // Add the sent message to the list if it's not already there
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
@@ -170,26 +217,40 @@ const Chat = () => {
       setTimeout(() => scrollToBottom(), 100);
     };
 
-    socket.on('receive_message', handleReceiveMessage);
+    if (chatType === 'userToMentor') {
+      socket.on('receive_message', handleReceiveMessage);
+      socket.on('message_sent', handleMessageSent);
+    } else {
+      socket.on('receive_user_to_user_message', handleUserToUserMessage);
+      socket.on('user_to_user_message_sent', handleMessageSent);
+    }
     socket.on('message_error', handleMessageError);
-    socket.on('message_sent', handleMessageSent);
 
     return () => {
       socket.off('receive_message', handleReceiveMessage);
+      socket.off('receive_user_to_user_message', handleUserToUserMessage);
       socket.off('message_error', handleMessageError);
       socket.off('message_sent', handleMessageSent);
+      socket.off('user_to_user_message_sent', handleMessageSent);
     };
-  }, [socket, chatId]);
+  }, [socket, chatId, chatType]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchMessages = async (chatIdParam) => {
+  const fetchMessages = async (chatIdParam, type) => {
     try {
-      const response = await fetch(`/api/chats/${mentorId}/messages`, {
-        credentials: 'include'
-      });
+      let response;
+      if (type === 'userToMentor') {
+        response = await fetch(`/api/chats/${id}/messages`, {
+          credentials: 'include'
+        });
+      } else {
+        response = await fetch(`/api/user-chats/${id}/messages`, {
+          credentials: 'include'
+        });
+      }
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -215,7 +276,7 @@ const Chat = () => {
   const sendMessage = async (e) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || !chatId || isSending) return;
+    if (!newMessage.trim() || !chatId || isSending || !chatType) return;
 
     if (!isConnected || !socket) {
       toast.error('Not connected to server. Please wait...');
@@ -226,15 +287,20 @@ const Chat = () => {
     setNewMessage('');
     setIsSending(true);
 
-    // Send message via Socket.io
-    socketSendMessage({
-      chatId,
-      senderId: user._id,
-      message: messageToSend,
-      senderRole: 'user'
-    });
+    if (chatType === 'userToMentor') {
+      socketSendMessage({
+        chatId,
+        senderId: user._id,
+        message: messageToSend,
+        senderRole: 'user'
+      });
+    } else {
+      socket.emit('send_user_to_user_message', {
+        chatId,
+        message: messageToSend
+      });
+    }
 
-    // Set timeout to reset sending state if no response
     setTimeout(() => {
       setIsSending(false);
     }, 5000);
@@ -265,7 +331,7 @@ const Chat = () => {
     return <FaCheck className="text-pink-200/50 text-xs" />;
   };
 
-  if (isLoading && !mentor) {
+  if (isLoading && !otherPerson) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
@@ -283,10 +349,10 @@ const Chat = () => {
       className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative selection:bg-[#9f3562]/20 selection:text-[#9f3562]"
     >
       <SEO
-        title={`${mentor?.name || 'Mentor'} | Admeasy`}
-        description={`Chat with ${mentor?.name || 'Mentor'} on Admeasy`}
-        keywords={`${mentor?.name || 'Mentor'}, chat, mentors, study notes, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search`}
-        url={`https://admeasy.in/chat/${mentorId}`}
+        title={`${otherPerson?.name || 'Chat'} | Admeasy`}
+        description={`Chat with ${otherPerson?.name || 'User'} on Admeasy`}
+        keywords={`${otherPerson?.name || 'Chat'}, chat, messages, communication`}
+        url={`https://admeasy.in/chats/${id}`}
       />
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -310,40 +376,50 @@ const Chat = () => {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Link
-                  to={`/${mentor?.username}`}
+                  to={`/${otherPerson?.username}`}
                   className="cursor-pointer relative block"
                 >
                   <img
-                    src={mentor?.image || mentor?.imageUrl || fallbackProfilePic}
-                    alt={mentor?.name || 'Mentor'}
+                    src={otherPerson?.image || fallbackProfilePic}
+                    alt={otherPerson?.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover transition-all"
                     onError={(e) => {
                       e.target.src = fallbackProfilePic;
                     }}
                   />
                 </Link>
-                {mentorId && (
+                {id && (
                   <div className="absolute -bottom-0 -right-0">
                     <FaCircle
-                      className={`text-xs z-15 ${isMentorOnline(mentorId) ? 'text-green-500' : 'text-gray-400'}`}
+                      className={`text-xs z-15 ${
+                        (chatType === 'userToMentor' && isMentorOnline(id)) || 
+                        (chatType === 'userToUser' && isUserOnline(id))
+                          ? 'text-green-500' 
+                          : 'text-gray-400'
+                      }`}
                     />
                   </div>
                 )}
               </div>
               <div>
                 <h2 className="font-semibold text-gray-900">
-                  {mentor?.name || 'Mentor'}
+                  {otherPerson?.name || 'User'}
                 </h2>
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-gray-500">
-                    {mentor?.username || 'Mentor'}
+                    {otherPerson?.username || 'User'}
                   </p>
-                  {mentorId && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${isMentorOnline(mentorId)
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
-                      }`}>
-                      {isMentorOnline(mentorId) ? 'Online' : 'Offline'}
+                  {id && (
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      (chatType === 'userToMentor' && isMentorOnline(id)) || 
+                      (chatType === 'userToUser' && isUserOnline(id))
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {(chatType === 'userToMentor' && isMentorOnline(id)) || 
+                       (chatType === 'userToUser' && isUserOnline(id))
+                        ? 'Online' 
+                        : 'Offline'}
                     </span>
                   )}
                 </div>
@@ -381,7 +457,7 @@ const Chat = () => {
                 Start a conversation
               </h3>
               <p className="text-gray-600">
-                Send your first message to begin chatting with {mentor?.name || 'this mentor'}
+                Send your first message to begin chatting with {otherPerson?.name || 'this user'}
               </p>
             </div>
           )}
@@ -433,7 +509,7 @@ const Chat = () => {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={`Message ${mentor?.name || 'mentor'}...`}
+              placeholder={`Message ${otherPerson?.name || 'user'}...`}
               className="flex-1 max-[400px]:pl-2.25 px-4 max-[400px]:py-0.5 py-3 max-[400px]:text-sm bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
               disabled={isSending || !isConnected}
             />

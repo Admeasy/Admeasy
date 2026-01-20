@@ -405,8 +405,8 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const Chat = require('./models/chatSchema');
-      const chat = await Chat.findById(chatId).select('userId mentorId isActive');
+      const UserToMentorChat = require('./models/userToMentorChatSchema');
+      const chat = await UserToMentorChat.findById(chatId).select('userId mentorId isActive');
 
       if (!chat || chat.isActive === false) {
         socket.emit('auth_error', { message: 'Chat not found or inactive' });
@@ -422,8 +422,8 @@ io.on('connection', (socket) => {
         return;
       }
 
-      socket.join(`chat:${chatId}`);
-      console.log(`Socket ${socket.id} joined chat ${chatId}`);
+      socket.join(`user_to_mentor_chat:${chatId}`);
+      console.log(`Socket ${socket.id} joined user-to-mentor chat ${chatId}`);
     } catch (error) {
       console.error('Error joining chat:', error);
       socket.emit('auth_error', { message: 'Failed to join chat' });
@@ -432,11 +432,13 @@ io.on('connection', (socket) => {
 
   // Leave chat room
   socket.on('leave_chat', (chatId) => {
-    socket.leave(`chat:${chatId}`);
+    socket.leave(`user_to_mentor_chat:${chatId}`);
+    socket.leave(`user_to_user_chat:${chatId}`);
+    socket.leave(`mentor_to_mentor_chat:${chatId}`);
     console.log(`Socket ${socket.id} left chat ${chatId}`);
   });
 
-  // Send message
+  // Send message in user-to-mentor chat
   socket.on('send_message', async (data = {}) => {
     try {
       const { chatId, message } = data;
@@ -454,11 +456,11 @@ io.on('connection', (socket) => {
       }
 
       // Import models
-      const Chat = require('./models/chatSchema');
-      const ChatMessage = require('./models/chatMessageSchema');
+      const UserToMentorChat = require('./models/userToMentorChatSchema');
+      const UserToMentorMessage = require('./models/userToMentorMessageSchema');
 
       // Verify chat exists and user is participant
-      const chat = await Chat.findById(chatId);
+      const chat = await UserToMentorChat.findById(chatId);
       if (!chat) {
         socket.emit('message_error', { message: 'Chat not found' });
         return;
@@ -476,7 +478,7 @@ io.on('connection', (socket) => {
 
       // For mentors, ensure there's an existing conversation
       if (senderRole === 'mentor') {
-        const messageCount = await ChatMessage.countDocuments({ chatId });
+        const messageCount = await UserToMentorMessage.countDocuments({ chatId });
         if (messageCount === 0) {
           socket.emit('message_error', { message: 'Mentors can only reply to existing conversations' });
           return;
@@ -484,7 +486,7 @@ io.on('connection', (socket) => {
       }
 
       // Create message
-      const newMessage = new ChatMessage({
+      const newMessage = new UserToMentorMessage({
         chatId,
         senderId,
         senderRole,
@@ -496,7 +498,7 @@ io.on('connection', (socket) => {
       await newMessage.save();
 
       // Update chat metadata
-      await Chat.updateOne(
+      await UserToMentorChat.updateOne(
         { _id: chatId },
         {
           lastMessage: message.trim(),
@@ -507,7 +509,7 @@ io.on('connection', (socket) => {
 
       // Update unread counts
       const unreadField = senderRole === 'user' ? 'mentorUnreadCount' : 'userUnreadCount';
-      await Chat.updateOne(
+      await UserToMentorChat.updateOne(
         { _id: chatId },
         { $inc: { [unreadField]: 1 } }
       );
@@ -544,13 +546,256 @@ io.on('connection', (socket) => {
       }
 
       // Broadcast to chat room
-      io.to(`chat:${chatId}`).emit('receive_message', formattedMessage);
+      io.to(`user_to_mentor_chat:${chatId}`).emit('receive_message', formattedMessage);
 
       // Confirm to sender
       socket.emit('message_sent', formattedMessage);
 
     } catch (error) {
       console.error('Error sending message:', error);
+      socket.emit('message_error', { message: 'Failed to send message' });
+    }
+  });
+
+  // Join user-to-user chat room
+  socket.on('join_user_to_user_chat', async (chatId) => {
+    try {
+      if (!chatId) {
+        socket.emit('auth_error', { message: 'Chat ID required' });
+        return;
+      }
+
+      if (socket.userRole !== 'user' || !socket.userId) {
+        socket.emit('auth_error', { message: 'Only users can join user-to-user chats' });
+        return;
+      }
+
+      const UserToUserChat = require('./models/userToUserChatSchema');
+      const chat = await UserToUserChat.findById(chatId).select('user1Id user2Id isActive');
+
+      if (!chat || chat.isActive === false) {
+        socket.emit('auth_error', { message: 'Chat not found or inactive' });
+        return;
+      }
+
+      const isParticipant = chat.user1Id.toString() === socket.userId ||
+        chat.user2Id.toString() === socket.userId;
+
+      if (!isParticipant) {
+        socket.emit('auth_error', { message: 'Not a participant in this chat' });
+        return;
+      }
+
+      socket.join(`user_to_user_chat:${chatId}`);
+      console.log(`Socket ${socket.id} joined user-to-user chat ${chatId}`);
+    } catch (error) {
+      console.error('Error joining user-to-user chat:', error);
+      socket.emit('auth_error', { message: 'Failed to join chat' });
+    }
+  });
+
+  // Join mentor-to-mentor chat room
+  socket.on('join_mentor_to_mentor_chat', async (chatId) => {
+    try {
+      if (!chatId) {
+        socket.emit('auth_error', { message: 'Chat ID required' });
+        return;
+      }
+
+      if (socket.userRole !== 'mentor' || !socket.mentorId) {
+        socket.emit('auth_error', { message: 'Only mentors can join mentor-to-mentor chats' });
+        return;
+      }
+
+      const MentorToMentorChat = require('./models/mentorToMentorChatSchema');
+      const chat = await MentorToMentorChat.findById(chatId).select('mentor1Id mentor2Id isActive');
+
+      if (!chat || chat.isActive === false) {
+        socket.emit('auth_error', { message: 'Chat not found or inactive' });
+        return;
+      }
+
+      const isParticipant = chat.mentor1Id.toString() === socket.mentorId ||
+        chat.mentor2Id.toString() === socket.mentorId;
+
+      if (!isParticipant) {
+        socket.emit('auth_error', { message: 'Not a participant in this chat' });
+        return;
+      }
+
+      socket.join(`mentor_to_mentor_chat:${chatId}`);
+      console.log(`Socket ${socket.id} joined mentor-to-mentor chat ${chatId}`);
+    } catch (error) {
+      console.error('Error joining mentor-to-mentor chat:', error);
+      socket.emit('auth_error', { message: 'Failed to join chat' });
+    }
+  });
+
+  // Send message in user-to-user chat
+  socket.on('send_user_to_user_message', async (data = {}) => {
+    try {
+      const { chatId, message } = data;
+      const senderId = socket.userId;
+
+      if (!chatId || !message) {
+        socket.emit('message_error', { message: 'Invalid message data' });
+        return;
+      }
+
+      if (socket.userRole !== 'user' || !senderId) {
+        socket.emit('message_error', { message: 'Unauthorized sender' });
+        return;
+      }
+
+      const UserToUserChat = require('./models/userToUserChatSchema');
+      const UserToUserMessage = require('./models/userToUserMessageSchema');
+      const { Users } = require('./db');
+
+      const chat = await UserToUserChat.findById(chatId);
+      if (!chat) {
+        socket.emit('message_error', { message: 'Chat not found' });
+        return;
+      }
+
+      const isParticipant = chat.user1Id.toString() === senderId ||
+        chat.user2Id.toString() === senderId;
+
+      if (!isParticipant) {
+        socket.emit('message_error', { message: 'Not authorized to send in this chat' });
+        return;
+      }
+
+      const newMessage = new UserToUserMessage({
+        chatId,
+        senderId,
+        message: message.trim(),
+        messageType: 'text',
+        status: 'sent'
+      });
+
+      await newMessage.save();
+
+      await UserToUserChat.updateOne(
+        { _id: chatId },
+        {
+          lastMessage: message.trim(),
+          lastMessageTime: new Date(),
+          updatedAt: new Date()
+        }
+      );
+
+      const unreadField = chat.user1Id.toString() === senderId
+        ? 'user2UnreadCount'
+        : 'user1UnreadCount';
+      await UserToUserChat.updateOne(
+        { _id: chatId },
+        { $inc: { [unreadField]: 1 } }
+      );
+
+      const UserModel = Users.model('Users');
+      const sender = await UserModel.findById(senderId).select('name image').lean();
+
+      const formattedMessage = {
+        _id: newMessage._id,
+        chatId,
+        senderId: senderId,
+        senderName: sender?.name || 'Unknown',
+        senderImage: sender?.image || null,
+        message: newMessage.message,
+        status: newMessage.status,
+        createdAt: newMessage.createdAt
+      };
+
+      setPresence(socket.userId, 'user', true);
+      io.to(`user_to_user_chat:${chatId}`).emit('receive_user_to_user_message', formattedMessage);
+      socket.emit('user_to_user_message_sent', formattedMessage);
+
+    } catch (error) {
+      console.error('Error sending user-to-user message:', error);
+      socket.emit('message_error', { message: 'Failed to send message' });
+    }
+  });
+
+  // Send message in mentor-to-mentor chat
+  socket.on('send_mentor_to_mentor_message', async (data = {}) => {
+    try {
+      const { chatId, message } = data;
+      const senderId = socket.mentorId;
+
+      if (!chatId || !message) {
+        socket.emit('message_error', { message: 'Invalid message data' });
+        return;
+      }
+
+      if (socket.userRole !== 'mentor' || !senderId) {
+        socket.emit('message_error', { message: 'Unauthorized sender' });
+        return;
+      }
+
+      const MentorToMentorChat = require('./models/mentorToMentorChatSchema');
+      const MentorToMentorMessage = require('./models/mentorToMentorMessageSchema');
+      const Mentor = require('./models/mentorSchema');
+
+      const chat = await MentorToMentorChat.findById(chatId);
+      if (!chat) {
+        socket.emit('message_error', { message: 'Chat not found' });
+        return;
+      }
+
+      const isParticipant = chat.mentor1Id.toString() === senderId ||
+        chat.mentor2Id.toString() === senderId;
+
+      if (!isParticipant) {
+        socket.emit('message_error', { message: 'Not authorized to send in this chat' });
+        return;
+      }
+
+      const newMessage = new MentorToMentorMessage({
+        chatId,
+        senderId,
+        message: message.trim(),
+        messageType: 'text',
+        status: 'sent'
+      });
+
+      await newMessage.save();
+
+      await MentorToMentorChat.updateOne(
+        { _id: chatId },
+        {
+          lastMessage: message.trim(),
+          lastMessageTime: new Date(),
+          updatedAt: new Date()
+        }
+      );
+
+      const unreadField = chat.mentor1Id.toString() === senderId
+        ? 'mentor2UnreadCount'
+        : 'mentor1UnreadCount';
+      await MentorToMentorChat.updateOne(
+        { _id: chatId },
+        { $inc: { [unreadField]: 1 } }
+      );
+
+      const sender = await Mentor.findById(senderId).select('name image').lean();
+
+      const formattedMessage = {
+        _id: newMessage._id,
+        chatId,
+        senderId: senderId,
+        senderName: sender?.name || 'Unknown',
+        senderImage: sender?.image || null,
+        message: newMessage.message,
+        status: newMessage.status,
+        createdAt: newMessage.createdAt
+      };
+
+      setPresence(socket.mentorId, 'mentor', true);
+      io.to(`mentor_to_mentor_chat:${chatId}`).emit('receive_mentor_to_mentor_message', formattedMessage);
+      socket.emit('mentor_to_mentor_message_sent', formattedMessage);
+
+    } catch (error) {
+      console.error('Error sending mentor-to-mentor message:', error);
       socket.emit('message_error', { message: 'Failed to send message' });
     }
   });

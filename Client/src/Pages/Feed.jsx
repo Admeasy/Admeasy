@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
+import MentorSuggestionSwiper from '../components/MentorSuggestionSwiper';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -217,12 +218,14 @@ const Feed = () => {
             </div>
           ) : (
             <div className="space-y-8">
-              {posts.map((post) => (
+              {posts.map((post, index) => (
                 <div key={post._id} className="relative">
                   <PostCard
                     post={post}
                     onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
                   />
+                  {/* Add mentor suggestion swiper after the first post */}
+                  {index === 0 && <MentorSuggestionSwiper />}
                 </div>
               ))}
 

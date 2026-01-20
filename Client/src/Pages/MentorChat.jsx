@@ -7,11 +7,12 @@ import { useSocket } from '../context/SocketContext';
 import { ArrowLeft } from 'lucide-react';
 
 const MentorChat = () => {
-  const { userId } = useParams();
+  const { id } = useParams(); // Changed from userId to id
   const navigate = useNavigate();
   const { mentor } = useMentor();
-  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isUserOnline, getOnlineStatus } = useSocket();
-  const [user, setUser] = useState(null);
+  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isUserOnline, isMentorOnline } = useSocket();
+  const [otherPerson, setOtherPerson] = useState(null);
+  const [chatType, setChatType] = useState(null); // 'mentorToUser' or 'mentorToMentor'
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -25,17 +26,16 @@ const MentorChat = () => {
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
   useEffect(() => {
-    // Only mentors can access mentor chats, users use different routes
     if (!mentor) {
       navigate('/mentors/login');
       return;
     }
 
-    if (userId && !initializationDone.current) {
+    if (id && !initializationDone.current) {
       initializationDone.current = true;
       initializeChat();
     }
-  }, [userId, mentor, navigate]);
+  }, [id, mentor, navigate]);
 
   const initializeChat = async () => {
     try {
@@ -43,36 +43,90 @@ const MentorChat = () => {
       setError(null);
       setConnectionError(false);
 
-      // Fetch user details and messages
-      await Promise.all([fetchUserDetails(), fetchMessages()]);
-
-      // Query online status for this user
-      if (isConnected && socket && userId) {
-        getOnlineStatus(String(userId), null);
+      // Try mentor-to-user chat first
+      let chatResponse = await fetch(`/api/mentor/chats/${id}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      let chatData;
+      
+      if (chatResponse.ok) {
+        chatData = await chatResponse.json();
+        if (chatData.success && chatData.chat) {
+          // Mentor-to-user chat - need to fetch messages
+          setChatType('mentorToUser');
+          setChatId(chatData.chat.chatId);
+          // Fetch user details
+          const userRes = await fetch(`/api/users/${id}`, { credentials: 'include' });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setOtherPerson({
+              _id: userData.user?._id || id,
+              name: userData.user?.name || 'Student',
+              username: userData.user?.username,
+              image: userData.user?.image
+            });
+          }
+          await fetchMessages(chatData.chat.chatId, 'mentorToUser');
+          
+          if (isConnected && socket) {
+            joinChat(chatData.chat.chatId);
+          } else {
+            setTimeout(() => {
+              if (isConnected && socket && chatData.chat.chatId) {
+                joinChat(chatData.chat.chatId);
+              }
+            }, 100);
+            if (socket) {
+              socket.once('authenticated', () => {
+                if (chatData.chat.chatId) joinChat(chatData.chat.chatId);
+              });
+            }
+          }
+          setIsLoading(false);
+          return;
+        }
       }
 
-      // Join socket room in background (non-blocking)
-      if (isConnected && socket && chatId) {
-        joinChat(chatId);
-        console.log('Successfully joined chat:', chatId);
+      // Try mentor-to-mentor chat
+      chatResponse = await fetch(`/api/mentor/mentor-chats/${id}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!chatResponse.ok) {
+        throw new Error('Failed to access chat');
+      }
+
+      chatData = await chatResponse.json();
+
+      if (!chatData.success || !chatData.chat) {
+        throw new Error('Invalid chat response');
+      }
+
+      // Mentor-to-mentor chat
+      setChatType('mentorToMentor');
+      setChatId(chatData.chat.chatId);
+      setOtherPerson({
+        _id: chatData.chat.otherMentorId,
+        name: chatData.chat.otherMentorName,
+        username: chatData.chat.otherMentorUsername,
+        image: chatData.chat.otherMentorImage
+      });
+      await fetchMessages(chatData.chat.chatId, 'mentorToMentor');
+
+      if (isConnected && socket) {
+        socket.emit('join_mentor_to_mentor_chat', chatData.chat.chatId);
       } else {
-        // If socket not ready, try to join when it becomes available
-        const tryJoinChat = () => {
-          if (isConnected && socket && chatId) {
-            joinChat(chatId);
-            console.log('Successfully joined chat after socket ready:', chatId);
+        setTimeout(() => {
+          if (isConnected && socket && chatData.chat.chatId) {
+            socket.emit('join_mentor_to_mentor_chat', chatData.chat.chatId);
           }
-        };
-
-        // Try immediately
-        setTimeout(tryJoinChat, 100);
-
-        // Also set up a listener for when socket becomes connected
+        }, 100);
         if (socket) {
           socket.once('authenticated', () => {
-            if (chatId) {
-              joinChat(chatId);
-            }
+            if (chatData.chat.chatId) socket.emit('join_mentor_to_mentor_chat', chatData.chat.chatId);
           });
         }
       }
@@ -92,19 +146,21 @@ const MentorChat = () => {
 
   // Join chat room when socket becomes connected
   useEffect(() => {
-    if (isConnected && socket && chatId) {
-      joinChat(chatId);
+    if (isConnected && socket && chatId && chatType) {
+      if (chatType === 'mentorToUser') {
+        joinChat(chatId);
+      } else {
+        socket.emit('join_mentor_to_mentor_chat', chatId);
+      }
       console.log('Joined chat room:', chatId);
     }
-  }, [isConnected, socket, chatId, joinChat]);
+  }, [isConnected, socket, chatId, chatType, joinChat]);
 
   // Socket.io listeners for real-time messages
   useEffect(() => {
-    if (!socket || !chatId) return;
+    if (!socket || !chatId || !chatType) return;
 
     const handleReceiveMessage = (message) => {
-      console.log('Received message:', message);
-      // Only add message if it belongs to this chat
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
@@ -115,22 +171,33 @@ const MentorChat = () => {
           }
           return prevMessages;
         });
-        // Clear sending state when message is received
         setIsSending(false);
-        // Scroll to bottom when new message arrives
+        setTimeout(() => scrollToBottom(), 100);
+      }
+    };
+
+    const handleMentorToMentorMessage = (message) => {
+      if (message.chatId && message.chatId.toString() === chatId.toString()) {
+        setMessages(prevMessages => {
+          const exists = prevMessages.some(m =>
+            m._id && message._id && m._id.toString() === message._id.toString()
+          );
+          if (!exists) {
+            return [...prevMessages, message];
+          }
+          return prevMessages;
+        });
+        setIsSending(false);
         setTimeout(() => scrollToBottom(), 100);
       }
     };
 
     const handleMessageError = (error) => {
-      console.error('Message error:', error);
       toast.error(error.message || 'Failed to send message');
       setIsSending(false);
     };
 
     const handleMessageSent = (message) => {
-      console.log('Message sent successfully:', message);
-      // Add the sent message to the list if it's not already there
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
@@ -146,51 +213,45 @@ const MentorChat = () => {
       setTimeout(() => scrollToBottom(), 100);
     };
 
-    socket.on('receive_message', handleReceiveMessage);
+    if (chatType === 'mentorToUser') {
+      socket.on('receive_message', handleReceiveMessage);
+      socket.on('message_sent', handleMessageSent);
+    } else {
+      socket.on('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
+      socket.on('mentor_to_mentor_message_sent', handleMessageSent);
+    }
     socket.on('message_error', handleMessageError);
-    socket.on('message_sent', handleMessageSent);
 
     return () => {
       socket.off('receive_message', handleReceiveMessage);
+      socket.off('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
       socket.off('message_error', handleMessageError);
       socket.off('message_sent', handleMessageSent);
+      socket.off('mentor_to_mentor_message_sent', handleMessageSent);
     };
-  }, [socket, chatId]);
+  }, [socket, chatId, chatType]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchUserDetails = async () => {
+  const fetchMessages = async (chatIdParam, type) => {
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user details');
+      let response;
+      if (type === 'mentorToUser') {
+        response = await fetch(`/api/mentor/chats/${id}/messages`, {
+          credentials: 'include'
+        });
+      } else {
+        response = await fetch(`/api/mentor/mentor-chats/${id}/messages`, {
+          credentials: 'include'
+        });
       }
-
-      const userData = await response.json();
-      setUser(userData);
-    } catch (err) {
-      console.error('Error fetching user details:', err);
-      toast.error('Failed to load student information');
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/mentor/chats/${userId}/messages`, {
-        credentials: 'include'
-      });
 
       if (!response.ok) {
         if (response.status === 404) {
-          // No conversation exists - mentors cannot initiate chats
-          setError('No conversation exists with this student');
           setMessages([]);
+          setError(null);
         } else {
           throw new Error('Failed to fetch messages');
         }
@@ -198,11 +259,6 @@ const MentorChat = () => {
         const data = await response.json();
         setMessages(data.messages || []);
         setChatId(data.chatId);
-
-        // Join the chat room for real-time messaging
-        if (data.chatId) {
-          joinChat(data.chatId);
-        }
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -210,24 +266,16 @@ const MentorChat = () => {
         setError(err.message);
         toast.error('Failed to load messages');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const sendMessage = async (e) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || !chatId || isSending) return;
+    if (!newMessage.trim() || !chatId || isSending || !chatType) return;
 
     if (!isConnected || !socket) {
       toast.error('Not connected to server. Please wait...');
-      return;
-    }
-
-    // Check if this is a reply to an existing conversation
-    if (messages.length === 0) {
-      toast.error('You can only reply to existing conversations');
       return;
     }
 
@@ -235,15 +283,26 @@ const MentorChat = () => {
     setNewMessage('');
     setIsSending(true);
 
-    // Send message via Socket.io
-    socketSendMessage({
-      chatId,
-      senderId: mentor._id,
-      message: messageToSend,
-      senderRole: 'mentor'
-    });
+    if (chatType === 'mentorToUser') {
+      // Check if this is a reply to an existing conversation
+      if (messages.length === 0) {
+        toast.error('You can only reply to existing conversations');
+        setIsSending(false);
+        return;
+      }
+      socketSendMessage({
+        chatId,
+        senderId: mentor._id,
+        message: messageToSend,
+        senderRole: 'mentor'
+      });
+    } else {
+      socket.emit('send_mentor_to_mentor_message', {
+        chatId,
+        message: messageToSend
+      });
+    }
 
-    // Set timeout to reset sending state if no response
     setTimeout(() => {
       setIsSending(false);
     }, 5000);
@@ -274,7 +333,7 @@ const MentorChat = () => {
     return <FaCheck className="text-pink-200/50 text-xs" />;
   };
 
-  if (isLoading && !user) {
+  if (isLoading && !otherPerson) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
@@ -314,40 +373,50 @@ const MentorChat = () => {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Link
-                  to={`/${user?.username}`}
+                  to={`/${otherPerson?.username}`}
                   className="cursor-pointer relative block"
                 >
                   <img
-                    src={user?.image || user?.imageUrl || fallbackProfilePic}
-                    alt={user?.name || 'Student'}
+                    src={otherPerson?.image || fallbackProfilePic}
+                    alt={otherPerson?.name || (chatType === 'mentorToUser' ? 'Student' : 'Mentor')}
                     className="w-10 h-10 rounded-full object-cover transition-all"
                     onError={(e) => {
                       e.target.src = fallbackProfilePic;
                     }}
                   />
                 </Link>
-                {userId && (
+                {id && (
                   <div className="absolute -bottom-0 -right-0">
                     <FaCircle
-                      className={`text-xs z-15 ${isUserOnline(userId) ? 'text-green-500' : 'text-gray-400'}`}
+                      className={`text-xs z-15 ${
+                        (chatType === 'mentorToUser' && isUserOnline(id)) || 
+                        (chatType === 'mentorToMentor' && isMentorOnline(id))
+                          ? 'text-green-500' 
+                          : 'text-gray-400'
+                      }`}
                     />
                   </div>
                 )}
               </div>
               <div>
                 <h2 className="font-semibold text-gray-900">
-                  {user?.name || 'Student'}
+                  {otherPerson?.name || (chatType === 'mentorToUser' ? 'Student' : 'Mentor')}
                 </h2>
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-gray-500">
-                    {user?.course || 'Student'}
+                    {otherPerson?.username || (chatType === 'mentorToUser' ? 'Student' : 'Mentor')}
                   </p>
-                  {userId && (
-                    <span className={`text-xs px-2 py-1 rounded-full ${isUserOnline(userId)
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
-                      }`}>
-                      {isUserOnline(userId) ? 'Online' : 'Offline'}
+                  {id && (
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      (chatType === 'mentorToUser' && isUserOnline(id)) || 
+                      (chatType === 'mentorToMentor' && isMentorOnline(id))
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {(chatType === 'mentorToUser' && isUserOnline(id)) || 
+                       (chatType === 'mentorToMentor' && isMentorOnline(id))
+                        ? 'Online' 
+                        : 'Offline'}
                     </span>
                   )}
                 </div>
@@ -385,8 +454,9 @@ const MentorChat = () => {
                 No conversation yet
               </h3>
               <p className="text-gray-600">
-                This student hasn't started a conversation with you yet.
-                You can only reply to messages they send you.
+                {chatType === 'mentorToUser' 
+                  ? 'This student hasn\'t started a conversation with you yet. You can only reply to messages they send you.'
+                  : 'Send your first message to begin chatting with this mentor'}
               </p>
             </div>
           )}
@@ -438,7 +508,7 @@ const MentorChat = () => {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={`Reply to ${user?.name || 'student'}...`}
+              placeholder={`Message ${otherPerson?.name || (chatType === 'mentorToUser' ? 'student' : 'mentor')}...`}
               className="flex-1 max-[400px]:pl-2.25 px-4 max-[400px]:py-0.5 py-3 max-[400px]:text-sm bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
               disabled={isSending || !isConnected || messages.length === 0}
             />
