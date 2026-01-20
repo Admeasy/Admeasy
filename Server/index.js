@@ -85,6 +85,9 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 
 // Socket.io setup with session integration
+// Make io available to controllers
+global.io = null;
+
 const io = socketIo(server, {
   cors: {
     origin: (origin, callback) => {

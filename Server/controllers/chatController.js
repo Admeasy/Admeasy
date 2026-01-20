@@ -4,6 +4,12 @@ const User = require('../models/userSchema');
 const Mentor = require('../models/mentorSchema');
 const { Users } = require('../db');
 const NotificationService = require('../services/notificationService');
+const NotificationManager = require('../services/notificationManager');
+
+// Get socket.io instance from global
+const getSocketIO = () => {
+  return global.io;
+};
 //Ahsan Code
 // Get user's chat inbox (all mentors they've chatted with)
 const getUserChats = async (req, res) => {
@@ -323,23 +329,41 @@ const sendMessage = async (req, res) => {
             message: formattedMessage
         });
 
-        // Notify recipient
+        // Emit socket event for real-time updates
+        const io = getSocketIO();
+        if (io) {
+            // Broadcast to chat room for real-time updates
+            io.to(`chat:${chatId}`).emit('receive_message', {
+                ...formattedMessage,
+                chatId: chatId.toString()
+            });
+        }
+
+        // Notify recipient using new notification system (includes push notification)
         (async () => {
             try {
                 const recipientId = senderRole === 'user' ? req.chat.mentorId : req.chat.userId;
+                const recipientRole = senderRole === 'user' ? 'mentor' : 'user';
                 const senderName = sender?.name || 'Someone';
+                const senderUsername = sender?.username || null;
+                const senderImage = sender?.image || null;
+                
+                // Determine originPath - use sender's ID for chat route
+                const originPath = senderRole === 'user' 
+                    ? `/mentor/chats/${senderId}` 
+                    : `/chats/${senderId}`;
 
-                await NotificationService.sendToUser(
+                await NotificationManager.createAndSend({
                     recipientId,
-                    'New Message',
-                    `${senderName} sent you a message`,
-                    {
-                        type: 'chat',
-                        chatId: chatId.toString(),
-                        senderId: senderId.toString()
-                    },
-                    senderId
-                );
+                    recipientRole,
+                    actorId: senderId,
+                    type: 'MESSAGE',
+                    entityType: 'MESSAGE',
+                    entityId: newMessage._id,
+                    originPath,
+                    message: `${senderName} sent you a message`,
+                    actorInfo: { name: senderName, username: senderUsername, image: senderImage },
+                });
             } catch (notifyError) {
                 console.error('Error sending chat notification:', notifyError);
             }

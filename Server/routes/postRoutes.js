@@ -16,6 +16,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const NotificationService = require('../services/notificationService');
+const NotificationManager = require('../services/notificationManager');
 
 
 const getPublicIdFromUrl = (imageUrl) => {
@@ -873,25 +874,29 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
     });
 
 
-    // Notify followers
+    // Notify followers using new notification system
     (async () => {
       try {
         const authorDoc = req.mentor || req.user;
         const authorId = authorDoc._id;
         const authorName = author ? author.name : (authorDoc.name || 'Someone');
+        const authorRole = req.mentor ? 'mentor' : 'user';
         const followers = authorDoc.followers || [];
 
         if (followers.length > 0) {
-          await NotificationService.sendToMultipleUsers(
-            followers,
-            'New Post',
-            `${authorName} posted something new`,
-            {
-              type: 'post',
-              postId: post._id.toString()
-            },
-            authorId
-          );
+          // Determine recipient role (assume users for now, but could be mixed)
+          // For simplicity, we'll use 'user' as default, but this could be enhanced
+          await NotificationManager.createAndSendMultiple({
+            recipientIds: followers,
+            recipientRole: 'user', // Could be enhanced to check actual role
+            actorId: authorId,
+            type: 'FOLLOWING_POST',
+            entityType: 'POST',
+            entityId: post._id,
+            originPath: `/posts/${post._id}`,
+            message: `${authorName} posted something new`,
+            actorInfo: { name: authorName, username: author?.username },
+          });
         }
       } catch (err) {
         console.error('Error sending new post notification:', err);
@@ -1150,19 +1155,22 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
         try {
           const actorId = req.user ? req.user._id : req.mentor._id;
           const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+          const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
           const recipientId = post.mentorId || post.userId;
+          const recipientRole = post.mentorId ? 'mentor' : 'user';
 
           if (recipientId) {
-            await NotificationService.sendToUser(
+            await NotificationManager.createAndSend({
               recipientId,
-              'Post Liked',
-              `${actorName} liked your post`,
-              {
-                type: 'post',
-                postId: post._id.toString()
-              },
-              actorId
-            );
+              recipientRole,
+              actorId,
+              type: 'POST_LIKE',
+              entityType: 'POST',
+              entityId: post._id,
+              originPath: `/posts/${post._id}`,
+              message: `${actorName} liked your post`,
+              actorInfo: { name: actorName, username: actorUsername },
+            });
           }
         } catch (err) {
           console.error('Error sending post like notification:', err);
@@ -1234,20 +1242,22 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
       try {
         const actorId = req.user ? req.user._id : req.mentor._id;
         const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+        const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
         const recipientId = post.mentorId || post.userId;
+        const recipientRole = post.mentorId ? 'mentor' : 'user';
 
         if (recipientId) {
-          await NotificationService.sendToUser(
+          await NotificationManager.createAndSend({
             recipientId,
-            'New Comment',
-            `${actorName} commented on your post`,
-            {
-              type: 'post',
-              postId: post._id.toString(),
-              commentId: newComment._id.toString()
-            },
-            actorId
-          );
+            recipientRole,
+            actorId,
+            type: 'COMMENT',
+            entityType: 'COMMENT',
+            entityId: newComment._id,
+            originPath: `/posts/${post._id}#comment-${newComment._id}`,
+            message: `${actorName} commented on your post`,
+            actorInfo: { name: actorName, username: actorUsername },
+          });
         }
       } catch (err) {
         console.error('Error sending comment notification:', err);
@@ -1323,19 +1333,22 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
       try {
         const actorId = req.user ? req.user._id : req.mentor._id;
         const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+        const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
         const recipientId = originalPost.mentorId || originalPost.userId;
+        const recipientRole = originalPost.mentorId ? 'mentor' : 'user';
 
         if (recipientId) {
-          await NotificationService.sendToUser(
+          await NotificationManager.createAndSend({
             recipientId,
-            'Post Reposted',
-            `${actorName} reposted your post`,
-            {
-              type: 'post',
-              postId: originalPost._id.toString()
-            },
-            actorId
-          );
+            recipientRole,
+            actorId,
+            type: 'REPOST',
+            entityType: 'POST',
+            entityId: originalPost._id,
+            originPath: `/post/${originalPost._id}`,
+            message: `${actorName} reposted your post`,
+            actorInfo: { name: actorName, username: actorUsername },
+          });
         }
       } catch (err) {
         console.error('Error sending repost notification:', err);
@@ -1395,20 +1408,25 @@ router.post("/:postId/comments/:commentId/like", authenticateRequired, async (re
         try {
           const actorId = req.user ? req.user._id : req.mentor._id;
           const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+          const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
           const recipientId = comment.userId;
+          
+          // Determine recipient role - need to check if it's a user or mentor
+          // For now, assume user (could be enhanced to check actual role)
+          const recipientRole = 'user';
 
           if (recipientId) {
-            await NotificationService.sendToUser(
+            await NotificationManager.createAndSend({
               recipientId,
-              'Comment Liked',
-              `${actorName} liked your comment`,
-              {
-                type: 'post',
-                postId: post._id.toString(),
-                commentId: comment._id.toString()
-              },
-              actorId
-            );
+              recipientRole,
+              actorId,
+              type: 'COMMENT_LIKE',
+              entityType: 'COMMENT',
+              entityId: comment._id,
+              originPath: `/posts/${post._id}#comment-${comment._id}`,
+              message: `${actorName} liked your comment`,
+              actorInfo: { name: actorName, username: actorUsername },
+            });
           }
         } catch (err) {
           console.error('Error sending comment like notification:', err);

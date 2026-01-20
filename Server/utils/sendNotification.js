@@ -22,7 +22,10 @@ const sendNotification = async (tokens, title, body, data = {}) => {
                 body,
             },
             data: {
-                ...data, // Spread existing data
+                ...data, // Spread existing data (includes originPath, notificationId, etc.)
+                // Ensure originPath is always included for deep linking
+                originPath: data.originPath || '/',
+                notificationId: data.notificationId || '',
                 click_action: 'FLUTTER_NOTIFICATION_CLICK', // Standard for many hybrid apps, optional
                 timestamp: new Date().toISOString()
             },
