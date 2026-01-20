@@ -36,7 +36,7 @@ function getFrontendUrl() {
 // Helper: Extract public_id from Cloudinary URL
 function extractCloudinaryPublicId(url) {
     if (!url || typeof url !== 'string') return null;
-    
+
     // Cloudinary URLs have format: https://res.cloudinary.com/{cloud_name}/image/upload/{folder}/{public_id}.{format}
     // or: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
     const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/);
@@ -797,7 +797,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
                         // Continue with upload even if delete fails
                     }
                 }
-                
+
                 // Upload new image to Cloudinary
                 const cloudUrl = await uploadToCloudinary(req.file.buffer, 'users');
                 user.image = cloudUrl;
@@ -1209,8 +1209,8 @@ router.post('/:targetId/follow', async (req, res) => {
             follower.following.push(target._id);
             target.followers.push(follower._id);
             await follower.save();
-            await follower.save();
             await target.save();
+
 
             // Notify target
             (async () => {

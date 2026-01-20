@@ -6,7 +6,7 @@ import mentorsLogo from "../assets/Admeasy/AdmeasyLatest.png";
 import { Upload, User, BookOpen, GraduationCap, Sparkles, FileText, Calendar } from "lucide-react";
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import LoadingButton from "../components/LoadingButton";
 import SEO from "../components/SEO";
 import { enableNotifications } from "../Firebase/enableNotifications";
@@ -21,15 +21,17 @@ const fadeUpVariant = {
 // ✅ Main Wrapper Component
 export default function MentorPortal() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
+  const isStandalone = location.pathname === '/mentors/login';
 
   return (
-    <>
+    <div className={isStandalone ? "h-screen flex items-center justify-center" : ""}>
       {!isLoggedIn ? (
         <MentorsLogin onLoginSuccess={() => setIsLoggedIn(true)} />
       ) : (
         <MentorsProfile />
       )}
-    </>
+    </div>
   );
 }
 
@@ -101,7 +103,7 @@ function MentorsLogin({ onLoginSuccess }) {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center">
+    <div className="flex items-center justify-center py-4">
       <motion.section
         variants={fadeUpVariant}
         initial="hidden"
@@ -168,6 +170,16 @@ function MentorsLogin({ onLoginSuccess }) {
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
+            </div>
+
+            {/* Forget Password Link */}
+            <div className="text-right mb-4">
+              <span
+                onClick={() => navigate('/mentors/forgot-password')}
+                className="text-sm text-purple-700 hover:text-purple-900 cursor-pointer font-semibold hover:underline"
+              >
+                Forget password?
+              </span>
             </div>
 
             {/* Submit */}

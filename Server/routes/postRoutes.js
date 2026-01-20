@@ -15,6 +15,8 @@ const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const { verifyAdminToken } = require('../middleware/adminAuth');
+const NotificationService = require('../services/notificationService');
+
 
 const getPublicIdFromUrl = (imageUrl) => {
   const parts = imageUrl.split('/upload/');
@@ -869,6 +871,34 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
         updatedAt: post.updatedAt,
       },
     });
+
+
+    // Notify followers
+    (async () => {
+      try {
+        const authorDoc = req.mentor || req.user;
+        const authorId = authorDoc._id;
+        const authorName = author ? author.name : (authorDoc.name || 'Someone');
+        const followers = authorDoc.followers || [];
+
+        if (followers.length > 0) {
+          await NotificationService.sendToMultipleUsers(
+            followers,
+            'New Post',
+            `${authorName} posted something new`,
+            {
+              type: 'post',
+              postId: post._id.toString()
+            },
+            authorId
+          );
+        }
+      } catch (err) {
+        console.error('Error sending new post notification:', err);
+      }
+    })();
+
+
   } catch (error) {
     console.error("Error creating post:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1113,6 +1143,33 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
       isLiked: existingLikeIndex === -1,
       likesCount: post.likesCount,
     });
+
+    // Notify post owner if it's a new like
+    if (existingLikeIndex === -1) {
+      (async () => {
+        try {
+          const actorId = req.user ? req.user._id : req.mentor._id;
+          const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+          const recipientId = post.mentorId || post.userId;
+
+          if (recipientId) {
+            await NotificationService.sendToUser(
+              recipientId,
+              'Post Liked',
+              `${actorName} liked your post`,
+              {
+                type: 'post',
+                postId: post._id.toString()
+              },
+              actorId
+            );
+          }
+        } catch (err) {
+          console.error('Error sending post like notification:', err);
+        }
+      })();
+    }
+
   } catch (error) {
     console.error("Error toggling like:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1171,6 +1228,32 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
       },
       commentsCount: post.commentsCount,
     });
+
+    // Notify post owner
+    (async () => {
+      try {
+        const actorId = req.user ? req.user._id : req.mentor._id;
+        const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+        const recipientId = post.mentorId || post.userId;
+
+        if (recipientId) {
+          await NotificationService.sendToUser(
+            recipientId,
+            'New Comment',
+            `${actorName} commented on your post`,
+            {
+              type: 'post',
+              postId: post._id.toString(),
+              commentId: newComment._id.toString()
+            },
+            actorId
+          );
+        }
+      } catch (err) {
+        console.error('Error sending comment notification:', err);
+      }
+    })();
+
   } catch (error) {
     console.error("Error adding comment:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1234,6 +1317,31 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
       repostCount: originalPost.repostCount,
       isReposted: true,
     });
+
+    // Notify original post owner
+    (async () => {
+      try {
+        const actorId = req.user ? req.user._id : req.mentor._id;
+        const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+        const recipientId = originalPost.mentorId || originalPost.userId;
+
+        if (recipientId) {
+          await NotificationService.sendToUser(
+            recipientId,
+            'Post Reposted',
+            `${actorName} reposted your post`,
+            {
+              type: 'post',
+              postId: originalPost._id.toString()
+            },
+            actorId
+          );
+        }
+      } catch (err) {
+        console.error('Error sending repost notification:', err);
+      }
+    })();
+
   } catch (error) {
     console.error("Error reposting:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1280,6 +1388,34 @@ router.post("/:postId/comments/:commentId/like", authenticateRequired, async (re
       isLiked: existingLikeIndex === -1,
       likesCount: comment.likesCount,
     });
+
+    // Notify comment owner if it's a new like
+    if (existingLikeIndex === -1) {
+      (async () => {
+        try {
+          const actorId = req.user ? req.user._id : req.mentor._id;
+          const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+          const recipientId = comment.userId;
+
+          if (recipientId) {
+            await NotificationService.sendToUser(
+              recipientId,
+              'Comment Liked',
+              `${actorName} liked your comment`,
+              {
+                type: 'post',
+                postId: post._id.toString(),
+                commentId: comment._id.toString()
+              },
+              actorId
+            );
+          }
+        } catch (err) {
+          console.error('Error sending comment like notification:', err);
+        }
+      })();
+    }
+
   } catch (error) {
     console.error("Error toggling comment like:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });

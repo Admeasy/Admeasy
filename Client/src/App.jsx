@@ -19,6 +19,8 @@ import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import ResetPassword from './Pages/ResetPassword';
+import MentorForgotPassword from './Pages/MentorForgotPassword';
+import MentorResetPassword from './Pages/MentorResetPassword';
 import Course from './Pages/Course'
 import Notes from './Pages/Notes';
 import NotesSearch from './Pages/NotesSearch';
@@ -84,7 +86,7 @@ function App() {
     const hasNoUsername = loggedInAccount && !loggedInAccount.username;
 
     // Don't show on auth pages or if already dismissed
-    const authPages = ['/login', '/mentors/login', '/mentors/register', '/onboarding', '/forgot-password', '/reset-password'];
+    const authPages = ['/login', '/mentors/login', '/mentors/register', '/mentors/forgot-password', '/mentors/reset-password', '/onboarding', '/forgot-password', '/reset-password'];
     const isAuthPage = authPages.some(path => location.pathname.startsWith(path));
 
     if (hasNoUsername && !isDismissed && !isAuthPage) {
@@ -176,6 +178,8 @@ function App() {
     '/login',
     '/mentors/login',
     '/mentors/register',
+    '/mentors/forgot-password',
+    '/mentors/reset-password',
     '/onboarding',
     '/forgot-password',
     '/reset-password',
@@ -288,6 +292,8 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/onboarding/:id" element={<Onboarding />} />
         <Route path="/mentors/login" element={<MentorsLogin />} />
+        <Route path="/mentors/forgot-password" element={<MentorForgotPassword />} />
+        <Route path="/mentors/reset-password/:token" element={<MentorResetPassword />} />
         <Route path="/mentors/register" element={<MentorRegistration />} />
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
 

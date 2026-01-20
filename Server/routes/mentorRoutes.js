@@ -9,6 +9,7 @@ const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { mentorForgotPassword, mentorResetPassword } = require('../controllers/mentorController');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -136,6 +137,12 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 })
+
+// FORGOT PASSWORD
+router.post('/forgot-password', mentorForgotPassword);
+
+// RESET PASSWORD
+router.post('/reset-password/:token', mentorResetPassword);
 
 // LOGIN MENTOR
 router.post('/login', async (req, res) => {
