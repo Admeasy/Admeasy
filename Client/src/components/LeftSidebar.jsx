@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Newspaper, UserPlus, MessagesSquare, Menu, X, ChevronLeft, Compass, CirclePlus } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
+import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import logo from "../assets/Admeasy/favicon.ico";
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -27,6 +28,7 @@ const LeftSidebar = ({
   const isAdminRoute = location.pathname.startsWith('/admin');
   const hideSidebarPages = ['/login', '/mentors/login', '/mentors/register', '/onboarding', '/forgot-password', '/reset-password'];
   const shouldHide = isAdminRoute || hideSidebarPages.some(path => location.pathname.startsWith(path));
+  const { unreadCount: unreadMessagesCount } = useUnreadMessages();
 
   if (shouldHide) return null;
 
@@ -190,6 +192,12 @@ const LeftSidebar = ({
                     alt={loggedInAccount.name}
                     className="w-6 h-6 rounded-full object-cover ring-2 ring-[#9f3562]/30 group-hover:ring-[#9f3562]/60 transition-all"
                   /> : <Icon className="w-5 h-5" />}
+                  {/* Unread message notification badge for Chats */}
+                  {item.label === 'Chats' && unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white">
+                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    </span>
+                  )}
                 </motion.div>
 
                 <AnimatePresence>

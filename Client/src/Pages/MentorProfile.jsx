@@ -27,6 +27,8 @@ export default function MentorProfile() {
   const [postsLoading, setPostsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(null);
   const [followingCount, setFollowingCount] = useState(null);
+  const [followersCountLoading, setFollowersCountLoading] = useState(true);
+  const [followingCountLoading, setFollowingCountLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState(null); // 'followers' or 'following'
 
@@ -160,6 +162,8 @@ export default function MentorProfile() {
     if (!mentor || !mentor._id) return;
 
     const fetchCounts = async () => {
+      setFollowersCountLoading(true);
+      setFollowingCountLoading(true);
       try {
         const followersRes = await fetch(`/api/users/${mentor._id}/followers`, {
           credentials: 'include',
@@ -174,6 +178,7 @@ export default function MentorProfile() {
             setFollowersCount(followersData.count || 0);
           }
         }
+        setFollowersCountLoading(false);
 
         if (followingRes.ok) {
           const followingData = await followingRes.json();
@@ -181,8 +186,11 @@ export default function MentorProfile() {
             setFollowingCount(followingData.count || 0);
           }
         }
+        setFollowingCountLoading(false);
       } catch (err) {
         console.error('Error fetching counts:', err);
+        setFollowersCountLoading(false);
+        setFollowingCountLoading(false);
       }
     };
 
@@ -245,7 +253,7 @@ export default function MentorProfile() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
@@ -453,7 +461,13 @@ export default function MentorProfile() {
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followersCount}</div>
+                  <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center justify-center min-h-[28px]">
+                    {followersCountLoading ? (
+                      <div className="w-5 h-5 border-2 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      followersCount ?? 0
+                    )}
+                  </div>
                   <div className="text-xs sm:text-sm text-gray-500">Followers</div>
                 </button>
                 <button
@@ -463,7 +477,13 @@ export default function MentorProfile() {
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followingCount}</div>
+                  <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center justify-center min-h-[28px]">
+                    {followingCountLoading ? (
+                      <div className="w-5 h-5 border-2 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      followingCount ?? 0
+                    )}
+                  </div>
                   <div className="text-xs sm:text-sm text-gray-500">Following</div>
                 </button>
               </div>

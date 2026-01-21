@@ -368,7 +368,7 @@ const Mentors = () => {
                             <Users className="w-8 h-8 sm:w-10 sm:h-10 text-[#9f3562]" />
                             Find Your Mentor
                         </h1>
-                        <p className="text-base sm:text-lg text-gray-600">Connect with alumni from top colleges across India</p>
+                        <p className="text-base sm:text-lg text-gray-600">Connect with Students from top colleges across India</p>
                     </div>
 
                     {/* Modern Search Bar - Centered */}

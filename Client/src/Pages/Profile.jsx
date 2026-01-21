@@ -42,6 +42,8 @@ export default function Profile() {
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [followersCountLoading, setFollowersCountLoading] = useState(true);
+  const [followingCountLoading, setFollowingCountLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('followers'); // 'followers' or 'following'
 
@@ -312,6 +314,8 @@ export default function Profile() {
     if (!profile || !profile._id) return;
 
     const fetchCounts = async () => {
+      setFollowersCountLoading(true);
+      setFollowingCountLoading(true);
       try {
         const followersRes = await fetch(`/api/users/${profile._id}/followers`, {
           credentials: 'include',
@@ -326,6 +330,7 @@ export default function Profile() {
             setFollowersCount(followersData.count || 0);
           }
         }
+        setFollowersCountLoading(false);
 
         if (followingRes.ok) {
           const followingData = await followingRes.json();
@@ -333,8 +338,11 @@ export default function Profile() {
             setFollowingCount(followingData.count || 0);
           }
         }
+        setFollowingCountLoading(false);
       } catch (err) {
         console.error('Error fetching counts:', err);
+        setFollowersCountLoading(false);
+        setFollowingCountLoading(false);
       }
     };
 
@@ -450,7 +458,7 @@ export default function Profile() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
@@ -659,7 +667,13 @@ export default function Profile() {
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followersCount}</div>
+                  <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center justify-center min-h-[28px]">
+                    {followersCountLoading ? (
+                      <div className="w-5 h-5 border-2 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      followersCount
+                    )}
+                  </div>
                   <div className="text-xs sm:text-sm text-gray-500">Followers</div>
                 </button>
                 <button
@@ -669,7 +683,13 @@ export default function Profile() {
                   }}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{followingCount}</div>
+                  <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center justify-center min-h-[28px]">
+                    {followingCountLoading ? (
+                      <div className="w-5 h-5 border-2 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      followingCount
+                    )}
+                  </div>
                   <div className="text-xs sm:text-sm text-gray-500">Following</div>
                 </button>
               </div>
@@ -936,21 +956,21 @@ export default function Profile() {
             <button
               onClick={() => setActiveTab('posts')}
               className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm sm:text-base font-medium transition-all relative ${activeTab === 'posts'
-                ? 'text-blue-600 bg-blue-50/50'
+                ? 'text-[#9f3562] bg-[#9f3562]/10'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
             >
-              <MessagesSquare size={20} className={activeTab === 'posts' ? 'text-blue-600' : 'text-gray-400'} />
+              <MessagesSquare size={20} className={activeTab === 'posts' ? 'text-[#9f3562]' : 'text-gray-400'} />
               Posts
               {posts.length > 0 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'posts' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'posts' ? 'bg-[#9f3562]/20 text-[#9f3562]' : 'bg-gray-100 text-gray-600'}`}>
                   {posts.length}
                 </span>
               )}
               {activeTab === 'posts' && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#9f3562]"
                 />
               )}
             </button>
@@ -958,21 +978,21 @@ export default function Profile() {
             <button
               onClick={() => setActiveTab('reposts')}
               className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm sm:text-base font-medium transition-all relative ${activeTab === 'reposts'
-                ? 'text-blue-600 bg-blue-50/50'
+                ? 'text-[#9f3562] bg-[#9f3562]/10'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
             >
-              <Repeat size={20} className={activeTab === 'reposts' ? 'text-blue-600' : 'text-gray-400'} />
+              <Repeat size={20} className={activeTab === 'reposts' ? 'text-[#9f3562]' : 'text-gray-400'} />
               Reposts
               {profile.reposts && profile.reposts.length > 0 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'reposts' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'reposts' ? 'bg-[#9f3562]/20 text-[#9f3562]' : 'bg-gray-100 text-gray-600'}`}>
                   {profile.reposts.length}
                 </span>
               )}
               {activeTab === 'reposts' && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#9f3562]"
                 />
               )}
             </button>

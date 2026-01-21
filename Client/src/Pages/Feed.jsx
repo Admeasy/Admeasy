@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
+import NotificationBell from '../components/NotificationBell';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -156,6 +157,9 @@ const Feed = () => {
         description="Discover knowledge shared by mentors"
         url="https://admeasy.in"
       />
+
+      {/* Notification Bell */}
+      <NotificationBell />
 
       <div className="flex justify-center relative z-10">
         <div className="w-full max-w-3xl px-4 sm:px-6 py-8 sm:py-12">

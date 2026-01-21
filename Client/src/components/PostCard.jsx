@@ -281,7 +281,19 @@ const PostCard = ({ post, onPostUpdate }) => {
 
   const handleLinkClick = (e, url) => {
     e.stopPropagation();
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Clean URL: remove any HTML tags that might have been included
+    let cleanUrl = url;
+    if (cleanUrl) {
+      // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+      // Remove any HTML tags (decoded)
+      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+      // Remove any remaining angle brackets
+      cleanUrl = cleanUrl.replace(/[<>]/g, '');
+      // Trim whitespace
+      cleanUrl = cleanUrl.trim();
+    }
+    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleImageDoubleClick = (e) => {
@@ -401,24 +413,16 @@ const PostCard = ({ post, onPostUpdate }) => {
               </p>
             )}
           </div>
-          {isAuthed && !isOwnPost && author && author._id && (
+          {isAuthed && !isOwnPost && author && author._id && !isFollowing && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleFollow}
               disabled={isFollowingLoading}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 shadow-sm ${isFollowing
-                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
-                }`}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 shadow-sm bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent`}
             >
               {isFollowingLoading ? (
                 <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              ) : isFollowing ? (
-                <>
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>Following</span>
-                </>
               ) : (
                 <>
                   <UserPlus className="w-3.5 h-3.5" />
@@ -435,6 +439,24 @@ const PostCard = ({ post, onPostUpdate }) => {
           <div
             className="text-gray-800 break-words leading-relaxed text-sm sm:text-[15px] post-content"
             dangerouslySetInnerHTML={{ __html: post.content }}
+            onClick={(e) => {
+              // Intercept clicks on links within post content
+              const link = e.target.closest('a');
+              if (link && link.href) {
+                e.preventDefault();
+                e.stopPropagation();
+                let cleanUrl = link.href;
+                // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+                cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                // Remove any HTML tags (decoded)
+                cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                // Remove any remaining angle brackets
+                cleanUrl = cleanUrl.replace(/[<>]/g, '');
+                // Trim whitespace
+                cleanUrl = cleanUrl.trim();
+                window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
           />
         </div>
 

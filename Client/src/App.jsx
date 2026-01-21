@@ -57,6 +57,7 @@ import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
 import ManagePosts from './Pages/ManagePosts';
 import BlogDetail from './Pages/BlogDetail';
+import Notification from './Pages/Notification';
 import { AnimatePresence, motion } from 'framer-motion';
 import AuthPage from './components/AuthPage';
 import Feed from './Pages/Feed';
@@ -256,6 +257,16 @@ function App() {
             element={
               <ProtectedRoute user={true}>
                 <MySubscriptions />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Notifications */}
+          <Route
+            path="/notification"
+            element={
+              <ProtectedRoute user={user || mentor}>
+                <Notification />
               </ProtectedRoute>
             }
           />
