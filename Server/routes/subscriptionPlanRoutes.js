@@ -30,14 +30,26 @@ router.post('/', verifyAdminToken, async (req, res) => {
   try {
     const { name, price, originalPrice, features } = req.body;
 
-    if (!name || price === undefined || originalPrice === undefined || !features || !Array.isArray(features)) {
+    // Validate required fields
+    if (!name || !price || !originalPrice || !features || !Array.isArray(features)) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate price structure
+    if (!price.monthly || !price.yearly || !originalPrice.monthly || !originalPrice.yearly) {
+      return res.status(400).json({ error: 'Price and originalPrice must have both monthly and yearly values' });
     }
 
     const plan = new SubscriptionPlan({
       name,
-      price: Number(price),
-      originalPrice: Number(originalPrice),
+      price: {
+        monthly: Number(price.monthly),
+        yearly: Number(price.yearly)
+      },
+      originalPrice: {
+        monthly: Number(originalPrice.monthly),
+        yearly: Number(originalPrice.yearly)
+      },
       features: Array.isArray(features) ? features : []
     });
 
@@ -55,16 +67,28 @@ router.put('/:id', verifyAdminToken, async (req, res) => {
     const { id } = req.params;
     const { name, price, originalPrice, features } = req.body;
 
-    if (!name || price === undefined || originalPrice === undefined || !features || !Array.isArray(features)) {
+    // Validate required fields
+    if (!name || !price || !originalPrice || !features || !Array.isArray(features)) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate price structure
+    if (!price.monthly || !price.yearly || !originalPrice.monthly || !originalPrice.yearly) {
+      return res.status(400).json({ error: 'Price and originalPrice must have both monthly and yearly values' });
     }
 
     const plan = await SubscriptionPlan.findByIdAndUpdate(
       id,
       {
         name,
-        price: Number(price),
-        originalPrice: Number(originalPrice),
+        price: {
+          monthly: Number(price.monthly),
+          yearly: Number(price.yearly)
+        },
+        originalPrice: {
+          monthly: Number(originalPrice.monthly),
+          yearly: Number(originalPrice.yearly)
+        },
         features: Array.isArray(features) ? features : []
       },
       { new: true, runValidators: true }

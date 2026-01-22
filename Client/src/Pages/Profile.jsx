@@ -29,6 +29,9 @@ export default function Profile() {
   const isMountedRef = useRef(true);
   const [copied, setCopied] = useState(false);
   const [posts, setPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]); // Store all posts
+  const [showAllPosts, setShowAllPosts] = useState(false); // Track if showing all posts
+  const [totalPostsCount, setTotalPostsCount] = useState(0); // Total number of posts
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsPage, setPostsPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -241,14 +244,14 @@ export default function Profile() {
   useEffect(() => {
     if (!profile || !profile._id) return;
 
-    const fetchPosts = async () => {
+    const fetchPosts = async (limit = 10) => {
       setPostsLoading(true);
       try {
         const endpoint = profileType === 'mentor'
           ? `/api/posts/mentor/${profile._id}`
           : `/api/posts/user/${profile._id}`;
 
-        const response = await fetch(`${endpoint}?page=1&limit=10`, {
+        const response = await fetch(`${endpoint}?page=1&limit=${limit}`, {
           credentials: 'include',
         });
 
@@ -258,8 +261,16 @@ export default function Profile() {
 
         const data = await response.json();
         if (data.success) {
-          setPosts(data.posts);
-          setHasMorePosts(data.posts.length === 10 && data.pagination.pages > 1);
+          if (limit === 10) {
+            // Initial fetch - store first 10 posts
+            setAllPosts(data.posts); // Store initial posts
+            setTotalPostsCount(data.pagination.total || data.posts.length);
+            setHasMorePosts(data.pagination.total > 10);
+          } else {
+            // Fetching all posts
+            setAllPosts(data.posts);
+            setShowAllPosts(true);
+          }
         }
       } catch (err) {
         console.error('Error fetching posts:', err);
@@ -268,9 +279,48 @@ export default function Profile() {
       }
     };
 
-
-    fetchPosts();
+    // Reset state when profile changes
+    setShowAllPosts(false);
+    setAllPosts([]);
+    setTotalPostsCount(0);
+    fetchPosts(10);
   }, [profile, profileType]);
+
+  // Function to load all posts
+  const handleShowAllPosts = async () => {
+    if (!profile || !profile._id || showAllPosts) return;
+    
+    setPostsLoading(true);
+    try {
+      const endpoint = profileType === 'mentor'
+        ? `/api/posts/mentor/${profile._id}`
+        : `/api/posts/user/${profile._id}`;
+
+      // Fetch a large number to get all posts
+      const response = await fetch(`${endpoint}?page=1&limit=1000`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch all posts');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setAllPosts(data.posts);
+        setShowAllPosts(true);
+        // Update total count if we got more accurate data
+        if (data.pagination?.total) {
+          setTotalPostsCount(data.pagination.total);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching all posts:', err);
+      toast.error('Failed to load all posts');
+    } finally {
+      setPostsLoading(false);
+    }
+  };
 
   // Fetch reposts when tab changes
   useEffect(() => {
@@ -649,7 +699,7 @@ export default function Profile() {
                   onClick={handleScrollToPosts}
                   className="text-center cursor-pointer hover:opacity-70 transition-opacity"
                 >
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{posts.length}</div>
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{totalPostsCount || allPosts.length || posts.length}</div>
                   <div className="text-xs sm:text-sm text-gray-500">Posts</div>
                 </button>
                 <button
@@ -955,9 +1005,9 @@ export default function Profile() {
             >
               <MessagesSquare size={20} className={activeTab === 'posts' ? 'text-blue-600' : 'text-gray-400'} />
               Posts
-              {posts.length > 0 && (
+              {(totalPostsCount || allPosts.length || posts.length) > 0 && (
                 <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'posts' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {posts.length}
+                  {totalPostsCount || allPosts.length || posts.length}
                 </span>
               )}
               {activeTab === 'posts' && (
@@ -1006,11 +1056,24 @@ export default function Profile() {
                     <div className="flex justify-center items-center py-12">
                       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                  ) : posts.length > 0 ? (
+                  ) : allPosts.length > 0 ? (
                     <div className="space-y-4">
-                      {posts.map((post) => (
+                      {(showAllPosts ? allPosts : allPosts.slice(0, 10)).map((post) => (
                         <PostCard key={post._id} post={post} />
                       ))}
+                      {!showAllPosts && totalPostsCount > 10 && (
+                        <div className="flex justify-center pt-4">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleShowAllPosts}
+                            disabled={postsLoading}
+                            className="px-6 py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {postsLoading ? 'Loading...' : `Show All Posts (${totalPostsCount} total)`}
+                          </motion.button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12">

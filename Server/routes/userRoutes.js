@@ -1324,25 +1324,31 @@ router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
 
         const followersIds = target.followers || [];
 
-        // Fetch followers (can be users or mentors)
-        const followers = [];
-        for (const id of followersIds) {
-            let follower = await User.findById(id).select('name username image imageUrl _id');
-            if (!follower) {
-                follower = await Mentor.findById(id).select('name username image imageUrl _id');
-                if (follower) {
-                    follower = follower.toObject();
-                    follower.type = 'mentor';
-                }
-            } else {
-                follower = follower.toObject();
-                follower.type = 'user';
-            }
-
-            if (follower) {
-                followers.push(follower);
-            }
+        if (followersIds.length === 0) {
+            return res.json({
+                success: true,
+                followers: [],
+                count: 0
+            });
         }
+
+        // Fetch all users and mentors in parallel using $in operator
+        const [users, mentors] = await Promise.all([
+            User.find({ _id: { $in: followersIds } }).select('name username image imageUrl _id').lean(),
+            Mentor.find({ _id: { $in: followersIds } }).select('name username image imageUrl _id').lean()
+        ]);
+
+        // Create maps for quick lookup
+        const userMap = new Map(users.map(u => [u._id.toString(), { ...u, type: 'user' }]));
+        const mentorMap = new Map(mentors.map(m => [m._id.toString(), { ...m, type: 'mentor' }]));
+
+        // Build followers array maintaining the original order
+        const followers = followersIds
+            .map(id => {
+                const idStr = id.toString();
+                return userMap.get(idStr) || mentorMap.get(idStr);
+            })
+            .filter(Boolean); // Remove any undefined entries
 
         res.json({
             success: true,
@@ -1377,25 +1383,31 @@ router.get('/:targetId/following', authenticateRequired, async (req, res) => {
 
         const followingIds = target.following || [];
 
-        // Fetch following (can be users or mentors)
-        const following = [];
-        for (const id of followingIds) {
-            let followed = await User.findById(id).select('name username image imageUrl _id');
-            if (!followed) {
-                followed = await Mentor.findById(id).select('name username image imageUrl _id');
-                if (followed) {
-                    followed = followed.toObject();
-                    followed.type = 'mentor';
-                }
-            } else {
-                followed = followed.toObject();
-                followed.type = 'user';
-            }
-
-            if (followed) {
-                following.push(followed);
-            }
+        if (followingIds.length === 0) {
+            return res.json({
+                success: true,
+                following: [],
+                count: 0
+            });
         }
+
+        // Fetch all users and mentors in parallel using $in operator
+        const [users, mentors] = await Promise.all([
+            User.find({ _id: { $in: followingIds } }).select('name username image imageUrl _id').lean(),
+            Mentor.find({ _id: { $in: followingIds } }).select('name username image imageUrl _id').lean()
+        ]);
+
+        // Create maps for quick lookup
+        const userMap = new Map(users.map(u => [u._id.toString(), { ...u, type: 'user' }]));
+        const mentorMap = new Map(mentors.map(m => [m._id.toString(), { ...m, type: 'mentor' }]));
+
+        // Build following array maintaining the original order
+        const following = followingIds
+            .map(id => {
+                const idStr = id.toString();
+                return userMap.get(idStr) || mentorMap.get(idStr);
+            })
+            .filter(Boolean); // Remove any undefined entries
 
         res.json({
             success: true,

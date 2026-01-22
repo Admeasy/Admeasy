@@ -40,24 +40,8 @@ const FollowersFollowingModal = ({
 
       const data = await response.json();
       if (data.success) {
-        // Fetch profile images for mentors
-        const listWithImages = await Promise.all(
-          data[type].map(async (item) => {
-            if (item.type === 'mentor' && item.image) {
-              try {
-                const imageRes = await fetch(`/api/mentors/${item._id}/pic`);
-                if (imageRes.ok) {
-                  const imageUrl = await imageRes.json();
-                  return { ...item, imageUrl };
-                }
-              } catch (err) {
-                console.error('Error fetching image:', err);
-              }
-            }
-            return item;
-          })
-        );
-        setList(listWithImages);
+        // Use image field directly from backend response (no need for additional API calls)
+        setList(data[type]);
       } else {
         throw new Error(data.message || 'Failed to fetch list');
       }
