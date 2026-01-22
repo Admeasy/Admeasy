@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaUser, FaLock, FaSignOutAlt } from 'react-icons/fa';
+import { FaUserAlt, FaLock, FaSignOutAlt } from 'react-icons/fa';
 import logo from '../assets/Admeasy/LOGO.webp';
 import SEO from '../components/SEO';
 
@@ -230,7 +230,7 @@ const Admin = () => {
           <div className="space-y-4">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="h-5 w-5 text-gray-400" />
+                <FaUserAlt className="h-5 w-5 text-[#9f3562]" />
               </div>
               <input
                 type="text"
@@ -245,7 +245,7 @@ const Admin = () => {
 
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="h-5 w-5 text-gray-400" />
+                <FaLock className="h-5 w-5 text-[#9f3562]" />
               </div>
               <input
                 type="password"

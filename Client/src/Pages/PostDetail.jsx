@@ -875,7 +875,19 @@ const PostDetail = () => {
   };
 
   const handleLinkClick = (url) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Clean URL: remove any HTML tags that might have been included
+    let cleanUrl = url;
+    if (cleanUrl) {
+      // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+      // Remove any HTML tags (decoded)
+      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+      // Remove any remaining angle brackets
+      cleanUrl = cleanUrl.replace(/[<>]/g, '');
+      // Trim whitespace
+      cleanUrl = cleanUrl.trim();
+    }
+    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
   };
 
   const formatDate = (dateString) => {
@@ -1002,26 +1014,17 @@ const PostDetail = () => {
                 (postState.mentor?._id || postState.author?._id) &&
                 viewer._id &&
                 (postState.mentor?._id || postState.author?._id).toString() !==
-                viewer._id.toString() && (
+                viewer._id.toString() &&
+                !isFollowing && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleFollow}
                     disabled={isFollowingLoading}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all disabled:opacity-50 shadow-sm flex-shrink-0 ${isFollowing
-                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                        : 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent'
-                      }`}
+                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all disabled:opacity-50 shadow-sm flex-shrink-0 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent`}
                   >
                     {isFollowingLoading ? (
                       <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : isFollowing ? (
-                      <>
-                        <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="hidden min-[360px]:inline">
-                          Following
-                        </span>
-                      </>
                     ) : (
                       <>
                         <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -1059,6 +1062,24 @@ const PostDetail = () => {
               <div
                 className="text-gray-800 break-words text-sm sm:text-base md:text-lg leading-relaxed post-content"
                 dangerouslySetInnerHTML={{ __html: postState.content }}
+                onClick={(e) => {
+                  // Intercept clicks on links within post content
+                  const link = e.target.closest('a');
+                  if (link && link.href) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    let cleanUrl = link.href;
+                    // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+                    cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                    // Remove any HTML tags (decoded)
+                    cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                    // Remove any remaining angle brackets
+                    cleanUrl = cleanUrl.replace(/[<>]/g, '');
+                    // Trim whitespace
+                    cleanUrl = cleanUrl.trim();
+                    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+                  }
+                }}
               />
             </div>
 
@@ -1068,7 +1089,7 @@ const PostDetail = () => {
                 <img
                   src={postState.image}
                   alt="Post"
-                  className="w-full h-auto max-h-[300px] sm:max-h-[400px] md:max-h-[600px] object-cover"
+                  className="w-full h-auto max-h-[300px] sm:max-h-[400px] md:max-h-[600px] object-contain"
                   loading="lazy"
                 />
               </div>

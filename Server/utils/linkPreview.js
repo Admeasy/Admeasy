@@ -81,12 +81,24 @@ async function getYouTubeTitle(videoId) {
 function detectUrl(text) {
   if (!text) return null;
   
-  // URL regex pattern
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  // URL regex pattern - matches URLs but stops at common HTML tag characters
+  const urlRegex = /(https?:\/\/[^\s<>]+)/g;
   const matches = text.match(urlRegex);
   
   if (matches && matches.length > 0) {
-    return matches[0]; // Return first URL found
+    let url = matches[0]; // Get first URL found
+    
+    // Clean URL: remove any HTML tags that might have been included
+    url = url.replace(/<[^>]*>/g, ''); // Remove any HTML tags
+    url = url.replace(/[<>]/g, ''); // Remove any remaining angle brackets
+    
+    // Trim any trailing characters that shouldn't be in a URL
+    url = url.trim();
+    
+    // Remove common trailing characters that might be from HTML
+    url = url.replace(/[.,;:!?)\]}]+$/, ''); // Remove trailing punctuation (but keep if part of URL)
+    
+    return url;
   }
   
   return null;

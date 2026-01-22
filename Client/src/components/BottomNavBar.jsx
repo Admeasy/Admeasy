@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, User, CirclePlus, MessagesSquare } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
+import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 
@@ -15,6 +16,7 @@ const BottomNavBar = () => {
   const loggedInAccount = user || mentor;
   const isUserAccount = Boolean(user);
   const [imageError, setImageError] = useState(false);
+  const { unreadCount: unreadMessagesCount } = useUnreadMessages();
 
   // Reset image error when user or mentor changes
   useEffect(() => {
@@ -170,10 +172,18 @@ const BottomNavBar = () => {
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <Icon
-                  className="w-5.5 h-5.5 sm:w-6 sm:h-6"
-                  strokeWidth={isActive ? 3 : 2}
-                />
+                <div className="relative">
+                  <Icon
+                    className="w-5.5 h-5.5 sm:w-6 sm:h-6"
+                    strokeWidth={isActive ? 3 : 2}
+                  />
+                  {/* Unread message notification badge for Chats */}
+                  {item.id === 'chat' && unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
+                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    </span>
+                  )}
+                </div>
               )}
               {isProfileItem && loggedInAccount && !loggedInAccount.username && (
                 <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>

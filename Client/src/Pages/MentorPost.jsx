@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ImagePlus, Loader2, Send, X, Globe, Calendar } from "lucide-react";
 import { toast } from "react-toastify";
 import ReactQuill, { Quill } from "react-quill-new";
@@ -15,6 +15,7 @@ Quill.register('modules/tableUI', TableUI, true);
 
 const MentorPost = () => {
   const navigate = useNavigate();
+  const pathname = useLocation();
   const { user } = useUser();
   const { mentor } = useMentor();
   const [content, setContent] = useState("");
@@ -23,6 +24,10 @@ const MentorPost = () => {
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState([]);
   const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   // ... (fetchPosts and handleImageChange logic remains the same)
   /* ----------------------------------
@@ -277,12 +282,22 @@ const MentorPost = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow"
+                className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/posts/${post._id}`)}
               >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
+                  <div 
+                    className="flex items-center gap-4"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const username = (post.author || post.mentor)?.username;
+                      if (username) {
+                        navigate(`/${username}`);
+                      }
+                    }}
+                  >
+                    <div className="relative cursor-pointer">
                       <img
                         src={(post.author || post.mentor)?.image || "/avatar.png"}
                         alt={(post.author || post.mentor)?.name || "User"}
@@ -290,14 +305,21 @@ const MentorPost = () => {
                       />
                       <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 leading-none mb-1">{(post.author || post.mentor)?.name || "User"}</h3>
+                    <div className="cursor-pointer">
+                      <h3 className="font-bold text-slate-900 leading-none mb-1 hover:text-pink-600 transition-colors">
+                        {(post.author || post.mentor)?.name || "User"}
+                      </h3>
                       {(post.author || post.mentor)?.username && (
-                        <p className="text-sm text-slate-500">@{(post.author || post.mentor).username}</p>
+                        <p className="text-sm text-slate-500 hover:text-pink-500 transition-colors">
+                          @{(post.author || post.mentor).username}
+                        </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
+                  <div 
+                    className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-3 py-1 rounded-full"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Calendar size={12} />
                     {new Date(post.createdAt).toLocaleDateString()}
                   </div>
@@ -307,6 +329,24 @@ const MentorPost = () => {
                 <div
                   className="text-[15px] text-slate-700 post-content leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: post.content }}
+                  onClick={(e) => {
+                    // Intercept clicks on links within post content
+                    const link = e.target.closest('a');
+                    if (link && link.href) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      let cleanUrl = link.href;
+                      // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                      // Remove any HTML tags (decoded)
+                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                      // Remove any remaining angle brackets
+                      cleanUrl = cleanUrl.replace(/[<>]/g, '');
+                      // Trim whitespace
+                      cleanUrl = cleanUrl.trim();
+                      window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
                 />
 
                 {post.image && (
@@ -325,6 +365,21 @@ const MentorPost = () => {
                     href={post.externalLink.url}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Clean URL before opening
+                      let cleanUrl = post.externalLink.url;
+                      // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                      // Remove any HTML tags (decoded)
+                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                      // Remove any remaining angle brackets
+                      cleanUrl = cleanUrl.replace(/[<>]/g, '');
+                      // Trim whitespace
+                      cleanUrl = cleanUrl.trim();
+                      // Update href with cleaned URL
+                      e.currentTarget.href = cleanUrl;
+                    }}
                     className="group mt-5 flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-pink-200 hover:bg-white transition-all"
                   >
                     <div className="bg-white p-3 rounded-xl shadow-sm group-hover:text-pink-500">

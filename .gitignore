@@ -4,9 +4,14 @@ Server/node_modules/
 
 .vscode/
 
+.cursor/
+
 Server/.env
 
 push.ps1
+
 Client/.env
+
 Client/.env.local
+
 Client/.env.*.local

@@ -367,7 +367,7 @@ const Chat = () => {
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/chats')}
+              onClick={() => navigate(-1)}
               className="text-xl p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562] cursor-pointer relative z-10"
             >
               <ArrowLeft className="w-5 h-5" />

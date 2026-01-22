@@ -1212,24 +1212,56 @@ router.post('/:targetId/follow', async (req, res) => {
             await target.save();
 
 
-            // Notify target
+            // Notify target using new notification system
             (async () => {
                 try {
+                    const NotificationManager = require('../services/notificationManager');
                     const isFollowBack = target.following && target.following.some(id => id.toString() === follower._id.toString());
                     const followerName = follower.name || follower.username || 'Someone';
-                    // Message: "{X} started following you" OR "{Y} followed you back"
-                    const body = isFollowBack ? `${followerName} followed you back` : `${followerName} started following you`;
+                    
+                    // Determine notification type and message
+                    const notificationType = isFollowBack ? 'FOLLOW_BACK' : 'FOLLOW';
+                    const message = isFollowBack 
+                        ? `${followerName} followed you back`
+                        : `${followerName} started following you`;
+                    
+                    // Get follower username for originPath
+                    const followerUsername = follower.username || follower._id.toString();
+                    const originPath = `/${followerUsername}`;
+                    
+                    // Determine recipient role
+                    const recipientRole = targetType === 'mentor' ? 'mentor' : 'user';
+                    const followerRole = followerType === 'mentor' ? 'mentor' : 'user';
 
-                    await NotificationService.sendToUser(
-                        target._id,
-                        'New Follower',
-                        body,
-                        {
-                            type: 'profile',
-                            userId: follower._id.toString()
-                        },
-                        follower._id
-                    );
+                    await NotificationManager.createAndSend({
+                        recipientId: target._id,
+                        recipientRole,
+                        actorId: follower._id,
+                        type: notificationType,
+                        entityType: 'USER',
+                        entityId: follower._id,
+                        originPath,
+                        message,
+                        actorInfo: { name: followerName, username: followerUsername },
+                    });
+
+                    // If it's a follow-back, also notify the follower
+                    if (isFollowBack) {
+                        const targetName = target.name || target.username || 'Someone';
+                        const targetUsername = target.username || target._id.toString();
+                        
+                        await NotificationManager.createAndSend({
+                            recipientId: follower._id,
+                            recipientRole: followerRole,
+                            actorId: target._id,
+                            type: 'FOLLOW_BACK',
+                            entityType: 'USER',
+                            entityId: target._id,
+                            originPath: `/${targetUsername}`,
+                            message: `${targetName} followed you back`,
+                            actorInfo: { name: targetName, username: targetUsername },
+                        });
+                    }
                 } catch (notifyError) {
                     console.error('Error sending follow notification:', notifyError);
                 }
