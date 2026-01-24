@@ -60,7 +60,6 @@ const LeftSidebar = ({
 
     try {
       if (user) {
-        console.log("It's a user")
         const res = await fetch('/api/users/logout', {
           method: 'POST',
           credentials: 'include'
@@ -73,7 +72,6 @@ const LeftSidebar = ({
           navigate('/');
         }
       } else if (mentor) {
-        console.log("It's a mentor")
         const res = await fetch('/api/mentors/logout', {
           method: 'POST',
           credentials: 'include'

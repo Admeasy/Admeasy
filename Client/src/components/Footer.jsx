@@ -29,7 +29,6 @@ const Footer = () => {
     }
 
     const data = JSON.stringify({ email: form.email, msg: form.msg });
-    console.log(data);
 
     try {
       const res = await fetch('/api/messages', {

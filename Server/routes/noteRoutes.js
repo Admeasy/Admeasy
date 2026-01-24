@@ -8,7 +8,8 @@ const {
   uploadNote,
   getAllNotes,
   updateNote,
-  deleteNote
+  deleteNote,
+  proxyPdf
 } = require('../controllers/noteController');
 const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
@@ -31,6 +32,7 @@ const upload = multer({
 
 // Public routes
 router.get('/', getNotes);
+router.get('/:id/pdf', proxyPdf); // PDF proxy route with proper headers (must be before /:id)
 router.get('/:id', getNoteById);
 router.post('/:id/like', likeNote);
 router.post('/:id/view', viewNote);

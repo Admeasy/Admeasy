@@ -17,6 +17,8 @@ const jwt = require('jsonwebtoken');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const NotificationService = require('../services/notificationService');
 const NotificationManager = require('../services/notificationManager');
+const { getRankedFeed } = require('../utils/feedRanking');
+const feedController = require('../controllers/feedController');
 
 
 const getPublicIdFromUrl = (imageUrl) => {
@@ -117,6 +119,34 @@ async function getOptionalUser(req) {
   }
 }
 
+// Get full user context for feed ranking (includes exam and academic context)
+async function getUserForRanking(req) {
+  const token = req.cookies?.accessToken;
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const Mentor = require('../models/mentorSchema');
+
+    // Only users have exam/academic context, mentors don't need ranking
+    if (decoded.role === 'mentor') {
+      const mentor = await Mentor.findById(decoded.id || decoded._id)
+        .select('following reposts _id competitiveExamsCleared')
+        .lean();
+      return mentor || null;
+    } else {
+      const user = await User.findById(decoded.id || decoded._id)
+        .select('following reposts _id examsPreparingFor class board educationType stream')
+        .lean();
+      return user || null;
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Token validation failed (user for ranking):', err.message);
+    }
+    return null;
+  }
+}
+
 /**
  * GET /api/posts/admin
  * Admin: list all posts with basic author info
@@ -178,21 +208,51 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
 /**
  * GET /api/posts
  * Public: list posts (from both mentors and users)
- * Cached for 10 minutes to improve performance (user-specific cache)
+ * Uses relevance-based ranking algorithm (V1)
+ * 
+ * Feed Ranking Logic:
+ * 1. Prioritizes UNSEEN posts first
+ * 2. Then SEEN but not ENGAGED posts
+ * 3. ENGAGED posts are heavily deprioritized
+ * 4. Posts are scored by: Exam relevance, Following, Keyword affinity, Academic context, Recency
+ * 
+ * Note: Pagination does NOT mark posts as seen. Only explicit view tracking does.
  */
-router.get("/", apiCache(600, { userSpecific: true }), async (req, res) => {
+router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
   try {
-    const currentUser = await getOptionalUser(req);
+    // Get full user context for ranking (includes exam/academic data)
+    const currentUser = await getUserForRanking(req);
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const limit = parseInt(req.query.limit) || 20;
 
-    const posts = await Post.find()
-      .populate('mentorId', 'name username image')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // Use ranking algorithm to get personalized feed
+    let feedResult;
+    try {
+      feedResult = await getRankedFeed(currentUser, page, limit);
+    } catch (rankingError) {
+      console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
+      // Fallback to simple date-based sorting if ranking fails
+      const skip = (page - 1) * limit;
+      const fallbackPosts = await Post.find()
+        .populate('mentorId', 'name username image')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      
+      const total = await Post.countDocuments();
+      feedResult = {
+        posts: fallbackPosts,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      };
+    }
+    
+    const posts = feedResult.posts;
 
     // OPTIMIZED: Batch all user lookups to avoid N+1 queries
     // Collect all unique user IDs from:
@@ -308,17 +368,11 @@ router.get("/", apiCache(600, { userSpecific: true }), async (req, res) => {
       };
     });
 
-    const total = await Post.countDocuments();
-
+    // Use pagination from ranking algorithm
     res.json({
       success: true,
       posts: formattedPosts,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      pagination: feedResult.pagination,
     });
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -552,6 +606,25 @@ router.get("/mentor/:mentorId", async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
+/**
+ * POST /api/posts/:postId/view
+ * Track post view (authenticated users only)
+ * Marks post as SEEN when visibility conditions are met
+ * 
+ * IMPORTANT: This route must be defined BEFORE the generic /:postId route
+ * to ensure proper route matching
+ */
+router.post("/:postId/view", authenticateRequired, feedController.trackPostView);
+
+/**
+ * GET /api/posts/:postId/view-state
+ * Get post view state for current user
+ * 
+ * IMPORTANT: This route must be defined BEFORE the generic /:postId route
+ * to ensure proper route matching
+ */
+router.get("/:postId/view-state", authenticateRequired, feedController.getPostViewState);
 
 /**
  * GET /api/posts/:postId
@@ -1129,6 +1202,8 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
       like => like.userId && like.userId.toString() === userId.toString()
     );
 
+    const wasLiked = existingLikeIndex > -1;
+    
     if (existingLikeIndex > -1) {
       post.likes.splice(existingLikeIndex, 1);
       post.likesCount = Math.max(0, post.likesCount - 1);
@@ -1139,13 +1214,20 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
 
     await post.save();
 
+    // Mark as engaged when user likes (only for users, not mentors)
+    if (!wasLiked && req.user) {
+      feedController.markPostAsEngaged(req.user._id, post._id, 'like', post).catch(err => {
+        console.error('Error marking post as engaged (like):', err);
+      });
+    }
+
     // Clear cache for posts feed to ensure fresh data on next load
     // Clear all user-specific caches for /api/posts
     apiCache.clear('/api/posts');
 
     res.json({
       success: true,
-      isLiked: existingLikeIndex === -1,
+      isLiked: !wasLiked,
       likesCount: post.likesCount,
     });
 
@@ -1216,6 +1298,13 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     post.commentsCount = post.commentsCount + 1;
 
     await post.save();
+
+    // Mark as engaged when user comments (only for users, not mentors)
+    if (req.user) {
+      feedController.markPostAsEngaged(req.user._id, post._id, 'comment', post).catch(err => {
+        console.error('Error marking post as engaged (comment):', err);
+      });
+    }
 
     // Manually populate user data for the new comment (cross-connection population)
     const newComment = post.comments[post.comments.length - 1];
@@ -1320,6 +1409,13 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
 
     await user.save();
     await originalPost.save();
+
+    // Mark as engaged when user reposts (only for users, not mentors)
+    if (req.user) {
+      feedController.markPostAsEngaged(req.user._id, originalPost._id, 'repost', originalPost).catch(err => {
+        console.error('Error marking post as engaged (repost):', err);
+      });
+    }
 
     res.json({
       success: true,

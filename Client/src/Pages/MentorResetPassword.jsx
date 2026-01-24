@@ -32,9 +32,18 @@ export default function MentorResetPassword() {
       return toast.error("Password needs 8+ chars, a letter, number & special symbol");
     }
 
+    if (!token) {
+      toast.error("Invalid reset link. Please request a new password reset.");
+      navigate("/mentors/login");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`/api/mentors/reset-password/${token}`, {
+      // Token from useParams is already decoded, but we need to ensure it's properly encoded in the URL
+      // React Router handles URL encoding, but we'll encode it to be safe
+      const encodedToken = encodeURIComponent(token);
+      const res = await fetch(`/api/mentors/reset-password/${encodedToken}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
@@ -48,9 +57,11 @@ export default function MentorResetPassword() {
         toast.error(data.message || "Invalid or expired token");
       }
     } catch (err) {
-      toast.error("Network error");
+      console.error('Reset password error:', err);
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

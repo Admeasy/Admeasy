@@ -41,7 +41,7 @@ import Blogs from './Pages/Blogs'
 import Messages from './Pages/Messages'
 import Enrollments from './Pages/Enrollments';
 import NotesPage from './Pages/NotesPage';
-import Chat from './Pages/Chat';
+import Chatpage from './Pages/Chatpage';
 import Chats from './Pages/Chats';
 import MentorChats from './Pages/MentorChats';
 import MentorChat from './Pages/MentorChat';
@@ -319,16 +319,16 @@ function App() {
         />
 
         <Route
-          path="/chats/:mentorId"
+          path="/chats/:id"
           element={
             <ProtectedRoute user={true}>
-              <Chat />
+              <Chatpage />
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/mentor/chats/:userId"
+          path="/mentor/chats/:id"
           element={
             <ProtectedRoute mentor={true}>
               <MentorChat />

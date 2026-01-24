@@ -288,3 +288,71 @@ exports.deleteNote = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to delete note' });
   }
 };
+
+// Proxy PDF from Cloudinary with proper headers
+exports.proxyPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid note id.' });
+    }
+
+    const note = await Note.findById(id);
+
+    if (!note || note.status !== 'published') {
+      return res.status(404).json({ success: false, message: 'Note not found.' });
+    }
+
+    if (!note.fileUrl) {
+      return res.status(404).json({ success: false, message: 'PDF file not found.' });
+    }
+
+    // Validate that fileUrl is a Cloudinary URL for security
+    if (!note.fileUrl.includes('cloudinary.com') && !note.fileUrl.includes('res.cloudinary.com')) {
+      return res.status(400).json({ success: false, message: 'Invalid file URL.' });
+    }
+
+    // Fetch PDF from Cloudinary
+    const response = await fetch(note.fileUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch PDF from Cloudinary: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({
+        success: false,
+        message: `Failed to fetch PDF: ${response.status} ${response.statusText}`
+      });
+    }
+
+    // Verify content type
+    const contentType = response.headers.get('content-type');
+    if (contentType && !contentType.includes('application/pdf')) {
+      console.warn(`Unexpected content type from Cloudinary: ${contentType}`);
+    }
+
+    // Get the PDF buffer
+    const buffer = await response.arrayBuffer();
+
+    // Set proper headers for PDF viewing (critical for react-pdf)
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}.pdf"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Content-Length', buffer.byteLength);
+
+    // Send the PDF
+    res.send(Buffer.from(buffer));
+
+  } catch (error) {
+    console.error('Error proxying PDF:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Error proxying PDF' });
+    }
+  }
+};

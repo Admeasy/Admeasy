@@ -93,6 +93,58 @@ const AddNote = () => {
     setFileError('');
   };
 
+  // Retry function with exponential backoff
+  const fetchWithRetry = async (url, options, maxRetries = 2, retryCount = 0) => {
+    try {
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      // Check if response is ok
+      if (!response.ok) {
+        // If it's a client error (4xx), don't retry
+        if (response.status >= 400 && response.status < 500) {
+          const errorData = await response.json().catch(() => ({ 
+            message: `Server error: ${response.status}` 
+          }));
+          throw new Error(errorData.message || `Request failed with status ${response.status}`);
+        }
+        // For server errors (5xx), retry
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      return response;
+    } catch (error) {
+      // Don't retry on abort (timeout) or if max retries reached
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout. Please check your connection and try again.');
+      }
+
+      // Retry logic
+      if (retryCount < maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
+        console.log(`Retrying request (${retryCount + 1}/${maxRetries}) after ${delay}ms...`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchWithRetry(url, options, maxRetries, retryCount + 1);
+      }
+
+      // If it's a network error, provide a helpful message
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection and try again.');
+      }
+
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -125,15 +177,23 @@ const AddNote = () => {
       // Add file
       submitData.append('noteFile', selectedFile);
 
-      const response = await fetch('/api/notes', {
+      // Use retry function
+      const response = await fetchWithRetry('/api/notes', {
         method: 'POST',
         credentials: 'include',
         body: submitData
       });
 
-      const data = await response.json();
+      // Parse response with error handling
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
 
-      if (response.ok && data.success) {
+      if (data.success) {
         toast.success('Note uploaded successfully! It will be reviewed by admin before publishing.');
         navigate('/notes');
       } else {
@@ -141,7 +201,19 @@ const AddNote = () => {
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.message || 'Failed to upload note. Please try again.');
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to upload note. Please try again.';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.name === 'TypeError') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.name === 'AbortError') {
+        errorMessage = 'Request timeout. Please check your connection and try again.';
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

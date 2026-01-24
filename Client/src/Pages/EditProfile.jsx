@@ -377,7 +377,6 @@ const EditProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log('Submitting form with:', form);
 
     // Validation: all required fields
     if (!form.name.trim() || !form.phone.toString().trim() || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
@@ -437,7 +436,6 @@ const EditProfile = () => {
 
     formData.append('course', courseValue);
 
-    console.log('Sending course value:', courseValue);
 
     // Onboarding fields
     if (form.languages && Array.isArray(form.languages)) {
@@ -477,7 +475,6 @@ const EditProfile = () => {
         const data = await res.json();
         const updatedUser = data.user || {};
 
-        console.log('Updated user from API:', updatedUser);
 
         // Parse course and streamOrYear for form state
         let course = updatedUser.course || '';

@@ -61,7 +61,6 @@ const Blogs = () => {
     // Check if cache is valid
     const now = Date.now();
     if (blogsCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
-      console.log('Using cached blogs data');
       setBlogs(blogsCache);
       setIsLoading(false);
       return;

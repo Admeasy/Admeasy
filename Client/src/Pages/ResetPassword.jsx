@@ -27,7 +27,6 @@ export default function ResetPassword() {
     return toast.error("Password needs 8+ chars, a letter, number & special symbol");
     }
       
-    console.log(password)
     setLoading(true);
     try {
       const res = await fetch(`/api/users/reset-password/${token}`, {

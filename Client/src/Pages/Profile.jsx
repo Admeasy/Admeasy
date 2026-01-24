@@ -815,10 +815,23 @@ export default function Profile() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
-                        if (isMentor) {
+                        if (!profile || !profile._id) {
+                          toast.error('Profile not loaded');
+                          return;
+                        }
+
+                        // User viewing any profile → /chats/:id
+                        if (currentUser) {
                           navigate(`/chats/${profile._id}`);
-                        } else if (currentMentor) {
-                          navigate(`/chats/${currentMentor._id}`);
+                        }
+                        // Mentor viewing any profile → /mentor/chats/:id
+                        else if (currentMentor) {
+                          navigate(`/mentor/chats/${profile._id}`);
+                        }
+                        // Not logged in
+                        else {
+                          toast.info('Please login to send messages');
+                          navigate('/login');
                         }
                       }}
                       className="w-full py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent flex items-center justify-center gap-2 shadow-md"

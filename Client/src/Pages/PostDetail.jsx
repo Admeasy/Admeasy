@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import {
@@ -20,10 +20,13 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import PostCard from '../components/PostCard';
+import PostViewTracker from '../components/PostViewTracker';
 
 const PostDetail = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const pathname = useLocation();
   const { user } = useUser();
   const { mentor } = useMentor();
   const viewer = user || mentor;
@@ -40,6 +43,14 @@ const PostDetail = () => {
   const [deletingCommentId, setDeletingCommentId] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
+
+  // More Posts State
+  const [morePosts, setMorePosts] = useState([]);
+  const [morePostsPage, setMorePostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const morePostsObserverTargetRef = useRef(null);
+  const isFetchingMorePostsRef = useRef(false);
 
   // Interaction Locks
   const isInteracting = useRef({ like: false, repost: false, follow: false });
@@ -91,6 +102,99 @@ const PostDetail = () => {
   useEffect(() => {
     fetchPost();
   }, [fetchPost]);
+
+  // Scroll to top when post changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  // Fetch more posts (excluding current post)
+  const fetchMorePosts = useCallback(async (pageNum = 1, append = false) => {
+    if (isFetchingMorePostsRef.current) return;
+    isFetchingMorePostsRef.current = true;
+
+    try {
+      if (!append) setLoadingMorePosts(true);
+
+      const response = await fetch(
+        `/api/posts?page=${pageNum}&limit=20`,
+        { credentials: 'include' }
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch posts');
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch posts');
+      }
+
+      // Filter out the current post
+      const filteredPosts = data.posts.filter(p => p._id !== postId);
+
+      setMorePosts((prev) => {
+        const newPosts = append ? [...prev, ...filteredPosts] : filteredPosts;
+        return newPosts;
+      });
+
+      setHasMorePosts(
+        filteredPosts.length > 0 &&
+        pageNum < data.pagination.pages
+      );
+      setMorePostsPage(pageNum);
+    } catch (err) {
+      console.error('Error fetching more posts:', err);
+      // Don't show toast for background loading
+    } finally {
+      setLoadingMorePosts(false);
+      isFetchingMorePostsRef.current = false;
+    }
+  }, [postId]);
+
+  // Load more posts when post is loaded
+  useEffect(() => {
+    if (postState && morePosts.length === 0) {
+      fetchMorePosts(1, false);
+    }
+  }, [postState, morePosts.length, fetchMorePosts]);
+
+  // Infinite scroll for more posts
+  useEffect(() => {
+    if (!hasMorePosts || loadingMorePosts || morePosts.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingMorePostsRef.current) {
+          fetchMorePosts(morePostsPage + 1, true);
+        }
+      },
+      {
+        root: null,
+        rootMargin: '300px', // Start loading 300px before reaching the bottom
+        threshold: 0.1,
+      }
+    );
+
+    const currentTarget = morePostsObserverTargetRef.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMorePosts, loadingMorePosts, morePostsPage, morePosts.length, fetchMorePosts]);
+
+  // Update post in more posts list
+  const updatePostInMorePosts = useCallback((updatedPost) => {
+    setMorePosts((prev) =>
+      prev.map((p) =>
+        p._id === updatedPost._id ? { ...p, ...updatedPost } : p
+      )
+    );
+  }, []);
 
   // Listen for global post interaction changes
   useEffect(() => {
@@ -1536,6 +1640,62 @@ const PostDetail = () => {
               </form>
             </div>
           </motion.div>
+
+          {/* More Posts Section */}
+          {morePosts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="mt-8 sm:mt-12"
+            >
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                  More Posts
+                </h2>
+                <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                  Continue exploring
+                </p>
+              </div>
+
+              <div className="space-y-6 sm:space-y-8">
+                {morePosts.map((post) => (
+                  <div key={post._id} className="relative">
+                    <PostViewTracker postId={post._id}>
+                      <PostCard
+                        post={post}
+                        onPostUpdate={updatePostInMorePosts}
+                      />
+                    </PostViewTracker>
+                  </div>
+                ))}
+
+                {/* Infinite scroll trigger */}
+                {hasMorePosts && (
+                  <div 
+                    ref={morePostsObserverTargetRef}
+                    className="flex justify-center pt-8 pb-12 min-h-[100px]"
+                  >
+                    {loadingMorePosts && (
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#9f3562]" />
+                        <span className="text-sm">Loading more posts...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* End of posts message */}
+                {!hasMorePosts && morePosts.length > 0 && (
+                  <div className="flex justify-center pt-8 pb-12">
+                    <p className="text-gray-500 text-sm">
+                      You've seen all available posts
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 

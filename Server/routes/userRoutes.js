@@ -120,45 +120,124 @@ router.post('/signup', async (req, res) => {
                 .json({ success: false, message: 'Username is already taken' });
         }
 
-        // Hash password & create user
+        // Hash password & create user (isVerified defaults to false)
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword, username: normalizedUsername });
+        const user = new User({ 
+            email, 
+            password: hashedPassword, 
+            username: normalizedUsername,
+            isVerified: false // Explicitly set to false
+        });
 
-        // Generate tokens
+        // Save user first
         await user.save();
 
-        // Generate tokens and log in automatically
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-        setTokenCookies(res, accessToken, refreshToken);
+        // Send verification email immediately after signup
+        try {
+            const crypto = require('crypto');
+            const nodemailer = require('nodemailer');
+            
+            // Create verification token
+            const token = crypto.randomBytes(32).toString("hex");
+            const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-        // Save refresh token to user
-        user.refreshToken = refreshToken;
-        await user.save();
+            user.emailVerifyToken = tokenHash;
+            user.emailVerifyExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+            await user.save({ validateBeforeSave: false });
 
-        // Set session for Socket.io
-        if (req.session) {
-            req.session.userId = user._id;
-            req.session.userRole = 'user';
-            // Clear mentor session if exists
-            delete req.session.mentorId;
-            // Explicitly save session
-            await new Promise((resolve) => {
-                req.session.save((err) => {
-                    if (err) console.error('Error saving user session in signup:', err);
-                    resolve();
-                });
+            // VERIFY URL
+            const getFrontendUrl = () => {
+                return process.env.NODE_ENV === "production"
+                    ? "https://admeasy.in"
+                    : "http://localhost:5173";
+            };
+            const verifyURL = `${getFrontendUrl()}/verify-email/${token}`;
+
+            // SEND EMAIL with retry logic
+            const transporter = nodemailer.createTransport({
+                host: "smtp.zoho.in",
+                port: 465,
+                secure: true,
+                auth: {
+                    user: process.env.SMTP_EMAIL,
+                    pass: process.env.SMTP_PASS,
+                },
+                connectionTimeout: 10000,
+                socketTimeout: 10000,
             });
+
+            const maxRetries = 3;
+            let emailSent = false;
+            let lastError = null;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    await transporter.sendMail({
+                        from: `"Admeasy" <${process.env.SMTP_EMAIL}>`,
+                        to: user.email,
+                        subject: "Verify Your Admeasy Account",
+                        text: `Please verify your email address by clicking the following link: ${verifyURL}`,
+                        html: `
+                        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background-color: #f4f7f6;">
+                            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e1e8ed;">
+                                <div style="text-align: center; margin-bottom: 30px;">
+                                    <h1 style="color: #2c3e50; font-size: 28px; font-weight: 700; margin: 0;">Welcome to Admeasy!</h1>
+                                </div>
+                                <p style="font-size: 16px; color: #505e6b; line-height: 1.6; margin-bottom: 25px;">
+                                    Thanks for signing up! We're excited to have you join our community. Before you get started, we just need to confirm that this is your email address.
+                                </p>
+                                <div style="text-align: center; margin: 35px 0;">
+                                    <a href="${verifyURL}" style="display: inline-block; padding: 14px 30px; background: linear-gradient(135deg, #4e6bff 0%, #3a52d4 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; box-shadow: 0 4px 15px rgba(78, 107, 255, 0.3); transition: transform 0.2s;">
+                                        Verify Email Address
+                                    </a>
+                                </div>
+                                <p style="font-size: 14px; color: #7f8c8d; line-height: 1.6;">
+                                    This link will expire in 24 hours. If you did not create an account, you can safely ignore this email.
+                                </p>
+                                <hr style="margin: 30px 0; border: none; border-top: 1px solid #ecf0f1;" />
+                                <p style="font-size: 12px; color: #bdc3c7; text-align: center; margin: 0;">
+                                    &copy; ${new Date().getFullYear()} Admeasy. All rights reserved.<br>
+                                    Helping Students Make Better Decisions.
+                                </p>
+                            </div>
+                        </div>
+                        `
+                    });
+                    emailSent = true;
+                    break;
+                } catch (emailErr) {
+                    lastError = emailErr;
+                    console.error(`Verification email send attempt ${attempt}/${maxRetries} failed:`, emailErr.message);
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                    }
+                }
+            }
+
+            if (!emailSent) {
+                // Clean up token if email failed
+                user.emailVerifyToken = undefined;
+                user.emailVerifyExpiry = undefined;
+                await user.save({ validateBeforeSave: false });
+                console.error('Failed to send verification email during signup after all retries:', lastError);
+                // Don't fail signup - user can request resend
+            }
+        } catch (emailErr) {
+            console.error('Error sending verification email during signup:', emailErr);
+            // Continue even if email sending fails - user can request resend later
         }
 
-        // Response
+        // DO NOT auto-login unverified users
+        // Return success but user must verify email before accessing protected routes
         return res.status(201).json({
             id: user._id,
             success: true,
-            message: 'User registered successfully.',
+            message: 'User registered successfully. Please check your email to verify your account.',
+            requiresVerification: true
         });
 
     } catch (err) {
+        console.error('Signup error:', err);
         return res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -296,7 +375,20 @@ router.post('/onboarding', async (req, res) => {
             }
         }
 
-        // Mark onboarding as completed
+        // Validate onboarding completion before marking as complete
+        const { validateOnboardingCompletion } = require('../utils/onboardingValidation');
+        const validation = validateOnboardingCompletion(user);
+        
+        if (!validation.isComplete) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Please complete all required fields', 
+                missingFields: validation.missingFields,
+                errors: validation.errors
+            });
+        }
+
+        // Mark onboarding as completed only if validation passes
         user.hasCompletedOnboarding = true;
 
         // Generate tokens if user is new
@@ -309,14 +401,19 @@ router.post('/onboarding', async (req, res) => {
 
         await user.save();
 
-        res.status(200).json({ success: true, message: 'Onboarding completed successfully', user: await User.findById(user._id).select('-password -refreshToken') });
+        res.status(200).json({ 
+            success: true, 
+            message: 'Onboarding completed successfully', 
+            user: await User.findById(user._id).select('-password -refreshToken'),
+            hasCompletedOnboarding: true
+        });
     } catch (err) {
         console.error('Onboarding error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// CHECK ONBOARDING STATUS - Check if user can access onboarding
+// CHECK ONBOARDING STATUS - Check if user can access onboarding and get completion status
 router.get('/onboarding/status', async (req, res) => {
     try {
         let user = null;
@@ -324,26 +421,49 @@ router.get('/onboarding/status', async (req, res) => {
             const token = req.cookies['accessToken'];
             try {
                 const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-                user = await User.findById(decoded.id).select('hasCompletedOnboarding email');
+                user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Not logged in, can access onboarding
-                return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+                return res.json({ 
+                    success: true, 
+                    canAccess: true, 
+                    reason: 'not_logged_in',
+                    requiresOnboarding: false
+                });
             }
         }
 
         if (!user) {
             // Not logged in, can access onboarding
-            return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+            return res.json({ 
+                success: true, 
+                canAccess: true, 
+                reason: 'not_logged_in',
+                requiresOnboarding: false
+            });
         }
 
-        // If user has completed onboarding, they cannot access it
-        // if (user.hasCompletedOnboarding) {
-        //     return res.json({ success: true, canAccess: false, reason: 'already_completed' });
-        // }
+        // Check onboarding completion status
+        const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+        const onboardingStatus = checkOnboardingStatus(user);
 
-        // User is logged in but hasn't completed onboarding
-        return res.json({ success: true, canAccess: true, reason: 'not_completed' });
+        // User can access onboarding if it's incomplete
+        // User cannot access onboarding if it's already completed
+        const canAccess = onboardingStatus.requiresOnboarding;
+
+        return res.json({ 
+            success: true, 
+            canAccess,
+            requiresOnboarding: onboardingStatus.requiresOnboarding,
+            hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+            isComplete: onboardingStatus.isComplete,
+            missingFields: onboardingStatus.missingFields || [],
+            recommendedFields: onboardingStatus.recommendedFields || [],
+            errors: onboardingStatus.errors || [],
+            reason: canAccess ? 'not_completed' : 'already_completed'
+        });
     } catch (err) {
+        console.error('Onboarding status check error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -372,6 +492,10 @@ router.post('/login', async (req, res) => {
             return res.status(403).json({ success: false, message: 'Please verify your email address to log in.', isNotVerified: true });
         }
 
+        // Check onboarding completion
+        const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+        const onboardingStatus = checkOnboardingStatus(user);
+
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
         user.refreshToken = refreshToken;
@@ -397,7 +521,16 @@ router.post('/login', async (req, res) => {
         }
 
         setTokenCookies(res, accessToken, refreshToken);
-        res.json({ success: true, message: 'Logged in successfully' });
+        res.json({ 
+            success: true, 
+            message: 'Logged in successfully',
+            requiresOnboarding: onboardingStatus.requiresOnboarding,
+            hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+            onboardingStatus: {
+                isComplete: onboardingStatus.isComplete,
+                missingFields: onboardingStatus.missingFields || []
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -457,16 +590,30 @@ router.get('/auth/google/callback',
                 });
             }
 
+            // For Google OAuth, email is already verified by Google
+            // Mark as verified if not already verified
+            if (!req.user.isVerified) {
+                req.user.isVerified = true;
+                req.user.emailVerifyToken = undefined;
+                req.user.emailVerifyExpiry = undefined;
+                await req.user.save();
+            }
+
             // Set cookies
             setTokenCookies(res, accessToken, refreshToken);
 
             // Redirect to frontend
             const frontendUrl = getFrontendUrl();
-            // Check if user has completed onboarding
-            if (req.user.hasCompletedOnboarding) {
-                res.redirect(`${frontendUrl}/?oauth_success=true`);
-            } else {
+            
+            // Check onboarding completion status
+            const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+            const onboardingStatus = checkOnboardingStatus(req.user);
+            
+            // Always redirect to onboarding if incomplete, regardless of flag
+            if (onboardingStatus.requiresOnboarding) {
                 res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
+            } else {
+                res.redirect(`${frontendUrl}/?oauth_success=true`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
@@ -1058,6 +1205,32 @@ router.delete(
 router.post("/send-verification-email", sendEmailVerification);
 router.get("/verify-email/:token", verifyEmail);
 
+// GET VERIFICATION STATUS (for frontend polling)
+router.get("/verification-status", async (req, res) => {
+    try {
+        const token = req.cookies['accessToken'];
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const user = await User.findById(decoded.id || decoded._id).select('isVerified email');
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        return res.json({ 
+            success: true, 
+            isVerified: user.isVerified || false,
+            email: user.email 
+        });
+    } catch (err) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+});
+
 // RESET PASSWORD
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
@@ -1086,8 +1259,8 @@ router.get('/:userId', async (req, res) => {
 
         if (mentor) {
             // It's a mentor - verify they have a chat with this user
-            const Chat = require('../models/chatSchema.js');
-            const chat = await Chat.findOne({
+            const UserToMentorChat = require('../models/userToMentorChatSchema.js');
+            const chat = await UserToMentorChat.findOne({
                 userId,
                 mentorId: decoded.id,
                 isActive: true

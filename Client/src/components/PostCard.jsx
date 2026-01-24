@@ -320,7 +320,32 @@ const PostCard = ({ post, onPostUpdate }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      onClick={() => navigate(`/posts/${post._id}`)}
+      onClick={() => {
+        // Save current scroll position immediately before navigation
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        const feedState = {
+          page: 1, // Will be updated by Feed component
+          posts: [],
+          scrollPosition: currentScroll,
+          timestamp: Date.now(),
+        };
+        try {
+          // Try to get existing state and update scroll position
+          const existing = sessionStorage.getItem('admeasy:feed:state');
+          if (existing) {
+            const existingState = JSON.parse(existing);
+            feedState.page = existingState.page || 1;
+            feedState.posts = existingState.posts || [];
+          }
+          sessionStorage.setItem('admeasy:feed:state', JSON.stringify(feedState));
+        } catch (err) {
+          console.error('Failed to save scroll position:', err);
+        }
+        
+        // Mark that we're navigating to post detail
+        sessionStorage.setItem('admeasy:fromPostDetail', 'true');
+        navigate(`/posts/${post._id}`);
+      }}
       className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
     >
       <style>{`
@@ -563,6 +588,27 @@ const PostCard = ({ post, onPostUpdate }) => {
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation();
+              // Save current scroll position immediately before navigation
+              const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+              const feedState = {
+                page: 1,
+                posts: [],
+                scrollPosition: currentScroll,
+                timestamp: Date.now(),
+              };
+              try {
+                const existing = sessionStorage.getItem('admeasy:feed:state');
+                if (existing) {
+                  const existingState = JSON.parse(existing);
+                  feedState.page = existingState.page || 1;
+                  feedState.posts = existingState.posts || [];
+                }
+                sessionStorage.setItem('admeasy:feed:state', JSON.stringify(feedState));
+              } catch (err) {
+                console.error('Failed to save scroll position:', err);
+              }
+              
+              sessionStorage.setItem('admeasy:fromPostDetail', 'true');
               navigate(`/posts/${post._id}`);
             }}
             className="flex items-center gap-2 text-gray-500 hover:text-[#9f3562] transition-colors group/comment"

@@ -81,6 +81,13 @@ const Schema = new mongoose.Schema({
     refreshToken: {
         type: String,
         default: null
+    },
+    resetPasswordToken: {
+        type: String,
+        trim: true
+    },
+    resetPasswordExpire: {
+        type: Date
     }
 });
 

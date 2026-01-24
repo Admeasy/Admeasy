@@ -27,7 +27,6 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (mentorLoading) {
-      console.log('Mentor still loading, waiting...');
       return;
     }
 
@@ -52,7 +51,6 @@ export const SocketProvider = ({ children }) => {
     }
 
     const socketUrl = config.apiUrl;
-    console.log('Connecting to socket server:', socketUrl);
 
     const socket = io(socketUrl, {
       withCredentials: true,
@@ -68,11 +66,9 @@ export const SocketProvider = ({ children }) => {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('Socket connected successfully:', socket.id);
     });
 
     socket.on('authenticated', (data) => {
-      console.log('Socket authenticated:', data);
       setIsConnected(true);
     });
 
@@ -87,7 +83,6 @@ export const SocketProvider = ({ children }) => {
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
       setIsConnected(false);
       setOnlineUsers(new Set());
       setOnlineMentors(new Set());
@@ -95,13 +90,11 @@ export const SocketProvider = ({ children }) => {
 
     // Presence tracking events
     socket.on('user_online', (data) => {
-      console.log('User came online:', data.userId);
       const userId = String(data.userId);
       setOnlineUsers(prev => new Set([...prev, userId]));
     });
 
     socket.on('user_offline', (data) => {
-      console.log('User went offline:', data.userId);
       const userId = String(data.userId);
       setOnlineUsers(prev => {
         const newSet = new Set(prev);
@@ -111,13 +104,11 @@ export const SocketProvider = ({ children }) => {
     });
 
     socket.on('mentor_online', (data) => {
-      console.log('Mentor came online:', data.mentorId);
       const mentorId = String(data.mentorId);
       setOnlineMentors(prev => new Set([...prev, mentorId]));
     });
 
     socket.on('mentor_offline', (data) => {
-      console.log('Mentor went offline:', data.mentorId);
       const mentorId = String(data.mentorId);
       setOnlineMentors(prev => {
         const newSet = new Set(prev);
@@ -155,7 +146,6 @@ export const SocketProvider = ({ children }) => {
     });
 
     return () => {
-      console.log('Cleaning up socket connection');
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -171,7 +161,6 @@ export const SocketProvider = ({ children }) => {
   // Utility functions
   const joinChat = (chatId) => {
     if (socketRef.current && isConnected) {
-      console.log('Joining chat:', chatId);
       socketRef.current.emit('join_chat', chatId);
     } else {
       console.warn('Cannot join chat: socket not connected');
@@ -180,14 +169,12 @@ export const SocketProvider = ({ children }) => {
 
   const leaveChat = (chatId) => {
     if (socketRef.current && isConnected) {
-      console.log('Leaving chat:', chatId);
       socketRef.current.emit('leave_chat', chatId);
     }
   };
 
   const sendMessage = (data) => {
     if (socketRef.current && isConnected) {
-      console.log('Sending message:', data);
       socketRef.current.emit('send_message', data);
     } else {
       console.error('Cannot send message: socket not connected');

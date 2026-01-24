@@ -70,25 +70,25 @@ const VerifyEmail = () => {
                         enableNotifications(verifiedUser._id, "user", true);
                     }
 
-
+                    // Check onboarding status from response
+                    const requiresOnboarding = data.requiresOnboarding || 
+                                             !data.user?.hasCompletedOnboarding ||
+                                             (data.onboardingStatus && !data.onboardingStatus.isComplete);
 
                     // Redirect after 2.5 seconds
                     setTimeout(() => {
-                        // Check if user needs onboarding from the response
-                        const isNewSignup = localStorage.getItem('new_signup_verification') === 'true';
-                        const userId = data.user?._id || localStorage.getItem('temp_signup_id');
+                        const userId = data.user?._id || verifiedUser?._id || localStorage.getItem('temp_signup_id');
+                        setIsNewUser(requiresOnboarding);
 
-                        setIsNewUser(isNewSignup);
-
-                        if (isNewSignup && userId) {
-                            // New user - redirect to onboarding
-                            toast.info("Please let us know more about you");
+                        if (requiresOnboarding && userId) {
+                            // User needs onboarding - MANDATORY redirect
+                            toast.info("Please complete your profile to continue");
                             navigate(`/onboarding/${userId}`, { replace: true });
                             // Clean up flags
                             localStorage.removeItem('new_signup_verification');
                             localStorage.removeItem('temp_signup_id');
                         } else {
-                            // Existing user - redirect to home
+                            // Onboarding complete - redirect to home
                             navigate('/', { replace: true });
                         }
                     }, 2500);

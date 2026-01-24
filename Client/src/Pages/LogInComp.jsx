@@ -69,8 +69,19 @@ const LogInComp = ({ setAuthMode, onNotVerified }) => {
           enableNotifications(loggedInUser._id, "user", true);
         }
 
-        toast.success("You're all set!");
-        navigate('/');
+        // Check if onboarding is required
+        const requiresOnboarding = data.requiresOnboarding || 
+                                  !data.hasCompletedOnboarding ||
+                                  (data.onboardingStatus && !data.onboardingStatus.isComplete);
+
+        if (requiresOnboarding && loggedInUser) {
+          const userId = loggedInUser._id || loggedInUser.id;
+          toast.info("Please complete your profile to continue");
+          navigate(`/onboarding/${userId}`, { replace: true });
+        } else {
+          toast.success("You're all set!");
+          navigate('/');
+        }
       } else {
 
         if (data.isNotVerified) {

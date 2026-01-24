@@ -1,5 +1,69 @@
 @import "tailwindcss";
 
+/* PDF Viewer Styles */
+.react-pdf__Page {
+  max-width: 100%;
+  height: auto;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+  display: block;
+}
+
+.react-pdf__Page__textContent {
+  max-width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1;
+}
+
+.react-pdf__Page__textContent span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.react-pdf__Page__textContent .highlight {
+  margin: -1px;
+  padding: 1px;
+  background-color: rgba(180, 0, 170, 0.2);
+  border-radius: 4px;
+}
+
+.react-pdf__Page__textContent .highlight.selected {
+  background-color: rgba(0, 100, 0, 0.2);
+}
+
+.react-pdf__Page__textContent ::selection {
+  background: rgba(0, 0, 255, 0.3);
+}
+
+.react-pdf__Page__textContent ::-moz-selection {
+  background: rgba(0, 0, 255, 0.3);
+}
+
+.react-pdf__Page__annotations {
+  max-width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.react-pdf__Page__annotation {
+  position: absolute;
+}
+
 .blog-content a {
   color: rgb(0, 47, 255) !important;
   text-decoration: underline;

@@ -1,18 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle, FaPaperclip } from 'react-icons/fa';
+import { Image, File } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useMentor } from '../context/MentorContext';
+import { useUser } from '../context/UserContext';
 import { useSocket } from '../context/SocketContext';
 import { ArrowLeft } from 'lucide-react';
+import SEO from '../components/SEO';
 
-const MentorChat = () => {
-  const { id } = useParams(); // Changed from userId to id
+const Chatpage = () => {
+  const { id } = useParams(); // Changed from mentorId to id
   const navigate = useNavigate();
-  const { mentor } = useMentor();
-  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isUserOnline, isMentorOnline } = useSocket();
+  const { user } = useUser();
+  const { socket, isConnected, joinChat, sendMessage: socketSendMessage, isMentorOnline, isUserOnline } = useSocket();
   const [otherPerson, setOtherPerson] = useState(null);
-  const [chatType, setChatType] = useState(null); // 'mentorToUser' or 'mentorToMentor'
+  const [chatType, setChatType] = useState(null); // 'userToMentor' or 'userToUser'
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -20,14 +22,31 @@ const MentorChat = () => {
   const [error, setError] = useState(null);
   const [chatId, setChatId] = useState(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const messagesEndRef = useRef(null);
+  const attachmentMenuRef = useRef(null);
   const initializationDone = useRef(false);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
+  // Close attachment menu when clicking outside
   useEffect(() => {
-    if (!mentor) {
-      navigate('/mentors/login');
+    const handleClickOutside = (event) => {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target)) {
+        setShowAttachmentMenu(false);
+      }
+    };
+
+    if (showAttachmentMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showAttachmentMenu]);
+
+  useEffect(() => {
+    // Only users can access user chats
+    if (!user) {
+      navigate('/login');
       return;
     }
 
@@ -35,194 +54,98 @@ const MentorChat = () => {
       initializationDone.current = true;
       initializeChat();
     }
-  }, [id, mentor, navigate]);
+  }, [id, user, navigate]);
 
   const initializeChat = async () => {
     try {
       setIsLoading(true);
       setError(null);
       setConnectionError(false);
+      setChatType(null); // Reset chat type
+      setChatId(null); // Reset chat ID
 
-      // Try mentor-to-user chat first - check if chat exists by trying to get messages
-      // Mentors can only access existing chats (users create them)
-      let messagesResponse = await fetch(`/api/mentor/chats/${id}/messages`, {
+      // Try user-to-mentor chat first
+      let chatResponse = await fetch(`/api/chats/${id}`, {
+        method: 'POST',
         credentials: 'include'
       });
-      
-      if (messagesResponse.ok) {
-        // Mentor-to-user chat exists
-        const messagesData = await messagesResponse.json();
-        setChatType('mentorToUser');
-        setChatId(messagesData.chatId);
-        setMessages(messagesData.messages || []);
-        
-        // Try multiple sources to get user data, with fallbacks
-        let userInfo = null;
-        
-        // Method 1: Try chat list (most reliable for mentors)
-        try {
-          const chatsRes = await fetch('/api/mentor/chats', { credentials: 'include' });
-          if (chatsRes.ok) {
-            const chatsData = await chatsRes.json();
-            if (chatsData.success && Array.isArray(chatsData.chats)) {
-              const chat = chatsData.chats.find(c => c.userId === id || c.userId?.toString() === id);
-              if (chat && chat.userName) {
-                userInfo = {
-                  _id: chat.userId || id,
-                  name: chat.userName,
-                  username: null, // Will try to get from user endpoint
-                  image: chat.userImage || null
-                };
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching from chat list:', err);
-        }
-        
-        // Method 2: If chat list didn't work, try user endpoint
-        if (!userInfo || !userInfo.name || userInfo.name === 'Student') {
-          try {
-            const userRes = await fetch(`/api/users/${id}`, { credentials: 'include' });
-            if (userRes.ok) {
-              const userData = await userRes.json();
-              // Note: This endpoint returns user object directly, not wrapped in { user: ... }
-              const user = userData.user || userData; // Handle both formats
-              if (user && user.name && user.name !== 'Student') {
-                userInfo = {
-                  _id: user._id || user.id || id,
-                  name: user.name,
-                  username: user.username || null,
-                  image: user.image || null
-                };
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching from user endpoint:', err);
-          }
-        }
-        
-        // Method 3: Extract from messages (last resort - messages have sender info)
-        if (!userInfo || !userInfo.name || userInfo.name === 'Student') {
-          const userMessages = (messagesData.messages || []).filter(msg => 
-            msg.senderRole === 'user' && msg.senderId && msg.senderId.toString() === id.toString()
-          );
-          if (userMessages.length > 0) {
-            const firstUserMessage = userMessages[0];
-            if (firstUserMessage.senderName && firstUserMessage.senderName !== 'Unknown') {
-              userInfo = {
-                _id: firstUserMessage.senderId || id,
-                name: firstUserMessage.senderName,
-                username: null,
-                image: firstUserMessage.senderImage || null
-              };
-            }
-          }
-        }
-        
-        // Method 4: If still no info, try to get username from user endpoint
-        if (userInfo && userInfo.name && userInfo.name !== 'Student' && !userInfo.username) {
-          try {
-            const userRes = await fetch(`/api/users/${id}`, { credentials: 'include' });
-            if (userRes.ok) {
-              const userData = await userRes.json();
-              const user = userData.user || userData;
-              if (user && user.username) {
-                userInfo.username = user.username;
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching username:', err);
-          }
-        }
-        
-        // Set the user info (with final fallback)
-        setOtherPerson(userInfo || {
-          _id: id,
-          name: 'Student',
-          username: null,
-          image: null
-        });
-        
-        
-        if (isConnected && socket && messagesData.chatId) {
-          joinChat(messagesData.chatId);
-        } else {
-          setTimeout(() => {
-            if (isConnected && socket && messagesData.chatId) {
-              joinChat(messagesData.chatId);
-            }
-          }, 100);
-          if (socket) {
-            socket.once('authenticated', () => {
-              if (messagesData.chatId) joinChat(messagesData.chatId);
-            });
-          }
-        }
-        setIsLoading(false);
-        return;
-      } else if (messagesResponse.status !== 404) {
-        // If it's not a 404, it's a real error (403, 500, etc.) - don't try mentor-to-mentor
-        const errorData = await messagesResponse.json().catch(() => ({}));
-        if (messagesResponse.status === 403) {
-          setError('Access denied. You don\'t have permission to access this chat.');
-        } else {
-          throw new Error(errorData.message || 'Failed to access chat');
-        }
-        setIsLoading(false);
-        return;
-      }
-      // If 404, continue to try mentor-to-mentor chat
 
-      // If mentor-to-user chat doesn't exist (404), try mentor-to-mentor chat
-      // Try mentor-to-mentor chat
-      let chatResponse = await fetch(`/api/mentor/mentor-chats/${id}`, {
+      let chatData;
+      
+      if (chatResponse.ok) {
+        chatData = await chatResponse.json();
+        if (chatData.success && chatData.chat) {
+          // User-to-mentor chat
+          setChatType('userToMentor');
+          setChatId(chatData.chat.chatId);
+          setOtherPerson({
+            _id: chatData.chat.mentorId,
+            name: chatData.chat.mentorName,
+            username: chatData.chat.mentorUsername,
+            image: chatData.chat.mentorImage
+          });
+          await fetchMessages(chatData.chat.chatId, 'userToMentor');
+          
+          // Join socket room after setting chatType
+          if (isConnected && socket) {
+            joinChat(chatData.chat.chatId);
+          } else {
+            setTimeout(() => {
+              if (isConnected && socket && chatData.chat.chatId) {
+                joinChat(chatData.chat.chatId);
+              }
+            }, 100);
+            if (socket) {
+              socket.once('authenticated', () => {
+                if (chatData.chat.chatId) joinChat(chatData.chat.chatId);
+              });
+            }
+          }
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // If user-to-mentor failed (404 or other error), try user-to-user chat
+      chatResponse = await fetch(`/api/user-chats/${id}`, {
         method: 'POST',
         credentials: 'include'
       });
 
       if (!chatResponse.ok) {
         const errorData = await chatResponse.json().catch(() => ({}));
-        // Handle different error cases
-        if (chatResponse.status === 404) {
-          setError('Chat not found. The user or mentor you\'re trying to chat with may not exist or you don\'t have access to this conversation.');
-        } else if (chatResponse.status === 403) {
-          setError('Access denied. You don\'t have permission to access this chat.');
-        } else {
-          throw new Error(errorData.message || 'Failed to access chat');
-        }
-        setIsLoading(false);
-        return;
+        throw new Error(errorData.message || 'Failed to access chat');
       }
 
-      const chatData = await chatResponse.json();
+      chatData = await chatResponse.json();
 
       if (!chatData.success || !chatData.chat) {
         throw new Error('Invalid chat response');
       }
 
-      // Mentor-to-mentor chat
-      setChatType('mentorToMentor');
+      // User-to-user chat
+      setChatType('userToUser');
       setChatId(chatData.chat.chatId);
       setOtherPerson({
-        _id: chatData.chat.otherMentorId,
-        name: chatData.chat.otherMentorName,
-        username: chatData.chat.otherMentorUsername,
-        image: chatData.chat.otherMentorImage
+        _id: chatData.chat.otherUserId,
+        name: chatData.chat.otherUserName,
+        username: chatData.chat.otherUserUsername,
+        image: chatData.chat.otherUserImage
       });
-      await fetchMessages(chatData.chat.chatId, 'mentorToMentor');
+      await fetchMessages(chatData.chat.chatId, 'userToUser');
 
+      // Join socket room after setting chatType
       if (isConnected && socket) {
-        socket.emit('join_mentor_to_mentor_chat', chatData.chat.chatId);
+        socket.emit('join_user_to_user_chat', chatData.chat.chatId);
       } else {
         setTimeout(() => {
           if (isConnected && socket && chatData.chat.chatId) {
-            socket.emit('join_mentor_to_mentor_chat', chatData.chat.chatId);
+            socket.emit('join_user_to_user_chat', chatData.chat.chatId);
           }
         }, 100);
         if (socket) {
           socket.once('authenticated', () => {
-            if (chatData.chat.chatId) socket.emit('join_mentor_to_mentor_chat', chatData.chat.chatId);
+            if (chatData.chat.chatId) socket.emit('join_user_to_user_chat', chatData.chat.chatId);
           });
         }
       }
@@ -230,9 +153,9 @@ const MentorChat = () => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error initializing chat:', error);
-      setError(error.message || 'Failed to load chat');
+      setError('Failed to load chat');
       setIsLoading(false);
-      toast.error(error.message || 'Failed to initialize chat');
+      toast.error('Failed to initialize chat');
     }
   };
 
@@ -240,61 +163,14 @@ const MentorChat = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Retry fetching user data if it's still "Student" after messages are loaded
-  useEffect(() => {
-    if (chatType === 'mentorToUser' && messages.length > 0 && (!otherPerson || otherPerson.name === 'Student')) {
-      // Try to extract user info from messages
-      const userMessages = messages.filter(msg => 
-        msg.senderRole === 'user' && msg.senderId && msg.senderId.toString() === id.toString()
-      );
-      if (userMessages.length > 0) {
-        const firstUserMessage = userMessages[0];
-        if (firstUserMessage.senderName && firstUserMessage.senderName !== 'Unknown' && firstUserMessage.senderName !== 'Student') {
-          setOtherPerson(prev => ({
-            ...prev,
-            _id: prev?._id || firstUserMessage.senderId || id,
-            name: firstUserMessage.senderName,
-            image: firstUserMessage.senderImage || prev?.image || null
-          }));
-        }
-      }
-      
-      // Also try fetching from user endpoint one more time
-      if (!otherPerson || otherPerson.name === 'Student') {
-        fetch(`/api/users/${id}`, { credentials: 'include' })
-          .then(res => {
-            if (res.ok) {
-              return res.json();
-            }
-            return null;
-          })
-          .then(userData => {
-            if (userData) {
-              const user = userData.user || userData; // Handle both formats
-              if (user && user.name && user.name !== 'Student') {
-                setOtherPerson({
-                  _id: user._id || user.id || id,
-                  name: user.name,
-                  username: user.username || null,
-                  image: user.image || null
-                });
-              }
-            }
-          })
-          .catch(err => {
-            console.error('Error retrying user fetch:', err);
-          });
-      }
-    }
-  }, [messages, chatType, id, otherPerson]);
-
   // Join chat room when socket becomes connected
   useEffect(() => {
+    // Only join if we have all required data
     if (isConnected && socket && chatId && chatType) {
-      if (chatType === 'mentorToUser') {
+      if (chatType === 'userToMentor') {
         joinChat(chatId);
-      } else {
-        socket.emit('join_mentor_to_mentor_chat', chatId);
+      } else if (chatType === 'userToUser') {
+        socket.emit('join_user_to_user_chat', chatId);
       }
     }
   }, [isConnected, socket, chatId, chatType, joinChat]);
@@ -308,9 +184,9 @@ const MentorChat = () => {
         // Normalize message data - ensure sender info is present
         const normalizedMessage = {
           ...message,
-          senderName: message.senderName || (message.senderId === mentor?._id || message.senderId === mentor?.id ? mentor?.name : 'Unknown'),
-          senderImage: message.senderImage || (message.senderId === mentor?._id || message.senderId === mentor?.id ? mentor?.image : null),
-          senderRole: message.senderRole || (message.senderId === mentor?._id || message.senderId === mentor?.id ? 'mentor' : 'user'),
+          senderName: message.senderName || (message.senderId === user?._id || message.senderId === user?.id ? user?.name : 'Unknown'),
+          senderImage: message.senderImage || (message.senderId === user?._id || message.senderId === user?.id ? user?.image : null),
+          senderRole: message.senderRole || (message.senderId === user?._id || message.senderId === user?.id ? 'user' : 'mentor'),
           message: message.message || message.text || '',
           createdAt: message.createdAt || message.timestamp || new Date()
         };
@@ -330,14 +206,14 @@ const MentorChat = () => {
       }
     };
 
-    const handleMentorToMentorMessage = (message) => {
+    const handleUserToUserMessage = (message) => {
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
         // Normalize message data - ensure sender info is present
         const normalizedMessage = {
           ...message,
-          senderName: message.senderName || (message.senderId === mentor?._id || message.senderId === mentor?.id ? mentor?.name : 'Unknown'),
-          senderImage: message.senderImage || (message.senderId === mentor?._id || message.senderId === mentor?.id ? mentor?.image : null),
-          senderRole: message.senderRole || 'mentor',
+          senderName: message.senderName || (message.senderId === user?._id || message.senderId === user?.id ? user?.name : 'Unknown'),
+          senderImage: message.senderImage || (message.senderId === user?._id || message.senderId === user?.id ? user?.image : null),
+          senderRole: message.senderRole || 'user',
           message: message.message || message.text || '',
           createdAt: message.createdAt || message.timestamp || new Date()
         };
@@ -358,6 +234,7 @@ const MentorChat = () => {
     };
 
     const handleMessageError = (error) => {
+      console.error('Message error:', error);
       toast.error(error.message || 'Failed to send message');
       setIsSending(false);
     };
@@ -367,9 +244,9 @@ const MentorChat = () => {
         // Normalize message data - ensure sender info is present
         const normalizedMessage = {
           ...message,
-          senderName: message.senderName || mentor?.name || 'You',
-          senderImage: message.senderImage || mentor?.image || null,
-          senderRole: message.senderRole || 'mentor',
+          senderName: message.senderName || user?.name || 'You',
+          senderImage: message.senderImage || user?.image || null,
+          senderRole: message.senderRole || 'user',
           message: message.message || message.text || '',
           createdAt: message.createdAt || message.timestamp || new Date()
         };
@@ -388,21 +265,21 @@ const MentorChat = () => {
       setTimeout(() => scrollToBottom(), 100);
     };
 
-    if (chatType === 'mentorToUser') {
+    if (chatType === 'userToMentor') {
       socket.on('receive_message', handleReceiveMessage);
       socket.on('message_sent', handleMessageSent);
     } else {
-      socket.on('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
-      socket.on('mentor_to_mentor_message_sent', handleMessageSent);
+      socket.on('receive_user_to_user_message', handleUserToUserMessage);
+      socket.on('user_to_user_message_sent', handleMessageSent);
     }
     socket.on('message_error', handleMessageError);
 
     return () => {
       socket.off('receive_message', handleReceiveMessage);
-      socket.off('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
+      socket.off('receive_user_to_user_message', handleUserToUserMessage);
       socket.off('message_error', handleMessageError);
       socket.off('message_sent', handleMessageSent);
-      socket.off('mentor_to_mentor_message_sent', handleMessageSent);
+      socket.off('user_to_user_message_sent', handleMessageSent);
     };
   }, [socket, chatId, chatType]);
 
@@ -413,12 +290,12 @@ const MentorChat = () => {
   const fetchMessages = async (chatIdParam, type) => {
     try {
       let response;
-      if (type === 'mentorToUser') {
-        response = await fetch(`/api/mentor/chats/${id}/messages`, {
+      if (type === 'userToMentor') {
+        response = await fetch(`/api/chats/${id}/messages`, {
           credentials: 'include'
         });
       } else {
-        response = await fetch(`/api/mentor/mentor-chats/${id}/messages`, {
+        response = await fetch(`/api/user-chats/${id}/messages`, {
           credentials: 'include'
         });
       }
@@ -439,7 +316,7 @@ const MentorChat = () => {
             ...msg,
             senderName: msg.senderName || 'Unknown',
             senderImage: msg.senderImage || null,
-            senderRole: msg.senderRole || (msg.senderId === mentor?._id || msg.senderId === mentor?.id ? 'mentor' : 'user'),
+            senderRole: msg.senderRole || (msg.senderId === user?._id || msg.senderId === user?.id ? 'user' : 'mentor'),
             message: msg.message || msg.text || '',
             createdAt: msg.createdAt || msg.timestamp || new Date()
           };
@@ -473,21 +350,15 @@ const MentorChat = () => {
     setNewMessage('');
     setIsSending(true);
 
-    if (chatType === 'mentorToUser') {
-      // Check if this is a reply to an existing conversation
-      if (messages.length === 0) {
-        toast.error('You can only reply to existing conversations');
-        setIsSending(false);
-        return;
-      }
+    if (chatType === 'userToMentor') {
       socketSendMessage({
         chatId,
-        senderId: mentor._id,
+        senderId: user._id,
         message: messageToSend,
-        senderRole: 'mentor'
+        senderRole: 'user'
       });
     } else {
-      socket.emit('send_mentor_to_mentor_message', {
+      socket.emit('send_user_to_user_message', {
         chatId,
         message: messageToSend
       });
@@ -540,7 +411,12 @@ const MentorChat = () => {
     <main
       className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex flex-col transition-all duration-300 relative selection:bg-[#9f3562]/20 selection:text-[#9f3562]"
     >
-      
+      <SEO
+        title={`${otherPerson?.name || 'Chat'} | Admeasy`}
+        description={`Chat with ${otherPerson?.name || 'User'} on Admeasy`}
+        keywords={`${otherPerson?.name || 'Chat'}, chat, messages, communication`}
+        url={`https://admeasy.in/chats/${id}`}
+      />
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
@@ -548,13 +424,13 @@ const MentorChat = () => {
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
-      
+
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-xl shadow-sm border-b border-gray-200 z-50 sticky top-0">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/mentor/chats')}
+              onClick={() => navigate('/chats')}
               className="text-xl p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-700 hover:text-[#9f3562] cursor-pointer relative z-10"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -562,38 +438,25 @@ const MentorChat = () => {
 
             <div className="flex items-center gap-3">
               <div className="relative">
-                {otherPerson?.username ? (
-                  <Link
-                    to={`/${otherPerson.username}`}
-                    className="cursor-pointer relative block"
-                  >
-                    <img
-                      src={otherPerson?.image || fallbackProfilePic}
-                      alt={otherPerson?.name || (chatType === 'mentorToUser' ? 'Student' : 'Mentor')}
-                      className="w-10 h-10 rounded-full object-cover transition-all"
-                      onError={(e) => {
-                        e.target.src = fallbackProfilePic;
-                      }}
-                    />
-                  </Link>
-                ) : (
-                  <div className="cursor-pointer relative block">
-                    <img
-                      src={otherPerson?.image || fallbackProfilePic}
-                      alt={otherPerson?.name || (chatType === 'mentorToUser' ? 'Student' : 'Mentor')}
-                      className="w-10 h-10 rounded-full object-cover transition-all"
-                      onError={(e) => {
-                        e.target.src = fallbackProfilePic;
-                      }}
-                    />
-                  </div>
-                )}
+                <Link
+                  to={`/${otherPerson?.username}`}
+                  className="cursor-pointer relative block"
+                >
+                  <img
+                    src={otherPerson?.image || fallbackProfilePic}
+                    alt={otherPerson?.name || 'User'}
+                    className="w-10 h-10 rounded-full object-cover transition-all"
+                    onError={(e) => {
+                      e.target.src = fallbackProfilePic;
+                    }}
+                  />
+                </Link>
                 {id && (
                   <div className="absolute -bottom-0 -right-0">
                     <FaCircle
                       className={`text-xs z-15 ${
-                        (chatType === 'mentorToUser' && isUserOnline(id)) || 
-                        (chatType === 'mentorToMentor' && isMentorOnline(id))
+                        (chatType === 'userToMentor' && isMentorOnline(id)) || 
+                        (chatType === 'userToUser' && isUserOnline(id))
                           ? 'text-green-500' 
                           : 'text-gray-400'
                       }`}
@@ -603,33 +466,21 @@ const MentorChat = () => {
               </div>
               <div>
                 <h2 className="font-semibold text-gray-900">
-                  {otherPerson?.name || (chatType === 'mentorToUser' ? 'Student' : 'Mentor')}
+                  {otherPerson?.name || 'User'}
                 </h2>
                 <div className="flex items-center gap-2">
-                  {otherPerson?.username && (
-                    <p className="text-sm text-gray-500">
-                      @{otherPerson.username}
-                    </p>
-                  )}
-                  {!otherPerson?.username && chatType === 'mentorToUser' && (
-                    <p className="text-sm text-gray-500">
-                      Student
-                    </p>
-                  )}
-                  {!otherPerson?.username && chatType === 'mentorToMentor' && (
-                    <p className="text-sm text-gray-500">
-                      Mentor
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-500">
+                    {otherPerson?.username || 'User'}
+                  </p>
                   {id && (
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      (chatType === 'mentorToUser' && isUserOnline(id)) || 
-                      (chatType === 'mentorToMentor' && isMentorOnline(id))
+                      (chatType === 'userToMentor' && isMentorOnline(id)) || 
+                      (chatType === 'userToUser' && isUserOnline(id))
                         ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-600'
                     }`}>
-                      {(chatType === 'mentorToUser' && isUserOnline(id)) || 
-                       (chatType === 'mentorToMentor' && isMentorOnline(id))
+                      {(chatType === 'userToMentor' && isMentorOnline(id)) || 
+                       (chatType === 'userToUser' && isUserOnline(id))
                         ? 'Online' 
                         : 'Offline'}
                     </span>
@@ -666,12 +517,10 @@ const MentorChat = () => {
             <div className="text-center py-12 bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/50">
               <FaUser className="mx-auto text-6xl text-[#9f3562]/30 mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No conversation yet
+                Start a conversation
               </h3>
               <p className="text-gray-600">
-                {chatType === 'mentorToUser' 
-                  ? 'This student hasn\'t started a conversation with you yet. You can only reply to messages they send you.'
-                  : 'Send your first message to begin chatting with this mentor'}
+                Send your first message to begin chatting with {otherPerson?.name || 'this user'}
               </p>
             </div>
           )}
@@ -682,10 +531,10 @@ const MentorChat = () => {
               const senderId = message.senderId;
               const senderName = message.senderName || 'Unknown';
               const senderImage = message.senderImage || fallbackProfilePic;
-              const senderRole = message.senderRole || (message.senderId === mentor?._id || message.senderId === mentor?.id ? 'mentor' : 'user');
+              const senderRole = message.senderRole || (message.senderId === user?._id || message.senderId === user?.id ? 'user' : 'mentor');
               
-              // Determine if message is from current mentor
-              const isMentor = senderId === mentor?._id || senderId === mentor?.id || senderRole === 'mentor';
+              // Determine if message is from current user
+              const isUser = senderId === user?._id || senderId === user?.id || senderRole === 'user';
               
               // Check if previous message is from same sender
               const prevMessage = index > 0 ? messages[index - 1] : null;
@@ -697,10 +546,10 @@ const MentorChat = () => {
               return (
                 <div
                   key={message._id || `msg-${index}`}
-                  className={`flex items-end gap-2 ${isMentor ? 'justify-end' : 'justify-start'}`}
+                  className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   {/* Sender Avatar - only show if not from same sender as previous message */}
-                  {!isPreviousMessageFromSameSender && !isMentor && (
+                  {!isPreviousMessageFromSameSender && !isUser && (
                     <div className="flex-shrink-0">
                       <img
                         src={senderImage || fallbackProfilePic}
@@ -715,29 +564,29 @@ const MentorChat = () => {
                   
                   {/* Message Bubble */}
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${isMentor
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${isUser
                       ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-br-md'
                       : 'bg-white/95 backdrop-blur-sm text-gray-900 rounded-bl-md border border-gray-200'
                       } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
                   >
                     {/* Sender Name - only show if not from same sender as previous message */}
-                    {!isPreviousMessageFromSameSender && !isMentor && (
+                    {!isPreviousMessageFromSameSender && !isUser && (
                       <p className="text-xs font-semibold text-gray-700 mb-1">{senderName}</p>
                     )}
                     
                     <p className="text-sm leading-relaxed">{message.message || message.text || ''}</p>
-                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMentor ? 'text-pink-100' : 'text-gray-500'}`}>
+                    <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isUser ? 'text-pink-100' : 'text-gray-500'}`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
-                      {isMentor && getMessageStatus(message)}
+                      {isUser && getMessageStatus(message)}
                     </div>
                   </div>
                   
-                  {/* Sender Avatar for mentor messages - only show if not from same sender */}
-                  {!isPreviousMessageFromSameSender && isMentor && (
+                  {/* Sender Avatar for user messages - only show if not from same sender */}
+                  {!isPreviousMessageFromSameSender && isUser && (
                     <div className="flex-shrink-0">
                       <img
-                        src={mentor?.image || mentor?.imageUrl || fallbackProfilePic}
-                        alt={mentor?.name || 'You'}
+                        src={user?.image || user?.imageUrl || fallbackProfilePic}
+                        alt={user?.name || 'You'}
                         className="w-8 h-8 rounded-full object-cover ring-2 ring-[#9f3562]/30"
                         onError={(e) => {
                           e.target.src = fallbackProfilePic;
@@ -754,7 +603,7 @@ const MentorChat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="backdrop-blur-xl max-[400px]:p-1.5 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg">
+      <div className="backdrop-blur-xl max-[400px]:p-1.5 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg bg-white/95">
         <div className="max-w-4xl mx-auto">
           {/* Connection Status */}
           {!isConnected && (
@@ -765,27 +614,102 @@ const MentorChat = () => {
             </div>
           )}
 
-          <form onSubmit={sendMessage} className="flex gap-3">
+          <form onSubmit={sendMessage} className="flex items-center gap-2 relative">
+            {/* Attachment Icon - Left Side */}
+            <div className="relative" ref={attachmentMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                onMouseEnter={() => {
+                  // Only show on hover for desktop (screens wider than 768px)
+                  if (window.innerWidth > 768) {
+                    setShowAttachmentMenu(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  // Only hide on hover leave for desktop
+                  if (window.innerWidth > 768) {
+                    setShowAttachmentMenu(false);
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#9f3562] flex-shrink-0"
+                disabled={isSending || !isConnected}
+              >
+                <FaPaperclip className="w-5 h-5" />
+              </button>
+
+              {/* Attachment Menu Popup - Compact */}
+              {showAttachmentMenu && (
+                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5 min-w-[140px] z-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAttachmentMenu(false);
+                      toast.info('Coming soon!', {
+                        position: 'bottom-center',
+                        autoClose: 2000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center flex-shrink-0">
+                      <Image className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-900">Photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAttachmentMenu(false);
+                      toast.info('Coming soon!', {
+                        position: 'bottom-center',
+                        autoClose: 2000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 bg-purple-100 rounded-md flex items-center justify-center flex-shrink-0">
+                      <File className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-900">Document</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Input Field - Full Width with Padding Equal to Icon Width */}
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={`Message ${otherPerson?.name || (chatType === 'mentorToUser' ? 'student' : 'mentor')}...`}
-              className="flex-1 max-[400px]:pl-2.25 px-4 max-[400px]:py-0.5 py-3 max-[400px]:text-sm bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
-              disabled={isSending || !isConnected || messages.length === 0}
+              placeholder={`Message ${otherPerson?.name || 'user'}...`}
+              className="flex-1 w-full py-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm text-sm sm:text-base placeholder:text-xs sm:placeholder:text-sm"
+              style={{
+                paddingLeft: '2.5rem', // Equal to icon width (40px = 2.5rem)
+                paddingRight: '2.5rem', // Equal to icon width (40px = 2.5rem)
+              }}
+              disabled={isSending || !isConnected}
             />
+
+            {/* Send Icon - Right Side */}
             <button
               type="submit"
-              disabled={!newMessage.trim() || isSending || !isConnected || messages.length === 0}
-              className={`px-6 py-3 rounded-full transition-all duration-300 flex items-center gap-2 shadow-sm ${newMessage.trim() && !isSending && isConnected && messages.length > 0
-                ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white hover:scale-105 active:scale-95'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+              disabled={!newMessage.trim() || isSending || !isConnected}
+              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 flex-shrink-0 ${
+                newMessage.trim() && !isSending && isConnected
+                  ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white hover:scale-105 active:scale-95'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
-              <FaPaperPlane className="text-sm" />
-              <span className="max-[400px]:hidden">
-                {isSending ? 'Sending...' : isConnected ? 'Reply' : 'Offline'}
-              </span>
+              <FaPaperPlane className="w-4 h-4" />
             </button>
           </form>
         </div>
@@ -794,4 +718,4 @@ const MentorChat = () => {
   );
 };
 
-export default MentorChat;
+export default Chatpage;

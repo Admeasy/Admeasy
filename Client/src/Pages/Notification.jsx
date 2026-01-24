@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
-import { ArrowLeft, Heart, UserPlus, MessageCircle, ThumbsUp, Repeat2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Heart, UserPlus, MessageCircle, ThumbsUp, Repeat2, Image as ImageIcon, Bell } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
+import { enableNotifications } from '../Firebase/enableNotifications';
 
 const Notification = () => {
   const { user } = useUser();
@@ -128,6 +129,19 @@ const Notification = () => {
     return notificationDate.toLocaleDateString();
   };
 
+  const handleEnableNotifications = async () => {
+    const loggedInAccount = user || mentor;
+    if (!loggedInAccount) return;
+    
+    const role = mentor ? 'mentor' : 'user';
+    // Force re-request permission even if previously denied
+    await enableNotifications(loggedInAccount._id, role, true);
+  };
+
+  const isNotificationPermissionGranted = typeof window !== 'undefined' && 
+    'Notification' in window && 
+    Notification.permission === 'granted';
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -146,14 +160,25 @@ const Notification = () => {
       
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+          </div>
+          {!isNotificationPermissionGranted && (
+            <button
+              onClick={handleEnableNotifications}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+            >
+              <Bell className="w-4 h-4" />
+              Enable Notifications
+            </button>
+          )}
         </div>
       </div>
 
@@ -203,43 +228,89 @@ const Notification = () => {
                   <div className="flex items-start gap-3">
                     {/* Actor Profile Picture */}
                     <div className="flex-shrink-0">
-                      <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative">
-                        {actorImage ? (
-                          <img
-                            src={actorImage}
-                            alt={actorDisplayName || 'User'}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              console.error('Failed to load actor image:', actorImage);
-                              e.target.style.display = 'none';
-                              if (e.target.nextSibling) {
-                                e.target.nextSibling.style.display = 'flex';
-                              }
-                            }}
-                            onLoad={() => {
-                              // Hide fallback when image loads successfully
-                              const fallback = document.querySelector(`[data-fallback-${notification._id}]`);
-                              if (fallback) {
-                                fallback.style.display = 'none';
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          data-fallback={notification._id}
-                          className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${
-                            actorImage ? 'hidden' : 'flex'
-                          }`}
-                          style={{
-                            backgroundColor: showActorName && actorDisplayName 
-                              ? `hsl(${(actorDisplayName.charCodeAt(0) || 0) * 137.508 % 360}, 70%, 50%)`
-                              : 'hsl(0, 0%, 60%)',
+                      {actor.username ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/${actor.username}`);
                           }}
+                          className="w-11 h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative hover:opacity-80 transition-opacity cursor-pointer"
                         >
-                          {showActorName && actorDisplayName ? actorDisplayName.charAt(0).toUpperCase() : '?'}
+                          {actorImage ? (
+                            <img
+                              src={actorImage}
+                              alt={actorDisplayName || 'User'}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                console.error('Failed to load actor image:', actorImage);
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) {
+                                  e.target.nextSibling.style.display = 'flex';
+                                }
+                              }}
+                              onLoad={() => {
+                                // Hide fallback when image loads successfully
+                                const fallback = document.querySelector(`[data-fallback-${notification._id}]`);
+                                if (fallback) {
+                                  fallback.style.display = 'none';
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            data-fallback={notification._id}
+                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${
+                              actorImage ? 'hidden' : 'flex'
+                            }`}
+                            style={{
+                              backgroundColor: showActorName && actorDisplayName 
+                                ? `hsl(${(actorDisplayName.charCodeAt(0) || 0) * 137.508 % 360}, 70%, 50%)`
+                                : 'hsl(0, 0%, 60%)',
+                            }}
+                          >
+                            {showActorName && actorDisplayName ? actorDisplayName.charAt(0).toUpperCase() : '?'}
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative">
+                          {actorImage ? (
+                            <img
+                              src={actorImage}
+                              alt={actorDisplayName || 'User'}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                console.error('Failed to load actor image:', actorImage);
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) {
+                                  e.target.nextSibling.style.display = 'flex';
+                                }
+                              }}
+                              onLoad={() => {
+                                // Hide fallback when image loads successfully
+                                const fallback = document.querySelector(`[data-fallback-${notification._id}]`);
+                                if (fallback) {
+                                  fallback.style.display = 'none';
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            data-fallback={notification._id}
+                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${
+                              actorImage ? 'hidden' : 'flex'
+                            }`}
+                            style={{
+                              backgroundColor: showActorName && actorDisplayName 
+                                ? `hsl(${(actorDisplayName.charCodeAt(0) || 0) * 137.508 % 360}, 70%, 50%)`
+                                : 'hsl(0, 0%, 60%)',
+                            }}
+                          >
+                            {showActorName && actorDisplayName ? actorDisplayName.charAt(0).toUpperCase() : '?'}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Notification Content */}
@@ -247,7 +318,20 @@ const Notification = () => {
                       <p className="text-gray-900 text-sm leading-relaxed">
                         {showActorName && (
                           <>
-                            <span className="font-semibold">{actorDisplayName}</span>{' '}
+                            {actor.username ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/${actor.username}`);
+                                }}
+                                className="font-semibold hover:underline hover:text-[#9f3562] cursor-pointer transition-colors"
+                              >
+                                {actorDisplayName}
+                              </button>
+                            ) : (
+                              <span className="font-semibold">{actorDisplayName}</span>
+                            )}
+                            {' '}
                           </>
                         )}
                         <span className="text-gray-600">{displayMessage}</span>

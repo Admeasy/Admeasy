@@ -21,7 +21,7 @@ const mentorForgotPassword = async (req, res) => {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
     mentor.resetPasswordToken = tokenHash;
-    mentor.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
+    mentor.resetPasswordExpire = Date.now() + 30 * 60 * 1000; // 30 min
     await mentor.save({ validateBeforeSave: false });
 
     // Reset URL
@@ -50,7 +50,7 @@ const mentorForgotPassword = async (req, res) => {
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2>🔐 Reset Your Mentor Password</h2>
             <p>You requested a password reset for your mentor account.</p>
-            <p>This link is valid for <strong>10 minutes</strong>.</p>
+            <p>This link is valid for <strong>30 minutes</strong>.</p>
             <a href="${resetURL}" style="
               display:inline-block;
               padding:12px 18px;
@@ -87,20 +87,73 @@ const mentorForgotPassword = async (req, res) => {
  */
 const mentorResetPassword = async (req, res) => {
   const { password } = req.body;
-  const { token } = req.params;
+  let { token } = req.params;
 
+  // Validate password is provided
+  if (!password || password.trim() === '') {
+    return res.status(400).json({ message: "Password is required." });
+  }
+
+  // Validate password meets requirements
+  if (password.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters long." });
+  }
+
+  // Decode URL-encoded token (handles special characters like #, %, etc.)
+  // Express automatically decodes URL params, but we'll decode again to be safe
+  try {
+    // Only decode if it looks URL-encoded (contains %)
+    if (token.includes('%')) {
+      token = decodeURIComponent(token);
+    }
+  } catch (decodeErr) {
+    // If decoding fails, use original token
+    console.error('Token decode error:', decodeErr);
+  }
+
+  // Validate token format (should be hex string, 64 characters for 32 bytes)
+  // Hex strings only contain 0-9 and a-f
+  if (!token || typeof token !== 'string' || token.length !== 64 || !/^[0-9a-f]{64}$/i.test(token)) {
+    console.error('Invalid token format:', { tokenLength: token?.length, tokenType: typeof token, tokenPreview: token?.substring(0, 10) });
+    return res.status(400).json({ message: "Invalid token format." });
+  }
+
+  // Hash the token for comparison
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
   try {
+    // Find mentor with matching token and non-expired token
     const mentor = await Mentor.findOne({
       resetPasswordToken: tokenHash,
       resetPasswordExpire: { $gt: Date.now() },
     });
 
     if (!mentor) {
+      // Check if token exists but is expired
+      const expiredMentor = await Mentor.findOne({
+        resetPasswordToken: tokenHash,
+      });
+      
+      if (expiredMentor) {
+        return res.status(400).json({ message: "Token has expired. Please request a new password reset link." });
+      }
+      
+      // Debug: Check if any mentors have reset tokens (for debugging)
+      const mentorsWithTokens = await Mentor.countDocuments({ 
+        resetPasswordToken: { $exists: true, $ne: null } 
+      });
+      
+      console.log('Reset password debug:', {
+        tokenLength: token.length,
+        tokenHashLength: tokenHash.length,
+        mentorsWithTokens: mentorsWithTokens,
+        currentTime: Date.now()
+      });
+      
       return res.status(400).json({ message: "Invalid or expired token." });
     }
 
+    // Hash the new password
     mentor.password = await bcrypt.hash(password, 10);
     mentor.resetPasswordToken = undefined;
     mentor.resetPasswordExpire = undefined;
@@ -109,6 +162,7 @@ const mentorResetPassword = async (req, res) => {
 
     res.json({ message: "Password updated successfully!" });
   } catch (error) {
+    console.error('Mentor reset password error:', error);
     res.status(500).json({ message: "Reset password error. Try again later." });
   }
 };
