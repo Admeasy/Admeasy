@@ -25,6 +25,9 @@ router.post('/chats/:mentorId/messages', authenticateJWT, requireUserToMentorCha
 // Mentor routes (require mentor authentication)
 router.get('/mentor/chats', authenticateMentorJWT, chatController.getMentorChats);
 
+// Get or access existing chat between mentor and user (mentor accessing user chat)
+router.post('/mentor/chats/:userId', authenticateMentorJWT, chatController.getMentorToUserChat);
+
 // Get messages for a specific user-to-mentor chat (mentor accessing user chat)
 router.get('/mentor/chats/:userId/messages', authenticateMentorJWT, requireUserToMentorChatParticipant, chatController.getUserToMentorChatMessages);
 

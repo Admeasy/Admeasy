@@ -462,6 +462,58 @@ const createOrGetUserToMentorChat = async (req, res) => {
     }
 };
 
+// Get existing chat between mentor and user (mentor accessing user chat)
+// Mentors can only access existing chats, they cannot create new ones
+const getMentorToUserChat = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const mentorId = req.mentor.id;
+
+        // Verify user exists
+        const UserModel = Users.model('Users');
+        const user = await UserModel.findById(userId).select('name username image').lean();
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Try to find existing chat
+        const chat = await UserToMentorChat.findOne({
+            userId,
+            mentorId,
+            isActive: true
+        });
+
+        // If no chat exists, return 404 (mentors cannot initiate chats)
+        if (!chat) {
+            return res.status(404).json({
+                success: false,
+                message: 'Chat not found. You can only access chats that have been initiated by users.'
+            });
+        }
+
+        res.json({
+            success: true,
+            chat: {
+                chatId: chat._id,
+                userId: user._id,
+                userName: user.name || 'Student',
+                userUsername: user.username,
+                userImage: user.image,
+                createdAt: chat.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Error getting mentor-to-user chat:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to access chat'
+        });
+    }
+};
+
 // ========== USER-TO-USER CHAT CONTROLLERS ==========
 
 // Get user's user-to-user chat inbox (all users they've chatted with)
@@ -1414,6 +1466,7 @@ module.exports = {
     getUserToMentorChatMessages,
     sendUserToMentorMessage,
     createOrGetUserToMentorChat,
+    getMentorToUserChat,
     // User-to-user chat exports
     getUserToUserChats,
     getUserToUserChatMessages,

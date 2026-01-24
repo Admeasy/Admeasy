@@ -68,15 +68,15 @@ const NotificationBell = () => {
       </style>
       <button
         onClick={() => navigate('/notifications')}
-        className={`fixed top-20 right-6 z-50 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 ${
+        className={`absolute top-4 right-4 sm:top-6 sm:right-6 md:top-20 md:right-6 z-50 bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 ${
           isShaking ? 'shake-animation' : ''
         }`}
         aria-label="Notifications"
       >
         <div className="relative">
-          <Bell className={`w-6 h-6 ${notificationCount > 0 ? 'text-purple-600' : 'text-gray-700'}`} />
+          <Bell className={`w-5 h-5 sm:w-6 sm:h-6 ${notificationCount > 0 ? 'text-purple-600' : 'text-gray-700'}`} />
           {notificationCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+            <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
               {notificationCount > 99 ? '99+' : notificationCount}
             </span>
           )}

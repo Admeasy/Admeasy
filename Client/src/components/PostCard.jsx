@@ -28,12 +28,12 @@ const PostCard = ({ post, onPostUpdate }) => {
       // Always sync isLiked, likesCount, and other state from props to ensure consistency
       setPostState(prev => {
         // Only update if there are actual changes to avoid unnecessary re-renders
-        if (prev._id !== post._id || 
-            prev.isLiked !== post.isLiked || 
-            prev.likesCount !== post.likesCount ||
-            prev.isReposted !== post.isReposted ||
-            prev.repostCount !== post.repostCount ||
-            prev.commentsCount !== post.commentsCount) {
+        if (prev._id !== post._id ||
+          prev.isLiked !== post.isLiked ||
+          prev.likesCount !== post.likesCount ||
+          prev.isReposted !== post.isReposted ||
+          prev.repostCount !== post.repostCount ||
+          prev.commentsCount !== post.commentsCount) {
           return { ...post };
         }
         return prev;
@@ -321,8 +321,7 @@ const PostCard = ({ post, onPostUpdate }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       onClick={() => navigate(`/posts/${post._id}`)}
-      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
-    >
+      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative">
       <style>{`
         .post-content h1, .post-content h2, .post-content h3 {
           font-weight: 700;
@@ -431,7 +430,6 @@ const PostCard = ({ post, onPostUpdate }) => {
               )}
             </motion.button>
           )}
-          <span className="text-xs font-medium text-gray-400 flex-shrink-0 px-2.5 py-1 bg-gray-50 rounded-full">{formatDate(post.createdAt)}</span>
         </div>
 
         {/* Post Content */}
@@ -597,6 +595,7 @@ const PostCard = ({ post, onPostUpdate }) => {
             <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
           </motion.button>
         </div>
+        <h6 className="text-xs font-medium text-gray-400 flex-shrink-0 mx-5 sm:mx-6 mb-1 sm:mb-2 text-right">{formatDate(post.createdAt)}</h6>
       </div>
     </motion.div>
   );

@@ -57,17 +57,13 @@ const MentorChat = () => {
           // Mentor-to-user chat - need to fetch messages
           setChatType('mentorToUser');
           setChatId(chatData.chat.chatId);
-          // Fetch user details
-          const userRes = await fetch(`/api/users/${id}`, { credentials: 'include' });
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            setOtherPerson({
-              _id: userData.user?._id || id,
-              name: userData.user?.name || 'Student',
-              username: userData.user?.username,
-              image: userData.user?.image
-            });
-          }
+          // Use user details from chat response or fetch separately
+          setOtherPerson({
+            _id: chatData.chat.userId || id,
+            name: chatData.chat.userName || 'Student',
+            username: chatData.chat.userUsername,
+            image: chatData.chat.userImage
+          });
           await fetchMessages(chatData.chat.chatId, 'mentorToUser');
           
           if (isConnected && socket) {
@@ -87,6 +83,9 @@ const MentorChat = () => {
           setIsLoading(false);
           return;
         }
+      } else if (chatResponse.status === 404) {
+        // Chat doesn't exist yet - try mentor-to-mentor chat as fallback
+        // If that also fails, we'll show an appropriate error
       }
 
       // Try mentor-to-mentor chat
@@ -96,7 +95,12 @@ const MentorChat = () => {
       });
 
       if (!chatResponse.ok) {
-        throw new Error('Failed to access chat');
+        const errorData = await chatResponse.json().catch(() => ({}));
+        // If both failed, show a helpful error message
+        if (chatResponse.status === 404) {
+          throw new Error(errorData.message || 'Chat not found. You can only access chats that have been initiated.');
+        }
+        throw new Error(errorData.message || 'Failed to access chat');
       }
 
       chatData = await chatResponse.json();
@@ -268,6 +272,10 @@ const MentorChat = () => {
       }
     }
   };
+
+  // Determine when the input should be disabled
+  const isInputDisabled =
+    isSending || !isConnected || (chatType === 'mentorToUser' && messages.length === 0);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -510,19 +518,25 @@ const MentorChat = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder={`Message ${otherPerson?.name || (chatType === 'mentorToUser' ? 'student' : 'mentor')}...`}
               className="flex-1 max-[400px]:pl-2.25 px-4 max-[400px]:py-0.5 py-3 max-[400px]:text-sm bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
-              disabled={isSending || !isConnected || messages.length === 0}
+              disabled={isInputDisabled}
             />
             <button
               type="submit"
-              disabled={!newMessage.trim() || isSending || !isConnected || messages.length === 0}
-              className={`px-6 py-3 rounded-full transition-all duration-300 flex items-center gap-2 shadow-sm ${newMessage.trim() && !isSending && isConnected && messages.length > 0
+              disabled={!newMessage.trim() || isInputDisabled}
+              className={`px-6 py-3 rounded-full transition-all duration-300 flex items-center gap-2 shadow-sm ${newMessage.trim() && !isInputDisabled
                 ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white hover:scale-105 active:scale-95'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
             >
               <FaPaperPlane className="text-sm" />
               <span className="max-[400px]:hidden">
-                {isSending ? 'Sending...' : isConnected ? 'Reply' : 'Offline'}
+                {isSending
+                  ? 'Sending...'
+                  : !isConnected
+                    ? 'Offline'
+                    : chatType === 'mentorToUser'
+                      ? 'Reply'
+                      : 'Send'}
               </span>
             </button>
           </form>

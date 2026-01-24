@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Users } = require('../db');
+const { Admeasy } = require('../db');
 
 const userToUserMessageSchema = new mongoose.Schema({
     // Reference to the user-to-user chat this message belongs to
@@ -67,4 +67,4 @@ userToUserMessageSchema.index({ chatId: 1, createdAt: 1 }); // For fetching mess
 userToUserMessageSchema.index({ senderId: 1, createdAt: -1 }); // For user message history
 userToUserMessageSchema.index({ chatId: 1, senderId: 1, createdAt: -1 }); // For last message queries
 
-module.exports = Users.model('UserToUserMessage', userToUserMessageSchema);
+module.exports = Admeasy.model('UserToUserMessage', userToUserMessageSchema);

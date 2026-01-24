@@ -166,7 +166,7 @@ const Feed = () => {
         <div className="w-full max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
 
           {/* Header */}
-          <div className="mb-8 sm:mb-14">
+          <div className="w-9/10 mb-8 sm:mb-14">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
               <div className="flex-1">
                 <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight">

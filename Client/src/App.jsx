@@ -25,8 +25,6 @@ import Course from './Pages/Course'
 import Notes from './Pages/Notes';
 import NotesSearch from './Pages/NotesSearch';
 import AddNote from './Pages/AddNote';
-import SignUp from './Pages/SignUp'
-import LogIn from './Pages/LogIn'
 import EditProfile from './Pages/EditProfile'
 import Admin from './Pages/Admin'
 import ForgotPassword from './Pages/ForgotPassword';
@@ -62,7 +60,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import AuthPage from './components/AuthPage';
 import Feed from './Pages/Feed';
 import PostDetail from './Pages/PostDetail';
-import MentorPost from './Pages/MentorPost';
+import CreatePost from './Pages/CreatePost';
 import Layout from './components/Layout';
 import Explore from "./Pages/Explore"
 import BottomNavBar from './components/BottomNavBar';
@@ -293,7 +291,7 @@ function App() {
 
           {/* Posts */}
           <Route path="/posts/:postId" element={<PostDetail />} />
-          <Route path="/posts/create" element={<MentorPost />} />
+          <Route path="/posts/create" element={<CreatePost />} />
         </Route>
 
         {/* ================= NO SIDEBAR ROUTES ================= */}
