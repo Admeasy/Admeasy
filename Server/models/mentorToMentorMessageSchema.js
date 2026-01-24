@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Admeasy } = require('../db');
+const { Chats } = require('../db');
 
 const mentorToMentorMessageSchema = new mongoose.Schema({
     // Reference to the mentor-to-mentor chat this message belongs to
@@ -67,4 +67,4 @@ mentorToMentorMessageSchema.index({ chatId: 1, createdAt: 1 }); // For fetching 
 mentorToMentorMessageSchema.index({ senderId: 1, createdAt: -1 }); // For mentor message history
 mentorToMentorMessageSchema.index({ chatId: 1, senderId: 1, createdAt: -1 }); // For last message queries
 
-module.exports = Admeasy.model('MentorToMentorMessage', mentorToMentorMessageSchema);
+module.exports = Chats.model('MentorToMentorMessage', mentorToMentorMessageSchema);

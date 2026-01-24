@@ -54,6 +54,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
 import ManagePosts from './Pages/ManagePosts';
+import ManageSpaces from './Pages/ManageSpaces';
 import BlogDetail from './Pages/BlogDetail';
 import Notification from './Pages/Notification';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -71,6 +72,8 @@ import FeedbackBanner from './components/FeedbackBanner';
 import SubscriptionPlans from './Pages/SubscriptionPlans';
 import MySubscriptions from './Pages/MySubscriptions';
 import CheckPayments from './Pages/CheckPayments';
+import Spaces from './Pages/Spaces';
+import Space from './Pages/Space';
 
 function App() {
   const location = useLocation();
@@ -138,6 +141,8 @@ function App() {
     '/my-subscriptions',
     '/:username',
     '/explore',
+    '/spaces',
+    '/spaces/:id',
     '/mentors',
     '/colleges',
     '/blog',
@@ -292,6 +297,9 @@ function App() {
           {/* Posts */}
           <Route path="/posts/:postId" element={<PostDetail />} />
           <Route path="/posts/create" element={<CreatePost />} />
+          {/* Spaces */}
+          <Route path="/spaces" element={<Spaces />} />
+          <Route path="/spaces/:id" element={<Space />} />
         </Route>
 
         {/* ================= NO SIDEBAR ROUTES ================= */}
@@ -351,6 +359,7 @@ function App() {
         <Route path="/admin/applications/:job" element={<JobApplications />} />
         <Route path="/admin/notes" element={<ManageNotes />} />
         <Route path="/admin/posts" element={<ManagePosts />} />
+        <Route path="/admin/spaces" element={<ManageSpaces />} />
         <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
         <Route path="/admin/payments" element={<CheckPayments />} />
 

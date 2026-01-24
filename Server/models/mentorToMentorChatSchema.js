@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Admeasy } = require('../db');
+const { Chats } = require('../db');
 
 const mentorToMentorChatSchema = new mongoose.Schema({
     // Chat participants - two mentors
@@ -59,4 +59,4 @@ mentorToMentorChatSchema.index({ updatedAt: -1 }); // For sorting recent chats
 mentorToMentorChatSchema.index({ mentor1Id: 1, updatedAt: -1 }); // For mentor1 inbox
 mentorToMentorChatSchema.index({ mentor2Id: 1, updatedAt: -1 }); // For mentor2 inbox
 
-module.exports = Admeasy.model('MentorToMentorChat', mentorToMentorChatSchema);
+module.exports = Chats.model('MentorToMentorChat', mentorToMentorChatSchema);

@@ -18,6 +18,7 @@ const ApplicationsRoutes = require('./routes/applicationRoutes');
 const MessageRoutes = require('./routes/messageRoutes');
 const AdminRoutes = require('./routes/adminRoutes');
 const NoteRoutes = require('./routes/noteRoutes');
+const SpaceRoutes = require('./routes/spaceRoutes');
 const PaymentRoutes = require('./routes/paymentRoutes');
 const ChatRoutes = require('./routes/chatRoutes');
 const SitemapRoutes = require('./routes/sitemapRoutes')
@@ -316,6 +317,7 @@ app.use('/api/messages', MessageRoutes);
 app.use('/api/enrollments', EnrollmentsRoutes);
 app.use('/api/blog', BlogRoutes);
 app.use('/api/notes', NoteRoutes);
+app.use('/api/spaces', SpaceRoutes);
 app.use('/api', ChatRoutes);
 app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', PostRoutes);

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Admeasy } = require('../db');
+const { Chats } = require('../db');
 
 const userToMentorMessageSchema = new mongoose.Schema({
     // Reference to the user-to-mentor chat this message belongs to
@@ -90,4 +90,4 @@ userToMentorMessageSchema.pre('save', async function(next) {
     }
 });
 
-module.exports = Admeasy.model('UserToMentorMessage', userToMentorMessageSchema);
+module.exports = Chats.model('UserToMentorMessage', userToMentorMessageSchema);

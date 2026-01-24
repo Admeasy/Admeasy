@@ -18,6 +18,8 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
+import { useUser } from "../context/UserContext";
+import { useMentor } from "../context/MentorContext";
 
 /* ================= SAFE RENDER HELPER ================= */
 const renderText = (value) => {
@@ -71,6 +73,11 @@ const Explore = () => {
     blogs: [],
     notes: [],
   });
+  const [spaces, setSpaces] = useState([]);
+  const [spacesLoading, setSpacesLoading] = useState(true);
+
+  const { user } = useUser();
+  const { mentor } = useMentor();
 
   // Sync searchInput with URL query param
   useEffect(() => {
@@ -91,6 +98,25 @@ const Explore = () => {
 
     return () => clearTimeout(timer);
   }, [searchInput, searchParams, setSearchParams]);
+
+  // Fetch suggested spaces (independent of search query)
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      try {
+        const res = await axios.get("/api/spaces/discover", {
+          withCredentials: true,
+        });
+        if (res.data?.success) {
+          setSpaces(res.data.spaces || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch spaces for explore", err);
+      } finally {
+        setSpacesLoading(false);
+      }
+    };
+    fetchSpaces();
+  }, []);
 
   useEffect(() => {
     // Don't cache when there's no query (random data should be fresh each time)
@@ -242,6 +268,149 @@ const Explore = () => {
           </div>
         ) : (
           <div className="space-y-8">
+            {/* ================= MENTORS SECTION ================= */}
+            {filteredResults.mentors && filteredResults.mentors.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <Users className="w-6 h-6 text-[#9f3562]" />
+                  <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
+                  <span
+                    onClick={() => navigate(`/mentors`)}
+                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
+                    View More
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredResults.mentors.map((mentorItem) => {
+                    const mentorName = renderText(mentorItem.name) || "Anonymous";
+                    const collegeName = renderText(mentorItem.college) || "";
+
+                    return (
+                      <div
+                        key={mentorItem._id}
+                        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300"
+                      >
+                        <div className="p-6">
+                          <div className="flex items-start gap-4 mb-4">
+                            <img
+                              src={
+                                mentorItem.image ||
+                                `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`
+                              }
+                              alt={mentorName}
+                              className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-gray-900 text-lg mb-1">
+                                {mentorName}
+                              </h3>
+                              {collegeName && (
+                                <p className="text-sm text-gray-500 flex items-center gap-1 mb-1">
+                                  {collegeName}
+                                </p>
+                              )}
+                              {mentorItem.course && (
+                                <p className="text-xs text-gray-500">
+                                  {renderText(mentorItem.course)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {mentorItem.notesUploaded !== undefined &&
+                            mentorItem.notesUploaded > 0 && (
+                              <div className="mb-4 p-3 bg-purple-50 rounded-lg">
+                                <span className="text-sm text-purple-700 font-medium flex items-center gap-2">
+                                  <Upload className="w-4 h-4" />
+                                  {mentorItem.notesUploaded} Notes Uploaded
+                                </span>
+                              </div>
+                            )}
+
+                          <button
+                            onClick={() => navigate(`/${mentorItem.username}`)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Profile
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => navigate("/mentors")}
+                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                  >
+                    View More Mentors
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* ================= SPACES SECTION (SECOND POSITION) ================= */}
+            {activeTab === "all" && !spacesLoading && spaces && spaces.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <Users className="w-6 h-6 text-[#9f3562]" />
+                  <h2 className="text-2xl font-bold text-gray-900">Spaces</h2>
+                  <span
+                    onClick={() => navigate("/spaces")}
+                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold"
+                  >
+                    View All
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {spaces.slice(0, 6).map((space) => (
+                    <div
+                      key={space._id}
+                      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col"
+                    >
+                      <div className="p-5 flex-1 flex flex-col">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9f3562]/10 via-pink-100 to-purple-100 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-[#9f3562]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-1">
+                              {space.name}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              {space.membersCount || 0} member{(space.membersCount || 0) === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                        </div>
+                        {space.description && (
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                            {space.description}
+                          </p>
+                        )}
+                        {space.lastMessage && (
+                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-auto">
+                            Last: {space.lastMessage.authorName}:{" "}
+                            {space.lastMessage.content}
+                          </p>
+                        )}
+                      </div>
+                      <div className="px-5 pb-4 pt-1 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => navigate(`/spaces/${space._id}`)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors text-xs font-semibold"
+                        >
+                          Go to Space
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
             {/* ================= NOTES SECTION ================= */}
             {filteredResults.notes && filteredResults.notes.length > 0 && (
               <section>
@@ -311,92 +480,6 @@ const Explore = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              </section>
-            )}
-
-            {/* ================= MENTORS SECTION ================= */}
-            {filteredResults.mentors && filteredResults.mentors.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
-                  <span
-                    onClick={() => navigate(`/mentors`)}
-                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
-                    View More
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.mentors.map((mentor) => {
-                    const mentorName = renderText(mentor.name) || "Anonymous";
-                    const collegeName = renderText(mentor.college) || "";
-
-                    return (
-                      <div
-                        key={mentor._id}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300"
-                      >
-                        <div className="p-6">
-                          <div className="flex items-start gap-4 mb-4">
-                            <img
-                              src={
-                                mentor.image ||
-                                `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`
-                              }
-                              alt={mentorName}
-                              className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-gray-900 text-lg mb-1">
-                                {mentorName}
-                              </h3>
-                              {collegeName && (
-                                <p className="text-sm text-gray-500 flex items-center gap-1 mb-1">
-                                  {collegeName}
-                                </p>
-                              )}
-                              {mentor.course && (
-                                <p className="text-xs text-gray-500">
-                                  {renderText(mentor.course)}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {mentor.notesUploaded !== undefined &&
-                            mentor.notesUploaded > 0 && (
-                              <div className="mb-4 p-3 bg-purple-50 rounded-lg">
-                                <span className="text-sm text-purple-700 font-medium flex items-center gap-2">
-                                  <Upload className="w-4 h-4" />
-                                  {mentor.notesUploaded} Notes Uploaded
-                                </span>
-                              </div>
-                            )}
-
-                          {/* Button */}
-                          <button
-
-                            onClick={() => navigate(`/${mentor.username}`)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View Profile
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-6 flex justify-center">
-                  <button
-                    onClick={() => navigate("/mentors")}
-                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
-                  >
-                    View More Mentors
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
                 </div>
               </section>
             )}

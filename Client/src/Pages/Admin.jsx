@@ -199,6 +199,12 @@ const Admin = () => {
                 <p className="text-gray-600">View all payments with transaction details</p>
               </div>
             </Link>
+            <Link to="/admin/spaces">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Spaces</h2>
+                <p className="text-gray-600">View and delete spaces created by users</p>
+              </div>
+            </Link>
           </div>
         </div>
       </motion.div>

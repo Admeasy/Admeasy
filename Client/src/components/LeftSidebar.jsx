@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Newspaper, UserPlus, MessagesSquare, Menu, X, ChevronLeft, Compass, CirclePlus } from 'lucide-react';
+import { Home, Newspaper, UserPlus, MessagesSquare, Menu, X, ChevronLeft, Compass, CirclePlus, Users } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
@@ -26,8 +26,9 @@ const LeftSidebar = ({
   const landingPage = location.pathname === '/'
   const navigate = useNavigate()
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isSpaceFeedPage = /^\/spaces\/[^/]+$/.test(location.pathname);
   const hideSidebarPages = ['/login', '/mentors/login', '/mentors/register', '/onboarding', '/forgot-password', '/reset-password'];
-  const shouldHide = isAdminRoute || hideSidebarPages.some(path => location.pathname.startsWith(path));
+  const shouldHide = isAdminRoute || isSpaceFeedPage || hideSidebarPages.some(path => location.pathname.startsWith(path));
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
 
   if (shouldHide) return null;
@@ -35,10 +36,12 @@ const LeftSidebar = ({
   const navItems = [
     { icon: Home, label: 'Home', path: '/', exact: true },
     { icon: Compass, label: 'Explore', path: '/explore' },
+    { icon: CirclePlus, label: 'Create', path: '/posts/create' },
+    ...(loggedInAccount ? [{ icon: Users, label: 'Spaces', path: '/spaces' }] : []),
     ...(loggedInAccount
       ? isUserAccount
-        ? [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chats', path: '/chats' }]
-        : [{ icon: CirclePlus, label: 'Create', path: '/posts/create' }, { icon: MessagesSquare, label: 'Chats', path: '/mentor/chats' }]
+        ? [{ icon: MessagesSquare, label: 'Chats', path: '/chats' }]
+        : [{ icon: MessagesSquare, label: 'Chats', path: '/mentor/chats' }]
       : []),
     { icon: Newspaper, label: 'Blogs', path: '/blog' },
     ...(!loggedInAccount ? [{ icon: UserPlus, label: 'Sign Up/Log In', path: '/login' }] : [])

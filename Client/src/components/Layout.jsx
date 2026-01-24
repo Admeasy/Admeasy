@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import LeftSidebar from "./LeftSidebar";
 import BottomNavBar from "./BottomNavBar";
 
 const DESKTOP_BREAKPOINT = 768; // Changed from 1024 to 768
 
 const Layout = () => {
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(
@@ -29,11 +30,15 @@ const Layout = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const sidebarWidth = isDesktop
-    ? isCollapsed
-      ? 88
-      : 288
-    : 0;
+  const isSpaceFeedPage = /^\/spaces\/[^/]+$/.test(location.pathname);
+
+  const sidebarWidth = isSpaceFeedPage
+    ? 0
+    : isDesktop
+      ? isCollapsed
+        ? 88
+        : 288
+      : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">

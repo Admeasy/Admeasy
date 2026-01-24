@@ -34,6 +34,7 @@ const BottomNavBar = () => {
 
   // Pages where bottom nav should be hidden
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isSpaceFeedPage = /^\/spaces\/[^/]+$/.test(location.pathname);
   const hideSidebarPages = [
     '/login',
     '/mentors/login',
@@ -42,7 +43,7 @@ const BottomNavBar = () => {
     '/forgot-password',
     '/reset-password'
   ];
-  const shouldHide = isAdminRoute || hideSidebarPages.some(path =>
+  const shouldHide = isAdminRoute || isSpaceFeedPage || hideSidebarPages.some(path =>
     location.pathname.startsWith(path)
   );
 
