@@ -133,12 +133,13 @@ const EmailVerificationModal = ({ isOpen, email, onVerified }) => {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md cursor-not-allowed">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md cursor-not-allowed">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden sm:m-0 m-4 cursor-default"
+                    className="relative w-full max-w-md bg-white rounded-xl sm:rounded-[2rem] shadow-2xl overflow-hidden cursor-default"
+                    onClick={(e) => e.stopPropagation()}
                 >
                     {/* Progress Bar (Timer) */}
                     {timer > 0 && (
@@ -150,62 +151,66 @@ const EmailVerificationModal = ({ isOpen, email, onVerified }) => {
                         />
                     )}
 
-                    <div className="p-8 sm:p-10 text-center">
-                        <div className="flex justify-center mb-8">
+                    <div className="p-4 sm:p-6 md:p-8 lg:p-10 text-center">
+                        <div className="flex justify-center mb-4 sm:mb-6 md:mb-8">
                             <div className="relative">
                                 <div className="absolute inset-0 bg-brand-light/20 rounded-full animate-ping scale-150 shrink-0" />
-                                <div className="relative p-6 bg-brand-light/10 rounded-full">
-                                    <Mail size={48} className="text-brand-light" />
+                                <div className="relative p-4 sm:p-5 md:p-6 bg-brand-light/10 rounded-full">
+                                    <Mail size={32} className="sm:w-10 sm:h-10 md:w-12 md:h-12 text-brand-light" />
                                 </div>
                             </div>
                         </div>
 
-                        <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-4">
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 mb-3 sm:mb-4">
                             Verify Your Email
                         </h2>
-                        <p className="text-gray-600 mb-8 leading-relaxed sm:text-lg">
-                            We've sent a verification link to<br />
-                            <span className="font-bold text-gray-900 break-all">{email}</span>.<br />
-                            Click the link in your email to continue.
+                        <p className="text-sm sm:text-base md:text-lg text-gray-600 mb-4 sm:mb-6 md:mb-8 leading-relaxed px-2 sm:px-0">
+                            We've sent a verification link to<br className="hidden sm:block" />
+                            <span className="font-bold text-gray-900 break-words block sm:inline mt-1 sm:mt-0">{email}</span>.<br className="hidden sm:block" />
+                            <span className="block mt-1 sm:mt-0">Click the link in your email to continue.</span>
                         </p>
 
-                        <div className="flex items-center justify-center gap-2 mb-8 text-sm text-blue-600 bg-blue-50 py-2 px-4 rounded-full animate-pulse">
-                            <Loader2 size={16} className="animate-spin" />
+                        <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 md:mb-8 text-xs sm:text-sm text-blue-600 bg-blue-50 py-2 px-3 sm:px-4 rounded-full animate-pulse">
+                            <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin shrink-0" />
                             <span>Waiting for verification...</span>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                             <button
                                 onClick={() => handleResend(true)}
                                 disabled={isResending || timer > 0 || resendCount >= 2}
-                                className={`w-full flex items-center justify-center gap-2 py-4.5 rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl ${timer > 0 || resendCount >= 2
+                                className={`w-full flex items-center justify-center gap-2 py-3 sm:py-3.5 md:py-4.5 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base md:text-lg transition-all duration-300 shadow-xl ${timer > 0 || resendCount >= 2
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                     : 'bg-[#9f3562] text-white hover:bg-[#b24a78] hover:-translate-y-1 active:translate-y-0 active:shadow-lg'
                                     }`}
                             >
                                 {isResending ? (
                                     <>
-                                        <Loader2 size={24} className="animate-spin" />
-                                        Sending...
+                                        <Loader2 size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6 animate-spin" />
+                                        <span className="hidden sm:inline">Sending...</span>
+                                        <span className="sm:hidden">Sending</span>
                                     </>
                                 ) : timer > 0 ? (
                                     <>
-                                        <RotateCcw size={20} className="animate-spin-slow" />
-                                        Resend in {timer}s
+                                        <RotateCcw size={16} className="sm:w-5 sm:h-5 animate-spin-slow shrink-0" />
+                                        <span>Resend in {timer}s</span>
                                     </>
                                 ) : resendCount >= 2 ? (
                                     <>
-                                        <AlertTriangle size={20} />
-                                        Limit Reached
+                                        <AlertTriangle size={16} className="sm:w-5 sm:h-5 shrink-0" />
+                                        <span>Limit Reached</span>
                                     </>
                                 ) : (
-                                    'Resend Verification Email'
+                                    <>
+                                        <span className="hidden sm:inline">Resend Verification Email</span>
+                                        <span className="sm:hidden">Resend Email</span>
+                                    </>
                                 )}
                             </button>
 
                             <div className="flex flex-col items-center gap-2">
                                 {resendCount < 2 && (
-                                    <p className="text-sm text-gray-400 font-medium">
+                                    <p className="text-xs sm:text-sm text-gray-400 font-medium">
                                         {resendsRemaining} {resendsRemaining === 1 ? 'attempt' : 'attempts'} remaining
                                     </p>
                                 )}
@@ -214,12 +219,12 @@ const EmailVerificationModal = ({ isOpen, email, onVerified }) => {
                     </div>
 
                     {/* Bottom Info Section */}
-                    <div className="bg-gray-50/80 backdrop-blur-sm p-5 border-t border-gray-100 text-center">
-                        <p className="text-sm font-medium text-gray-500">
+                    <div className="bg-gray-50/80 backdrop-blur-sm p-3 sm:p-4 md:p-5 border-t border-gray-100 text-center">
+                        <p className="text-xs sm:text-sm font-medium text-gray-500">
                             Didn't get the email? <br className="sm:hidden" />
-                            <span className="text-gray-400 text-xs italic">Please check your spam or promotions folder.</span>
+                            <span className="text-gray-400 text-[10px] sm:text-xs italic block sm:inline mt-1 sm:mt-0">Please check your spam or promotions folder.</span>
                         </p>
-                        <p className="mt-2 text-xs text-red-400 font-medium">
+                        <p className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-red-400 font-medium">
                             Do not close this tab until verified.
                         </p>
                     </div>

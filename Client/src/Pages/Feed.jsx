@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
+import PostViewTracker from '../components/PostViewTracker';
 import MentorSuggestionSwiper from '../components/MentorSuggestionSwiper';
 import NotificationBell from '../components/NotificationBell';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 
+const FEED_STORAGE_KEY = 'admeasy:feed:state';
+
 const Feed = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +30,19 @@ const Feed = () => {
   const pageRef = useRef(1);
   const hasMoreRef = useRef(true);
   const loadingMoreRef = useRef(false);
+  const observerTargetRef = useRef(null);
+  const feedContainerRef = useRef(null);
+  const shouldRestoreScrollRef = useRef(false);
 
   //🔥 SINGLE SOURCE OF TRUTH
 
   const updatePostInFeed = useCallback((updatedPost) => {
+    // If post is deleted, remove it from the feed
+    if (updatedPost.deleted) {
+      setPosts((prev) => prev.filter((p) => p._id !== updatedPost._id));
+      return;
+    }
+    // Otherwise, update the post
     setPosts((prev) =>
       prev.map((p) =>
         p._id === updatedPost._id ? { ...p, ...updatedPost } : p
@@ -37,19 +50,48 @@ const Feed = () => {
     );
   }, []);
 
+  // Save feed state to sessionStorage
+  const saveFeedState = useCallback((currentPage, currentPosts, scrollPosition) => {
+    try {
+      const state = {
+        page: currentPage,
+        posts: currentPosts.map(p => ({ _id: p._id })), // Store only IDs to save space
+        scrollPosition,
+        timestamp: Date.now(),
+      };
+      sessionStorage.setItem(FEED_STORAGE_KEY, JSON.stringify(state));
+    } catch (err) {
+      console.error('Failed to save feed state:', err);
+    }
+  }, []);
+
+  // Load feed state from sessionStorage
+  const loadFeedState = useCallback(() => {
+    try {
+      const stored = sessionStorage.getItem(FEED_STORAGE_KEY);
+      if (stored) {
+        const state = JSON.parse(stored);
+        // Only restore if state is less than 30 minutes old
+        if (Date.now() - state.timestamp < 30 * 60 * 1000) {
+          return state;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load feed state:', err);
+    }
+    return null;
+  }, []);
 
   // Fetch Posts
-
   const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
     try {
       pageNum === 1 ? setLoading(true) : setLoadingMore(true);
-      loadingMoreRef.current = pageNum !== 1;
 
       const response = await fetch(
-        `/api/posts?page=${pageNum}&limit=10`,
+        `/api/posts?page=${pageNum}&limit=20`,
         { credentials: 'include' }
       );
 
@@ -61,14 +103,20 @@ const Feed = () => {
         throw new Error(data.message || 'Failed to fetch posts');
       }
 
-      setPosts((prev) =>
-        append ? [...prev, ...data.posts] : data.posts
-      );
+      setPosts((prev) => {
+        const newPosts = append ? [...prev, ...data.posts] : data.posts;
+        // Save state after updating posts
+        setTimeout(() => {
+          saveFeedState(pageNum, newPosts, window.scrollY);
+        }, 100);
+        return newPosts;
+      });
 
-      const hasMoreValue = data.posts.length === 10 && pageNum < data.pagination.pages;
-      setHasMore(hasMoreValue);
-      hasMoreRef.current = hasMoreValue;
-      pageRef.current = pageNum;
+      setHasMore(
+        data.posts.length === 20 &&
+        pageNum < data.pagination.pages
+      );
+      setPage(pageNum);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load posts. Please try again.');
@@ -78,85 +126,189 @@ const Feed = () => {
       loadingMoreRef.current = false;
       isFetchingRef.current = false;
     }
-  }, []);
+  }, [saveFeedState]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
+  // Load more posts (for infinite scroll)
   const loadMore = useCallback(() => {
-    if (loadingMoreRef.current || !hasMoreRef.current || isFetchingRef.current) {
-      return;
-    }
-    const nextPage = pageRef.current + 1;
-    pageRef.current = nextPage;
-    setPage(nextPage);
+    if (loadingMore || !hasMore || isFetchingRef.current) return;
+    const nextPage = page + 1;
     fetchPosts(nextPage, true);
-  }, [fetchPosts]);
+  }, [page, loadingMore, hasMore, fetchPosts]);
 
-  // Infinite scroll with Intersection Observer and scroll fallback
+  // Restore scroll position and load saved state
   useEffect(() => {
-    // Clean up previous observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
+    // Check if we're returning from a post detail page
+    const isReturningFromPost = document.referrer.includes('/posts/') || 
+                                 sessionStorage.getItem('admeasy:fromPostDetail') === 'true';
+    
+    if (isReturningFromPost) {
+      sessionStorage.removeItem('admeasy:fromPostDetail');
     }
-
-    // Only set up observer if we have more posts to load
-    if (!hasMore) return;
-
-    const handleScroll = () => {
-      if (!hasMoreRef.current || loadingMoreRef.current || isFetchingRef.current) return;
+    
+    const savedState = loadFeedState();
+    
+    // Always restore if we have saved state and are returning from post detail
+    // OR if saved state is recent (within 10 minutes)
+    const shouldRestore = savedState && (
+      isReturningFromPost || 
+      (Date.now() - savedState.timestamp < 10 * 60 * 1000)
+    );
+    
+    if (shouldRestore && savedState.scrollPosition > 0) {
+      // We have saved state, restore it
+      shouldRestoreScrollRef.current = true;
+      setPage(savedState.page);
       
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      
-      // Load more when user is within 300px of bottom
-      if (scrollTop + windowHeight >= documentHeight - 300) {
-        const nextPage = pageRef.current + 1;
-        pageRef.current = nextPage;
-        setPage(nextPage);
-        fetchPosts(nextPage, true);
-      }
-    };
-
-    // Try Intersection Observer first
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const entry = entries[0];
-          if (entry.isIntersecting) {
-            if (hasMoreRef.current && !loadingMoreRef.current && !isFetchingRef.current) {
-              const nextPage = pageRef.current + 1;
-              pageRef.current = nextPage;
-              setPage(nextPage);
-              fetchPosts(nextPage, true);
+      // Load all pages up to saved page
+      const loadAllPages = async () => {
+        setLoading(true);
+        try {
+          const allPosts = [];
+          for (let p = 1; p <= savedState.page; p++) {
+            const response = await fetch(
+              `/api/posts?page=${p}&limit=20`,
+              { credentials: 'include' }
+            );
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                allPosts.push(...data.posts);
+              }
             }
           }
-        },
-        { 
-          threshold: 0.1,
-          rootMargin: '200px'
+          setPosts(allPosts);
+          
+          // Restore scroll position after posts are fully rendered
+          // Use multiple attempts to ensure DOM is ready
+          let attempts = 0;
+          const maxAttempts = 10;
+          
+          const restoreScroll = () => {
+            attempts++;
+            const scrollTarget = savedState.scrollPosition || 0;
+            
+            // Check if we can scroll to the target position
+            if (scrollTarget > 0 && document.body.scrollHeight >= scrollTarget) {
+              window.scrollTo({
+                top: scrollTarget,
+                behavior: 'auto' // Instant scroll, not smooth
+              });
+              shouldRestoreScrollRef.current = false;
+            } else if (attempts < maxAttempts) {
+              // Wait a bit more and try again
+              setTimeout(restoreScroll, 100);
+            } else {
+              // Max attempts reached, scroll to best available position
+              window.scrollTo({
+                top: Math.min(scrollTarget, document.body.scrollHeight),
+                behavior: 'auto'
+              });
+              shouldRestoreScrollRef.current = false;
+            }
+          };
+          
+          // Start restoration after initial render
+          setTimeout(restoreScroll, 100);
+        } catch (err) {
+          console.error('Failed to restore feed state:', err);
+          // Fallback to normal load
+          fetchPosts(1, false);
+        } finally {
+          setLoading(false);
         }
-      );
+      };
+      
+      loadAllPages();
+    } else {
+      // No saved state or not returning from post, normal load
+      // Clear old state if it exists and is too old
+      if (savedState && Date.now() - savedState.timestamp > 10 * 60 * 1000) {
+        sessionStorage.removeItem(FEED_STORAGE_KEY);
+      }
+      fetchPosts(1, false);
+    }
+  }, []); // Only run on mount
 
-      observerRef.current = observer;
+  // Infinite scroll with IntersectionObserver
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingRef.current) {
+          loadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px', // Start loading 200px before reaching the bottom
+        threshold: 0.1,
+      }
+    );
+
+    const currentTarget = observerTargetRef.current;
+    if (currentTarget) {
       observer.observe(currentTarget);
     }
 
-    // Add scroll listener as fallback
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
       }
-      window.removeEventListener('scroll', handleScroll);
     };
-  }, [hasMore, fetchPosts, posts.length]);
+  }, [hasMore, loading, loadingMore, loadMore]);
+
+  // Save scroll position on scroll (throttled)
+  useEffect(() => {
+    let scrollTimeout;
+    const handleScroll = () => {
+      if (shouldRestoreScrollRef.current) return; // Don't save during restoration
+      
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        // Save immediately with current scroll position
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        saveFeedState(page, posts, currentScroll);
+      }, 300); // Throttle: save every 300ms (faster for better UX)
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, [page, posts, saveFeedState]);
+
+  // Save state when navigating away (location change)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      saveFeedState(page, posts, currentScroll);
+    };
+
+    // Save before navigation - use location change detection
+    const handleLocationChange = () => {
+      // Small delay to ensure scroll position is captured
+      setTimeout(() => {
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        saveFeedState(page, posts, currentScroll);
+      }, 50);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Save state when location changes (user navigates to post detail)
+    // Also save on visibility change (tab switch)
+    document.addEventListener('visibilitychange', handleLocationChange);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleLocationChange);
+      // Final save on unmount
+      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      saveFeedState(page, posts, currentScroll);
+    };
+  }, [page, posts, saveFeedState, location.pathname]);
   const [randomHeading, setRandomHeading] = useState({ title: '', subtitle: '' });
 
   useEffect(() => {
@@ -294,30 +446,40 @@ const Feed = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div ref={feedContainerRef} className="space-y-8">
               {posts.map((post, index) => (
                 <div key={post._id} className="relative">
-                  <PostCard
-                    post={post}
-                    onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
-                  />
+                  <PostViewTracker postId={post._id}>
+                    <PostCard
+                      post={post}
+                      onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
+                    />
+                  </PostViewTracker>
                   {/* Add mentor suggestion swiper after the first post */}
                   {index === 0 && <MentorSuggestionSwiper />}
                 </div>
               ))}
 
-              {/* Sentinel element for infinite scroll */}
+              {/* Infinite scroll trigger */}
               {hasMore && (
                 <div 
-                  ref={observerTarget} 
+                  ref={observerTargetRef}
                   className="flex justify-center pt-8 pb-12 min-h-[100px]"
-                  style={{ minHeight: '100px' }}
                 >
                   {loadingMore && (
                     <div className="flex items-center gap-3 text-gray-600">
-                      <Loader2 className="w-7.5 sm:w-10 h-7.5 sm:h-10 animate-spin" />
+                      <Loader2 className="w-7.5 sm:w-10 h-7.5 sm:h-10 animate-spin text-[#9f3562]" />
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* End of feed message */}
+              {!hasMore && posts.length > 0 && (
+                <div className="flex justify-center pt-8 pb-12">
+                  <p className="text-gray-500 text-sm">
+                    {'No more posts for now. Come back for more :)'}
+                  </p>
                 </div>
               )}
             </div>

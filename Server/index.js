@@ -60,6 +60,8 @@ app.use(cors({
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  exposedHeaders: ['Content-Type', 'Content-Disposition'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
 }));
 
 // Basic middleware
@@ -704,6 +706,7 @@ io.on('connection', (socket) => {
         _id: newMessage._id,
         chatId,
         senderId: senderId,
+        senderRole: 'user',
         senderName: sender?.name || 'Unknown',
         senderImage: sender?.image || null,
         message: newMessage.message,
@@ -788,6 +791,7 @@ io.on('connection', (socket) => {
         _id: newMessage._id,
         chatId,
         senderId: senderId,
+        senderRole: 'mentor',
         senderName: sender?.name || 'Unknown',
         senderImage: sender?.image || null,
         message: newMessage.message,

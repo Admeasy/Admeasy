@@ -37,6 +37,73 @@ const MentorSuggestionSwiper = () => {
     return arr;
   }
 
+  // Simple heuristic to identify likely female names (common Indian name patterns)
+  function isLikelyFemaleName(name) {
+    if (!name) return false;
+    const nameLower = name.toLowerCase().trim();
+    
+    // Common female name endings in Indian names
+    const femaleEndings = ['a', 'i', 'ya', 'iya', 'ika', 'ita', 'ina', 'ani', 'ini', 'priya', 'shree', 'shri'];
+    const femalePatterns = ['devi', 'kumari', 'bai', 'ben', 'begum'];
+    
+    // Check for common female name patterns
+    for (const pattern of femalePatterns) {
+      if (nameLower.includes(pattern)) return true;
+    }
+    
+    // Check for common endings
+    for (const ending of femaleEndings) {
+      if (nameLower.endsWith(ending) && nameLower.length > 2) {
+        return true;
+      }
+    }
+    
+    // Common female first names (Indian context)
+    const commonFemaleNames = ['priya', 'kavya', 'ananya', 'aditi', 'sneha', 'neha', 'riya', 'diya', 'tanya', 'puja', 'meera', 'radha', 'sita', 'laxmi', 'saraswati', 'durga', 'parvati', 'ganga', 'yamuna', 'vedika', 'veda', 'vedha'];
+    for (const femaleName of commonFemaleNames) {
+      if (nameLower.includes(femaleName)) return true;
+    }
+    
+    return false;
+  }
+
+  // Separate mentors by likely gender and prioritize female mentors
+  function prioritizeFemaleMentors(mentors) {
+    const femaleMentors = [];
+    const maleMentors = [];
+    const unknownMentors = [];
+    
+    mentors.forEach(mentor => {
+      const name = mentor.name || '';
+      if (isLikelyFemaleName(name)) {
+        femaleMentors.push(mentor);
+      } else if (name.trim().length > 0) {
+        // If name exists but doesn't match female patterns, likely male
+        maleMentors.push(mentor);
+      } else {
+        unknownMentors.push(mentor);
+      }
+    });
+    
+    // Shuffle each group
+    const shuffledFemale = shuffleArray(femaleMentors);
+    const shuffledMale = shuffleArray(maleMentors);
+    const shuffledUnknown = shuffleArray(unknownMentors);
+    
+    // Prioritize female mentors: 70% female, 30% male/unknown
+    const targetFemaleCount = Math.ceil(mentors.length * 0.7);
+    const targetMaleCount = mentors.length - targetFemaleCount;
+    
+    const result = [
+      ...shuffledFemale.slice(0, Math.min(targetFemaleCount, shuffledFemale.length)),
+      ...shuffledMale.slice(0, Math.min(targetMaleCount, shuffledMale.length)),
+      ...shuffledUnknown.slice(0, Math.max(0, targetMaleCount - shuffledMale.length))
+    ];
+    
+    // Shuffle the final result slightly to mix them, but keep female majority
+    return shuffleArray(result);
+  }
+
   useEffect(() => {
     const fetchMentors = async () => {
       try {
@@ -53,11 +120,20 @@ const MentorSuggestionSwiper = () => {
           if (currentId) {
             filteredMentors = data.filter(m => m._id?.toString() !== currentId.toString());
           }
+          
+          // Filter out mentors that user is already following
+          if (user?.following && Array.isArray(user.following) && user.following.length > 0) {
+            const followingIds = new Set(user.following.map(id => id.toString()));
+            filteredMentors = filteredMentors.filter(m => {
+              const mentorId = m._id?.toString();
+              return !mentorId || !followingIds.has(mentorId);
+            });
+          }
         }
 
-        // Shuffle and get more mentors initially (30-50) to ensure we have enough valid ones
-        const shuffled = shuffleArray(filteredMentors);
-        const candidatesToCheck = shuffled.slice(0, Math.min(50, shuffled.length));
+        // Prioritize female mentors and get more mentors initially (30-50) to ensure we have enough valid ones after filtering
+        const prioritizedMentors = prioritizeFemaleMentors(filteredMentors);
+        const candidatesToCheck = prioritizedMentors.slice(0, Math.min(50, prioritizedMentors.length));
 
         // Fetch images for each mentor candidate
         const mentorsWithImages = await Promise.all(
@@ -91,12 +167,23 @@ const MentorSuggestionSwiper = () => {
           return hasName || hasUsername || hasProfilePic;
         });
 
+        // Double-check: Filter out any mentors that are already being followed
+        // (in case the user's following array wasn't available earlier)
+        let finalMentors = validMentors;
+        if (isAuthed && user?.following && Array.isArray(user.following) && user.following.length > 0) {
+          const followingIds = new Set(user.following.map(id => id.toString()));
+          finalMentors = validMentors.filter(m => {
+            const mentorId = m._id?.toString();
+            return !mentorId || !followingIds.has(mentorId);
+          });
+        }
+
         // Take exactly 10 valid mentors (or all available if less than 10)
-        const finalMentors = validMentors.slice(0, 10);
+        finalMentors = finalMentors.slice(0, 10);
 
         setMentors(finalMentors);
 
-        // Fetch follow statuses for all mentors
+        // Fetch follow statuses for all mentors (should all be false since we filtered)
         if (isAuthed) {
           const statusPromises = finalMentors.map(async (m) => {
             try {
@@ -124,7 +211,7 @@ const MentorSuggestionSwiper = () => {
     };
 
     fetchMentors();
-  }, [isAuthed, user?._id, mentor?._id]);
+  }, [isAuthed, user?._id, mentor?._id, user?.following]);
 
   // Listen for global follow status changes
   useEffect(() => {

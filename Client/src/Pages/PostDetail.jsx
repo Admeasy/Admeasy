@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import {
@@ -15,15 +15,21 @@ import {
   UserPlus,
   UserCheck,
   Repeat2,
+  MoreVertical,
+  Edit,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import PostCard from '../components/PostCard';
+import PostViewTracker from '../components/PostViewTracker';
+import EditPostModal from '../components/EditPostModal';
 
 const PostDetail = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const pathname = useLocation();
   const { user } = useUser();
   const { mentor } = useMentor();
   const viewer = user || mentor;
@@ -41,6 +47,14 @@ const PostDetail = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
 
+  // More Posts State
+  const [morePosts, setMorePosts] = useState([]);
+  const [morePostsPage, setMorePostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const morePostsObserverTargetRef = useRef(null);
+  const isFetchingMorePostsRef = useRef(false);
+
   // Interaction Locks
   const isInteracting = useRef({ like: false, repost: false, follow: false });
 
@@ -50,6 +64,11 @@ const PostDetail = () => {
     isReply: false,
     parentCommentId: null,
   });
+  const [showPostMenu, setShowPostMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeletePostModal, setShowDeletePostModal] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const postMenuRef = useRef(null);
 
   const fallbackProfilePic =
     'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
@@ -91,6 +110,99 @@ const PostDetail = () => {
   useEffect(() => {
     fetchPost();
   }, [fetchPost]);
+
+  // Scroll to top when post changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  // Fetch more posts (excluding current post)
+  const fetchMorePosts = useCallback(async (pageNum = 1, append = false) => {
+    if (isFetchingMorePostsRef.current) return;
+    isFetchingMorePostsRef.current = true;
+
+    try {
+      if (!append) setLoadingMorePosts(true);
+
+      const response = await fetch(
+        `/api/posts?page=${pageNum}&limit=20`,
+        { credentials: 'include' }
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch posts');
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch posts');
+      }
+
+      // Filter out the current post
+      const filteredPosts = data.posts.filter(p => p._id !== postId);
+
+      setMorePosts((prev) => {
+        const newPosts = append ? [...prev, ...filteredPosts] : filteredPosts;
+        return newPosts;
+      });
+
+      setHasMorePosts(
+        filteredPosts.length > 0 &&
+        pageNum < data.pagination.pages
+      );
+      setMorePostsPage(pageNum);
+    } catch (err) {
+      console.error('Error fetching more posts:', err);
+      // Don't show toast for background loading
+    } finally {
+      setLoadingMorePosts(false);
+      isFetchingMorePostsRef.current = false;
+    }
+  }, [postId]);
+
+  // Load more posts when post is loaded
+  useEffect(() => {
+    if (postState && morePosts.length === 0) {
+      fetchMorePosts(1, false);
+    }
+  }, [postState, morePosts.length, fetchMorePosts]);
+
+  // Infinite scroll for more posts
+  useEffect(() => {
+    if (!hasMorePosts || loadingMorePosts || morePosts.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingMorePostsRef.current) {
+          fetchMorePosts(morePostsPage + 1, true);
+        }
+      },
+      {
+        root: null,
+        rootMargin: '300px', // Start loading 300px before reaching the bottom
+        threshold: 0.1,
+      }
+    );
+
+    const currentTarget = morePostsObserverTargetRef.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMorePosts, loadingMorePosts, morePostsPage, morePosts.length, fetchMorePosts]);
+
+  // Update post in more posts list
+  const updatePostInMorePosts = useCallback((updatedPost) => {
+    setMorePosts((prev) =>
+      prev.map((p) =>
+        p._id === updatedPost._id ? { ...p, ...updatedPost } : p
+      )
+    );
+  }, []);
 
   // Listen for global post interaction changes
   useEffect(() => {
@@ -1036,7 +1148,50 @@ const PostDetail = () => {
                   </motion.button>
                 )}
 
+              {isOwnPost && (
+                <div className="relative" ref={postMenuRef}>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPostMenu(!showPostMenu);
+                    }}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <MoreVertical className="w-5 h-5 text-gray-600" />
+                  </motion.button>
+                  <AnimatePresence>
+                    {showPostMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={handleEditPost}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors text-gray-700"
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span className="text-sm font-medium">Edit post</span>
+                        </button>
+                        <button
+                          onClick={handleDeletePost}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="text-sm font-medium">Delete post</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
               <span className="text-[10px] sm:text-xs font-medium text-gray-400 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-50 rounded-full flex-shrink-0">
+                {postState.isEdited && <span className="text-gray-500">(Edited) </span>}
                 {formatDate(postState.createdAt)}
               </span>
             </div>
@@ -1536,6 +1691,62 @@ const PostDetail = () => {
               </form>
             </div>
           </motion.div>
+
+          {/* More Posts Section */}
+          {morePosts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="mt-8 sm:mt-12"
+            >
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+                  More Posts
+                </h2>
+                <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                  Continue exploring
+                </p>
+              </div>
+
+              <div className="space-y-6 sm:space-y-8">
+                {morePosts.map((post) => (
+                  <div key={post._id} className="relative">
+                    <PostViewTracker postId={post._id}>
+                      <PostCard
+                        post={post}
+                        onPostUpdate={updatePostInMorePosts}
+                      />
+                    </PostViewTracker>
+                  </div>
+                ))}
+
+                {/* Infinite scroll trigger */}
+                {hasMorePosts && (
+                  <div 
+                    ref={morePostsObserverTargetRef}
+                    className="flex justify-center pt-8 pb-12 min-h-[100px]"
+                  >
+                    {loadingMorePosts && (
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#9f3562]" />
+                        <span className="text-sm">Loading more posts...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* End of posts message */}
+                {!hasMorePosts && morePosts.length > 0 && (
+                  <div className="flex justify-center pt-8 pb-12">
+                    <p className="text-gray-500 text-sm">
+                      You've seen all available posts
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -1572,6 +1783,25 @@ const PostDetail = () => {
         cancelText="Cancel"
         confirmColor="danger"
         isLoading={deletingCommentId === confirmModal.commentId}
+      />
+
+      <EditPostModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        post={postState}
+        onPostUpdated={handlePostUpdated}
+      />
+
+      <ConfirmModal
+        isOpen={showDeletePostModal}
+        onClose={() => setShowDeletePostModal(false)}
+        onConfirm={handleDeletePostConfirm}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        isLoading={isDeletingPost}
       />
     </div>
   );

@@ -275,13 +275,17 @@ export default function Onboarding() {
           credentials: 'include'
         });
         const data = await res.json();
-        if (!data.canAccess) {
+        // Only redirect if onboarding is already completed
+        // Allow access if incomplete (requiresOnboarding = true)
+        if (!data.requiresOnboarding && data.hasCompletedOnboarding) {
           // User has already completed onboarding, redirect to home
           toast.info('You have already completed onboarding');
           navigate('/');
         }
+        // If requiresOnboarding is true, allow access to onboarding page
       } catch (err) {
         console.error('Error checking onboarding status:', err);
+        // On error, allow access to avoid blocking users
       }
     };
     checkOnboardingAccess();
@@ -367,7 +371,6 @@ export default function Onboarding() {
           email: user?.email || updatedData.email,
           password: user ? undefined : updatedData.password // Only send password if creating new account
         };
-        console.log(onboardingData)
         const res = await fetch('/api/users/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -379,7 +382,6 @@ export default function Onboarding() {
 
         if (res.ok) {
           toast.success('🎉 Onboarding Complete!');
-          console.log(onboardingData)
           await fetchUser(); // Refresh user context
           navigate('/');
         } else {

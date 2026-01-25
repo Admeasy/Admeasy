@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle, FaPaperclip } from 'react-icons/fa';
+import { Image, File } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
 import { useSocket } from '../context/SocketContext';
 import { ArrowLeft } from 'lucide-react';
 import SEO from '../components/SEO';
 
-const Chat = () => {
+const Chatpage = () => {
   const { id } = useParams(); // Changed from mentorId to id
   const navigate = useNavigate();
   const { user } = useUser();
@@ -21,10 +22,26 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [chatId, setChatId] = useState(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const messagesEndRef = useRef(null);
+  const attachmentMenuRef = useRef(null);
   const initializationDone = useRef(false);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+  // Close attachment menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target)) {
+        setShowAttachmentMenu(false);
+      }
+    };
+
+    if (showAttachmentMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showAttachmentMenu]);
 
   useEffect(() => {
     // Only users can access user chats
@@ -155,7 +172,6 @@ const Chat = () => {
       } else if (chatType === 'userToUser') {
         socket.emit('join_user_to_user_chat', chatId);
       }
-      console.log('Joined chat room:', chatId, 'Type:', chatType);
     }
   }, [isConnected, socket, chatId, chatType, joinChat]);
 
@@ -165,12 +181,23 @@ const Chat = () => {
 
     const handleReceiveMessage = (message) => {
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
+        // Normalize message data - ensure sender info is present
+        const normalizedMessage = {
+          ...message,
+          senderName: message.senderName || (message.senderId === user?._id || message.senderId === user?.id ? user?.name : 'Unknown'),
+          senderImage: message.senderImage || (message.senderId === user?._id || message.senderId === user?.id ? user?.image : null),
+          senderRole: message.senderRole || (message.senderId === user?._id || message.senderId === user?.id ? 'user' : 'mentor'),
+          message: message.message || message.text || '',
+          createdAt: message.createdAt || message.timestamp || new Date()
+        };
+        
+        
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
-            m._id && message._id && m._id.toString() === message._id.toString()
+            m._id && normalizedMessage._id && m._id.toString() === normalizedMessage._id.toString()
           );
           if (!exists) {
-            return [...prevMessages, message];
+            return [...prevMessages, normalizedMessage];
           }
           return prevMessages;
         });
@@ -181,12 +208,23 @@ const Chat = () => {
 
     const handleUserToUserMessage = (message) => {
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
+        // Normalize message data - ensure sender info is present
+        const normalizedMessage = {
+          ...message,
+          senderName: message.senderName || (message.senderId === user?._id || message.senderId === user?.id ? user?.name : 'Unknown'),
+          senderImage: message.senderImage || (message.senderId === user?._id || message.senderId === user?.id ? user?.image : null),
+          senderRole: message.senderRole || 'user',
+          message: message.message || message.text || '',
+          createdAt: message.createdAt || message.timestamp || new Date()
+        };
+        
+        
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
-            m._id && message._id && m._id.toString() === message._id.toString()
+            m._id && normalizedMessage._id && m._id.toString() === normalizedMessage._id.toString()
           );
           if (!exists) {
-            return [...prevMessages, message];
+            return [...prevMessages, normalizedMessage];
           }
           return prevMessages;
         });
@@ -203,12 +241,22 @@ const Chat = () => {
 
     const handleMessageSent = (message) => {
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
+        // Normalize message data - ensure sender info is present
+        const normalizedMessage = {
+          ...message,
+          senderName: message.senderName || user?.name || 'You',
+          senderImage: message.senderImage || user?.image || null,
+          senderRole: message.senderRole || 'user',
+          message: message.message || message.text || '',
+          createdAt: message.createdAt || message.timestamp || new Date()
+        };
+        
         setMessages(prevMessages => {
           const exists = prevMessages.some(m =>
-            m._id && message._id && m._id.toString() === message._id.toString()
+            m._id && normalizedMessage._id && m._id.toString() === normalizedMessage._id.toString()
           );
           if (!exists) {
-            return [...prevMessages, message];
+            return [...prevMessages, normalizedMessage];
           }
           return prevMessages;
         });
@@ -261,7 +309,22 @@ const Chat = () => {
         }
       } else {
         const data = await response.json();
-        setMessages(data.messages || []);
+        
+        // Normalize messages - ensure all have required sender fields
+        const normalizedMessages = (data.messages || []).map((msg) => {
+          const normalized = {
+            ...msg,
+            senderName: msg.senderName || 'Unknown',
+            senderImage: msg.senderImage || null,
+            senderRole: msg.senderRole || (msg.senderId === user?._id || msg.senderId === user?.id ? 'user' : 'mentor'),
+            message: msg.message || msg.text || '',
+            createdAt: msg.createdAt || msg.timestamp || new Date()
+          };
+          
+          return normalized;
+        });
+        
+        setMessages(normalizedMessages);
         setChatId(data.chatId);
       }
     } catch (err) {
@@ -464,26 +527,73 @@ const Chat = () => {
 
           <div className="space-y-4">
             {messages.map((message, index) => {
-              const isUser = message.senderId === user?._id || message.senderId === user?.id;
-              const isPreviousMessageFromSameSender = index > 0 && messages[index - 1].senderId === message.senderId;
+              // Normalize sender data - use backend fields with fallbacks
+              const senderId = message.senderId;
+              const senderName = message.senderName || 'Unknown';
+              const senderImage = message.senderImage || fallbackProfilePic;
+              const senderRole = message.senderRole || (message.senderId === user?._id || message.senderId === user?.id ? 'user' : 'mentor');
+              
+              // Determine if message is from current user
+              const isUser = senderId === user?._id || senderId === user?.id || senderRole === 'user';
+              
+              // Check if previous message is from same sender
+              const prevMessage = index > 0 ? messages[index - 1] : null;
+              const isPreviousMessageFromSameSender = prevMessage && 
+                (prevMessage.senderId?.toString() === senderId?.toString() || 
+                 (prevMessage.senderId && senderId && prevMessage.senderId.toString() === senderId.toString()));
+
 
               return (
                 <div
-                  key={message._id || index}
-                  className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                  key={message._id || `msg-${index}`}
+                  className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
                 >
+                  {/* Sender Avatar - only show if not from same sender as previous message */}
+                  {!isPreviousMessageFromSameSender && !isUser && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={senderImage || fallbackProfilePic}
+                        alt={senderName || 'User'}
+                        className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-100"
+                        onError={(e) => {
+                          e.target.src = fallbackProfilePic;
+                        }}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Message Bubble */}
                   <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${isUser
                       ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-br-md'
                       : 'bg-white/95 backdrop-blur-sm text-gray-900 rounded-bl-md border border-gray-200'
                       } ${isPreviousMessageFromSameSender ? 'mt-1' : 'mt-4'}`}
                   >
-                    <p className="text-sm leading-relaxed">{message.message || message.text}</p>
+                    {/* Sender Name - only show if not from same sender as previous message */}
+                    {!isPreviousMessageFromSameSender && !isUser && (
+                      <p className="text-xs font-semibold text-gray-700 mb-1">{senderName}</p>
+                    )}
+                    
+                    <p className="text-sm leading-relaxed">{message.message || message.text || ''}</p>
                     <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isUser ? 'text-pink-100' : 'text-gray-500'}`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
                       {isUser && getMessageStatus(message)}
                     </div>
                   </div>
+                  
+                  {/* Sender Avatar for user messages - only show if not from same sender */}
+                  {!isPreviousMessageFromSameSender && isUser && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={user?.image || user?.imageUrl || fallbackProfilePic}
+                        alt={user?.name || 'You'}
+                        className="w-8 h-8 rounded-full object-cover ring-2 ring-[#9f3562]/30"
+                        onError={(e) => {
+                          e.target.src = fallbackProfilePic;
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -493,7 +603,7 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="backdrop-blur-xl max-[400px]:p-1.5 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg">
+      <div className="backdrop-blur-xl max-[400px]:p-1.5 p-4 fixed bottom-0 left-0 right-0 z-10 shadow-lg bg-white/95">
         <div className="max-w-4xl mx-auto">
           {/* Connection Status */}
           {!isConnected && (
@@ -504,27 +614,102 @@ const Chat = () => {
             </div>
           )}
 
-          <form onSubmit={sendMessage} className="flex gap-3">
+          <form onSubmit={sendMessage} className="flex items-center gap-2 relative">
+            {/* Attachment Icon - Left Side */}
+            <div className="relative" ref={attachmentMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                onMouseEnter={() => {
+                  // Only show on hover for desktop (screens wider than 768px)
+                  if (window.innerWidth > 768) {
+                    setShowAttachmentMenu(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  // Only hide on hover leave for desktop
+                  if (window.innerWidth > 768) {
+                    setShowAttachmentMenu(false);
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#9f3562] flex-shrink-0"
+                disabled={isSending || !isConnected}
+              >
+                <FaPaperclip className="w-5 h-5" />
+              </button>
+
+              {/* Attachment Menu Popup - Compact */}
+              {showAttachmentMenu && (
+                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5 min-w-[140px] z-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAttachmentMenu(false);
+                      toast.info('Coming soon!', {
+                        position: 'bottom-center',
+                        autoClose: 2000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 bg-blue-100 rounded-md flex items-center justify-center flex-shrink-0">
+                      <Image className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-900">Photo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAttachmentMenu(false);
+                      toast.info('Coming soon!', {
+                        position: 'bottom-center',
+                        autoClose: 2000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                      });
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                  >
+                    <div className="w-7 h-7 bg-purple-100 rounded-md flex items-center justify-center flex-shrink-0">
+                      <File className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-900">Document</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Input Field - Full Width with Padding Equal to Icon Width */}
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder={`Message ${otherPerson?.name || 'user'}...`}
-              className="flex-1 max-[400px]:pl-2.25 px-4 max-[400px]:py-0.5 py-3 max-[400px]:text-sm bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm"
+              className="flex-1 w-full py-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 disabled:bg-gray-100 text-gray-900 placeholder:text-gray-500 shadow-sm text-sm sm:text-base placeholder:text-xs sm:placeholder:text-sm"
+              style={{
+                paddingLeft: '2.5rem', // Equal to icon width (40px = 2.5rem)
+                paddingRight: '2.5rem', // Equal to icon width (40px = 2.5rem)
+              }}
               disabled={isSending || !isConnected}
             />
+
+            {/* Send Icon - Right Side */}
             <button
               type="submit"
               disabled={!newMessage.trim() || isSending || !isConnected}
-              className={`px-6 py-3 rounded-full transition-all duration-300 flex items-center gap-2 shadow-sm ${newMessage.trim() && !isSending && isConnected
-                ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white hover:scale-105 active:scale-95'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 flex-shrink-0 ${
+                newMessage.trim() && !isSending && isConnected
+                  ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white hover:scale-105 active:scale-95'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
-              <FaPaperPlane className="text-sm" />
-              <span className="max-[400px]:hidden">
-                {isSending ? 'Sending...' : isConnected ? 'Send' : 'Offline'}
-              </span>
+              <FaPaperPlane className="w-4 h-4" />
             </button>
           </form>
         </div>
@@ -533,4 +718,4 @@ const Chat = () => {
   );
 };
 
-export default Chat;
+export default Chatpage;

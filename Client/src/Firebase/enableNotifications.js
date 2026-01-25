@@ -9,13 +9,6 @@ import { toast } from "react-toastify";
  * @param {boolean} force - Whether to bypass session storage dismissal check.
  */
 export const enableNotifications = async (userId, userRole = "user", force = false) => {
-    console.log("enableNotifications called", {
-        userId,
-        userRole,
-        force,
-        permission: Notification.permission,
-        vapidKeyExists: !!import.meta.env.VITE_VAPID_KEY
-    });
 
     try {
         if (!("Notification" in window)) {
@@ -25,36 +18,44 @@ export const enableNotifications = async (userId, userRole = "user", force = fal
 
         // If not forced, check if the user already dismissed notifications in this session
         if (!force && sessionStorage.getItem("notifications_prompt_dismissed") === "true") {
-            console.log("Notifications prompt was dismissed in this session.");
             return null;
         }
 
-        // Check current notification permission status
-        if (Notification.permission === "denied") {
-            console.log("Notification permission is denied by the user in browser settings.");
-            if (force) {
-                toast.warn("Notification permission is blocked. Please enable it in your browser settings to receive updates.", {
-                    toastId: "notification-denied-warn"
+        // If permission is already granted, just get the token
+        if (Notification.permission === "granted") {
+            const token = await getToken(messaging, {
+                vapidKey: import.meta.env.VITE_VAPID_KEY,
+            });
+
+            if (token && userId) {
+                await fetch("/api/notifications/subscribe", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ userId, token, userRole }),
                 });
             }
-            return null;
+
+            // Remove any dismissal flag
+            sessionStorage.removeItem("notifications_prompt_dismissed");
+
+            if (force) {
+                toast.success("Notifications enabled! You'll stay updated with the latest activity.", {
+                    toastId: "notification-success"
+                });
+            }
+
+            return token;
         }
 
-        if (Notification.permission === "granted") {
-            console.log("Notification permission already granted. Syncing token...");
-        } else {
-            console.log("Requesting notification permission...");
-        }
-
+        // Request permission (will work if status is "default", but will immediately return "denied" if previously denied)
         const permission = await Notification.requestPermission();
-        console.log("Permission result:", permission);
 
         if (permission === "granted") {
             const token = await getToken(messaging, {
                 vapidKey: import.meta.env.VITE_VAPID_KEY,
             });
-
-            console.log("FCM Token obtained:", token ? "Success" : "Failed");
 
             if (token && userId) {
                 await fetch("/api/notifications/subscribe", {
@@ -77,11 +78,21 @@ export const enableNotifications = async (userId, userRole = "user", force = fal
 
             return token;
 
+        } else if (permission === "denied") {
+            // Permission was denied - user must enable it in browser settings
+            if (force) {
+                toast.warn("Notification permission is blocked. Please enable it in your browser settings to receive updates.", {
+                    toastId: "notification-denied-warn"
+                });
+            }
+            // Don't save to session storage if forced, so user can try again
+            if (!force) {
+                sessionStorage.setItem("notifications_prompt_dismissed", "true");
+            }
+            return null;
         } else {
-            // Permission was either 'denied' or 'default' (meaning they dismissed the browser prompt)
-            console.log("Notification permission not granted:", permission);
-
-            // If they dismissed/denied, we save it to session storage so we don't annoy them for the rest of the session
+            // Permission was 'default' (meaning they dismissed the browser prompt)
+            // If they dismissed, we save it to session storage so we don't annoy them for the rest of the session
             if (!force) {
                 sessionStorage.setItem("notifications_prompt_dismissed", "true");
             }

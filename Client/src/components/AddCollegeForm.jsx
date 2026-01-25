@@ -656,7 +656,6 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 } else if (key === 'videoReview') {
                     // Extract video code from various YouTube URL formats
                     const videoCode = extractVideoCode(formData.videoReview || '');
-                    console.log('Extracted video code:', videoCode);
                     submitData.append('vidReview', videoCode);
                 } else if (key === 'affiliation') {
                     // Handle affiliation based on college type

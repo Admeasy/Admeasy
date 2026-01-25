@@ -116,7 +116,6 @@ const MentorshipForm = () => {
                 toast.error('An Error Occurred!');
             }
         } catch (e) {
-            console.log(e);
             toast.error(e);
         }
 

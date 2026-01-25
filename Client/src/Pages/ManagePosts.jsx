@@ -189,7 +189,7 @@ const ManagePosts = () => {
                     <p className="font-semibold text-gray-900">
                       {post.author?.name || "Unknown"}
                     </p>
-                    {post.author?.username && (
+                    {post.author?.username && ( 
                       <p className="text-sm text-gray-500">
                         @{post.author.username}
                       </p>
@@ -220,7 +220,7 @@ const ManagePosts = () => {
                   <img
                     src={post.image}
                     alt="Post"
-                    className="max-h-48 w-full object-cover rounded-lg border border-gray-200 cursor-pointer"
+                    className="max-h-48 w-full object-contain rounded-lg border border-gray-200 cursor-pointer"
                     onClick={() => {
                       setShowImageModal(true);
                       setImageModal(post.image);

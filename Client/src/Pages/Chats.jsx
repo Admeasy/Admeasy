@@ -101,12 +101,10 @@ const Chats = () => {
       }
 
       const data = await response.json();
-      console.log('Fetched chats:', data);
       
       if (data.success && Array.isArray(data.chats)) {
         setChats(data.chats);
       } else {
-        console.warn('Unexpected response format:', data);
         setChats([]);
       }
     } catch (err) {

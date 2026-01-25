@@ -226,7 +226,6 @@ function MentorsProfile() {
   const handleInputChange = (e) => {
     const { name, type, value } = e.target
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    console.log(e.target.value)
   };
 
   const handleImageUpload = (e) => {
@@ -250,7 +249,6 @@ function MentorsProfile() {
   };
 
   const handleSubmit = () => {
-    console.log("Profile updated:", { ...formData, exams });
     alert("Profile updated successfully!");
   };
 

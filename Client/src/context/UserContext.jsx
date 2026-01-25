@@ -80,11 +80,11 @@ export function UserProvider({ children }) {
                 });
                 if (!refreshRes.ok) {
                   const refreshError = await refreshRes.json().catch(() => ({}));
-                  console.warn(`Token refresh failed (attempt ${i + 1}):`, refreshError);
+                  // Token refresh failed, continuing anyway
                   // Continue anyway - tokens might still be valid
                 }
               } catch (refreshErr) {
-                console.warn(`Token refresh error (attempt ${i + 1}, non-fatal):`, refreshErr);
+                // Token refresh error (non-fatal)
               }
 
               // Fetch user data directly (tokens should be in cookies)
@@ -104,7 +104,7 @@ export function UserProvider({ children }) {
                     userObj.imageUrl = imageUrl;
                   }
                 } catch (imageErr) {
-                  console.warn('Failed to fetch profile picture:', imageErr);
+                  // Failed to fetch profile picture
                 }
 
                 setUser(userObj);
@@ -112,7 +112,7 @@ export function UserProvider({ children }) {
                 return true; // Success
               } else {
                 const errorData = await res.json().catch(() => ({}));
-                console.warn(`Failed to fetch user (attempt ${i + 1}/${retries}):`, res.status, errorData);
+                // Failed to fetch user
 
                 // If it's the last attempt, give up
                 if (i === retries - 1) {
@@ -124,7 +124,7 @@ export function UserProvider({ children }) {
                 }
               }
             } catch (err) {
-              console.warn(`Error fetching user (attempt ${i + 1}/${retries}):`, err);
+              // Error fetching user
 
               // If it's the last attempt, give up
               if (i === retries - 1) {
@@ -168,6 +168,24 @@ export function UserProvider({ children }) {
               userObj.imageUrl = imageUrl;
             }
             setUser(userObj);
+            
+            // Check onboarding status if user is verified
+            if (userObj && userObj.isVerified) {
+              const onboardingRes = await fetch('/api/users/onboarding/status', {
+                credentials: 'include'
+              });
+              if (onboardingRes.ok) {
+                const onboardingData = await onboardingRes.json();
+                if (onboardingData.requiresOnboarding && !location.pathname.startsWith('/onboarding')) {
+                  // Redirect to onboarding if incomplete
+                  const userId = userObj._id || userObj.id;
+                  if (userId) {
+                    navigate(`/onboarding/${userId}`, { replace: true });
+                    toast.warn('Please complete your onboarding to continue');
+                  }
+                }
+              }
+            }
           } else {
             // Server says not authenticated, clear localStorage
             setUser(null);

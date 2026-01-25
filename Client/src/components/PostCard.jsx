@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, ExternalLink, Youtube, Repeat2, UserPlus, UserCheck } from 'lucide-react';
+import { Heart, MessageCircle, Share2, ExternalLink, Youtube, Repeat2, UserPlus, UserCheck, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
+import EditPostModal from './EditPostModal';
+import ConfirmModal from './ConfirmModal';
 
 const PostCard = ({ post, onPostUpdate }) => {
   const navigate = useNavigate();
@@ -17,6 +19,11 @@ const PostCard = ({ post, onPostUpdate }) => {
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [isFollowing, setIsFollowing] = useState(post.isFollowing || false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const menuRef = useRef(null);
 
   // Interaction Locks (Action Locks)
   const isInteracting = useRef({ like: false, repost: false, follow: false });
@@ -315,13 +322,106 @@ const PostCard = ({ post, onPostUpdate }) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
+  const handleEdit = () => {
+    setShowMenu(false);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = () => {
+    setShowMenu(false);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/posts/${post._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete post');
+      }
+
+      toast.success('Post deleted successfully');
+      // Signal deletion - parent component should handle removal
+      if (onPostUpdate) {
+        onPostUpdate({ ...postState, deleted: true });
+      }
+      // Navigate away or hide the card
+      setShowDeleteModal(false);
+      // Small delay to allow toast to show, then navigate
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to delete post');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handlePostUpdated = (updatedPost) => {
+    setPostState(prev => ({ ...prev, ...updatedPost }));
+    if (onPostUpdate) {
+      onPostUpdate({ ...postState, ...updatedPost });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      onClick={() => navigate(`/posts/${post._id}`)}
-      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative">
+      onClick={() => {
+        // Save current scroll position immediately before navigation
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        const feedState = {
+          page: 1, // Will be updated by Feed component
+          posts: [],
+          scrollPosition: currentScroll,
+          timestamp: Date.now(),
+        };
+        try {
+          // Try to get existing state and update scroll position
+          const existing = sessionStorage.getItem('admeasy:feed:state');
+          if (existing) {
+            const existingState = JSON.parse(existing);
+            feedState.page = existingState.page || 1;
+            feedState.posts = existingState.posts || [];
+          }
+          sessionStorage.setItem('admeasy:feed:state', JSON.stringify(feedState));
+        } catch (err) {
+          console.error('Failed to save scroll position:', err);
+        }
+        
+        // Mark that we're navigating to post detail
+        sessionStorage.setItem('admeasy:fromPostDetail', 'true');
+        navigate(`/posts/${post._id}`);
+      }}
+      className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
+    >
       <style>{`
         .post-content h1, .post-content h2, .post-content h3 {
           font-weight: 700;
@@ -429,6 +529,47 @@ const PostCard = ({ post, onPostUpdate }) => {
                 </>
               )}
             </motion.button>
+          )}
+          {isOwnPost && (
+            <div className="relative" ref={menuRef}>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(!showMenu);
+                }}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600" />
+              </motion.button>
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={handleEdit}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors text-gray-700"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span className="text-sm font-medium">Edit post</span>
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-sm font-medium">Delete post</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
 
@@ -561,6 +702,27 @@ const PostCard = ({ post, onPostUpdate }) => {
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation();
+              // Save current scroll position immediately before navigation
+              const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+              const feedState = {
+                page: 1,
+                posts: [],
+                scrollPosition: currentScroll,
+                timestamp: Date.now(),
+              };
+              try {
+                const existing = sessionStorage.getItem('admeasy:feed:state');
+                if (existing) {
+                  const existingState = JSON.parse(existing);
+                  feedState.page = existingState.page || 1;
+                  feedState.posts = existingState.posts || [];
+                }
+                sessionStorage.setItem('admeasy:feed:state', JSON.stringify(feedState));
+              } catch (err) {
+                console.error('Failed to save scroll position:', err);
+              }
+              
+              sessionStorage.setItem('admeasy:fromPostDetail', 'true');
               navigate(`/posts/${post._id}`);
             }}
             className="flex items-center gap-2 text-gray-500 hover:text-[#9f3562] transition-colors group/comment"
@@ -595,8 +757,30 @@ const PostCard = ({ post, onPostUpdate }) => {
             <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
           </motion.button>
         </div>
-        <h6 className="text-xs font-medium text-gray-400 flex-shrink-0 mx-5 sm:mx-6 mb-1 sm:mb-2 text-right">{formatDate(post.createdAt)}</h6>
+        <h6 className="text-xs font-medium text-gray-400 flex-shrink-0 mx-5 sm:mx-6 mb-1 sm:mb-2 text-right">
+          {postState.isEdited && <span className="text-gray-500">(Edited) </span>}
+          {formatDate(postState.createdAt)}
+        </h6>
       </div>
+
+      <EditPostModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        post={postState}
+        onPostUpdated={handlePostUpdated}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        isLoading={isDeleting}
+      />
     </motion.div>
   );
 };

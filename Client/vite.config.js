@@ -19,6 +19,14 @@ export default defineConfig(({ mode }) => {
         }
       },
     },
+    optimizeDeps: {
+      include: ['react-pdf', 'pdfjs-dist'],
+    },
+    resolve: {
+      alias: {
+        'react-pdf': 'react-pdf',
+      },
+    },
   }
 })
 

@@ -14,7 +14,8 @@ const NotificationManager = require('../services/notificationManager');
 const getSocketIO = () => {
   return global.io;
 };
-//Ahsan Code
+
+// ========== USER-TO-MENTOR CHAT CONTROLLERS ==========
 // Get user's chat inbox (all mentors they've chatted with)
 const getUserToMentorChats = async (req, res) => {
     try {
@@ -201,7 +202,7 @@ const getUserToMentorChatMessages = async (req, res) => {
                     return {
                         _id: message._id,
                         senderId: message.senderId,
-                        senderRole: message.senderRole,
+                        senderRole: message.senderRole || 'user',
                         senderName: 'Deleted User',
                         senderImage: null,
                         message: message.message,
@@ -214,7 +215,7 @@ const getUserToMentorChatMessages = async (req, res) => {
                 return {
                     _id: message._id,
                     senderId: message.senderId,
-                    senderRole: message.senderRole,
+                    senderRole: message.senderRole || (message.senderRole === 'mentor' ? 'mentor' : 'user'),
                     senderName: sender.name || 'Unknown',
                     senderImage: sender.image || null,
                     message: message.message,
@@ -227,7 +228,7 @@ const getUserToMentorChatMessages = async (req, res) => {
                 return {
                     _id: message._id,
                     senderId: message.senderId,
-                    senderRole: message.senderRole,
+                    senderRole: message.senderRole || 'user',
                     senderName: 'Unknown',
                     senderImage: null,
                     message: message.message,
@@ -346,7 +347,7 @@ const sendUserToMentorMessage = async (req, res) => {
         // Notify recipient using new notification system (includes push notification)
         (async () => {
             try {
-                const recipientId = senderRole === 'user' ? req.chat.mentorId : req.chat.userId;
+                const recipientId = senderRole === 'user' ? req.userToMentorChat.mentorId : req.userToMentorChat.userId;
                 const recipientRole = senderRole === 'user' ? 'mentor' : 'user';
                 const senderName = sender?.name || 'Someone';
                 const senderUsername = sender?.username || null;
@@ -631,6 +632,7 @@ const getUserToUserChatMessages = async (req, res) => {
                     return {
                         _id: message._id,
                         senderId: message.senderId,
+                        senderRole: 'user',
                         senderName: 'Deleted User',
                         senderImage: null,
                         message: message.message,
@@ -643,6 +645,7 @@ const getUserToUserChatMessages = async (req, res) => {
                 return {
                     _id: message._id,
                     senderId: message.senderId,
+                    senderRole: 'user',
                     senderName: sender.name || 'Unknown',
                     senderImage: sender.image || null,
                     message: message.message,
@@ -655,6 +658,7 @@ const getUserToUserChatMessages = async (req, res) => {
                 return {
                     _id: message._id,
                     senderId: message.senderId,
+                    senderRole: 'user',
                     senderName: 'Unknown',
                     senderImage: null,
                     message: message.message,
@@ -1004,6 +1008,7 @@ const getMentorToMentorChatMessages = async (req, res) => {
                 return {
                     _id: message._id,
                     senderId: message.senderId,
+                    senderRole: 'user',
                     senderName: sender.name || 'Unknown',
                     senderImage: sender.image || null,
                     message: message.message,

@@ -39,6 +39,8 @@ const Space = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [messageMenuOpenId, setMessageMenuOpenId] = useState(null);
   const [deletingSpace, setDeletingSpace] = useState(false);
+  const menuRef = useRef(null);
+  const messageMenuRefs = useRef({});
   const isMember = space?.isMember;
   const isCreator =
     !!loggedInAccount &&
@@ -76,6 +78,41 @@ const Space = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [space?.messages?.length]);
+
+  // Close main menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuOpen && menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [menuOpen]);
+
+  // Close message menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (messageMenuOpenId) {
+        const menuRef = messageMenuRefs.current[messageMenuOpenId];
+        if (menuRef && !menuRef.contains(event.target)) {
+          setMessageMenuOpenId(null);
+        }
+      }
+    };
+
+    if (messageMenuOpenId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [messageMenuOpenId]);
 
   const handleJoinLeave = async (action) => {
     if (!loggedInAccount) {
@@ -377,34 +414,36 @@ const Space = () => {
               </button>
             ) : (
               <>
-                <button
-                  onClick={() => setMenuOpen((prev) => !prev)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:border-[#9f3562]/40 hover:text-[#9f3562] shadow-sm hover:shadow-md transition-all"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-30">
-                    <button
-                      onClick={() => handleJoinLeave('leave')}
-                      disabled={joiningOrLeaving}
-                      className="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer"
-                    >
-                      Leave space
-                    </button>
-                    {isCreator && (
+                <div ref={menuRef} className="relative">
+                  <button
+                    onClick={() => setMenuOpen((prev) => !prev)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:border-[#9f3562]/40 hover:text-[#9f3562] shadow-sm hover:shadow-md transition-all"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-30">
                       <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          setDeleteConfirmOpen(true);
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                        onClick={() => handleJoinLeave('leave')}
+                        disabled={joiningOrLeaving}
+                        className="w-full text-left px-3 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 rounded-lg cursor-pointer"
                       >
-                        Delete space
+                        Leave space
                       </button>
-                    )}
-                  </div>
-                )}
+                      {isCreator && (
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            setDeleteConfirmOpen(true);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                        >
+                          Delete space
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -461,7 +500,16 @@ const Space = () => {
                               msg.author?.id &&
                               msg.author.id.toString() ===
                                 loggedInAccount._id?.toString() && (
-                                <div className="relative ml-1">
+                                <div 
+                                  ref={(el) => {
+                                    if (el) {
+                                      messageMenuRefs.current[msg._id] = el;
+                                    } else {
+                                      delete messageMenuRefs.current[msg._id];
+                                    }
+                                  }}
+                                  className="relative ml-1"
+                                >
                                   <button
                                     type="button"
                                     onClick={() =>

@@ -23,6 +23,30 @@ async function authenticateJWT(req, res, next) {
             return res.status(401).json({ success: false, message: 'User not found' });
         }
         
+        // MANDATORY: Check email verification status
+        if (!user.isVerified) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Please verify your email address to access this resource.', 
+                isNotVerified: true 
+            });
+        }
+        
+        // MANDATORY: Check onboarding completion
+        const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+        const onboardingStatus = checkOnboardingStatus(user);
+        
+        if (onboardingStatus.requiresOnboarding) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Please complete your onboarding to access this resource.', 
+                code: 'ONBOARDING_REQUIRED',
+                isOnboardingIncomplete: true,
+                missingFields: onboardingStatus.missingFields,
+                errors: onboardingStatus.errors
+            });
+        }
+        
         req.user = user;
         
         // CRITICAL: Set session for Socket.io compatibility

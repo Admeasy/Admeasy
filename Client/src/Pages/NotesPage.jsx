@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { FileText, User, File, Download, Share2, Eye, Heart, ArrowLeft, ExternalLink } from "lucide-react";
+import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import { Document, Page, pdfjs } from 'react-pdf';
+
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const NotesPage = () => {
   const { id } = useParams();
@@ -12,11 +16,41 @@ const NotesPage = () => {
   const [error, setError] = useState("");
   const [isLiking, setIsLiking] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [numPages, setNumPages] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [scale, setScale] = useState(1.0);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [containerWidth, setContainerWidth] = useState(null);
 
   // Scroll to top when component mounts or note ID changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [id]);
+
+  // Reset PDF viewer state when note changes
+  useEffect(() => {
+    if (note) {
+      setPageNumber(1);
+      setScale(1.0);
+      setPdfError(false);
+      setPdfLoading(true);
+      setNumPages(null);
+    }
+  }, [note?._id]);
+
+  // Calculate container width for responsive PDF rendering
+  useEffect(() => {
+    const updateWidth = () => {
+      const container = document.querySelector('[data-pdf-container]');
+      if (container) {
+        setContainerWidth(container.clientWidth - 32); // Subtract padding
+      }
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [note]);
 
   useEffect(() => {
     let ignore = false;
@@ -118,14 +152,6 @@ const NotesPage = () => {
     }
   }, [note]);
 
-  const handleDownload = () => {
-    if (!note?.fileUrl) {
-      alert("Download link is not available yet.");
-      return;
-    }
-    window.open(note.fileUrl, "_blank", "noopener,noreferrer");
-  };
-
   const handleShare = () => {
     if (!note) return;
     const shareData = {
@@ -135,7 +161,9 @@ const NotesPage = () => {
     };
 
     if (navigator.share) {
-      navigator.share(shareData).catch((err) => console.log("Error sharing", err));
+      navigator.share(shareData).catch(() => {
+        // Error sharing
+      });
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(shareData.url);
       alert("Link copied to clipboard!");
@@ -290,14 +318,6 @@ const NotesPage = () => {
                 {/* Action Buttons */}
                 <div className="space-y-3 mb-6">
                   <button
-                    onClick={handleDownload}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg hover:shadow-xl"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download PDF
-                  </button>
-
-                  <button
                     onClick={handleShare}
                     className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all border-2 border-gray-300"
                   >
@@ -344,36 +364,129 @@ const NotesPage = () => {
                     <FileText className="w-6 h-6 text-white" />
                     <h2 className="text-xl font-bold text-white">Document Preview</h2>
                   </div>
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span className="hidden sm:inline">Open Full</span>
-                  </button>
                 </div>
 
                 {note.fileUrl ? (
                   <div className="relative">
                     {!pdfError ? (
-                      <iframe
-                        src={`${note.fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                        className="w-full h-[calc(100vh-200px)] min-h-[600px]"
-                        title={note.title}
-                        onError={() => setPdfError(true)}
-                      />
+                      <div className="flex flex-col h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
+                        {/* PDF Controls */}
+                        <div className="bg-gray-100 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                              disabled={pageNumber <= 1}
+                              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              title="Previous page"
+                            >
+                              <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <span className="text-sm font-medium text-gray-700 px-2">
+                              Page {pageNumber} of {numPages || '...'}
+                            </span>
+                            <button
+                              onClick={() => setPageNumber(prev => Math.min(numPages || 1, prev + 1))}
+                              disabled={pageNumber >= (numPages || 1)}
+                              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              title="Next page"
+                            >
+                              <ChevronRight className="w-5 h-5" />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
+                              className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                              title="Zoom out"
+                            >
+                              <ZoomOut className="w-5 h-5" />
+                            </button>
+                            <span className="text-sm font-medium text-gray-700 px-2 min-w-[60px] text-center">
+                              {Math.round(scale * 100)}%
+                            </span>
+                            <button
+                              onClick={() => setScale(prev => Math.min(2.0, prev + 0.25))}
+                              className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                              title="Zoom in"
+                            >
+                              <ZoomIn className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* PDF Viewer */}
+                        <div className="flex-1 overflow-auto bg-gray-100 flex items-start justify-center p-2 sm:p-4" data-pdf-container>
+                          {pdfLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
+                                <p className="text-gray-600 font-medium">Loading PDF...</p>
+                              </div>
+                            </div>
+                          )}
+                          <Document
+                            file={`/api/notes/${id}/pdf`}
+                            httpHeaders={{
+                              'Accept': 'application/pdf',
+                            }}
+                            withCredentials={false}
+                            options={{
+                              cMapUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+                              cMapPacked: true,
+                              standardFontDataUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/standard_fonts/`,
+                            }}
+                            onLoadSuccess={({ numPages }) => {
+                              setNumPages(numPages);
+                              setPdfLoading(false);
+                              setPdfError(false);
+                            }}
+                            onLoadError={(error) => {
+                              console.error('PDF load error:', error);
+                              setPdfError(true);
+                              setPdfLoading(false);
+                            }}
+                            loading={
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
+                                <p className="text-gray-600 font-medium">Loading PDF...</p>
+                              </div>
+                            }
+                            error={
+                              <div className="p-8 text-center flex flex-col items-center justify-center">
+                                <File className="w-20 h-20 text-gray-300 mb-4" />
+                                <p className="text-gray-600 font-semibold mb-2">Unable to load PDF</p>
+                                <p className="text-gray-500 text-sm">The PDF file may be corrupted, inaccessible, or blocked by CORS policy.</p>
+                              </div>
+                            }
+                            className="flex flex-col items-center"
+                          >
+                            <div className="mb-4">
+                              <Page
+                                pageNumber={pageNumber}
+                                scale={scale}
+                                renderTextLayer={true}
+                                renderAnnotationLayer={true}
+                                className="shadow-lg"
+                                width={containerWidth || undefined}
+                                loading={
+                                  <div className="flex items-center justify-center p-8 min-h-[400px]">
+                                    <div className="w-8 h-8 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
+                                  </div>
+                                }
+                                onRenderError={(error) => {
+                                  console.error('Page render error:', error);
+                                  // Don't set pdfError here, let Document handle it
+                                }}
+                              />
+                            </div>
+                          </Document>
+                        </div>
+                      </div>
                     ) : (
                       <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
                         <File className="w-20 h-20 text-gray-300 mb-4" />
                         <p className="text-gray-600 font-semibold mb-2">Unable to display PDF in browser</p>
-                        <p className="text-gray-500 text-sm mb-6">Some PDFs cannot be previewed directly. Please download to view.</p>
-                        <button
-                          onClick={handleDownload}
-                          className="flex items-center gap-2 px-6 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-all shadow-lg"
-                        >
-                          <Download className="w-5 h-5" />
-                          Download PDF
-                        </button>
+                        <p className="text-gray-500 text-sm">Some PDFs cannot be previewed directly.</p>
                       </div>
                     )}
                   </div>
@@ -393,4 +506,4 @@ const NotesPage = () => {
   );
 };
 
-        export default NotesPage;
+export default NotesPage;

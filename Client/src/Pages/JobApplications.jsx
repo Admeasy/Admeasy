@@ -27,7 +27,7 @@ const JobApplications = () => {
     const [dept, setDept] = useState('');
 
     useEffect(() => {
-        if (!job) return console.log('No job name');
+        if (!job) return;
         fetchApplications();
     }, [job]);
 
@@ -94,23 +94,18 @@ const JobApplications = () => {
 
             switch (dept) {
                 case 'Tech Department':
-                    console.log('tech');
                     guests = ['aadesh.panwar@admeasy.in', 'nitish@admeasy.in', 'ahsan@admeasy.in', interviewData.applicantEmail];
                     break;
                 case 'Marketing Department':
-                    console.log('mkt');
                     guests = ['aadesh.panwar@admeasy.in', 'divy@admeasy.in', 'parthtiwari7205@gmail.com', interviewData.applicantEmail];
                     break;
                 case 'HR Department':
-                    console.log('hr');
                     guests = ['aadesh.panwar@admeasy.in', 'divy@admeasy.in', 'meeralbabani25@gmail.com', interviewData.applicantEmail];
                     break;
                 case 'Content Department':
-                    console.log('content');
                     guests = ['aadesh.panwar@admeasy.in', 'divy@admeasy.in', 'parthtiwari7205@gmail.com', interviewData.applicantEmail];
                     break;
                 case 'Operations Department':
-                    console.log('ops');
                     guests = ['aadesh.panwar@admeasy.in', 'divy@admeasy.in', interviewData.applicantEmail];
                     break;
                 default:
@@ -126,8 +121,6 @@ const JobApplications = () => {
 
             setInterviewData(finalInterviewData);
 
-            console.log('Interview Data:', finalInterviewData);
-            console.log(interviewData);
 
             const res = await fetch('/api/apply/schedule', {
                 method: 'POST',
@@ -146,7 +139,6 @@ const JobApplications = () => {
             closeModal();
         } catch (err) {
             toast.error(err.message);
-            console.log(err);
         }
     };
 
@@ -189,7 +181,6 @@ const JobApplications = () => {
             closeModal();
         } catch (err) {
             toast.error(err.message);
-            console.log(err);
         }
     };
 

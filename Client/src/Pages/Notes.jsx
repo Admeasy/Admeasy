@@ -285,9 +285,9 @@ const Notes = () => {
               <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white via-white to-transparent pointer-events-none z-10 hidden sm:block"></div>
               <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white via-white to-transparent pointer-events-none z-10 hidden sm:block"></div>
               
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-1">
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-1 scroll-smooth">
                 {popularNotes.map((note) => (
-                  <div key={note._id} className="snap-start">
+                  <div key={note._id} className="snap-start flex-shrink-0 w-[320px] sm:w-[360px]">
                     <NotesCard note={note} compact />
                   </div>
                 ))}

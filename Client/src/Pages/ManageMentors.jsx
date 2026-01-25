@@ -127,7 +127,6 @@ const ManageMentors = () => {
       setUnlockingImage(null);
     }
   };
-  console.log(mentors)
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">

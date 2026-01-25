@@ -193,7 +193,7 @@ const CollegeDetailed = () => {
                 alt={college.name}
                 className="w-25 h-25 sm:h-32 sm:w-32 object-contain bg-white rounded-2xl shadow-lg transition-transform duration-300 hover:scale-105"
                 onError={(e) => {
-                  console.log('Error loading logo:', e);
+                  // Error loading logo
                 }}
               />
               <h1 className="w-fit mx-auto text-3xl sm:text-4xl text-center text-tprimary font-bold">{college.name}</h1>

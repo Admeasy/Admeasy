@@ -110,7 +110,7 @@ exports.createSpace = async (req, res) => {
     let logoUrl = null;
     if (req.file) {
       try {
-        logoUrl = await uploadToCloudinary(req.file.path, 'spaces-logos');
+        logoUrl = await uploadToCloudinary(req.file.path, 'spaces/logos');
       } catch (uploadError) {
         console.error('Error uploading space logo:', uploadError);
         return res.status(500).json({
@@ -382,7 +382,7 @@ exports.createMessage = async (req, res) => {
     let imageUrl = null;
     if (req.file) {
       try {
-        imageUrl = await uploadToCloudinary(req.file.path, 'spaces');
+        imageUrl = await uploadToCloudinary(req.file.path, 'spaces/messages');
       } catch (uploadError) {
         console.error('Error uploading space image:', uploadError);
         return res.status(500).json({
@@ -581,6 +581,19 @@ exports.deleteMessage = async (req, res) => {
         success: false,
         message: 'You can only delete your own messages',
       });
+    }
+
+    // Delete associated image from Cloudinary if it exists
+    if (message.image) {
+      try {
+        const publicId = getPublicIdFromUrl(message.image);
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+        }
+      } catch (e) {
+        console.error('Error deleting message image from Cloudinary:', e);
+        // Continue with message deletion even if image deletion fails
+      }
     }
 
     message.deleteOne();

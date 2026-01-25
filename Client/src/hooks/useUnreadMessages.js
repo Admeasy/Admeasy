@@ -22,20 +22,51 @@ export const useUnreadMessages = () => {
 
     try {
       if (showLoading) setIsLoading(true);
-      const endpoint = isUserAccount ? '/api/chats' : '/api/chats/mentor';
-      const response = await fetch(endpoint, {
-        credentials: 'include'
-      });
+      
+      if (isUserAccount) {
+        // For users, fetch from /api/chats
+        const response = await fetch('/api/chats', {
+          credentials: 'include'
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.chats)) {
-          // Calculate total unread count
-          const totalUnread = data.chats.reduce((sum, chat) => {
-            return sum + (chat.unreadCount || 0);
-          }, 0);
-          setUnreadCount(totalUnread);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.chats)) {
+            // Calculate total unread count
+            const totalUnread = data.chats.reduce((sum, chat) => {
+              return sum + (chat.unreadCount || 0);
+            }, 0);
+            setUnreadCount(totalUnread);
+          }
         }
+      } else {
+        // For mentors, fetch from both endpoints and combine counts
+        const [mentorToUserResponse, mentorToMentorResponse] = await Promise.all([
+          fetch('/api/mentor/chats', { credentials: 'include' }),
+          fetch('/api/mentor/mentor-chats', { credentials: 'include' })
+        ]);
+
+        let totalUnread = 0;
+
+        if (mentorToUserResponse.ok) {
+          const data = await mentorToUserResponse.json();
+          if (data.success && Array.isArray(data.chats)) {
+            totalUnread += data.chats.reduce((sum, chat) => {
+              return sum + (chat.unreadCount || 0);
+            }, 0);
+          }
+        }
+
+        if (mentorToMentorResponse.ok) {
+          const data = await mentorToMentorResponse.json();
+          if (data.success && Array.isArray(data.chats)) {
+            totalUnread += data.chats.reduce((sum, chat) => {
+              return sum + (chat.unreadCount || 0);
+            }, 0);
+          }
+        }
+
+        setUnreadCount(totalUnread);
       }
     } catch (err) {
       console.error('Error fetching unread messages:', err);
@@ -80,14 +111,38 @@ export const useUnreadMessages = () => {
       fetchUnreadCount(false);
     };
 
+    // Handle mentor-to-mentor messages (only for mentors)
+    const handleMentorToMentorMessage = (message) => {
+      if (!isUserAccount) {
+        // Check if message is from current mentor (don't count own messages)
+        const isFromCurrentMentor = mentor && message.senderId && (
+          message.senderId.toString() === mentor._id?.toString() || 
+          message.senderId.toString() === mentor.id?.toString()
+        );
+
+        // Only refresh count if message is not from current mentor
+        if (!isFromCurrentMentor) {
+          fetchUnreadCount(false);
+        }
+      }
+    };
+
     socket.on('receive_message', handleNewMessage);
     socket.on('message_read', handleMessageRead);
     socket.on('message_sent', handleNewMessage); // Also listen for sent messages to refresh
+    
+    // Listen for mentor-to-mentor messages (only for mentors)
+    if (!isUserAccount) {
+      socket.on('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
+    }
 
     return () => {
       socket.off('receive_message', handleNewMessage);
       socket.off('message_read', handleMessageRead);
       socket.off('message_sent', handleNewMessage);
+      if (!isUserAccount) {
+        socket.off('receive_mentor_to_mentor_message', handleMentorToMentorMessage);
+      }
     };
   }, [socket, isConnected, loggedInAccount, user, mentor, fetchUnreadCount]);
 
