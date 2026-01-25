@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, User, CirclePlus, MessagesSquare } from 'lucide-react';
+import { Home, Search, User, CirclePlus, MessagesSquare, Users } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
+import { useUnreadSpaceMessages } from '../hooks/useUnreadSpaceMessages';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 
@@ -17,6 +18,7 @@ const BottomNavBar = () => {
   const isUserAccount = Boolean(user);
   const [imageError, setImageError] = useState(false);
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
+  const { unreadCount: unreadSpaceMessagesCount } = useUnreadSpaceMessages();
 
   // Reset image error when user or mentor changes
   useEffect(() => {
@@ -95,6 +97,13 @@ const BottomNavBar = () => {
       requiresAuth: true
     },
     {
+      id: 'spaces',
+      icon: Users,
+      path: '/spaces',
+      onClick: () => handleProtectedRoute('/spaces', 'view spaces'),
+      requiresAuth: true
+    },
+    {
       id: 'chat',
       icon: MessagesSquare,
       path: isUserAccount ? '/chats' : '/mentor/chats',
@@ -110,7 +119,12 @@ const BottomNavBar = () => {
       path: '/me',
       onClick: () => {
         if (loggedInAccount) {
-          navigate('/me');
+          // Use replace if already on /me to prevent double history entries
+          if (location.pathname === '/me') {
+            navigate('/me', { replace: true });
+          } else {
+            navigate('/me');
+          }
         } else {
           navigate('/login');
         }
@@ -182,6 +196,12 @@ const BottomNavBar = () => {
                   {item.id === 'chat' && unreadMessagesCount > 0 && (
                     <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
                       {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    </span>
+                  )}
+                  {/* Unread space message notification badge */}
+                  {item.id === 'spaces' && unreadSpaceMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
+                      {unreadSpaceMessagesCount > 99 ? '99+' : unreadSpaceMessagesCount}
                     </span>
                   )}
                 </div>

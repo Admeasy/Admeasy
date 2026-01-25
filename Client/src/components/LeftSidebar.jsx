@@ -4,6 +4,7 @@ import { Home, Newspaper, UserPlus, MessagesSquare, Menu, X, ChevronLeft, Compas
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
+import { useUnreadSpaceMessages } from '../hooks/useUnreadSpaceMessages';
 import logo from "../assets/Admeasy/favicon.ico";
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -30,6 +31,7 @@ const LeftSidebar = ({
   const hideSidebarPages = ['/login', '/mentors/login', '/mentors/register', '/onboarding', '/forgot-password', '/reset-password'];
   const shouldHide = isAdminRoute || isSpaceFeedPage || hideSidebarPages.some(path => location.pathname.startsWith(path));
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
+  const { unreadCount: unreadSpaceMessagesCount } = useUnreadSpaceMessages();
 
   if (shouldHide) return null;
 
@@ -199,6 +201,12 @@ const LeftSidebar = ({
                       {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                     </span>
                   )}
+                  {/* Unread space message notification badge */}
+                  {item.label === 'Spaces' && unreadSpaceMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white">
+                      {unreadSpaceMessagesCount > 99 ? '99+' : unreadSpaceMessagesCount}
+                    </span>
+                  )}
                 </motion.div>
 
                 <AnimatePresence>
@@ -237,7 +245,14 @@ const LeftSidebar = ({
             className={`mt-auto pt-6 border-t border-gray-100 px-3 transition-all duration-300 mb-4`}
           >
             <div
-              onClick={() => navigate('/me')}
+              onClick={() => {
+                // Use replace if already on /me to prevent double history entries
+                if (location.pathname === '/me') {
+                  navigate('/me', { replace: true });
+                } else {
+                  navigate('/me');
+                }
+              }}
               className={`flex items-center rounded-xl hover:bg-gray-50 transition-colors duration-300 cursor-pointer group py-2.5 ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'}`}
             >
               <div className="relative flex-shrink-0">

@@ -19,17 +19,15 @@ const NotificationService = require('../services/notificationService');
 const NotificationManager = require('../services/notificationManager');
 const { getRankedFeed } = require('../utils/feedRanking');
 const feedController = require('../controllers/feedController');
-
+const { extractPublicId } = require('cloudinary-build-url');
 
 const getPublicIdFromUrl = (imageUrl) => {
-  const parts = imageUrl.split('/upload/');
-  if (parts.length < 2) {
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
+  try {
+    return extractPublicId(imageUrl);
+  } catch (error) {
     return null;
   }
-  const publicIdWithExtension = parts[1];
-  const extensionName = path.extname(publicIdWithExtension);
-  const publicId = publicIdWithExtension.replace(extensionName, '');
-  return publicId;
 };
 
 // Helper function to populate user data from Users connection

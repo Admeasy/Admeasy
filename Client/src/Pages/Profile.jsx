@@ -21,6 +21,23 @@ export default function Profile() {
 
   const { mentor: currentMentor, isLoading: mentorLoading } = useMentor();
   const { user: currentUser, isLoading: userLoading } = useUser();
+
+  // Redirect to /me if viewing own profile via /:username route to prevent double history entries
+  // Only redirect if we have username param and we're not already on /me
+  useEffect(() => {
+    // Wait for user/mentor data to load before checking
+    if (mentorLoading || userLoading) return;
+    
+    if (username && location.pathname !== '/me') {
+      const isOwnProfile = 
+        (currentMentor && currentMentor.username === username) ||
+        (currentUser && currentUser.username === username);
+      
+      if (isOwnProfile) {
+        navigate('/me', { replace: true });
+      }
+    }
+  }, [username, currentMentor, currentUser, location.pathname, navigate, mentorLoading, userLoading]);
   const [profile, setProfile] = useState(null);
   const [profileType, setProfileType] = useState(null); // 'mentor' or 'user'
   const [profileImageUrl, setProfileImageUrl] = useState(null);

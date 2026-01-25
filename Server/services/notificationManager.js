@@ -5,6 +5,37 @@ const User = require("../models/userSchema");
 const Mentor = require("../models/mentorSchema");
 
 /**
+ * Check if a user/mentor is currently viewing a specific space
+ * @param {string} recipientId - User/mentor ID
+ * @param {string} recipientRole - "user" or "mentor"
+ * @param {string} spaceId - Space ID to check
+ * @returns {boolean} - True if user is viewing the space
+ */
+function isUserViewingSpace(recipientId, recipientRole, spaceId) {
+  if (!global.io) return false;
+  
+  const normalizedSpaceId = String(spaceId);
+  const normalizedRecipientId = String(recipientId);
+  
+  // Check all connected sockets
+  const sockets = global.io.sockets.sockets;
+  for (const [socketId, socket] of sockets) {
+    const socketUserId = socket.userId || socket.mentorId;
+    const socketRole = socket.userRole;
+    
+    // Check if this socket belongs to the recipient
+    if (socketUserId && 
+        String(socketUserId) === normalizedRecipientId && 
+        socketRole === recipientRole &&
+        socket.currentSpaceId === normalizedSpaceId) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Comprehensive Notification Manager
  * Handles both storing notifications in DB and sending FCM push notifications
  */
@@ -32,11 +63,37 @@ class NotificationManager {
     originPath,
     message,
     actorInfo = null,
+    skipIfViewingSpace = false, // New parameter to skip push notifications if user is viewing the space
   }) {
     try {
       // Prevent self-notification
       if (actorId.toString() === recipientId.toString()) {
         return;
+      }
+      
+      // Check if this is a space-related notification and user is viewing the space
+      if (skipIfViewingSpace && originPath && originPath.startsWith('/spaces/')) {
+        const spaceIdMatch = originPath.match(/\/spaces\/([^/]+)/);
+        if (spaceIdMatch) {
+          const spaceId = spaceIdMatch[1];
+          if (isUserViewingSpace(recipientId, recipientRole, spaceId)) {
+            // User is viewing the space, skip push notification but still save to DB
+            // This allows the badge count to update but prevents toast/push
+            const notification = new Notification({
+              recipientId,
+              recipientRole,
+              actorId,
+              type,
+              entityType,
+              entityId,
+              originPath,
+              message,
+              isRead: false,
+            });
+            await notification.save();
+            return notification; // Return without sending push notification
+          }
+        }
       }
 
       // Check for duplicate notification (same actor, type, entity within last minute)

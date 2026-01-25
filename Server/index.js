@@ -107,6 +107,9 @@ const io = socketIo(server, {
 // Share session with Socket.io - CRITICAL FIX
 io.engine.use(sessionMiddleware);
 
+// Set global.io so controllers can emit events
+global.io = io;
+
 // In-memory presence tracking using Map
 // Structure: Map<"role:id", { status: 'online'|'offline', lastSeen: timestamp }>
 const presenceStore = new Map();
@@ -830,6 +833,71 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error getting online status:', error);
       socket.emit('online_status_error', { message: 'Failed to get status' });
+    }
+  });
+
+  // Join space room (for real-time updates)
+  socket.on('join_space', async (spaceId) => {
+    try {
+      if (!spaceId) {
+        socket.emit('space_error', { message: 'Space ID required' });
+        return;
+      }
+
+      // Normalize spaceId to string
+      const normalizedSpaceId = String(spaceId);
+      const Space = require('./models/spaceSchema');
+      const space = await Space.findById(normalizedSpaceId).select('members').lean();
+
+      if (!space) {
+        socket.emit('space_error', { message: 'Space not found' });
+        return;
+      }
+
+      const actorId = socket.userId || socket.mentorId;
+      if (!actorId) {
+        socket.emit('space_error', { message: 'Authentication required' });
+        return;
+      }
+
+      // Check if user/mentor is a member of the space
+      const isMember = space.members.some(
+        (m) => m.id && m.id.toString() === actorId.toString()
+      );
+
+      if (!isMember) {
+        socket.emit('space_error', { message: 'You must be a member to join the space room' });
+        return;
+      }
+
+      // Use consistent room name format with string spaceId
+      const roomName = `space:${normalizedSpaceId}`;
+      socket.join(roomName);
+      
+      // Track which space this user is currently viewing
+      socket.currentSpaceId = normalizedSpaceId;
+      
+      console.log(`Socket ${socket.id} joined space room: ${roomName} (spaceId: ${normalizedSpaceId})`);
+      
+      // Get room size for debugging
+      const room = io.sockets.adapter.rooms.get(roomName);
+      const roomSize = room ? room.size : 0;
+      console.log(`Space room ${roomName} now has ${roomSize} member(s)`);
+    } catch (error) {
+      console.error('Error joining space:', error);
+      socket.emit('space_error', { message: 'Failed to join space' });
+    }
+  });
+
+  // Leave space room
+  socket.on('leave_space', (spaceId) => {
+    if (spaceId) {
+      socket.leave(`space:${spaceId}`);
+      // Clear current space tracking
+      if (socket.currentSpaceId === String(spaceId)) {
+        socket.currentSpaceId = null;
+      }
+      console.log(`Socket ${socket.id} left space ${spaceId}`);
     }
   });
 

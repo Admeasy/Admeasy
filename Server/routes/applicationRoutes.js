@@ -6,6 +6,7 @@ const BackblazeB2Client = require('../b2Client');
 const b2 = new BackblazeB2Client();
 const path = require('path');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { extractPublicId } = require('cloudinary-build-url');
 const MentorshipRequest = require('../models/mentorshipRequestSchema');
 const Mentor = require('../models/mentorSchema');
 const { verifyAdminToken } = require('../middleware/adminAuth');
@@ -16,14 +17,12 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 const getPublicIdFromUrl = (imageUrl) => {
-    const parts = imageUrl.split('/upload/');
-    if (parts.length < 2) {
-        return null; // Not a valid Cloudinary URL format
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    try {
+        return extractPublicId(imageUrl);
+    } catch (error) {
+        return null;
     }
-    const publicIdWithExtension = parts[1];
-    const extensionName = path.extname(publicIdWithExtension);
-    const publicId = publicIdWithExtension.replace(extensionName, '');
-    return publicId;
 };
 
 // Get all collection names in Applications DB except 'messages'

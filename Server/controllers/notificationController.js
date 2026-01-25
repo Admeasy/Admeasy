@@ -48,7 +48,8 @@ const getNotifications = async (req, res) => {
     const recipientId = currentUser._id;
     const recipientRole = currentUser.role;
 
-    const notifications = await Notification.find({
+    // Get all notifications first, then filter out space-related ones
+    const allNotifications = await Notification.find({
       recipientId,
       recipientRole,
     })
@@ -56,6 +57,17 @@ const getNotifications = async (req, res) => {
       .limit(100)
       .lean()
       .select('-__v');
+    
+    // Filter out space-related notifications (FOLLOWING_POST and REPLY with space originPath)
+    const notifications = allNotifications.filter(notification => {
+      // Skip if it's a FOLLOWING_POST or REPLY with originPath starting with /spaces/
+      if ((notification.type === 'FOLLOWING_POST' || notification.type === 'REPLY') &&
+          notification.originPath &&
+          notification.originPath.startsWith('/spaces/')) {
+        return false;
+      }
+      return true;
+    });
 
     // Helper function to process image URL
     const processImageUrl = async (image, isMentor = false) => {
@@ -179,11 +191,28 @@ const getUnreadCount = async (req, res) => {
     const recipientId = currentUser._id;
     const recipientRole = currentUser.role;
 
-    const count = await Notification.countDocuments({
+    // Get all unread notifications first, then filter out space-related ones
+    const allUnreadNotifications = await Notification.find({
       recipientId,
       recipientRole,
       isRead: false,
+    })
+      .select('type originPath')
+      .lean();
+    
+    // Filter out space-related notifications (FOLLOWING_POST and REPLY with space originPath)
+    // This matches the same filtering logic used in getNotifications
+    const filteredNotifications = allUnreadNotifications.filter(notification => {
+      // Skip if it's a FOLLOWING_POST or REPLY with originPath starting with /spaces/
+      if ((notification.type === 'FOLLOWING_POST' || notification.type === 'REPLY') &&
+          notification.originPath &&
+          notification.originPath.startsWith('/spaces/')) {
+        return false;
+      }
+      return true;
     });
+
+    const count = filteredNotifications.length;
 
     res.json({ count });
   } catch (error) {

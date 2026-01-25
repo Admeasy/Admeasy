@@ -68,7 +68,7 @@ const NotificationBell = () => {
       </style>
       <button
         onClick={() => navigate('/notifications')}
-        className={`absolute top-4 right-4 sm:top-6 sm:right-6 md:top-20 md:right-6 z-50 bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 ${
+        className={`absolute top-4 right-2 sm:top-6 sm:right-6 md:top-20 md:right-6 z-50 bg-white rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 ${
           isShaking ? 'shake-animation' : ''
         }`}
         aria-label="Notifications"

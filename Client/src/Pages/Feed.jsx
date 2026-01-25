@@ -5,6 +5,7 @@ import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
 import PostViewTracker from '../components/PostViewTracker';
 import MentorSuggestionSwiper from '../components/MentorSuggestionSwiper';
+import SpaceSuggestionSwiper from '../components/SpaceSuggestionSwiper';
 import NotificationBell from '../components/NotificationBell';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -457,6 +458,8 @@ const Feed = () => {
                   </PostViewTracker>
                   {/* Add mentor suggestion swiper after the first post */}
                   {index === 0 && <MentorSuggestionSwiper />}
+                  {/* Add space suggestion swiper after the 3rd post */}
+                  {index === 2 && <SpaceSuggestionSwiper />}
                 </div>
               ))}
 

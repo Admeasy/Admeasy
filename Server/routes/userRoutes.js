@@ -11,6 +11,7 @@ const BackblazeB2Client = require('../b2Client.js');
 const b2 = new BackblazeB2Client();
 const path = require('path');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary.js');
+const { extractPublicId } = require('cloudinary-build-url');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -36,14 +37,11 @@ function getFrontendUrl() {
 // Helper: Extract public_id from Cloudinary URL
 function extractCloudinaryPublicId(url) {
     if (!url || typeof url !== 'string') return null;
-
-    // Cloudinary URLs have format: https://res.cloudinary.com/{cloud_name}/image/upload/{folder}/{public_id}.{format}
-    // or: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
-    const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/);
-    if (match) {
-        return match[1];
+    try {
+        return extractPublicId(url);
+    } catch (error) {
+        return null;
     }
-    return null;
 }
 
 // Helper: check if image is a Google URL, Cloudinary URL, or Backblaze file and handle accordingly

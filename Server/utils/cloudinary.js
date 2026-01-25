@@ -71,8 +71,17 @@ async function uploadToCloudinary(fileInput, folder) {
 
 async function deleteFromCloudinary(publicId) {
   try {
-    await cloudinary.uploader.destroy(publicId);
-    console.log("file deleted from cloudinary")
+    const result = await cloudinary.uploader.destroy(publicId);
+    if (result.result === 'ok') {
+      console.log("File deleted from Cloudinary: ", publicId);
+      return { success: true, result };
+    } else if (result.result === 'not found') {
+      console.log("File not found in Cloudinary: ", publicId);
+      return { success: false, result, message: 'File not found' };
+    } else {
+      console.warn("Unexpected result from Cloudinary delete:", result);
+      return { success: false, result };
+    }
   } catch (error) {
     console.error("Cloudinary Delete Error:", error);
     throw error;

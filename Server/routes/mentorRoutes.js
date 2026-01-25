@@ -9,6 +9,7 @@ const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { extractPublicId } = require('cloudinary-build-url');
 const { mentorForgotPassword, mentorResetPassword } = require('../controllers/mentorController');
 
 const verifyAdminFromCookie = (req) => {
@@ -45,14 +46,12 @@ const generateRefreshToken = (mentor) => {
 }
 
 const getPublicIdFromUrl = (imageUrl) => {
-    const parts = imageUrl.split('/upload/');
-    if (parts.length < 2) {
-        return null; // Not a valid Cloudinary URL format
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    try {
+        return extractPublicId(imageUrl);
+    } catch (error) {
+        return null;
     }
-    const publicIdWithExtension = parts[1];
-    const extensionName = path.extname(publicIdWithExtension);
-    const publicId = publicIdWithExtension.replace(extensionName, '');
-    return publicId;
 };
 
 // GET ALL MENTORS

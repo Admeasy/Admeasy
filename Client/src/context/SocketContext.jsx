@@ -191,6 +191,24 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  const joinSpace = (spaceId) => {
+    if (socketRef.current && isConnected) {
+      console.log('Joining space room:', spaceId);
+      socketRef.current.emit('join_space', spaceId);
+    } else {
+      console.warn('Cannot join space: socket not connected', {
+        hasSocket: !!socketRef.current,
+        isConnected
+      });
+    }
+  };
+
+  const leaveSpace = (spaceId) => {
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit('leave_space', spaceId);
+    }
+  };
+
   const value = {
     socket: socketRef.current,
     isConnected,
@@ -200,6 +218,8 @@ export const SocketProvider = ({ children }) => {
     leaveChat,
     sendMessage,
     getOnlineStatus,
+    joinSpace,
+    leaveSpace,
     isUserOnline: (userId) => userId ? onlineUsers.has(String(userId)) : false,
     isMentorOnline: (mentorId) => mentorId ? onlineMentors.has(String(mentorId)) : false
   };

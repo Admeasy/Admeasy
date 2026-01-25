@@ -3,7 +3,7 @@ const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinar
 const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const NotificationManager = require('../services/notificationManager');
-const path = require('path');
+const { extractPublicId } = require('cloudinary-build-url');
 
 // Helper: get current actor (user or mentor) as a snapshot
 function getActorFromReq(req) {
@@ -17,19 +17,6 @@ function getActorFromReq(req) {
     username: actor.username || null,
     image: actor.image || actor.imageUrl || null,
   };
-}
-
-// Helper: extract Cloudinary public ID from URL
-function getPublicIdFromUrl(imageUrl) {
-  if (!imageUrl) return null;
-  const parts = imageUrl.split('/upload/');
-  if (parts.length < 2) {
-    return null;
-  }
-  const publicIdWithExtension = parts[1];
-  const extensionName = path.extname(publicIdWithExtension);
-  const publicId = publicIdWithExtension.replace(extensionName, '');
-  return publicId;
 }
 
 // Admin: format space for admin listing (more details)
@@ -209,7 +196,7 @@ exports.getSuggestedSpaces = async (req, res) => {
   }
 };
 
-// GET /api/spaces/:id - full space with messages
+// GET /api/spaces/:id - full space with messages (supports pagination)
 exports.getSpaceById = async (req, res) => {
   try {
     const actor = getActorFromReq(req);
@@ -228,12 +215,45 @@ exports.getSpaceById = async (req, res) => {
         (m) => m.id.toString() === actor.id.toString()
       );
 
+    // Pagination support for messages
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // Get total message count
+    const totalMessages = space.messages.length;
+    const totalPages = Math.ceil(totalMessages / limit);
+
+    // Get paginated messages (newest first, then reverse for display)
+    const allMessages = space.messages || [];
+    const sortedMessages = [...allMessages].sort((a, b) => 
+      new Date(b.createdAt) - new Date(a.createdAt)
+    );
+    const paginatedMessages = sortedMessages.slice(skip, skip + limit);
+    // Reverse to show oldest first in the paginated set
+    const reversedMessages = paginatedMessages.reverse();
+
     return res.json({
       success: true,
       space: {
-        ...space,
-        isMember,
+        _id: space._id,
+        name: space.name,
+        description: space.description,
+        logo: space.logo,
+        creator: space.creator,
+        members: space.members,
         membersCount: space.members.length,
+        isMember,
+        createdAt: space.createdAt,
+        updatedAt: space.updatedAt,
+      },
+      messages: reversedMessages,
+      pagination: {
+        page,
+        limit,
+        totalMessages,
+        totalPages,
+        hasMore: page < totalPages,
       },
     });
   } catch (error) {
@@ -274,6 +294,18 @@ exports.joinSpace = async (req, res) => {
         joinedAt: new Date(),
       });
       await space.save();
+
+      // Emit socket event for real-time updates
+      if (global.io) {
+        global.io.to(`space:${space._id}`).emit('space_member_joined', {
+          spaceId: space._id.toString(),
+          member: {
+            ...actor,
+            joinedAt: new Date(),
+          },
+          membersCount: space.members.length,
+        });
+      }
     }
 
     return res.json({
@@ -313,6 +345,15 @@ exports.leaveSpace = async (req, res) => {
       (m) => m.id.toString() !== actor.id.toString()
     );
     await space.save();
+
+    // Emit socket event for real-time updates
+    if (global.io) {
+      global.io.to(`space:${space._id}`).emit('space_member_left', {
+        spaceId: space._id.toString(),
+        memberId: actor.id.toString(),
+        membersCount: space.members.length,
+      });
+    }
 
     return res.json({
       success: true,
@@ -421,6 +462,39 @@ exports.createMessage = async (req, res) => {
 
     const createdMessage = space.messages[space.messages.length - 1];
 
+    // Emit socket event for real-time updates
+    if (global.io) {
+      // Convert Mongoose subdocument to plain object
+      const messageObj = createdMessage.toObject ? createdMessage.toObject() : createdMessage;
+      const formattedMessage = {
+        _id: messageObj._id,
+        author: messageObj.author,
+        content: messageObj.content,
+        image: messageObj.image || null,
+        replyTo: messageObj.replyTo || null,
+        externalLink: messageObj.externalLink || null,
+        likes: messageObj.likes || [],
+        likesCount: messageObj.likesCount || 0,
+        createdAt: messageObj.createdAt,
+      };
+      // Normalize spaceId to string for consistent room naming
+      const normalizedSpaceId = String(space._id);
+      const roomName = `space:${normalizedSpaceId}`;
+      console.log(`Emitting space_message_created to room: ${roomName}`);
+      
+      // Get room size for debugging
+      const room = global.io.sockets.adapter.rooms.get(roomName);
+      const roomSize = room ? room.size : 0;
+      console.log(`Space room ${roomName} has ${roomSize} member(s) listening`);
+      
+      global.io.to(roomName).emit('space_message_created', {
+        spaceId: normalizedSpaceId,
+        message: formattedMessage,
+      });
+    } else {
+      console.warn('global.io is not available, cannot emit space_message_created event');
+    }
+
     // Send notifications
     (async () => {
       try {
@@ -445,6 +519,7 @@ exports.createMessage = async (req, res) => {
               originPath: `/spaces/${space._id}`,
               message: `${actorName} replied to your post`,
               actorInfo,
+              skipIfViewingSpace: true, // Skip push notification if user is viewing the space
             });
           }
         } else {
@@ -465,6 +540,7 @@ exports.createMessage = async (req, res) => {
               originPath: `/spaces/${space._id}`,
               message: `${actorName} posted in ${space.name}`,
               actorInfo,
+              skipIfViewingSpace: true, // Skip push notification if user is viewing the space
             });
           }
         }
@@ -473,11 +549,25 @@ exports.createMessage = async (req, res) => {
       }
     })();
 
+    // Convert Mongoose subdocument to plain object for JSON response
+    const messageObj = createdMessage.toObject ? createdMessage.toObject() : createdMessage;
+    const responseMessage = {
+      _id: messageObj._id,
+      author: messageObj.author,
+      content: messageObj.content,
+      image: messageObj.image || null,
+      replyTo: messageObj.replyTo || null,
+      externalLink: messageObj.externalLink || null,
+      likes: messageObj.likes || [],
+      likesCount: messageObj.likesCount || 0,
+      createdAt: messageObj.createdAt,
+    };
+
     return res.status(201).json({
       success: true,
       message: 'Message created successfully',
       spaceId: space._id,
-      messageData: createdMessage,
+      messageData: responseMessage,
     });
   } catch (error) {
     console.error('Error creating space message:', error);
@@ -534,6 +624,26 @@ exports.toggleLikeMessage = async (req, res) => {
 
     await space.save();
 
+    // Emit socket event for real-time updates
+    if (global.io) {
+      // Convert likes array to plain objects
+      const likesArray = (message.likes || []).map(like => ({
+        id: like.id,
+        role: like.role,
+        name: like.name,
+      }));
+      const messageData = {
+        _id: message._id,
+        likesCount: message.likesCount,
+        likes: likesArray,
+      };
+      global.io.to(`space:${spaceId}`).emit('space_message_liked', {
+        spaceId: spaceId.toString(),
+        messageId: messageId.toString(),
+        message: messageData,
+      });
+    }
+
     return res.json({
       success: true,
       isLiked: existingIndex === -1,
@@ -586,7 +696,7 @@ exports.deleteMessage = async (req, res) => {
     // Delete associated image from Cloudinary if it exists
     if (message.image) {
       try {
-        const publicId = getPublicIdFromUrl(message.image);
+        const publicId = extractPublicId(message.image);
         if (publicId) {
           await deleteFromCloudinary(publicId);
         }
@@ -598,6 +708,14 @@ exports.deleteMessage = async (req, res) => {
 
     message.deleteOne();
     await space.save();
+
+    // Emit socket event for real-time updates
+    if (global.io) {
+      global.io.to(`space:${spaceId}`).emit('space_message_deleted', {
+        spaceId: spaceId.toString(),
+        messageId: messageId.toString(),
+      });
+    }
 
     return res.json({
       success: true,
@@ -641,7 +759,7 @@ exports.deleteSpace = async (req, res) => {
     // Delete associated logo from Cloudinary if it exists
     if (space.logo) {
       try {
-        const publicId = getPublicIdFromUrl(space.logo);
+        const publicId = extractPublicId(space.logo);
         if (publicId) {
           await deleteFromCloudinary(publicId);
         }
