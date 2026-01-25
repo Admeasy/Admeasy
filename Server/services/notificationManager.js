@@ -108,6 +108,12 @@ class NotificationManager {
           notificationTitle = "New like";
         } else if (type === 'COMMENT') {
           notificationTitle = "New comment";
+        } else if (type === 'REPOST') {
+          notificationTitle = "New repost";
+        } else if (type === 'FOLLOWING_POST') {
+          notificationTitle = "New post";
+        } else if (type === 'REPLY') {
+          notificationTitle = "New reply";
         }
 
         // Send FCM push notification

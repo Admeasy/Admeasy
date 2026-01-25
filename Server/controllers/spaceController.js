@@ -2,6 +2,7 @@ const Space = require('../models/spaceSchema');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const { verifyAdminToken } = require('../middleware/adminAuth');
+const NotificationManager = require('../services/notificationManager');
 const path = require('path');
 
 // Helper: get current actor (user or mentor) as a snapshot
@@ -419,6 +420,58 @@ exports.createMessage = async (req, res) => {
     await space.save();
 
     const createdMessage = space.messages[space.messages.length - 1];
+
+    // Send notifications
+    (async () => {
+      try {
+        const actorName = actor.name || actor.username || 'Someone';
+        const actorInfo = {
+          name: actor.name,
+          username: actor.username,
+          image: actor.image,
+        };
+
+        if (replyToMessageId) {
+          // This is a reply - notify the original post author
+          const originalMessage = space.messages.id(replyToMessageId);
+          if (originalMessage && originalMessage.author.id.toString() !== actor.id.toString()) {
+            await NotificationManager.createAndSend({
+              recipientId: originalMessage.author.id,
+              recipientRole: originalMessage.author.role,
+              actorId: actor.id,
+              type: 'REPLY', // Using COMMENT type for replies
+              entityType: 'POST', // Treating space messages as posts
+              entityId: createdMessage._id,
+              originPath: `/spaces/${space._id}`,
+              message: `${actorName} replied to your post`,
+              actorInfo,
+            });
+          }
+        } else {
+          // This is a new post - notify all space members except the poster
+          const memberIds = space.members
+            .filter(m => m.id.toString() !== actor.id.toString())
+            .map(m => ({ id: m.id, role: m.role }));
+
+          // Notify all members
+          for (const member of memberIds) {
+            await NotificationManager.createAndSend({
+              recipientId: member.id,
+              recipientRole: member.role,
+              actorId: actor.id,
+              type: 'FOLLOWING_POST', // Using FOLLOWING_POST type for space posts
+              entityType: 'POST',
+              entityId: createdMessage._id,
+              originPath: `/spaces/${space._id}`,
+              message: `${actorName} posted in ${space.name}`,
+              actorInfo,
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.error('Error sending space notification:', notifyError);
+      }
+    })();
 
     return res.status(201).json({
       success: true,

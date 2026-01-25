@@ -67,6 +67,9 @@ import Explore from "./Pages/Explore"
 import BottomNavBar from './components/BottomNavBar';
 import VerifyEmail from './Pages/VerifyEmail';
 import { enableNotifications } from './Firebase/enableNotifications';
+import { onMessage } from 'firebase/messaging';
+import { messaging } from './Firebase/Firebase';
+import { useNavigate } from 'react-router-dom';
 
 import FeedbackBanner from './components/FeedbackBanner';
 import SubscriptionPlans from './Pages/SubscriptionPlans';
@@ -77,6 +80,7 @@ import Space from './Pages/Space';
 
 function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const { user, setUser, fetchUser } = useUser();
   const { mentor } = useMentor();
@@ -132,6 +136,49 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [user, mentor, location.pathname]);
+
+  // Handle foreground notifications (when app is open)
+  useEffect(() => {
+    if (!messaging) return;
+
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log('Foreground notification received:', payload);
+      
+      // Show a toast notification
+      toast.info(
+        <div 
+          onClick={() => navigate('/notifications')}
+          style={{ cursor: 'pointer' }}
+        >
+          <div style={{ fontWeight: 'bold' }}>{payload.notification?.title}</div>
+          <div style={{ fontSize: '0.9em' }}>{payload.notification?.body}</div>
+        </div>,
+        {
+          onClick: () => navigate('/notifications'),
+          autoClose: 5000,
+        }
+      );
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // Listen for navigation messages from service worker (when notification is clicked)
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const handleMessage = (event) => {
+        if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATIONS') {
+          navigate('/notifications');
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      };
+    }
+  }, [navigate]);
 
 
   // Routes that use Layout component (Layout already includes Navbar and Sidebar)
@@ -232,7 +279,7 @@ function App() {
             path="/me"
             element={
               <ProtectedRoute user={user || mentor}>
-                {mentor ? <MentorProfile /> : <Profile />}
+                {<Profile />}
               </ProtectedRoute>
             }
           />

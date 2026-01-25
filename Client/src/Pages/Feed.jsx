@@ -21,7 +21,11 @@ const Feed = () => {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const isFetchingRef = useRef(false);
-
+  const observerTarget = useRef(null);
+  const observerRef = useRef(null);
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
+  const loadingMoreRef = useRef(false);
 
   //🔥 SINGLE SOURCE OF TRUTH
 
@@ -42,6 +46,7 @@ const Feed = () => {
 
     try {
       pageNum === 1 ? setLoading(true) : setLoadingMore(true);
+      loadingMoreRef.current = pageNum !== 1;
 
       const response = await fetch(
         `/api/posts?page=${pageNum}&limit=10`,
@@ -60,16 +65,17 @@ const Feed = () => {
         append ? [...prev, ...data.posts] : data.posts
       );
 
-      setHasMore(
-        data.posts.length === 10 &&
-        pageNum < data.pagination.pages
-      );
+      const hasMoreValue = data.posts.length === 10 && pageNum < data.pagination.pages;
+      setHasMore(hasMoreValue);
+      hasMoreRef.current = hasMoreValue;
+      pageRef.current = pageNum;
     } catch (err) {
       console.error(err);
       toast.error('Failed to load posts. Please try again.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      loadingMoreRef.current = false;
       isFetchingRef.current = false;
     }
   }, []);
@@ -78,12 +84,79 @@ const Feed = () => {
     fetchPosts();
   }, [fetchPosts]);
 
-  const loadMore = () => {
-    if (loadingMore || !hasMore) return;
-    const nextPage = page + 1;
+  const loadMore = useCallback(() => {
+    if (loadingMoreRef.current || !hasMoreRef.current || isFetchingRef.current) {
+      return;
+    }
+    const nextPage = pageRef.current + 1;
+    pageRef.current = nextPage;
     setPage(nextPage);
     fetchPosts(nextPage, true);
-  };
+  }, [fetchPosts]);
+
+  // Infinite scroll with Intersection Observer and scroll fallback
+  useEffect(() => {
+    // Clean up previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    // Only set up observer if we have more posts to load
+    if (!hasMore) return;
+
+    const handleScroll = () => {
+      if (!hasMoreRef.current || loadingMoreRef.current || isFetchingRef.current) return;
+      
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when user is within 300px of bottom
+      if (scrollTop + windowHeight >= documentHeight - 300) {
+        const nextPage = pageRef.current + 1;
+        pageRef.current = nextPage;
+        setPage(nextPage);
+        fetchPosts(nextPage, true);
+      }
+    };
+
+    // Try Intersection Observer first
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (entry.isIntersecting) {
+            if (hasMoreRef.current && !loadingMoreRef.current && !isFetchingRef.current) {
+              const nextPage = pageRef.current + 1;
+              pageRef.current = nextPage;
+              setPage(nextPage);
+              fetchPosts(nextPage, true);
+            }
+          }
+        },
+        { 
+          threshold: 0.1,
+          rootMargin: '200px'
+        }
+      );
+
+      observerRef.current = observer;
+      observer.observe(currentTarget);
+    }
+
+    // Add scroll listener as fallback
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasMore, fetchPosts, posts.length]);
   const [randomHeading, setRandomHeading] = useState({ title: '', subtitle: '' });
 
   useEffect(() => {
@@ -233,22 +306,18 @@ const Feed = () => {
                 </div>
               ))}
 
+              {/* Sentinel element for infinite scroll */}
               {hasMore && (
-                <div className="flex justify-center pt-8 pb-12">
-                  <button
-                    onClick={loadMore}
-                    disabled={loadingMore}
-                    className="px-8 py-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center gap-3"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      'Load More Posts'
-                    )}
-                  </button>
+                <div 
+                  ref={observerTarget} 
+                  className="flex justify-center pt-8 pb-12 min-h-[100px]"
+                  style={{ minHeight: '100px' }}
+                >
+                  {loadingMore && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Loader2 className="w-7.5 sm:w-10 h-7.5 sm:h-10 animate-spin" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

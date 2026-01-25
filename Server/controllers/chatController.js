@@ -749,18 +749,20 @@ const sendUserToUserMessage = async (req, res) => {
                     ? chat.user2Id
                     : chat.user1Id;
                 const senderName = sender?.name || 'Someone';
+                const senderUsername = sender?.username || null;
+                const senderImage = sender?.image || null;
 
-                await NotificationService.sendToUser(
+                await NotificationManager.createAndSend({
                     recipientId,
-                    'New Message',
-                    `${senderName} sent you a message`,
-                    {
-                        type: 'user_to_user_chat',
-                        chatId: chatId.toString(),
-                        senderId: senderId.toString()
-                    },
-                    senderId
-                );
+                    recipientRole: 'user',
+                    actorId: senderId,
+                    type: 'MESSAGE',
+                    entityType: 'MESSAGE',
+                    entityId: newMessage._id,
+                    originPath: `/chats/${senderId}`,
+                    message: `${senderName} sent you a message`,
+                    actorInfo: { name: senderName, username: senderUsername, image: senderImage },
+                });
             } catch (notifyError) {
                 console.error('Error sending chat notification:', notifyError);
             }
@@ -1107,18 +1109,20 @@ const sendMentorToMentorMessage = async (req, res) => {
                     ? chat.mentor2Id
                     : chat.mentor1Id;
                 const senderName = sender?.name || 'Someone';
+                const senderUsername = sender?.username || null;
+                const senderImage = sender?.image || null;
 
-                await NotificationService.sendToUser(
+                await NotificationManager.createAndSend({
                     recipientId,
-                    'New Message',
-                    `${senderName} sent you a message`,
-                    {
-                        type: 'mentor_to_mentor_chat',
-                        chatId: chatId.toString(),
-                        senderId: senderId.toString()
-                    },
-                    senderId
-                );
+                    recipientRole: 'mentor',
+                    actorId: senderId,
+                    type: 'MESSAGE',
+                    entityType: 'MESSAGE',
+                    entityId: newMessage._id,
+                    originPath: `/mentor/chats/${senderId}`,
+                    message: `${senderName} sent you a message`,
+                    actorInfo: { name: senderName, username: senderUsername, image: senderImage },
+                });
             } catch (notifyError) {
                 console.error('Error sending chat notification:', notifyError);
             }
