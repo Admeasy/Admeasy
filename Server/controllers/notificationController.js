@@ -288,9 +288,42 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
+/**
+ * DELETE /api/notifications/:id
+ * Delete a notification
+ */
+const deleteNotification = async (req, res) => {
+  try {
+    const currentUser = await getCurrentUser(req);
+
+    if (!currentUser) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const recipientId = currentUser._id;
+    const recipientRole = currentUser.role;
+
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      recipientId,
+      recipientRole,
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.json({ success: true, message: "Notification deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    res.status(500).json({ message: "Failed to delete notification" });
+  }
+};
+
 module.exports = {
   getNotifications,
   getUnreadCount,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
 };

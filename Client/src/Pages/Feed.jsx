@@ -7,6 +7,8 @@ import PostViewTracker from '../components/PostViewTracker';
 import MentorSuggestionSwiper from '../components/MentorSuggestionSwiper';
 import SpaceSuggestionSwiper from '../components/SpaceSuggestionSwiper';
 import NotificationBell from '../components/NotificationBell';
+import AskDoubtCTA from '../components/AskDoubtCTA';
+import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -387,6 +389,12 @@ const Feed = () => {
 
       {/* Notification Bell */}
       <NotificationBell />
+
+      {/* Ask Doubt CTA */}
+      <AskDoubtCTA />
+
+      {/* Add Exam Info CTA */}
+      <AddExamInfoCTA />
 
       <div className="flex justify-center relative z-10">
         <div className="w-full max-w-3xl px-4 sm:px-6 py-8 sm:py-12">

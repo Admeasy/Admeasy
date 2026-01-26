@@ -7,6 +7,7 @@ import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import EditPostModal from './EditPostModal';
 import ConfirmModal from './ConfirmModal';
+import { processMentions } from '../utils/processMentions';
 
 const PostCard = ({ post, onPostUpdate }) => {
   const navigate = useNavigate();
@@ -40,7 +41,8 @@ const PostCard = ({ post, onPostUpdate }) => {
           prev.likesCount !== post.likesCount ||
           prev.isReposted !== post.isReposted ||
           prev.repostCount !== post.repostCount ||
-          prev.commentsCount !== post.commentsCount) {
+          prev.commentsCount !== post.commentsCount ||
+          JSON.stringify(prev.commentPreview) !== JSON.stringify(post.commentPreview)) {
           return { ...post };
         }
         return prev;
@@ -577,9 +579,21 @@ const PostCard = ({ post, onPostUpdate }) => {
         <div className="px-5 sm:px-6 pb-4">
           <div
             className="text-gray-800 break-words leading-relaxed text-sm sm:text-[15px] post-content"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: processMentions(postState.content || post.content) }}
             onClick={(e) => {
-              // Intercept clicks on links within post content
+              // Handle mention link clicks
+              const mentionLink = e.target.closest('a.mention-link');
+              if (mentionLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                const username = mentionLink.getAttribute('data-username');
+                if (username) {
+                  navigate(`/${username}`);
+                }
+                return;
+              }
+
+              // Intercept clicks on other links within post content
               const link = e.target.closest('a');
               if (link && link.href) {
                 e.preventDefault();
@@ -598,6 +612,64 @@ const PostCard = ({ post, onPostUpdate }) => {
             }}
           />
         </div>
+
+        {/* Comment Preview */}
+        {postState.commentPreview && (
+          <div className="px-5 sm:px-6 pb-3 sm:pb-4">
+            {postState.commentPreview.isMentor && (
+              <div className="mb-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm">
+                  Mentor Comment
+                </span>
+              </div>
+            )}
+            <div className="flex items-start gap-2.5 sm:gap-3">
+              <img
+                src={postState.commentPreview.author?.image || fallbackProfilePic}
+                alt={postState.commentPreview.author?.name || 'User'}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border border-gray-200"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="text-xs sm:text-sm font-semibold text-gray-900 cursor-pointer hover:text-[#9f3562] transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (postState.commentPreview.author?.username) {
+                        navigate(`/${postState.commentPreview.author.username}`);
+                      }
+                    }}
+                  >
+                    {postState.commentPreview.author?.name || 'User'}
+                  </span>
+                  {postState.commentPreview.author?.username && (
+                    <span
+                      className="text-xs text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/${postState.commentPreview.author.username}`);
+                      }}
+                    >
+                      @{postState.commentPreview.author.username}
+                    </span>
+                  )}
+                </div>
+                <div 
+                  className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-2"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {postState.commentPreview.content}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Post Image */}
         {post.image && (

@@ -94,6 +94,20 @@
   width: 100%;
   margin: 1rem 0;
 }
+
+/* Mention links in post content */
+.post-content .mention-link {
+  color: #9f3562 !important;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.post-content .mention-link:hover {
+  color: #b14270 !important;
+  text-decoration: underline;
+}
 /* Fix Quill list styles */
 .ql-editor ol,
 .ql-editor ul {

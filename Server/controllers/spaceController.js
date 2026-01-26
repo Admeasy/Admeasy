@@ -3,7 +3,7 @@ const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinar
 const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const NotificationManager = require('../services/notificationManager');
-const { extractPublicId } = require('cloudinary-build-url');
+const { extractPublicId } = require('../utils/cloudinary');
 
 // Helper: get current actor (user or mentor) as a snapshot
 function getActorFromReq(req) {

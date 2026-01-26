@@ -1,4 +1,66 @@
 const cloudinary = require("../config/cloudinary");
+
+/**
+ * Extract public ID from Cloudinary URL
+ * @param {String} imageUrl - Cloudinary URL
+ * @returns {String|null} - Public ID or null if invalid
+ */
+function extractPublicId(imageUrl) {
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
+  
+  try {
+    // Check if it's a Cloudinary URL
+    if (!imageUrl.includes('cloudinary.com')) return null;
+    
+    // Extract the path after /upload/, /fetch/, or /raw/upload/
+    const uploadMatch = imageUrl.match(/\/upload\/(.+)$/);
+    const fetchMatch = imageUrl.match(/\/fetch\/(.+)$/);
+    const rawMatch = imageUrl.match(/\/raw\/upload\/(.+)$/);
+    
+    let path = null;
+    if (uploadMatch) path = uploadMatch[1];
+    else if (fetchMatch) path = fetchMatch[1];
+    else if (rawMatch) path = rawMatch[1];
+    
+    if (!path) return null;
+    
+    // Remove version prefix if present (format: v1234567890/)
+    path = path.replace(/^v\d+\//, '');
+    
+    // Remove transformations (format: w_500,h_500,c_fill/...)
+    // Transformations are typically single segments before the public_id
+    const segments = path.split('/');
+    
+    // Find segments that are transformations (contain underscores and numbers/letters)
+    // Transformations usually look like: w_500, h_500, c_fill, etc.
+    // Public ID segments typically don't have this pattern
+    let publicIdSegments = [];
+    let foundPublicId = false;
+    
+    for (const segment of segments) {
+      // If segment looks like a transformation (has underscore and is short), skip it
+      // Transformations: w_500, h_500, c_fill, q_auto, f_auto, etc.
+      if (!foundPublicId && /^[a-z]_[a-z0-9_]+$/i.test(segment) && segment.length < 20) {
+        continue; // Skip transformation
+      }
+      // Once we find a non-transformation segment, everything after is public_id
+      foundPublicId = true;
+      publicIdSegments.push(segment);
+    }
+    
+    if (publicIdSegments.length === 0) return null;
+    
+    let publicId = publicIdSegments.join('/');
+    
+    // Remove file extension
+    publicId = publicId.replace(/\.[^/.]+$/, '');
+    
+    return publicId || null;
+  } catch (error) {
+    console.error('Error extracting public ID from Cloudinary URL:', error);
+    return null;
+  }
+}
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -88,4 +150,4 @@ async function deleteFromCloudinary(publicId) {
   }
 }
 
-module.exports = { uploadToCloudinary, deleteFromCloudinary };
+module.exports = { uploadToCloudinary, deleteFromCloudinary, extractPublicId };

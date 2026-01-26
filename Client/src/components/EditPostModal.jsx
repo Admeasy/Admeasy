@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { ImagePlus, Loader2, Send, X, AtSign, User, GraduationCap } from "lucide-react";
 import { toast } from "react-toastify";
 import ReactQuill, { Quill } from "react-quill-new";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,14 +14,209 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated }) => {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Mention feature state
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionSuggestions, setMentionSuggestions] = useState([]);
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [mentionSearching, setMentionSearching] = useState(false);
+  const quillRef = useRef(null);
+  const mentionTimeoutRef = useRef(null);
+  const mentionPopupRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && post) {
       setContent(post.content || "");
       setImage(null);
       setPreview(post.image || null);
+      setShowMentionPopup(false);
+      setMentionQuery("");
     }
   }, [isOpen, post]);
+
+  // Fetch mention suggestions
+  const fetchMentionSuggestions = useCallback(async (query) => {
+    if (!query.trim()) {
+      setMentionSuggestions([]);
+      return;
+    }
+
+    try {
+      setMentionSearching(true);
+      const response = await fetch(`/api/posts/mentions/search?q=${encodeURIComponent(query)}`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setMentionSuggestions(data.results || []);
+        setSelectedMentionIndex(0);
+      }
+    } catch (error) {
+      console.error("Error fetching mentions:", error);
+      setMentionSuggestions([]);
+    } finally {
+      setMentionSearching(false);
+    }
+  }, []);
+
+  // Debounced mention search
+  useEffect(() => {
+    if (mentionTimeoutRef.current) {
+      clearTimeout(mentionTimeoutRef.current);
+    }
+
+    if (mentionQuery) {
+      mentionTimeoutRef.current = setTimeout(() => {
+        fetchMentionSuggestions(mentionQuery);
+      }, 300);
+    } else {
+      setMentionSuggestions([]);
+    }
+
+    return () => {
+      if (mentionTimeoutRef.current) {
+        clearTimeout(mentionTimeoutRef.current);
+      }
+    };
+  }, [mentionQuery, fetchMentionSuggestions]);
+
+  // Handle mention detection in content
+  const handleContentChange = (value) => {
+    setContent(value);
+    
+    // Use setTimeout to ensure Quill has updated
+    setTimeout(() => {
+      if (!quillRef.current) return;
+      const quill = quillRef.current.getEditor();
+      const selection = quill.getSelection(true);
+      
+      if (!selection) {
+        setShowMentionPopup(false);
+        return;
+      }
+
+      // Get text before cursor
+      const text = quill.getText(0, selection.index);
+      const match = text.match(/@([a-zA-Z0-9_]*)$/);
+      
+      if (match) {
+        const query = match[1];
+        setMentionQuery(query);
+        setShowMentionPopup(true);
+        
+        // Calculate popup position
+        try {
+          const bounds = quill.getBounds(selection.index);
+          const editorElement = quill.root.closest('.ql-container') || quill.root;
+          const editorRect = editorElement.getBoundingClientRect();
+          
+          setMentionPosition({
+            top: editorRect.top + bounds.top + bounds.height + 5,
+            left: editorRect.left + bounds.left,
+          });
+        } catch (e) {
+          // Fallback position
+          const editorElement = quill.root.closest('.ql-container') || quill.root;
+          const editorRect = editorElement.getBoundingClientRect();
+          setMentionPosition({
+            top: editorRect.bottom + 5,
+            left: editorRect.left,
+          });
+        }
+      } else {
+        setShowMentionPopup(false);
+        setMentionQuery("");
+      }
+    }, 0);
+  };
+
+  // Insert mention into content
+  const insertMention = useCallback((mention) => {
+    if (!quillRef.current) return;
+    
+    const quill = quillRef.current.getEditor();
+    const selection = quill.getSelection(true);
+    
+    if (!selection) return;
+
+    // Get text before cursor
+    const text = quill.getText(0, selection.index);
+    const match = text.match(/@([a-zA-Z0-9_]*)$/);
+    
+    if (match) {
+      const startIndex = selection.index - match[0].length;
+      
+      // Delete the @query text
+      quill.deleteText(startIndex, match[0].length);
+      
+      // Insert mention
+      const mentionText = `@${mention.username || mention.name || 'user'} `;
+      quill.insertText(startIndex, mentionText);
+      
+      // Move cursor after mention
+      quill.setSelection(startIndex + mentionText.length);
+      
+      // Update content state
+      setContent(quill.root.innerHTML);
+    }
+    
+    setShowMentionPopup(false);
+    setMentionQuery("");
+  }, []);
+
+  // Handle keyboard navigation in mention popup
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!showMentionPopup || mentionSuggestions.length === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => 
+          prev < mentionSuggestions.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => 
+          prev > 0 ? prev - 1 : mentionSuggestions.length - 1
+        );
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        if (mentionSuggestions[selectedMentionIndex]) {
+          insertMention(mentionSuggestions[selectedMentionIndex]);
+        }
+      } else if (e.key === "Escape") {
+        setShowMentionPopup(false);
+        setMentionQuery("");
+      }
+    };
+
+    if (showMentionPopup) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showMentionPopup, mentionSuggestions, selectedMentionIndex, insertMention]);
+
+  // Close mention popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        mentionPopupRef.current &&
+        !mentionPopupRef.current.contains(e.target) &&
+        !e.target.closest(".ql-editor")
+      ) {
+        setShowMentionPopup(false);
+        setMentionQuery("");
+      }
+    };
+
+    if (showMentionPopup) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showMentionPopup]);
 
   // Memoize modules to prevent re-registration - must be called before any early returns
   const modules = useMemo(() => ({
@@ -134,14 +329,81 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated }) => {
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-6">
                 <form onSubmit={handleSubmit}>
-                  <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300">
+                  <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300 relative">
                     <ReactQuill
+                      ref={quillRef}
                       theme="snow"
                       value={content}
-                      onChange={setContent}
+                      onChange={handleContentChange}
                       modules={modules}
                       placeholder="What's on your mind?"
                     />
+                    
+                    {/* Mention Popup */}
+                    <AnimatePresence>
+                      {showMentionPopup && (
+                        <motion.div
+                          ref={mentionPopupRef}
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="fixed z-[100] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden min-w-[280px] max-w-[320px] max-h-[300px] overflow-y-auto"
+                          style={{
+                            top: `${mentionPosition.top}px`,
+                            left: `${mentionPosition.left}px`,
+                          }}
+                        >
+                          {mentionSearching ? (
+                            <div className="p-4 flex items-center justify-center gap-2 text-slate-500">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span className="text-sm">Searching...</span>
+                            </div>
+                          ) : mentionSuggestions.length > 0 ? (
+                            <div className="py-1">
+                              {mentionSuggestions.map((mention, index) => (
+                                <motion.button
+                                  key={`${mention.type}-${mention._id}`}
+                                  whileHover={{ backgroundColor: "#f8fafc" }}
+                                  onClick={() => insertMention(mention)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                    index === selectedMentionIndex
+                                      ? "bg-gradient-to-r from-[#9f3562]/10 to-pink-50/50 border-l-2 border-[#9f3562]"
+                                      : "hover:bg-slate-50"
+                                  }`}
+                                >
+                                  <img
+                                    src={mention.image || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                                    alt={mention.name}
+                                    className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-900 text-sm truncate">
+                                        {mention.name || "User"}
+                                      </span>
+                                      {mention.type === "mentor" && (
+                                        <GraduationCap className="w-3.5 h-3.5 text-[#9f3562] flex-shrink-0" />
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <AtSign className="w-3 h-3 text-slate-400" />
+                                      <span className="text-xs text-slate-500 truncate">
+                                        {mention.username || "no-username"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </motion.button>
+                              ))}
+                            </div>
+                          ) : mentionQuery ? (
+                            <div className="p-4 text-center text-slate-500 text-sm">
+                              No users found for "@{mentionQuery}"
+                            </div>
+                          ) : null}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     <AnimatePresence>
                       {preview && (

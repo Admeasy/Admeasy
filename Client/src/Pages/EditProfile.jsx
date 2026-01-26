@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FaInfoCircle } from "react-icons/fa";
-import { X, Upload, RotateCw, Check } from 'lucide-react';
+import { X, Upload, RotateCw, Check, GraduationCap } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify'
@@ -9,6 +9,74 @@ import 'react-toastify/dist/ReactToastify.css'
 import { useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext'
 import LoadingButton from '../components/LoadingButton';
+
+// Exams list (same as onboarding)
+const examsList = [
+  "CUET",
+  "JEE",
+  "NEET UG",
+  "CLAT",
+  "UPSC",
+  "IPMAT",
+  "CAT",
+  "CA FOUNDATION",
+  "CA INTERMEDIATE",
+  "CA FINAL",
+  "CFA L1",
+  "CFA L2",
+  "CFA L3",
+  "PAT",
+  "AILET",
+  "SLAT",
+  "NPAT",
+  "SET",
+  "CUET (Christ University)",
+  "St. Xavier Entrance Test",
+  "AIIMS NURSING",
+  "ICAR AIEEA",
+  "NEET PG",
+  "GATE",
+  "SAT (abroad)",
+  "ACT (abroad)",
+  "CEED (PG for Design)",
+  "UCEED (UG for Design)",
+  "CLAT PG",
+  "LSAT - India",
+  "MH CET",
+  "STATE CIVIL SERVICES",
+  "AMU BA LLB ENTRANCE",
+  "CUET - PG",
+  "AILET - PG",
+  "XAT",
+  "NMAT",
+  "SNAP",
+  "MAT",
+  "CMAT",
+  "ATMA",
+  "GMAT",
+  "TISS-NET",
+  "MICAT",
+  "UPSEE",
+  "MAH-MCA MET",
+  "NIMCET",
+  "JAM",
+  "JEST",
+  "GATE (economics in IIT Delhi/IIT Bombay)",
+  "CS (CSEET)",
+  "CS Executive Exam (Module I & II)",
+  "CS Professional Exam (Module I, II & III)",
+  "ACCA",
+  "CMA FOUNDATION",
+  "CMA INTERMEDIATE",
+  "CMA FINAL",
+  "SSC",
+  "FRM (Financial Risk Manager)",
+  "CUET UG (Science)",
+  "CUET UG (Maths)",
+  "CUET UG (Commerce)",
+  "CUET UG (Arts)",
+  "CUET UG (Law)",
+];
 
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -140,8 +208,11 @@ const EditProfile = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null, message: '' });
+  const [exams, setExams] = useState([]); // Array of strings for user exams
+  const examSectionRef = useRef(null);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Check if any required value in the form is an empty string
@@ -213,6 +284,11 @@ const EditProfile = () => {
         reasonForAdmeasy: user.reasonForAdmeasy || '',
         reasonForAdmeasyInput: user.reasonForAdmeasyInput || ''
       });
+
+      // Initialize exams array from user data
+      setExams(user.examsPreparingFor && Array.isArray(user.examsPreparingFor) 
+        ? [...user.examsPreparingFor] 
+        : []);
 
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
       setLoading(false);
@@ -451,8 +527,14 @@ const EditProfile = () => {
     if (form.courseLevel) formData.append('courseLevel', form.courseLevel);
     if (form.courseDetails) formData.append('courseDetails', form.courseDetails);
     if (form.collegeName) formData.append('collegeName', form.collegeName);
-    if (form.examsPreparingFor && Array.isArray(form.examsPreparingFor)) {
-      formData.append('examsPreparingFor', JSON.stringify(form.examsPreparingFor));
+    // Update examsPreparingFor from exams state
+    if (exams.length > 0) {
+      const validExams = exams.filter(exam => exam && exam.trim());
+      if (validExams.length > 0) {
+        formData.append('examsPreparingFor', JSON.stringify(validExams));
+      }
+    } else {
+      formData.append('examsPreparingFor', JSON.stringify([]));
     }
     if (form.reasonForAdmeasy) formData.append('reasonForAdmeasy', form.reasonForAdmeasy);
     if (form.reasonForAdmeasyInput) formData.append('reasonForAdmeasyInput', form.reasonForAdmeasyInput);
@@ -510,6 +592,11 @@ const EditProfile = () => {
           reasonForAdmeasyInput: updatedUser.reasonForAdmeasyInput || form.reasonForAdmeasyInput
         });
 
+        // Sync exams state with updated user data
+        setExams(updatedUser.examsPreparingFor && Array.isArray(updatedUser.examsPreparingFor) 
+          ? [...updatedUser.examsPreparingFor] 
+          : []);
+
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
 
@@ -546,6 +633,41 @@ const EditProfile = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  // Auto-focus exam section when navigating with ?focus=exams
+  useEffect(() => {
+    if (searchParams.get('focus') === 'exams' && examSectionRef.current) {
+      setTimeout(() => {
+        examSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Remove the query param after scrolling
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('focus');
+        navigate({ search: newSearchParams.toString() }, { replace: true });
+      }, 300);
+    }
+  }, [searchParams, navigate]);
+
+  // Exam management functions
+  const addExam = () => {
+    setExams([...exams, '']);
+    setIsDirty(true);
+  };
+
+  const updateExam = (index, value) => {
+    const updatedExams = exams.map((exam, i) => {
+      if (i === index) {
+        return value;
+      }
+      return exam;
+    });
+    setExams(updatedExams);
+    setIsDirty(true);
+  };
+
+  const removeExam = (index) => {
+    setExams(exams.filter((_, i) => i !== index));
+    setIsDirty(true);
+  };
 
   if (loading) {
     return (
@@ -760,6 +882,57 @@ const EditProfile = () => {
               />
             </label>
           )}
+
+          {/* Exams Section */}
+          <div ref={examSectionRef} className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-[#9f3562]" />
+                Exams Preparing For
+              </label>
+              <button
+                type="button"
+                onClick={addExam}
+                className="text-sm text-[#9f3562] hover:text-[#b14270] font-medium transition-colors"
+              >
+                + Add Exam
+              </button>
+            </div>
+            {exams.length === 0 ? (
+              <div className="text-sm text-gray-500 py-4 text-center border border-gray-200 rounded-lg bg-gray-50">
+                No exams added yet. Click "Add Exam" to add one.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {exams.map((exam, index) => (
+                  <div key={index} className="flex gap-3 items-center p-3 border border-gray-300 rounded-lg bg-white/90">
+                    <div className="flex-1">
+                      <select
+                        value={exam}
+                        onChange={(e) => updateExam(index, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9f3562] text-sm bg-white"
+                      >
+                        <option value="">Select an exam</option>
+                        {examsList.map((examName) => (
+                          <option key={examName} value={examName}>
+                            {examName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeExam(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
+                      aria-label="Remove exam"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* BUTTONS */}
           <div className="flex gap-4 justify-center mt-6">

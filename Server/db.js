@@ -1,3 +1,5 @@
+require("dotenv").config({ path: __dirname + "/.env" });
+console.log("Admeasy URI:", process.env.MONGODB_APPLICATIONS_URI);
 const mongoose = require('mongoose');
 
 const Admeasy = mongoose.createConnection(process.env.MONGODB_ADMEASY_URI);

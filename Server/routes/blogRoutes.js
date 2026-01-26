@@ -6,8 +6,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const upload = require('../middleware/multer')
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary')
-const { extractPublicId } = require('cloudinary-build-url');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary')
 
 const getPublicIdFromUrl = (imageUrl) => {
     if (!imageUrl || typeof imageUrl !== 'string') return null;

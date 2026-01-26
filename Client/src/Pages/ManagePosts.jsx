@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaSearch, FaTrash, FaUser } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { processMentions } from "../utils/processMentions";
 
 const ManagePosts = () => {
   const navigate = useNavigate();
@@ -186,11 +187,25 @@ const ManagePosts = () => {
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <p
+                      className="font-semibold text-gray-900 cursor-pointer hover:text-[#9f3562] transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (post.author?.username) {
+                          navigate(`/${post.author.username}`);
+                        }
+                      }}
+                    >
                       {post.author?.name || "Unknown"}
                     </p>
                     {post.author?.username && ( 
-                      <p className="text-sm text-gray-500">
+                      <p
+                        className="text-sm text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/${post.author.username}`);
+                        }}
+                      >
                         @{post.author.username}
                       </p>
                     )}
@@ -210,7 +225,20 @@ const ManagePosts = () => {
                 <div
                   className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{
-                    __html: post.content || "",
+                    __html: processMentions(post.content || ""),
+                  }}
+                  onClick={(e) => {
+                    // Handle mention link clicks
+                    const mentionLink = e.target.closest('a.mention-link');
+                    if (mentionLink) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const username = mentionLink.getAttribute('data-username');
+                      if (username) {
+                        navigate(`/${username}`);
+                      }
+                      return;
+                    }
                   }}
                 />
               </div>

@@ -30,6 +30,7 @@ const notificationSchema = new mongoose.Schema(
         "COMMENT",
         "REPOST",
         "FOLLOWING_POST",
+        "MENTION",
       ],
       required: true,
     },

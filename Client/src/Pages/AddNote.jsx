@@ -167,27 +167,57 @@ const AddNote = () => {
     try {
       const submitData = new FormData();
 
-      // Add all form fields
+      // Add all form fields with proper formatting
       Object.keys(formData).forEach(key => {
-        if (formData[key] !== '' && formData[key] !== null && formData[key] !== undefined) {
-          submitData.append(key, formData[key]);
+        const value = formData[key];
+        // Skip empty strings, null, and undefined
+        if (value !== '' && value !== null && value !== undefined) {
+          // Convert boolean to string for FormData
+          if (typeof value === 'boolean') {
+            submitData.append(key, value.toString());
+          } else {
+            submitData.append(key, value);
+          }
         }
       });
 
+      // Validate file before adding
+      if (!selectedFile) {
+        toast.error('Please select a PDF file to upload');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Add file
       submitData.append('noteFile', selectedFile);
+
+      console.log('Submitting note with:', {
+        title: formData.title,
+        hasFile: !!selectedFile,
+        fileSize: selectedFile.size,
+        fileName: selectedFile.name
+      });
 
       // Use retry function
       const response = await fetchWithRetry('/api/notes', {
         method: 'POST',
         credentials: 'include',
         body: submitData
+        // Note: Don't set Content-Type header - browser will set it with boundary for FormData
       });
 
       // Parse response with error handling
       let data;
       try {
-        data = await response.json();
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          // If response is not JSON, read as text for debugging
+          const text = await response.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Server returned an invalid response. Please try again.');
+        }
       } catch (parseError) {
         console.error('Failed to parse response:', parseError);
         throw new Error('Invalid response from server. Please try again.');
@@ -195,6 +225,21 @@ const AddNote = () => {
 
       if (data.success) {
         toast.success('Note uploaded successfully! It will be reviewed by admin before publishing.');
+        // Reset form
+        setFormData({
+          title: '',
+          description: '',
+          standard: '',
+          pages: '',
+          isFree: true,
+          price: '',
+          university: '',
+          programme: '',
+          course: '',
+          tags: ''
+        });
+        setSelectedFile(null);
+        setFileError('');
         navigate('/notes');
       } else {
         throw new Error(data.message || 'Failed to upload note');
@@ -207,7 +252,7 @@ const AddNote = () => {
       
       if (error.message) {
         errorMessage = error.message;
-      } else if (error.name === 'TypeError') {
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
         errorMessage = 'Network error. Please check your connection and try again.';
       } else if (error.name === 'AbortError') {
         errorMessage = 'Request timeout. Please check your connection and try again.';

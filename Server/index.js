@@ -26,7 +26,7 @@ const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const NotificationRoutes = require('./routes/notificationRoutes');
-
+const Db = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
@@ -50,6 +50,9 @@ if (missing.length) {
   console.error('Missing required environment variables:', missing.join(', '));
   process.exit(1);
 }
+
+// Database connections are automatically established when db.js is required
+// The connections are created using mongoose.createConnection() which connects automatically
 
 // CORS configuration
 app.use(cors({

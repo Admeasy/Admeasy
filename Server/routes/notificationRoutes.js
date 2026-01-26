@@ -6,6 +6,7 @@ const {
   getUnreadCount,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
 } = require("../controllers/notificationController");
 
 // Subscribe to push notifications
@@ -32,5 +33,8 @@ router.patch("/:id/read", markAsRead);
 
 // Mark all notifications as read
 router.post("/mark-all-read", markAllAsRead);
+
+// Delete a notification
+router.delete("/:id", deleteNotification);
 
 module.exports = router;

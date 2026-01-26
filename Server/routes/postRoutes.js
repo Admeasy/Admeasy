@@ -19,7 +19,7 @@ const NotificationService = require('../services/notificationService');
 const NotificationManager = require('../services/notificationManager');
 const { getRankedFeed } = require('../utils/feedRanking');
 const feedController = require('../controllers/feedController');
-const { extractPublicId } = require('cloudinary-build-url');
+const { extractPublicId } = require('../utils/cloudinary');
 
 const getPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== 'string') return null;
@@ -46,6 +46,68 @@ async function populateUser(userId) {
   } catch (error) {
     console.error('Error populating user:', error);
     return null;
+  }
+}
+
+// Helper function to extract mentions from post content
+// Extracts @username patterns from HTML content
+function extractMentions(content) {
+  if (!content || typeof content !== 'string') return [];
+  
+  // Remove HTML tags and get plain text
+  const plainText = content.replace(/<[^>]*>/g, ' ');
+  
+  // Match @username patterns (alphanumeric and underscore)
+  const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+  const matches = plainText.match(mentionRegex);
+  
+  if (!matches) return [];
+  
+  // Extract unique usernames (remove @ symbol)
+  const usernames = [...new Set(matches.map(match => match.substring(1)))];
+  return usernames;
+}
+
+// Helper function to create mention notifications
+async function createMentionNotifications(postContent, postId, actorId, actorRole, actorName) {
+  try {
+    const mentionedUsernames = extractMentions(postContent);
+    if (mentionedUsernames.length === 0) return;
+
+    // Find all mentioned users and mentors
+    const mentionedUsers = await User.find({ username: { $in: mentionedUsernames } })
+      .select('_id username name')
+      .lean();
+    const mentionedMentors = await Mentor.find({ username: { $in: mentionedUsernames } })
+      .select('_id username name')
+      .lean();
+
+    // Combine and create notifications
+    const allMentioned = [
+      ...mentionedUsers.map(u => ({ ...u, role: 'user' })),
+      ...mentionedMentors.map(m => ({ ...m, role: 'mentor' }))
+    ];
+
+    // Create notifications for each mentioned user/mentor
+    for (const mentioned of allMentioned) {
+      // Skip if mentioned user is the actor (self-mention)
+      if (mentioned._id.toString() === actorId.toString()) continue;
+
+      await NotificationManager.createAndSend({
+        recipientId: mentioned._id,
+        recipientRole: mentioned.role,
+        actorId: actorId,
+        type: 'MENTION',
+        entityType: 'POST',
+        entityId: postId,
+        originPath: `/posts/${postId}`,
+        message: `${actorName} mentioned you in a post`,
+        actorInfo: { name: actorName },
+      });
+    }
+  } catch (error) {
+    console.error('Error creating mention notifications:', error);
+    // Don't throw - mention notifications are not critical
   }
 }
 
@@ -258,7 +320,9 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     // Collect all unique user IDs from:
     // 1. Post authors (userId field)
     // 2. Post likes
+    // 3. Comment authors (for comment previews)
     const allUserIds = new Set();
+    const allCommentAuthorIds = new Set();
     const postAuthorUserIds = [];
 
     posts.forEach(post => {
@@ -270,6 +334,12 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
       // Collect like user IDs
       (post.likes || []).forEach(like => {
         if (like.userId) allUserIds.add(like.userId.toString());
+      });
+      // Collect comment author IDs (can be users or mentors)
+      (post.comments || []).forEach(comment => {
+        if (comment.userId && !comment.deleted) {
+          allCommentAuthorIds.add(comment.userId.toString());
+        }
       });
     });
 
@@ -286,6 +356,39 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
           name: user.name,
           image: user.image,
           username: user.username || null,
+        });
+      });
+    }
+
+    // Batch fetch all comment authors (both users and mentors)
+    const commentAuthorIdsArray = Array.from(allCommentAuthorIds);
+    const commentAuthorsMap = new Map();
+    if (commentAuthorIdsArray.length > 0) {
+      // Fetch users
+      const commentUsers = await User.find({ _id: { $in: commentAuthorIdsArray } })
+        .select('name image _id username')
+        .lean();
+      commentUsers.forEach(user => {
+        commentAuthorsMap.set(user._id.toString(), {
+          _id: user._id,
+          name: user.name,
+          image: user.image,
+          username: user.username || null,
+          isMentor: false,
+        });
+      });
+      
+      // Fetch mentors (check which IDs are mentors)
+      const commentMentors = await Mentor.find({ _id: { $in: commentAuthorIdsArray } })
+        .select('name image _id username')
+        .lean();
+      commentMentors.forEach(mentor => {
+        commentAuthorsMap.set(mentor._id.toString(), {
+          _id: mentor._id,
+          name: mentor.name,
+          image: mentor.image,
+          username: mentor.username || null,
+          isMentor: true,
         });
       });
     }
@@ -350,6 +453,59 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         });
       }
 
+      // Find best comment preview: prioritize mentor comments, then user comments
+      let commentPreview = null;
+      const allComments = (post.comments || []).filter(c => !c.deleted);
+      if (allComments.length > 0) {
+        // Separate mentor and user comments
+        const mentorComments = [];
+        const userComments = [];
+        
+        allComments.forEach(comment => {
+          if (comment.userId) {
+            // Handle both ObjectId (from .lean()) and populated objects
+            const commentUserId = comment.userId._id 
+              ? comment.userId._id.toString() 
+              : comment.userId.toString();
+            const commentAuthor = commentAuthorsMap.get(commentUserId);
+            if (commentAuthor && commentAuthor.isMentor) {
+              mentorComments.push(comment);
+            } else if (commentAuthor) {
+              userComments.push(comment);
+            }
+          }
+        });
+
+        // Sort by createdAt (latest first)
+        mentorComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        userComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // Prioritize mentor comments
+        const selectedComment = mentorComments.length > 0 ? mentorComments[0] : (userComments.length > 0 ? userComments[0] : null);
+        
+        if (selectedComment && selectedComment.userId) {
+          // Handle both ObjectId (from .lean()) and populated objects
+          const commentUserId = selectedComment.userId._id 
+            ? selectedComment.userId._id.toString() 
+            : selectedComment.userId.toString();
+          const commentAuthor = commentAuthorsMap.get(commentUserId);
+          if (commentAuthor) {
+            commentPreview = {
+              _id: selectedComment._id,
+              content: selectedComment.content,
+              author: {
+                _id: commentAuthor._id,
+                name: commentAuthor.name,
+                username: commentAuthor.username,
+                image: commentAuthor.image,
+              },
+              isMentor: commentAuthor.isMentor || false,
+              createdAt: selectedComment.createdAt,
+            };
+          }
+        }
+      }
+
       return {
         _id: post._id,
         mentor: author, // Keep 'mentor' key for backward compatibility
@@ -367,6 +523,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
+        commentPreview, // Add comment preview
       };
     });
 
@@ -956,6 +1113,17 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
       },
     });
 
+    // Create mention notifications (async, don't block response)
+    (async () => {
+      try {
+        const actorId = req.mentor ? req.mentor._id : req.user._id;
+        const actorRole = req.mentor ? 'mentor' : 'user';
+        const actorName = author?.name || 'Someone';
+        await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
+      } catch (err) {
+        console.error('Error creating mention notifications (create):', err);
+      }
+    })();
 
     // Notify followers using new notification system
     (async () => {
@@ -1097,6 +1265,16 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
           image: post.userId.image,
         }
         : null;
+
+    // Create mention notifications (async, don't block response)
+    if (content && content.trim()) {
+      const actorId = req.mentor ? req.mentor._id : req.user._id;
+      const actorRole = req.mentor ? 'mentor' : 'user';
+      const actorName = author?.name || 'Someone';
+      createMentionNotifications(content, post._id, actorId, actorRole, actorName).catch(err => {
+        console.error('Error creating mention notifications (update):', err);
+      });
+    }
 
     res.json({
       success: true,
@@ -1660,6 +1838,77 @@ router.delete("/:postId/comments/:commentId", authenticateRequired, async (req, 
     });
   } catch (error) {
     console.error("Error deleting comment:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * GET /api/posts/mentions/search
+ * Search for users and mentors for mentions
+ * Query params: q (search query)
+ */
+router.get("/mentions/search", async (req, res) => {
+  try {
+    const { q = "" } = req.query;
+    
+    if (!q.trim()) {
+      return res.json({
+        success: true,
+        users: [],
+        mentors: [],
+      });
+    }
+
+    const searchRegex = new RegExp(q.trim(), "i");
+
+    // Search users and mentors in parallel
+    const [users, mentors] = await Promise.all([
+      User.find({
+        $or: [
+          { username: searchRegex },
+          { name: searchRegex },
+        ],
+      })
+        .select("name username image _id")
+        .limit(10)
+        .lean(),
+      Mentor.find({
+        $or: [
+          { username: searchRegex },
+          { name: searchRegex },
+        ],
+      })
+        .select("name username image _id")
+        .limit(10)
+        .lean(),
+    ]);
+
+    // Format results
+    const formattedUsers = users.map(user => ({
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+      type: "user",
+    }));
+
+    const formattedMentors = mentors.map(mentor => ({
+      _id: mentor._id,
+      name: mentor.name,
+      username: mentor.username,
+      image: mentor.image,
+      type: "mentor",
+    }));
+
+    // Combine and limit total results
+    const allResults = [...formattedMentors, ...formattedUsers].slice(0, 10);
+
+    res.json({
+      success: true,
+      results: allResults,
+    });
+  } catch (error) {
+    console.error("Error searching mentions:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });

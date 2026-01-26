@@ -25,6 +25,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import PostCard from '../components/PostCard';
 import PostViewTracker from '../components/PostViewTracker';
 import EditPostModal from '../components/EditPostModal';
+import { processMentions } from '../utils/processMentions';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -986,6 +987,54 @@ const PostDetail = () => {
       });
   };
 
+  const handleEditPost = () => {
+    setShowPostMenu(false);
+    setShowEditModal(true);
+  };
+
+  const handleDeletePost = () => {
+    setShowPostMenu(false);
+    setShowDeletePostModal(true);
+  };
+
+  const handleDeletePostConfirm = async () => {
+    try {
+      setIsDeletingPost(true);
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete post');
+      }
+
+      toast.success('Post deleted successfully');
+      setShowDeletePostModal(false);
+      // Navigate back to feed after deletion
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to delete post');
+    } finally {
+      setIsDeletingPost(false);
+    }
+  };
+
+  const handlePostUpdated = (updatedPost) => {
+    setPostState(prev => ({ ...prev, ...updatedPost }));
+    // Broadcast update to other components
+    window.dispatchEvent(
+      new CustomEvent('postInteraction', {
+        detail: { postId, ...updatedPost },
+      }),
+    );
+  };
+
   const handleLinkClick = (url) => {
     // Clean URL: remove any HTML tags that might have been included
     let cleanUrl = url;
@@ -1043,6 +1092,10 @@ const PostDetail = () => {
   if (!postState) return null;
 
   const author = postState.mentor || postState.author;
+  
+  // Check if the current viewer owns this post
+  const authorId = postState?.mentor?._id || postState?.author?._id;
+  const isOwnPost = viewer && authorId && viewer._id && viewer._id.toString() === authorId.toString();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden">
@@ -1216,9 +1269,21 @@ const PostDetail = () => {
               `}</style>
               <div
                 className="text-gray-800 break-words text-sm sm:text-base md:text-lg leading-relaxed post-content"
-                dangerouslySetInnerHTML={{ __html: postState.content }}
+                dangerouslySetInnerHTML={{ __html: processMentions(postState.content) }}
                 onClick={(e) => {
-                  // Intercept clicks on links within post content
+                  // Handle mention link clicks
+                  const mentionLink = e.target.closest('a.mention-link');
+                  if (mentionLink) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const username = mentionLink.getAttribute('data-username');
+                    if (username) {
+                      navigate(`/${username}`);
+                    }
+                    return;
+                  }
+
+                  // Intercept clicks on other links within post content
                   const link = e.target.closest('a');
                   if (link && link.href) {
                     e.preventDefault();

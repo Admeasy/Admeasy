@@ -8,8 +8,7 @@ const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
-const { extractPublicId } = require('cloudinary-build-url');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary');
 const { mentorForgotPassword, mentorResetPassword } = require('../controllers/mentorController');
 
 const verifyAdminFromCookie = (req) => {

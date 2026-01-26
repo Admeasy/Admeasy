@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
-import { ArrowLeft, Heart, UserPlus, MessageCircle, ThumbsUp, Repeat2, Image as ImageIcon, Bell } from 'lucide-react';
+import { ArrowLeft, Heart, UserPlus, MessageCircle, ThumbsUp, Repeat2, Image as ImageIcon, Bell, AtSign, MoreVertical, Trash2, CheckCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { motion, AnimatePresence } from 'framer-motion';
 import SEO from '../components/SEO';
 import { enableNotifications } from '../Firebase/enableNotifications';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Notification = () => {
   const { user } = useUser();
@@ -13,6 +15,11 @@ const Notification = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showMenuForId, setShowMenuForId] = useState(null);
+  const menuRefs = useRef({});
 
   useEffect(() => {
     if (!user && !mentor) {
@@ -97,6 +104,8 @@ const Notification = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
+      case 'MENTION':
+        return <AtSign className="w-5 h-5 text-[#9f3562] fill-[#9f3562]" />;
       case 'POST_LIKE':
         return <Heart className="w-5 h-5 text-red-500 fill-red-500" />;
       case 'COMMENT_LIKE':
@@ -116,6 +125,81 @@ const Notification = () => {
         return <Heart className="w-5 h-5 text-gray-500" />;
     }
   };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const res = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, isRead: true }))
+        );
+        toast.success('All notifications marked as read');
+      } else {
+        toast.error('Failed to mark all as read');
+      }
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      toast.error('Failed to mark all as read');
+    }
+  };
+
+  const handleDeleteClick = (notification, e) => {
+    e.stopPropagation();
+    setNotificationToDelete(notification);
+    setShowDeleteModal(true);
+    setShowMenuForId(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!notificationToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/notifications/${notificationToDelete._id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        // Remove from local state
+        setNotifications((prev) =>
+          prev.filter((n) => n._id !== notificationToDelete._id)
+        );
+        toast.success('Notification deleted');
+        setShowDeleteModal(false);
+        setNotificationToDelete(null);
+      } else {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to delete notification');
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error(error.message || 'Failed to delete notification');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      Object.values(menuRefs.current).forEach((ref) => {
+        if (ref && !ref.contains(event.target)) {
+          setShowMenuForId(null);
+        }
+      });
+    };
+
+    if (showMenuForId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenuForId]);
 
   const formatTime = (date) => {
     const now = new Date();
@@ -168,17 +252,31 @@ const Notification = () => {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+            <div className="flex items-center gap-2">
+              <AtSign className="w-5 h-5 text-[#9f3562]" />
+              <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+            </div>
           </div>
-          {!isNotificationPermissionGranted && (
-            <button
-              onClick={handleEnableNotifications}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-            >
-              <Bell className="w-4 h-4" />
-              Enable Notifications
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {notifications.length > 0 && notifications.some(n => !n.isRead) && (
+              <button
+                onClick={handleMarkAllAsRead}
+                className="flex items-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b14270] transition-colors text-sm font-medium"
+              >
+                <CheckCheck className="w-4 h-4" />
+                Mark all as read
+              </button>
+            )}
+            {!isNotificationPermissionGranted && (
+              <button
+                onClick={handleEnableNotifications}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+              >
+                <Bell className="w-4 h-4" />
+                Enable Notifications
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -341,17 +439,48 @@ const Notification = () => {
                       </p>
                     </div>
 
-                    {/* Icon/Thumbnail on the right */}
-                    <div className="flex-shrink-0">
+                    {/* Icon/Thumbnail and Menu on the right */}
+                    <div className="flex items-center gap-2">
                       {getNotificationIcon(notification.type)}
-                    </div>
-
-                    {/* Unread indicator */}
-                    {!notification.isRead && (
-                      <div className="flex-shrink-0 mt-3">
+                      
+                      {/* Unread indicator */}
+                      {!notification.isRead && (
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      )}
+
+                      {/* 3 Dots Menu */}
+                      <div className="relative" ref={(el) => (menuRefs.current[notification._id] = el)}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMenuForId(showMenuForId === notification._id ? null : notification._id);
+                          }}
+                          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <AnimatePresence>
+                          {showMenuForId === notification._id && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={(e) => handleDeleteClick(notification, e)}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-red-50 transition-colors text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="text-sm font-medium">Delete</span>
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               );
@@ -359,6 +488,22 @@ const Notification = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setNotificationToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Notification"
+        message="Are you sure you want to delete this notification? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

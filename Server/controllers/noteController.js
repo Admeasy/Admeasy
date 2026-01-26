@@ -98,74 +98,179 @@ exports.viewNote = (req, res) => updateCounter(req, res, 'views');
 // Upload note with Cloudinary compression
 exports.uploadNote = async (req, res) => {
   let tempFilePath = null;
-  console.log("Mentor from token:", req.mentor);
+  
   try {
+    // Validate mentor authentication
+    if (!req.mentor || !req.mentor._id) {
+      console.error('Upload note error: Mentor not authenticated');
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required. Please log in as a mentor.' 
+      });
+    }
+
     const { title, description, standard, pages, isFree, price, university, programme, course, tags } = req.body;
 
     // Validate required fields
-    if (!title || !description || !standard || !university || !programme || !course) {
+    const missingFields = [];
+    if (!title || !title.trim()) missingFields.push('title');
+    if (!description || !description.trim()) missingFields.push('description');
+    if (!standard || !standard.trim()) missingFields.push('standard');
+    if (!university || !university.trim()) missingFields.push('university');
+    if (!programme || !programme.trim()) missingFields.push('programme');
+    if (!course || !course.trim()) missingFields.push('course');
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: title, description, standard, university, programme, course'
+        message: `Missing required fields: ${missingFields.join(', ')}`
       });
     }
 
     // Check if file exists
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No file uploaded. Please select a PDF file.' 
+      });
+    }
+
+    // Validate file buffer
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'File is empty or corrupted. Please try uploading again.' 
+      });
     }
 
     // Validate file size (10MB)
     if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ success: false, message: 'File size must be less than 10MB' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'File size must be less than 10MB' 
+      });
     }
 
     // Validate file type
     if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ success: false, message: 'Only PDF files are allowed' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only PDF files are allowed' 
+      });
     }
 
-    console.log('Original file size:', (req.file.size / 1024 / 1024).toFixed(2), 'MB');
+    console.log('Uploading note:', {
+      title: title.trim(),
+      mentorId: req.mentor._id,
+      mentorName: req.mentor.name,
+      fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
+      fileName: req.file.originalname
+    });
 
     // Write buffer to temporary file for Cloudinary upload
-    tempFilePath = await bufferToTempFile(req.file.buffer, req.file.originalname);
+    try {
+      tempFilePath = await bufferToTempFile(req.file.buffer, req.file.originalname);
+      console.log('Temporary file created:', tempFilePath);
+    } catch (fileError) {
+      console.error('Error creating temporary file:', fileError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to process file. Please try again.' 
+      });
+    }
 
-    // Upload to Cloudinary with compression (Ebook level)
-    const cloudinaryResult = await cloudinary.uploader.upload(tempFilePath, {
-      resource_type: "auto",
-      folder: "notes",
-      access_mode: "public", 
-      public_id: `${Date.now()}-${path.parse(req.file.originalname).name}`
-    });
+    // Validate Cloudinary configuration
+    if (!process.env.CLOUD_NAME || !process.env.CLOUD_KEY || !process.env.CLOUD_SECRET) {
+      console.error('Cloudinary configuration missing');
+      // Clean up temp file
+      if (tempFilePath) {
+        await fs.unlink(tempFilePath).catch(() => {});
+      }
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Server configuration error. Please contact support.' 
+      });
+    }
 
-    console.log('Cloudinary upload successful:', cloudinaryResult.secure_url);
-    console.log('Cloudinary file size:', (cloudinaryResult.bytes / 1024 / 1024).toFixed(2), 'MB');
+    // Upload to Cloudinary with compression
+    let cloudinaryResult;
+    try {
+      cloudinaryResult = await cloudinary.uploader.upload(tempFilePath, {
+        resource_type: "auto",
+        folder: "notes",
+        access_mode: "public", 
+        public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, '_')}`
+      });
+      console.log('Cloudinary upload successful:', cloudinaryResult.secure_url);
+      console.log('Cloudinary file size:', (cloudinaryResult.bytes / 1024 / 1024).toFixed(2), 'MB');
+    } catch (cloudinaryError) {
+      console.error('Cloudinary upload error:', cloudinaryError);
+      // Clean up temp file
+      if (tempFilePath) {
+        await fs.unlink(tempFilePath).catch(() => {});
+      }
+      return res.status(500).json({ 
+        success: false, 
+        message: cloudinaryError.message || 'Failed to upload file to storage. Please try again.' 
+      });
+    }
 
     // Clean up temporary file
-    await fs.unlink(tempFilePath).catch(err => console.error('Error deleting temp file:', err));
-    tempFilePath = null;
+    try {
+      await fs.unlink(tempFilePath);
+      tempFilePath = null;
+    } catch (unlinkError) {
+      console.error('Error deleting temp file:', unlinkError);
+      // Continue even if cleanup fails
+    }
+
+    // Validate Cloudinary response
+    if (!cloudinaryResult || !cloudinaryResult.secure_url) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'File upload completed but failed to get file URL. Please try again.' 
+      });
+    }
 
     // Create note with Cloudinary URL
-    const note = new Note({
-      title: title.trim(),
-      description: description.trim(),
-      standard: standard.trim(),
-      pages: pages ? parseInt(pages) : undefined,
-      isFree: isFree === 'true' || isFree === true,
-      price: price ? parseFloat(price) : undefined,
-      university: university.trim().toLowerCase(),
-      programme: programme.trim().toLowerCase(),
-      course: course.trim().toLowerCase(),
-      tags: tags ? tags.trim() : undefined,
-      fileUrl: cloudinaryResult.secure_url,
-      fileSize: cloudinaryResult.bytes,
-      cloudinaryPublicId: cloudinaryResult.public_id, // Store for future deletion if needed
-      uploader: req.mentor._id,
-      uploaderName: req.mentor.name,
-      status: 'pending'
-    });
+    let note;
+    try {
+      note = new Note({
+        title: title.trim(),
+        description: description.trim(),
+        standard: standard.trim(),
+        pages: pages && pages.trim() ? parseInt(pages) : undefined,
+        isFree: isFree === 'true' || isFree === true || isFree === 'true',
+        price: price && price.trim() ? parseFloat(price) : undefined,
+        university: university.trim().toLowerCase(),
+        programme: programme.trim().toLowerCase(),
+        course: course.trim().toLowerCase(),
+        tags: tags && tags.trim() ? tags.trim() : undefined,
+        fileUrl: cloudinaryResult.secure_url,
+        fileSize: cloudinaryResult.bytes,
+        cloudinaryPublicId: cloudinaryResult.public_id,
+        uploader: req.mentor._id,
+        uploaderName: req.mentor.name || 'Unknown',
+        status: 'pending'
+      });
 
-    await note.save();
+      await note.save();
+      console.log('Note saved successfully:', note._id);
+    } catch (dbError) {
+      console.error('Database error saving note:', dbError);
+      // Try to delete from Cloudinary if database save fails
+      if (cloudinaryResult && cloudinaryResult.public_id) {
+        try {
+          await cloudinary.uploader.destroy(cloudinaryResult.public_id, { resource_type: 'raw' });
+        } catch (deleteError) {
+          console.error('Error deleting from Cloudinary after DB failure:', deleteError);
+        }
+      }
+      return res.status(500).json({ 
+        success: false, 
+        message: dbError.message || 'Failed to save note. Please try again.' 
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -181,11 +286,33 @@ exports.uploadNote = async (req, res) => {
   } catch (error) {
     // Clean up temporary file on error
     if (tempFilePath) {
-      await fs.unlink(tempFilePath).catch(() => {});
+      try {
+        await fs.unlink(tempFilePath);
+      } catch (unlinkError) {
+        console.error('Error deleting temp file in catch block:', unlinkError);
+      }
     }
 
-    console.error('Error uploading note:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload note' });
+    console.error('Unexpected error uploading note:', {
+      error: error.message,
+      stack: error.stack,
+      mentor: req.mentor ? req.mentor._id : 'not authenticated'
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to upload note. Please try again.';
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Invalid data provided. Please check all fields.';
+    } else if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      errorMessage = 'Database error. Please try again in a moment.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      message: errorMessage 
+    });
   }
 };
 
