@@ -246,9 +246,6 @@ function App() {
 
   return (
     <>
-      {/* Feedback Banner - Global (except auth pages) */}
-      {!isAuthPage && <FeedbackBanner />}
-
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -258,8 +255,7 @@ function App() {
         rtl={false}
         pauseOnFocusLoss
         draggable
-        pauseOnHover
-      />
+        pauseOnHover/>
 
       <Routes>
         {/* ================= SIDEBAR LAYOUT ROUTES ================= */}

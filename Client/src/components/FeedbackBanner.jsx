@@ -44,8 +44,7 @@ const FeedbackBanner = () => {
                                 href="https://docs.google.com/forms/d/e/1FAIpQLSfLNRocoYXbEwp77Z4knqIkjqHjbUFy4clEhhjmP-A8hblKzQ/viewform"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="bg-white/10 hover:bg-white text-white hover:text-[#9f3562] border border-white/40 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 shadow-sm whitespace-nowrap"
-                            >
+                                className="bg-white/10 hover:bg-white text-white hover:text-[#9f3562] border border-white/40 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 shadow-sm whitespace-nowrap">
                                 Give Feedback
                             </a>
                         </div>
