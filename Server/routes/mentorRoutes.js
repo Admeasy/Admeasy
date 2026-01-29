@@ -29,7 +29,7 @@ const generateAccessToken = (mentor) => {
             role: 'mentor'  // Add role to distinguish from user
         },
         process.env.JWT_ACCESS_SECRET,
-        { expiresIn: '12hr' }
+        { expiresIn: '7d' }
     );
 }
 
@@ -121,7 +121,7 @@ router.post('/register', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
@@ -167,7 +167,7 @@ router.post('/login', async (req, res) => {
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
         await mentor.save();
-        
+
         // CRITICAL: Set session for Socket.io compatibility
         if (req.session) {
             req.session.mentorId = mentor._id;
@@ -186,12 +186,12 @@ router.post('/login', async (req, res) => {
                 });
             });
         }
-        
+
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
@@ -302,7 +302,9 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
 
         const { name, username, phone, tagline, bio } = req.body;
         let competitiveExamsCleared = [];
+        let shouldUpdateExams = false;
         if (req.body.competitiveExamsCleared) {
+            shouldUpdateExams = true;
             try {
                 const parsedExams = typeof req.body.competitiveExamsCleared === 'string' ? JSON.parse(req.body.competitiveExamsCleared) : req.body.competitiveExamsCleared;
                 if (Array.isArray(parsedExams)) {
@@ -312,6 +314,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
                 }
             } catch (parseError) {
                 console.error('Error parsing competitiveExamsCleared:', parseError);
+                shouldUpdateExams = false;
             }
         }
 
@@ -375,7 +378,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         if (course) {
             updateData.course = course;
         }
-        if (competitiveExamsCleared.length > 0) {
+        if (shouldUpdateExams) {
             updateData.competitiveExamsCleared = competitiveExamsCleared;
         }
 
@@ -428,7 +431,7 @@ router.post('/refresh', async (req, res) => {
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(mentor);
-            
+
             // CRITICAL: Set session for Socket.io compatibility
             if (req.session) {
                 req.session.mentorId = mentor._id;
@@ -447,12 +450,12 @@ router.post('/refresh', async (req, res) => {
                     });
                 });
             }
-            
+
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
             res.json({ success: true });
         } catch (err) {

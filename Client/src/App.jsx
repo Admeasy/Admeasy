@@ -71,7 +71,8 @@ import { onMessage } from 'firebase/messaging';
 import { messaging } from './Firebase/Firebase';
 import { useNavigate } from 'react-router-dom';
 
-import FeedbackBanner from './components/FeedbackBanner';
+import OnboardingReminderBanner from './components/OnboardingReminderBanner';
+
 import SubscriptionPlans from './Pages/SubscriptionPlans';
 import MySubscriptions from './Pages/MySubscriptions';
 import CheckPayments from './Pages/CheckPayments';
@@ -143,10 +144,10 @@ function App() {
 
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground notification received:', payload);
-      
+
       // Show a toast notification
       toast.info(
-        <div 
+        <div
           onClick={() => navigate('/notifications')}
           style={{ cursor: 'pointer' }}
         >
@@ -246,8 +247,9 @@ function App() {
 
   return (
     <>
-      {/* Feedback Banner - Global (except auth pages) */}
-      {!isAuthPage && <FeedbackBanner />}
+
+
+      {!isAuthPage && <OnboardingReminderBanner />}
 
       <ToastContainer
         position="top-right"
@@ -293,7 +295,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+
           <Route path="/:username" element={<Profile />} />
 
           <Route path="/colleges" element={<Colleges />} />

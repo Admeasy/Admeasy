@@ -119,9 +119,9 @@ router.post('/signup', async (req, res) => {
 
         // Hash password & create user (isVerified defaults to false)
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ 
-            email, 
-            password: hashedPassword, 
+        const user = new User({
+            email,
+            password: hashedPassword,
             username: normalizedUsername,
             isVerified: false // Explicitly set to false
         });
@@ -133,7 +133,7 @@ router.post('/signup', async (req, res) => {
         try {
             const crypto = require('crypto');
             const nodemailer = require('nodemailer');
-            
+
             // Create verification token
             const token = crypto.randomBytes(32).toString("hex");
             const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
@@ -375,11 +375,11 @@ router.post('/onboarding', async (req, res) => {
         // Validate onboarding completion before marking as complete
         const { validateOnboardingCompletion } = require('../utils/onboardingValidation');
         const validation = validateOnboardingCompletion(user);
-        
+
         if (!validation.isComplete) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Please complete all required fields', 
+            return res.status(400).json({
+                success: false,
+                message: 'Please complete all required fields',
                 missingFields: validation.missingFields,
                 errors: validation.errors
             });
@@ -398,9 +398,9 @@ router.post('/onboarding', async (req, res) => {
 
         await user.save();
 
-        res.status(200).json({ 
-            success: true, 
-            message: 'Onboarding completed successfully', 
+        res.status(200).json({
+            success: true,
+            message: 'Onboarding completed successfully',
             user: await User.findById(user._id).select('-password -refreshToken'),
             hasCompletedOnboarding: true
         });
@@ -421,9 +421,9 @@ router.get('/onboarding/status', async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Not logged in, can access onboarding
-                return res.json({ 
-                    success: true, 
-                    canAccess: true, 
+                return res.json({
+                    success: true,
+                    canAccess: true,
                     reason: 'not_logged_in',
                     requiresOnboarding: false
                 });
@@ -432,9 +432,9 @@ router.get('/onboarding/status', async (req, res) => {
 
         if (!user) {
             // Not logged in, can access onboarding
-            return res.json({ 
-                success: true, 
-                canAccess: true, 
+            return res.json({
+                success: true,
+                canAccess: true,
                 reason: 'not_logged_in',
                 requiresOnboarding: false
             });
@@ -448,8 +448,8 @@ router.get('/onboarding/status', async (req, res) => {
         // User cannot access onboarding if it's already completed
         const canAccess = onboardingStatus.requiresOnboarding;
 
-        return res.json({ 
-            success: true, 
+        return res.json({
+            success: true,
             canAccess,
             requiresOnboarding: onboardingStatus.requiresOnboarding,
             hasCompletedOnboarding: user.hasCompletedOnboarding || false,
@@ -518,8 +518,8 @@ router.post('/login', async (req, res) => {
         }
 
         setTokenCookies(res, accessToken, refreshToken);
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             message: 'Logged in successfully',
             requiresOnboarding: onboardingStatus.requiresOnboarding,
             hasCompletedOnboarding: user.hasCompletedOnboarding || false,
@@ -601,11 +601,11 @@ router.get('/auth/google/callback',
 
             // Redirect to frontend
             const frontendUrl = getFrontendUrl();
-            
+
             // Check onboarding completion status
             const { checkOnboardingStatus } = require('../utils/onboardingValidation');
             const onboardingStatus = checkOnboardingStatus(req.user);
-            
+
             // Always redirect to onboarding if incomplete, regardless of flag
             if (onboardingStatus.requiresOnboarding) {
                 res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
@@ -690,7 +690,7 @@ router.post('/refresh', async (req, res) => {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
             res.json({ success: true });
         } catch (err) {
@@ -1213,15 +1213,15 @@ router.get("/verification-status", async (req, res) => {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         const user = await User.findById(decoded.id || decoded._id).select('isVerified email');
-        
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        return res.json({ 
-            success: true, 
+        return res.json({
+            success: true,
             isVerified: user.isVerified || false,
-            email: user.email 
+            email: user.email
         });
     } catch (err) {
         return res.status(401).json({ success: false, message: 'Invalid token' });
@@ -1388,17 +1388,17 @@ router.post('/:targetId/follow', async (req, res) => {
                     const NotificationManager = require('../services/notificationManager');
                     const isFollowBack = target.following && target.following.some(id => id.toString() === follower._id.toString());
                     const followerName = follower.name || follower.username || 'Someone';
-                    
+
                     // Determine notification type and message
                     const notificationType = isFollowBack ? 'FOLLOW_BACK' : 'FOLLOW';
-                    const message = isFollowBack 
+                    const message = isFollowBack
                         ? `${followerName} followed you back`
                         : `${followerName} started following you`;
-                    
+
                     // Get follower username for originPath
                     const followerUsername = follower.username || follower._id.toString();
                     const originPath = `/${followerUsername}`;
-                    
+
                     // Determine recipient role
                     const recipientRole = targetType === 'mentor' ? 'mentor' : 'user';
                     const followerRole = followerType === 'mentor' ? 'mentor' : 'user';
@@ -1419,7 +1419,7 @@ router.post('/:targetId/follow', async (req, res) => {
                     if (isFollowBack) {
                         const targetName = target.name || target.username || 'Someone';
                         const targetUsername = target.username || target._id.toString();
-                        
+
                         await NotificationManager.createAndSend({
                             recipientId: follower._id,
                             recipientRole: followerRole,

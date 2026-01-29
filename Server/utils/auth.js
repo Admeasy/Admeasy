@@ -8,7 +8,7 @@ function generateAccessToken(user) {
             role: user.role || 'user'
         },
         process.env.JWT_ACCESS_SECRET,
-        { expiresIn: '12hr' }
+        { expiresIn: '7d' }
     );
 }
 
@@ -29,7 +29,7 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 12 * 60 * 60 * 1000, // 12 hours
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.cookie('refreshToken', refreshToken, {

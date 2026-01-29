@@ -370,17 +370,15 @@ export default function MentorsProfile() {
       payload.append('bio', formData.aboutYou);
       payload.append('tagline', formData.oneLiner);
 
-      if (exams.length) {
-        // Filter out exams with empty names and format as objects
-        const validExams = exams
-          .filter(exam => exam.name && exam.name.trim())
-          .map(exam => ({
-            name: exam.name.trim()
-          }));
-        if (validExams.length > 0) {
-          payload.append('competitiveExamsCleared', JSON.stringify(validExams));
-        }
-      }
+      // Always process exams, defaulting to empty array if none
+      const validExams = exams
+        .filter(exam => exam.name && exam.name.trim())
+        .map(exam => ({
+          name: exam.name.trim()
+        }));
+
+      // Always append competitiveExamsCleared, even if empty, so backend knows to update/clear it
+      payload.append('competitiveExamsCleared', JSON.stringify(validExams));
 
       if (profilePic) {
         payload.append('image', profilePic);

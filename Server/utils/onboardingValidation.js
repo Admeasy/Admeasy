@@ -106,10 +106,10 @@ const checkOnboardingStatus = (user) => {
     // If hasCompletedOnboarding flag is true, consider it complete
     // But still validate required fields for data integrity
     const validation = validateOnboardingCompletion(user);
-    
+
     return {
         ...validation,
-        requiresOnboarding: !validation.isComplete || !user.hasCompletedOnboarding,
+        requiresOnboarding: user.hasCompletedOnboarding ? false : !validation.isComplete,
         userId: user._id
     };
 };

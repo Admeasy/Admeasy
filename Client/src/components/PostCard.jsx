@@ -154,8 +154,13 @@ const PostCard = ({ post, onPostUpdate }) => {
 
   const handleRepost = async (e) => {
     e.stopPropagation();
-    if (!user) {
+    if (!isAuthed) {
       toast.info('Log in to repost');
+      return;
+    }
+
+    if (mentor) {
+      toast.info("mentors cannot repost dude😁");
       return;
     }
 
@@ -417,7 +422,7 @@ const PostCard = ({ post, onPostUpdate }) => {
         } catch (err) {
           console.error('Failed to save scroll position:', err);
         }
-        
+
         // Mark that we're navigating to post detail
         sessionStorage.setItem('admeasy:fromPostDetail', 'true');
         navigate(`/posts/${post._id}`);
@@ -654,7 +659,7 @@ const PostCard = ({ post, onPostUpdate }) => {
                     </span>
                   )}
                 </div>
-                <div 
+                <div
                   className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-2"
                   style={{
                     display: '-webkit-box',
@@ -793,7 +798,7 @@ const PostCard = ({ post, onPostUpdate }) => {
               } catch (err) {
                 console.error('Failed to save scroll position:', err);
               }
-              
+
               sessionStorage.setItem('admeasy:fromPostDetail', 'true');
               navigate(`/posts/${post._id}`);
             }}
