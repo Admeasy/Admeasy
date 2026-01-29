@@ -1,7 +1,8 @@
 import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
 import Footer from './components/Footer'
@@ -9,7 +10,6 @@ import MentorRegistration from './Pages/MentorRegistration'
 import MentorsLogin from './Pages/MentorsLogin';
 import EditMentorProfile from './Pages/EditMentorProfile';
 import MentorProfile from './Pages/MentorProfile';
-import Profile from './Pages/Profile';
 import LoginModal from './components/LoginModal';
 import Contact from './Pages/Contact'
 import About from './Pages/About'
@@ -19,27 +19,26 @@ import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import ResetPassword from './Pages/ResetPassword';
-import MentorForgotPassword from './Pages/MentorForgotPassword';
-import MentorResetPassword from './Pages/MentorResetPassword';
 import Course from './Pages/Course'
 import Notes from './Pages/Notes';
 import NotesSearch from './Pages/NotesSearch';
 import AddNote from './Pages/AddNote';
-import EditProfile from './Pages/EditProfile'
+import SignUp from './Pages/SignUp'
+import LogIn from './Pages/LogIn'
+import Profile from './Pages/EditProfile'
 import Admin from './Pages/Admin'
 import ForgotPassword from './Pages/ForgotPassword';
 import Onboarding from './Pages/Onboarding';
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
 import ManageApplications from './Pages/ManageApplications'
-import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans'
 import JobApplications from './Pages/JobApplications'
 import MentorshipForm from './Pages/MentorshipForm'
 import Blogs from './Pages/Blogs'
 import Messages from './Pages/Messages'
 import Enrollments from './Pages/Enrollments';
 import NotesPage from './Pages/NotesPage';
-import Chatpage from './Pages/Chatpage';
+import Chat from './Pages/Chat';
 import Chats from './Pages/Chats';
 import MentorChats from './Pages/MentorChats';
 import MentorChat from './Pages/MentorChat';
@@ -53,35 +52,13 @@ import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
-import ManagePosts from './Pages/ManagePosts';
-import ManageSpaces from './Pages/ManageSpaces';
 import BlogDetail from './Pages/BlogDetail';
-import Notification from './Pages/Notification';
 import { AnimatePresence, motion } from 'framer-motion';
 import AuthPage from './components/AuthPage';
-import Feed from './Pages/Feed';
-import PostDetail from './Pages/PostDetail';
-import CreatePost from './Pages/CreatePost';
-import Layout from './components/Layout';
-import Explore from "./Pages/Explore"
-import BottomNavBar from './components/BottomNavBar';
-import VerifyEmail from './Pages/VerifyEmail';
-import { enableNotifications } from './Firebase/enableNotifications';
-import { onMessage } from 'firebase/messaging';
-import { messaging } from './Firebase/Firebase';
-import { useNavigate } from 'react-router-dom';
-
-import OnboardingReminderBanner from './components/OnboardingReminderBanner';
-
-import SubscriptionPlans from './Pages/SubscriptionPlans';
-import MySubscriptions from './Pages/MySubscriptions';
-import CheckPayments from './Pages/CheckPayments';
-import Spaces from './Pages/Spaces';
-import Space from './Pages/Space';
-
+// Vartalaap Banner Imgs
 function App() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [randomBanner, SetRandomBanner] = useState(null)
   const isAdminRoute = location.pathname.startsWith('/admin');
   const { user, setUser, fetchUser } = useUser();
   const { mentor } = useMentor();
@@ -247,6 +224,7 @@ function App() {
 
   return (
     <>
+      {!isAdminRoute && <Navbar />}
 
 
       {!isAuthPage && <OnboardingReminderBanner />}
@@ -262,8 +240,44 @@ function App() {
         draggable
         pauseOnHover
       />
-
       <Routes>
+        <Route path='/' element={<Home />}></Route>
+        <Route path='/contact' element={<Contact />}></Route>
+        {/* <Route path='/modal' element={<LoginModal />}></Route> */}
+        <Route path='/about' element={<About />}></Route>
+        <Route path='/mentors' element={<Mentors />}></Route>
+        <Route path='/colleges' element={<Colleges />}></Route>
+        <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
+        <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
+        <Route path='/mentors/register' element={<MentorRegistration />}></Route>
+        <Route path='/mentors/login' element={<MentorsLogin />}></Route>
+        <Route path='/mentors/:username' element={<MentorProfile />}></Route>
+        {/* User Chat Routes - Protected for users only */}
+        <Route
+          path="/chats"
+          element={
+            <ProtectedRoute user={true}>
+              <Chats />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chats/:mentorId"
+          element={
+            <ProtectedRoute user={true}>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
+        {/* Mentor Chat Routes */}
+        <Route
+          path="/mentor/chats"
+          element={
+            <ProtectedRoute mentor={true}>
+              <MentorChats />
+            </ProtectedRoute>
+          }
+        />
         {/* ================= SIDEBAR LAYOUT ROUTES ================= */}
         <Route element={<Layout />}>
           <Route path="/about" element={<About />} />
@@ -366,61 +380,82 @@ function App() {
 
         {/* Profile Edit Route - outside Layout */}
         <Route
-          path="/me/edit"
-          element={
-            <ProtectedRoute user={user || mentor}>
-              {mentor ? <EditMentorProfile /> : <EditProfile />}
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/chats/:id"
-          element={
-            <ProtectedRoute user={true}>
-              <Chatpage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/mentor/chats/:id"
+          path="/mentor/chats/:userId"
           element={
             <ProtectedRoute mentor={true}>
               <MentorChat />
             </ProtectedRoute>
           }
         />
+        <Route path='/policies' element={<PrivacyPolicy />}></Route>
+        <Route path='/t&c' element={<TermsAndConditions />}></Route>
+        <Route path='/reset-password/:token' element={<ResetPassword />}></Route>
+        <Route path='/reset-password' element={<ResetPassword />}></Route>
+        <Route path='/forgot-password' element={<ForgotPassword />}></Route>
+        {/* We don't need Signup route */}
+        <Route path='/login' element={<AuthPage />}></Route>
 
-        <Route path="/policies" element={<PrivacyPolicy />} />
-        <Route path="/t&c" element={<TermsAndConditions />} />
-        <Route path="/careers/mentorship/apply" element={<MentorshipForm />} />
+        {/* If user Only then /me accessible */}
+        <Route
+          path="/me/edit"
+          element={
+            <ProtectedRoute user={user || mentor}>
+              {mentor ? <EditMentorProfile /> : <Profile />}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me"
+          element={
+            <ProtectedRoute user={mentor}>
+              <MentorProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route path='/onboarding' element={<Onboarding />}></Route>
+        <Route path='/onboarding/:id' element={<Onboarding />}></Route>
+        <Route path='/admin' element={<Admin />}></Route>
+        <Route path='/careers/mentorship/apply' element={<MentorshipForm />}></Route>
+        <Route path='/admin/colleges' element={<ManageColleges />}></Route>
+        <Route path='/admin/blogs' element={<ManageBlogs />}></Route>
+        <Route path='/admin/users' element={<ManageUsers />}></Route>
+        <Route path='/admin/mentors' element={<ManageMentors />}></Route>
+        <Route path='/admin/messages' element={<Messages />}></Route>
+        {/* The Original Path is Blog */}
+        <Route path='/blog' element={<Blogs />}></Route>
+        <Route path='/blog/:id' element={<BlogDetail />}></Route>
+        {/* But sometimes Users mistakenly goes to /Blogs */}
+        <Route path='/blogs' element={<Blogs />}></Route>
+        <Route path='/blogs/:id' element={<BlogDetail />}></Route>
+        {/* Notes */}
+        <Route path='/notes' element={<Notes />}></Route>
+        <Route path="/notes/:id" element={<NotesPage />} />
+        <Route path="/notes-search" element={<NotesSearch />} />
+        <Route path="/add-note" element={<AddNote />} />
 
-        {/* ================= ADMIN (NO SIDEBAR) ================= */}
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/colleges" element={<ManageColleges />} />
-        <Route path="/admin/blogs" element={<ManageBlogs />} />
-        <Route path="/admin/users" element={<ManageUsers />} />
-        <Route path="/admin/mentors" element={<ManageMentors />} />
-        <Route path="/admin/messages" element={<Messages />} />
-        <Route path="/admin/enrollments" element={<Enrollments />} />
-        <Route path="/admin/applications" element={<ManageApplications />} />
-        <Route path="/admin/applications/:job" element={<JobApplications />} />
-        <Route path="/admin/notes" element={<ManageNotes />} />
-        <Route path="/admin/posts" element={<ManagePosts />} />
-        <Route path="/admin/spaces" element={<ManageSpaces />} />
-        <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
-        <Route path="/admin/payments" element={<CheckPayments />} />
+        <Route path='/admin/enrollments' element={<Enrollments />}></Route>
+        <Route path='/admin/applications' element={<ManageApplications />}></Route>
+        <Route path='/admin/applications/:job' element={<JobApplications />}></Route>
+        <Route path='/admin/notes' element={<ManageNotes />}></Route>
 
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
+        {/* 404 Slap */}
+        <Route path='*' element={<NotFound />} />
       </Routes>
 
-      {/* Showing scroll up button on mobiles (not good) */}
-      {/* <ScrollUpButton /> */}
+      <ScrollUpButton />
+      {showBanner && !isAdminRoute &&
+        <MgciBanner
+          onClose={() => SetShowBanner(false)}
+          Headline={randomBanner.Headline}
+          Subheadline={randomBanner.Subheadline}
+          SubheadlineO={randomBanner.SubheadlineO}
+          imgSrc={randomBanner.imgSrc}
+          imgWidth={randomBanner.imgWidth}
+          brochure={randomBanner.brochure}
+          bannerName={randomBanner.bannerName}
+        />}
+      {!isAdminRoute && <Footer />}
 
-      {/* Footer - show on non-Layout, non-admin routes (Layout pages handle their own footer) */}
-      {!isAdminRoute && !usesLayout && !isAuthPage && location.pathname !== '/me' && location.pathname !== '/me/edit' && <Footer />}
     </>
   )
 }
