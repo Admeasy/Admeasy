@@ -56,6 +56,8 @@ import ManageNotes from './Pages/ManageNotes';
 import ManagePosts from './Pages/ManagePosts';
 import ManageSpaces from './Pages/ManageSpaces';
 import BlogDetail from './Pages/BlogDetail';
+import ManageAdvertisers from './Pages/ManageAdvertisers';
+import ManageAds from './Pages/ManageAds';
 import Notification from './Pages/Notification';
 import { AnimatePresence, motion } from 'framer-motion';
 import AuthPage from './components/AuthPage';
@@ -70,13 +72,22 @@ import { enableNotifications } from './Firebase/enableNotifications';
 import { onMessage } from 'firebase/messaging';
 import { messaging } from './Firebase/Firebase';
 import { useNavigate } from 'react-router-dom';
-
 import FeedbackBanner from './components/FeedbackBanner';
 import SubscriptionPlans from './Pages/SubscriptionPlans';
 import MySubscriptions from './Pages/MySubscriptions';
 import CheckPayments from './Pages/CheckPayments';
 import Spaces from './Pages/Spaces';
 import Space from './Pages/Space';
+import AdvertiseLanding from './Pages/AdvertiseLanding';
+import AdvertiserSignup from './Pages/AdvertiserSignup';
+import AdvertiserLogin from './Pages/AdvertiserLogin';
+import AdvertiserLayout from './components/AdvertiserLayout';
+import AdvertiserDashboard from './Pages/AdvertiserDashboard';
+import AdvertiserProfile from './Pages/AdvertiserProfile';
+import EditAdvertiserProfile from './Pages/EditAdvertiserProfile';
+import CreateAd from './Pages/CreateAd';
+import EditAd from './Pages/EditAd';
+import MyAds from './Pages/MyAds';
 
 function App() {
   const location = useLocation();
@@ -405,6 +416,23 @@ function App() {
         <Route path="/admin/spaces" element={<ManageSpaces />} />
         <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
         <Route path="/admin/payments" element={<CheckPayments />} />
+        <Route path="/admin/advertisers" element={<ManageAdvertisers />} />
+        <Route path="/admin/ads" element={<ManageAds />} />
+
+        {/* ================= ADVERTISER ROUTES ================= */}
+        <Route path="/advertise" element={<AdvertiseLanding />} />
+        <Route path="/advertiser/signup" element={<AdvertiserSignup />} />
+        <Route path="/advertiser/login" element={<AdvertiserLogin />} />
+        
+        <Route element={<AdvertiserLayout />}>
+          <Route path="/advertiser" element={<AdvertiserDashboard />} />
+          <Route path="/advertiser/dashboard" element={<AdvertiserDashboard />} />
+          <Route path="/advertiser/create-ad" element={<CreateAd />} />
+          <Route path="/advertiser/ads/:adId/edit" element={<EditAd />} />
+          <Route path="/advertiser/myads" element={<MyAds />} />
+          <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
+          <Route path="/advertiser/profile/edit" element={<EditAdvertiserProfile />} />
+        </Route>
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
@@ -413,8 +441,8 @@ function App() {
       {/* Showing scroll up button on mobiles (not good) */}
       {/* <ScrollUpButton /> */}
 
-      {/* Footer - show on non-Layout, non-admin routes (Layout pages handle their own footer) */}
-      {!isAdminRoute && !usesLayout && !isAuthPage && location.pathname !== '/me' && location.pathname !== '/me/edit' && <Footer />}
+      {/* Footer - show on non-Layout, non-admin, non-advertiser routes (Layout pages handle their own footer) */}
+      {!isAdminRoute && !usesLayout && !isAuthPage && !location.pathname.startsWith('/advertiser') && location.pathname !== '/me' && location.pathname !== '/me/edit' && <Footer />}
     </>
   )
 }

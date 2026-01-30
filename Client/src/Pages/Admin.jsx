@@ -205,6 +205,18 @@ const Admin = () => {
                 <p className="text-gray-600">View and delete spaces created by users</p>
               </div>
             </Link>
+            <Link to="/admin/advertisers">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Advertisers</h2>
+                <p className="text-gray-600">View and manage advertiser accounts</p>
+              </div>
+            </Link>
+            <Link to="/admin/ads">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Ads</h2>
+                <p className="text-gray-600">Review and manage advertisements</p>
+              </div>
+            </Link>
           </div>
         </div>
       </motion.div>

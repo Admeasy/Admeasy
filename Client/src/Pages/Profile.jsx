@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 import PostCard from '../components/PostCard';
 import FollowersFollowingModal from '../components/FollowersFollowingModal';
+import AdvertiserProfile from './AdvertiserProfile';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function Profile() {
@@ -39,7 +40,7 @@ export default function Profile() {
     }
   }, [username, currentMentor, currentUser, location.pathname, navigate, mentorLoading, userLoading]);
   const [profile, setProfile] = useState(null);
-  const [profileType, setProfileType] = useState(null); // 'mentor' or 'user'
+  const [profileType, setProfileType] = useState(null); // 'mentor', 'user', or 'advertiser'
   const [profileImageUrl, setProfileImageUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -222,6 +223,13 @@ export default function Profile() {
             } else {
               setProfileImageUrl(fallbackProfilePic);
             }
+          } else if (profileTypeData === 'advertiser') {
+            // Advertiser profile
+            if (profileData.image) {
+              setProfileImageUrl(profileData.image);
+            } else {
+              setProfileImageUrl(fallbackProfilePic);
+            }
           } else {
             // User profile
             if (profileData.image) {
@@ -264,6 +272,12 @@ export default function Profile() {
     if (!profile || !profile._id) return;
 
     const fetchPosts = async (limit = 10) => {
+      if (profileType === 'advertiser') {
+        // Advertisers don't have posts, they have ads
+        setPostsLoading(false);
+        return;
+      }
+      
       setPostsLoading(true);
       try {
         const endpoint = profileType === 'mentor'
@@ -592,6 +606,19 @@ export default function Profile() {
       : `Connect with ${profileName}${profile.course ? ` - ${profile.course}` : ''}. Get real insights and guidance from verified mentors on Admeasy.`;
 
     profileKeywords.push(profile.institute, profile.course);
+  }
+
+  // If it's an advertiser profile, render AdvertiserProfile component
+  if (profileType === 'advertiser' && profile) {
+    return <AdvertiserProfile />;
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
+      </div>
+    );
   }
 
   const profileImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';

@@ -28,6 +28,8 @@ const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const NotificationRoutes = require('./routes/notificationRoutes');
 const Db = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
+const AdvertiserRoutes = require('./routes/advertiserRoutes');
+const AdRoutes = require('./routes/adRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const app = express();
@@ -278,13 +280,14 @@ app.get('/api/check-username/:username', async (req, res) => {
   }
 });
 
-// Unified profile route - checks if username belongs to mentor or user
+// Unified profile route - checks if username belongs to mentor, user, or advertiser
 app.get('/api/profile/:username', async (req, res) => {
   try {
     const { username } = req.params;
 
     const Mentor = require('./models/mentorSchema');
     const User = require('./models/userSchema');
+    const Advertiser = require('./models/advertiserSchema');
 
     // Check mentor first
     let mentor = await Mentor.findOne({ username });
@@ -305,6 +308,20 @@ app.get('/api/profile/:username', async (req, res) => {
         success: true,
         type: 'user',
         profile: processedUser
+      });
+    }
+
+    // Check advertiser
+    let advertiser = await Advertiser.findOne({ username }).select('-password -refreshToken');
+    if (advertiser) {
+      const adsCount = await require('./models/adSchema').countDocuments({ 
+        advertiserId: advertiser._id, 
+        status: 'live' 
+      });
+      return res.status(200).json({
+        success: true,
+        type: 'advertiser',
+        profile: { ...advertiser.toObject(), adsCount }
       });
     }
 
@@ -333,6 +350,8 @@ app.use("/api", SearchRoutes);
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
 app.use('/api/subscriptions', SubscriptionRoutes);
 app.use('/api/notifications', NotificationRoutes);
+app.use('/api/advertisers', AdvertiserRoutes);
+app.use('/api/ads', AdRoutes);
 
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {
