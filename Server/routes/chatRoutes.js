@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const chatController = require('../controllers/chatController');
-const authenticateJWT = require('../middleware/userAuth');
-const authenticateMentorJWT = require('../middleware/mentorAuth');
+const { authenticateRequired } = require('../middleware/combinedAuth');
 const { 
     requireUserToMentorChatParticipant, 
     requireUserInitiatedUserToMentorChat,
@@ -10,54 +9,54 @@ const {
     requireMentorToMentorChatParticipant
 } = require('../middleware/chatAuth');
 
-// User routes (require user authentication)
-router.get('/chats', authenticateJWT, chatController.getUserChats);
+// User routes (require user authentication - using authenticateRequired which doesn't require email verification/onboarding)
+router.get('/chats', authenticateRequired, chatController.getUserChats);
 
 // Create or get chat between user and mentor (user-initiated only)
-router.post('/chats/:mentorId', authenticateJWT, requireUserInitiatedUserToMentorChat, chatController.createOrGetUserToMentorChat);
+router.post('/chats/:mentorId', authenticateRequired, requireUserInitiatedUserToMentorChat, chatController.createOrGetUserToMentorChat);
 
 // Get messages for a specific user-to-mentor chat (user accessing mentor chat)
-router.get('/chats/:mentorId/messages', authenticateJWT, requireUserToMentorChatParticipant, chatController.getUserToMentorChatMessages);
+router.get('/chats/:mentorId/messages', authenticateRequired, requireUserToMentorChatParticipant, chatController.getUserToMentorChatMessages);
 
 // Send message in user-to-mentor chat (user to mentor)
-router.post('/chats/:mentorId/messages', authenticateJWT, requireUserToMentorChatParticipant, chatController.sendUserToMentorMessage);
+router.post('/chats/:mentorId/messages', authenticateRequired, requireUserToMentorChatParticipant, chatController.sendUserToMentorMessage);
 
-// Mentor routes (require mentor authentication)
-router.get('/mentor/chats', authenticateMentorJWT, chatController.getMentorChats);
+// Mentor routes (require mentor authentication - using authenticateRequired)
+router.get('/mentor/chats', authenticateRequired, chatController.getMentorChats);
 
 // Get or access existing chat between mentor and user (mentor accessing user chat)
-router.post('/mentor/chats/:userId', authenticateMentorJWT, chatController.getMentorToUserChat);
+router.post('/mentor/chats/:userId', authenticateRequired, chatController.getMentorToUserChat);
 
 // Get messages for a specific user-to-mentor chat (mentor accessing user chat)
-router.get('/mentor/chats/:userId/messages', authenticateMentorJWT, requireUserToMentorChatParticipant, chatController.getUserToMentorChatMessages);
+router.get('/mentor/chats/:userId/messages', authenticateRequired, requireUserToMentorChatParticipant, chatController.getUserToMentorChatMessages);
 
 // Send message in user-to-mentor chat (mentor to user)
-router.post('/mentor/chats/:userId/messages', authenticateMentorJWT, requireUserToMentorChatParticipant, chatController.sendUserToMentorMessage);
+router.post('/mentor/chats/:userId/messages', authenticateRequired, requireUserToMentorChatParticipant, chatController.sendUserToMentorMessage);
 
 // ========== USER-TO-USER CHAT ROUTES ==========
 // Get user's user-to-user chat inbox
-router.get('/user-chats', authenticateJWT, chatController.getUserToUserChats);
+router.get('/user-chats', authenticateRequired, chatController.getUserToUserChats);
 
 // Create or get chat between two users
-router.post('/user-chats/:userId', authenticateJWT, chatController.createOrGetUserToUserChat);
+router.post('/user-chats/:userId', authenticateRequired, chatController.createOrGetUserToUserChat);
 
 // Get messages for a user-to-user chat
-router.get('/user-chats/:userId/messages', authenticateJWT, requireUserToUserChatParticipant, chatController.getUserToUserChatMessages);
+router.get('/user-chats/:userId/messages', authenticateRequired, requireUserToUserChatParticipant, chatController.getUserToUserChatMessages);
 
 // Send message in user-to-user chat
-router.post('/user-chats/:userId/messages', authenticateJWT, requireUserToUserChatParticipant, chatController.sendUserToUserMessage);
+router.post('/user-chats/:userId/messages', authenticateRequired, requireUserToUserChatParticipant, chatController.sendUserToUserMessage);
 
 // ========== MENTOR-TO-MENTOR CHAT ROUTES ==========
 // Get mentor's mentor-to-mentor chat inbox
-router.get('/mentor/mentor-chats', authenticateMentorJWT, chatController.getMentorToMentorChats);
+router.get('/mentor/mentor-chats', authenticateRequired, chatController.getMentorToMentorChats);
 
 // Create or get chat between two mentors
-router.post('/mentor/mentor-chats/:mentorId', authenticateMentorJWT, chatController.createOrGetMentorToMentorChat);
+router.post('/mentor/mentor-chats/:mentorId', authenticateRequired, chatController.createOrGetMentorToMentorChat);
 
 // Get messages for a mentor-to-mentor chat
-router.get('/mentor/mentor-chats/:mentorId/messages', authenticateMentorJWT, requireMentorToMentorChatParticipant, chatController.getMentorToMentorChatMessages);
+router.get('/mentor/mentor-chats/:mentorId/messages', authenticateRequired, requireMentorToMentorChatParticipant, chatController.getMentorToMentorChatMessages);
 
 // Send message in mentor-to-mentor chat
-router.post('/mentor/mentor-chats/:mentorId/messages', authenticateMentorJWT, requireMentorToMentorChatParticipant, chatController.sendMentorToMentorMessage);
+router.post('/mentor/mentor-chats/:mentorId/messages', authenticateRequired, requireMentorToMentorChatParticipant, chatController.sendMentorToMentorMessage);
 
 module.exports = router;

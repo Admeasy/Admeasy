@@ -157,19 +157,7 @@ const verifyEmail = async (req, res) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        // Handle session for socket.io compatibility (similar to login)
-        if (req.session) {
-            req.session.userId = user._id;
-            req.session.userRole = 'user';
-            if (req.session.mentorId) delete req.session.mentorId;
-
-            await new Promise((resolve) => {
-                req.session.save((err) => {
-                    if (err) console.error('Error saving session during verification:', err);
-                    resolve();
-                });
-            });
-        }
+        // JWT-based authentication - no sessions needed
 
         // Set cookies
         setTokenCookies(res, accessToken, refreshToken);

@@ -19,7 +19,7 @@ const getSocketIO = () => {
 // Get user's chat inbox (all mentors they've chatted with)
 const getUserToMentorChats = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
 
         const chats = await UserToMentorChat.find({
             userId,
@@ -78,7 +78,7 @@ const getUserToMentorChats = async (req, res) => {
 // Get mentor's chat inbox (all users who've messaged them)
 const getMentorToUserChats = async (req, res) => {
     try {
-        const mentorId = req.mentor.id;
+        const mentorId = req.mentor._id || req.mentor.id;
 
         const chats = await UserToMentorChat.find({
             mentorId,
@@ -135,8 +135,8 @@ const getMentorToUserChats = async (req, res) => {
 const getUserToMentorChatMessages = async (req, res) => {
     try {
         const chatId = req.userToMentorChat._id;
-        const userId = req.user?.id;
-        const mentorId = req.mentor?.id;
+        const userId = req.user?._id || req.user?.id;
+        const mentorId = req.mentor?._id || req.mentor?.id;
 
         // Get messages
         const messages = await UserToMentorMessage.find({
@@ -258,7 +258,7 @@ const sendUserToMentorMessage = async (req, res) => {
     try {
         const { message } = req.body;
         const chatId = req.userToMentorChat._id;
-        const senderId = req.user?.id || req.mentor?.id;
+        const senderId = req.user?._id || req.user?.id || req.mentor?._id || req.mentor?.id;
         const senderRole = req.user ? 'user' : 'mentor';
 
         if (!message || !message.trim()) {
@@ -385,8 +385,10 @@ const sendUserToMentorMessage = async (req, res) => {
 // Create or get existing chat between user and mentor
 const createOrGetUserToMentorChat = async (req, res) => {
     try {
+        console.log('createOrGetUserToMentorChat - req.user:', req.user ? 'exists' : 'missing', 'req.mentor:', req.mentor ? 'exists' : 'missing');
         const mentorId = req.params.mentorId;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
+        console.log('createOrGetUserToMentorChat - userId:', userId, 'mentorId:', mentorId);
 
         // Verify mentor exists
         const mentor = await Mentor.findById(mentorId);
@@ -432,7 +434,7 @@ const createOrGetUserToMentorChat = async (req, res) => {
             // Try to get the existing chat
             try {
                 const existingChat = await UserToMentorChat.findOne({
-                    userId: req.user.id,
+                    userId: req.user._id || req.user.id,
                     mentorId: req.params.mentorId,
                     isActive: true
                 });
@@ -468,7 +470,7 @@ const createOrGetUserToMentorChat = async (req, res) => {
 const getMentorToUserChat = async (req, res) => {
     try {
         const userId = req.params.userId;
-        const mentorId = req.mentor.id;
+        const mentorId = req.mentor._id || req.mentor.id;
 
         // Verify user exists
         const UserModel = Users.model('Users');
@@ -520,7 +522,7 @@ const getMentorToUserChat = async (req, res) => {
 // Get user's user-to-user chat inbox (all users they've chatted with)
 const getUserToUserChats = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
 
         // Find all chats where user is either user1 or user2
         const chats = await UserToUserChat.find({
@@ -587,7 +589,7 @@ const getUserToUserChats = async (req, res) => {
 const getUserToUserChatMessages = async (req, res) => {
     try {
         const chatId = req.userToUserChat._id;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
 
         const messages = await UserToUserMessage.find({
             chatId
@@ -688,7 +690,7 @@ const sendUserToUserMessage = async (req, res) => {
     try {
         const { message } = req.body;
         const chatId = req.userToUserChat._id;
-        const senderId = req.user.id;
+        const senderId = req.user._id || req.user.id;
 
         if (!message || !message.trim()) {
             return res.status(400).json({
@@ -783,8 +785,10 @@ const sendUserToUserMessage = async (req, res) => {
 // Create or get existing chat between two users
 const createOrGetUserToUserChat = async (req, res) => {
     try {
+        console.log('createOrGetUserToUserChat - req.user:', req.user ? 'exists' : 'missing');
         const otherUserId = req.params.userId;
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
+        console.log('createOrGetUserToUserChat - userId:', userId, 'otherUserId:', otherUserId);
 
         if (otherUserId === userId) {
             return res.status(400).json({
@@ -846,7 +850,7 @@ const createOrGetUserToUserChat = async (req, res) => {
         console.error('Error creating/getting user-to-user chat:', error);
         if (error.code === 11000) {
             try {
-                const userIds = [req.user.id, req.params.userId].sort((a, b) => a.toString().localeCompare(b.toString()));
+                const userIds = [req.user._id || req.user.id, req.params.userId].sort((a, b) => a.toString().localeCompare(b.toString()));
                 const existingChat = await UserToUserChat.findOne({
                     user1Id: userIds[0],
                     user2Id: userIds[1],
@@ -855,7 +859,7 @@ const createOrGetUserToUserChat = async (req, res) => {
 
                 if (existingChat) {
                     const UserModel = Users.model('Users');
-                    const otherUserId = userIds[0].toString() === req.user.id.toString() ? userIds[1] : userIds[0];
+                    const otherUserId = userIds[0].toString() === (req.user._id || req.user.id).toString() ? userIds[1] : userIds[0];
                     const otherUser = await UserModel.findById(otherUserId).select('name username image').lean();
                     return res.json({
                         success: true,
@@ -886,7 +890,7 @@ const createOrGetUserToUserChat = async (req, res) => {
 // Get mentor's mentor-to-mentor chat inbox (all mentors they've chatted with)
 const getMentorToMentorChats = async (req, res) => {
     try {
-        const mentorId = req.mentor.id;
+        const mentorId = req.mentor._id || req.mentor.id;
 
         // Find all chats where mentor is either mentor1 or mentor2
         const chats = await MentorToMentorChat.find({
@@ -952,7 +956,7 @@ const getMentorToMentorChats = async (req, res) => {
 const getMentorToMentorChatMessages = async (req, res) => {
     try {
         const chatId = req.mentorToMentorChat._id;
-        const mentorId = req.mentor.id;
+        const mentorId = req.mentor._id || req.mentor.id;
 
         const messages = await MentorToMentorMessage.find({
             chatId
@@ -1050,7 +1054,7 @@ const sendMentorToMentorMessage = async (req, res) => {
     try {
         const { message } = req.body;
         const chatId = req.mentorToMentorChat._id;
-        const senderId = req.mentor.id;
+        const senderId = req.mentor._id || req.mentor.id;
 
         if (!message || !message.trim()) {
             return res.status(400).json({
@@ -1145,7 +1149,7 @@ const sendMentorToMentorMessage = async (req, res) => {
 const createOrGetMentorToMentorChat = async (req, res) => {
     try {
         const otherMentorId = req.params.mentorId;
-        const mentorId = req.mentor.id;
+        const mentorId = req.mentor._id || req.mentor.id;
 
         if (otherMentorId === mentorId) {
             return res.status(400).json({
@@ -1206,7 +1210,7 @@ const createOrGetMentorToMentorChat = async (req, res) => {
         console.error('Error creating/getting mentor-to-mentor chat:', error);
         if (error.code === 11000) {
             try {
-                const mentorIds = [req.mentor.id, req.params.mentorId].sort((a, b) => a.toString().localeCompare(b.toString()));
+                const mentorIds = [req.mentor._id || req.mentor.id, req.params.mentorId].sort((a, b) => a.toString().localeCompare(b.toString()));
                 const existingChat = await MentorToMentorChat.findOne({
                     mentor1Id: mentorIds[0],
                     mentor2Id: mentorIds[1],
@@ -1214,7 +1218,7 @@ const createOrGetMentorToMentorChat = async (req, res) => {
                 });
 
                 if (existingChat) {
-                    const otherMentorId = mentorIds[0].toString() === req.mentor.id.toString() ? mentorIds[1] : mentorIds[0];
+                    const otherMentorId = mentorIds[0].toString() === (req.mentor._id || req.mentor.id).toString() ? mentorIds[1] : mentorIds[0];
                     const otherMentor = await Mentor.findById(otherMentorId).select('name username image').lean();
                     return res.json({
                         success: true,
@@ -1244,7 +1248,7 @@ const createOrGetMentorToMentorChat = async (req, res) => {
 // Get all chats for a user (both user-to-mentor and user-to-user)
 const getUserChats = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id || req.user.id;
 
         // Fetch both types of chats in parallel
         const [userToMentorChats, userToUserChats] = await Promise.all([
@@ -1356,7 +1360,7 @@ const getUserToUserChatsData = async (userId) => {
 // Get all chats for a mentor (both mentor-to-user and mentor-to-mentor)
 const getMentorChats = async (req, res) => {
     try {
-        const mentorId = req.mentor.id;
+        const mentorId = req.mentor._id || req.mentor.id;
 
         // Fetch both types of chats in parallel
         const [mentorToUserChats, mentorToMentorChats] = await Promise.all([

@@ -4,6 +4,7 @@ const {
   createSpace,
   getMySpaces,
   getSuggestedSpaces,
+  getAllPublicSpaces,
   getSpaceById,
   joinSpace,
   leaveSpace,
@@ -25,6 +26,9 @@ router.get('/', authenticateRequired, getMySpaces);
 
 // Suggested spaces to discover (optional auth)
 router.get('/discover', authenticateOptional, getSuggestedSpaces);
+
+// All public spaces to explore (optional auth, includes spaces user is already a member of)
+router.get('/explore', authenticateOptional, getAllPublicSpaces);
 
 // ================= ADMIN ROUTES =================
 

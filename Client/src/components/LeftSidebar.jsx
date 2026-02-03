@@ -45,7 +45,7 @@ const LeftSidebar = ({
         ? [{ icon: MessagesSquare, label: 'Chats', path: '/chats' }]
         : [{ icon: MessagesSquare, label: 'Chats', path: '/mentor/chats' }]
       : []),
-    { icon: Newspaper, label: 'Blogs', path: '/blog' },
+    { icon: Newspaper, label: 'Blogs', path: '/blogs' },
     ...(!loggedInAccount ? [{ icon: UserPlus, label: 'Sign Up/Log In', path: '/login' }] : [])
   ];
 

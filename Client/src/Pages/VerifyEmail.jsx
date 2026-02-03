@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react'; // Added useRef
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, AlertCircle, Loader2, Home, ArrowRight } from 'lucide-react';
@@ -14,23 +14,27 @@ const VerifyEmail = () => {
     const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
     const [message, setMessage] = useState('');
     const [isNewUser, setIsNewUser] = useState(false); // Track if user is new for UI updates
+    const verificationAttempted = useRef(false); // Prevent double firing in Strict Mode
 
     // If user is already logged in and verified, we can skip and show success
     useEffect(() => {
         if (!loading && user && user.isVerified && status === 'verifying') {
-            setStatus('success');
-            setMessage('Your email is already verified!');
+            // Only redirect if we haven't already attempted verification (or if verification succeeded)
+            if (!verificationAttempted.current) {
+                setStatus('success');
+                setMessage('Your email is already verified!');
 
-            // Check if user needs onboarding
-            const redirectPath = user.hasCompletedOnboarding ? '/' : `/onboarding/${user._id}`;
-            const toastMessage = user.hasCompletedOnboarding
-                ? null
-                : "Please let us know more about you";
+                // Check if user needs onboarding
+                const redirectPath = user.hasCompletedOnboarding ? '/' : `/onboarding/${user._id}`;
+                const toastMessage = user.hasCompletedOnboarding
+                    ? null
+                    : "Please let us know more about you";
 
-            setTimeout(() => {
-                if (toastMessage) toast.info(toastMessage);
-                navigate(redirectPath, { replace: true });
-            }, 2500);
+                setTimeout(() => {
+                    if (toastMessage) toast.info(toastMessage);
+                    navigate(redirectPath, { replace: true });
+                }, 2500);
+            }
         }
     }, [user, loading, status, navigate]);
 
@@ -55,6 +59,10 @@ const VerifyEmail = () => {
         const verifyToken = async () => {
             if (!token) return;
 
+            // Prevent double execution
+            if (verificationAttempted.current) return;
+            verificationAttempted.current = true;
+
             try {
                 const res = await fetch(`/api/users/verify-email/${token}`);
                 const data = await res.json();
@@ -71,9 +79,9 @@ const VerifyEmail = () => {
                     }
 
                     // Check onboarding status from response
-                    const requiresOnboarding = data.requiresOnboarding || 
-                                             !data.user?.hasCompletedOnboarding ||
-                                             (data.onboardingStatus && !data.onboardingStatus.isComplete);
+                    const requiresOnboarding = data.requiresOnboarding ||
+                        !data.user?.hasCompletedOnboarding ||
+                        (data.onboardingStatus && !data.onboardingStatus.isComplete);
 
                     // Redirect after 2.5 seconds
                     setTimeout(() => {
@@ -98,6 +106,7 @@ const VerifyEmail = () => {
                     setMessage(data.message || 'Verification failed. The link may be invalid or expired.');
                 }
             } catch (error) {
+                console.error("Verification error:", error);
                 setStatus('error');
                 setMessage('An error occurred during verification. Please try again later.');
             }

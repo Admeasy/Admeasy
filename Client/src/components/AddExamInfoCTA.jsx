@@ -134,6 +134,7 @@ const AddExamInfoCTA = () => {
   }, [isDismissed, showCTA, isLoggedIn, hasExams]);
 
   const handleDismiss = (e) => {
+    e.preventDefault();
     e.stopPropagation();
     setShowCTA(false);
     setIsDismissed(true);
@@ -141,6 +142,11 @@ const AddExamInfoCTA = () => {
   };
 
   const handleClick = () => {
+    // Don't navigate if clicking the dismiss button
+    if (e.target.closest('button[aria-label="Dismiss"]')) {
+      return;
+    }
+    
     // Mark as shown
     sessionStorage.setItem(EXAM_CTA_STORAGE_KEY, Date.now().toString());
     setShowCTA(false);

@@ -16,8 +16,9 @@ import {
   Newspaper,
   Upload,
   ChevronRight,
-  X,
+  X
 } from "lucide-react";
+import { HiOutlineUserGroup } from "react-icons/hi";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 
@@ -38,6 +39,7 @@ const TABS = [
   { label: "Mentors", value: "mentors", icon: Users },
   { label: "Colleges", value: "colleges", icon: GraduationCap },
   { label: "Notes", value: "notes", icon: FileText },
+  { label: "Spaces", value: "spaces", icon: HiOutlineUserGroup },
   { label: "Blogs", value: "blogs", icon: Newspaper },
 ];
 
@@ -103,11 +105,24 @@ const Explore = () => {
   useEffect(() => {
     const fetchSpaces = async () => {
       try {
+        setSpacesLoading(true);
         const res = await axios.get("/api/spaces/discover", {
           withCredentials: true,
         });
         if (res.data?.success) {
-          setSpaces(res.data.spaces || []);
+          let fetchedSpaces = res.data.spaces || [];
+          
+          // If there's a search query, filter spaces by name/description
+          if (query.trim()) {
+            const searchLower = query.toLowerCase();
+            fetchedSpaces = fetchedSpaces.filter((space) => {
+              const nameMatch = space.name?.toLowerCase().includes(searchLower);
+              const descMatch = space.description?.toLowerCase().includes(searchLower);
+              return nameMatch || descMatch;
+            });
+          }
+          
+          setSpaces(fetchedSpaces);
         }
       } catch (err) {
         console.error("Failed to fetch spaces for explore", err);
@@ -116,9 +131,14 @@ const Explore = () => {
       }
     };
     fetchSpaces();
-  }, []);
+  }, [query]);
 
   useEffect(() => {
+    // Skip fetching if activeTab is "spaces" (handled by spaces useEffect)
+    if (activeTab === "spaces") {
+      return;
+    }
+
     // Don't cache when there's no query (random data should be fresh each time)
     const cached = query ? getCachedResults(query, activeTab) : null;
 
@@ -153,10 +173,12 @@ const Explore = () => {
     fetchResults();
   }, [query, activeTab]);
 
-  const totalResults = Object.values(results).reduce(
-    (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0),
-    0
-  );
+  const totalResults = activeTab === "spaces" 
+    ? spaces.length 
+    : Object.values(results).reduce(
+        (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0),
+        0
+      );
 
   const getFilteredResults = () => {
     if (activeTab === "all") {
@@ -165,6 +187,11 @@ const Explore = () => {
         colleges: results.colleges || [],
         blogs: results.blogs || [],
         notes: results.notes || [],
+      };
+    }
+    if (activeTab === "spaces") {
+      return {
+        spaces: spaces || [],
       };
     }
     return {
@@ -254,6 +281,11 @@ const Explore = () => {
             <div className="w-16 h-16 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin mb-4" />
             <p className="text-gray-500 font-medium">Searching...</p>
           </div>
+        ) : (activeTab === "spaces" && spacesLoading) ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin mb-4" />
+            <p className="text-gray-500 font-medium">Loading spaces...</p>
+          </div>
         ) : totalResults === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -268,6 +300,159 @@ const Explore = () => {
           </div>
         ) : (
           <div className="space-y-8">
+            {/* ================= NOTES SECTION ================= */}
+            {filteredResults.notes && filteredResults.notes.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <FileText className="w-6 h-6 text-[#9f3562]" />
+                  <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
+                  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
+                    {filteredResults.notes.length}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredResults.notes.map((note) => (
+                    <div
+                      key={note._id}
+                      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 group"
+                    >
+                      <div className="p-6 pb-4">
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="w-14 h-14 bg-gradient-to-br from-[#9f3562]/10 to-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-7 h-7 text-[#9f3562]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2 group-hover:text-[#9f3562] transition-colors">
+                              {renderText(note.title) || "Untitled Note"}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {note.description && (
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            {renderText(note.description)}
+                          </p>
+                        )}
+
+                        {(note.uploaderName || note.uploader) && (
+                          <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5" />
+                            {renderText(note.uploaderName || note.uploader)}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          {note.likes !== undefined && (
+                            <span className="flex items-center gap-1">
+                              <Heart className="w-3.5 h-3.5" />
+                              {note.likes}
+                            </span>
+                          )}
+                          {note.views !== undefined && (
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3.5 h-3.5" />
+                              {note.views}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="px-6 pb-6">
+                        <button
+                          onClick={() => navigate(`/notes/${note._id}`)}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => navigate("/notes")}
+                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                  >
+                    View More Notes
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* ================= SPACES SECTION ================= */}
+            {((activeTab === "all" && !spacesLoading && spaces && spaces.length > 0) || 
+              (activeTab === "spaces" && !spacesLoading && filteredResults.spaces && filteredResults.spaces.length > 0)) && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <HiOutlineUserGroup className="w-6 h-6 text-[#9f3562]" />
+                  <h2 className="text-2xl font-bold text-gray-900">Spaces</h2>
+                  <span
+                    onClick={() => navigate("/spaces/explore")}
+                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold"
+                  >
+                    View More
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(activeTab === "spaces" ? filteredResults.spaces : spaces).slice(0, 6).map((space) => (
+                    <div
+                      key={space._id}
+                      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col group"
+                    >
+                      <div className="p-5 flex-1 flex flex-col">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <img src={space.logo} alt={space.name} className="w-10 h-10 rounded-full object-cover" />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-gray-900 text-base mb-1 break-words">
+                                {space.name}
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                {space.membersCount || 0} member{(space.membersCount || 0) === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/spaces/${space._id}`);
+                            }}
+                            className="flex-shrink-0 px-3 py-1.5 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors text-xs font-semibold whitespace-nowrap"
+                          >
+                            Join
+                          </button>
+                        </div>
+                        {space.description && (
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                            {space.description}
+                          </p>
+                        )}
+                        {space.lastMessage && (
+                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-auto">
+                            Last: {space.lastMessage.authorName}:{" "}
+                            {space.lastMessage.content}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => navigate("/spaces/explore")}
+                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                  >
+                    View More Spaces
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* ================= MENTORS SECTION ================= */}
             {filteredResults.mentors && filteredResults.mentors.length > 0 && (
               <section>
@@ -348,138 +533,6 @@ const Explore = () => {
                     View More Mentors
                     <ChevronRight className="w-4 h-4" />
                   </button>
-                </div>
-              </section>
-            )}
-
-            {/* ================= SPACES SECTION (SECOND POSITION) ================= */}
-            {activeTab === "all" && !spacesLoading && spaces && spaces.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Spaces</h2>
-                  <span
-                    onClick={() => navigate("/spaces")}
-                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold"
-                  >
-                    View All
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {spaces.slice(0, 6).map((space) => (
-                    <div
-                      key={space._id}
-                      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col"
-                    >
-                      <div className="p-5 flex-1 flex flex-col">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9f3562]/10 via-pink-100 to-purple-100 flex items-center justify-center">
-                            <Users className="w-5 h-5 text-[#9f3562]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-1">
-                              {space.name}
-                            </h3>
-                            <p className="text-xs text-gray-500">
-                              {space.membersCount || 0} member{(space.membersCount || 0) === 1 ? "" : "s"}
-                            </p>
-                          </div>
-                        </div>
-                        {space.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                            {space.description}
-                          </p>
-                        )}
-                        {space.lastMessage && (
-                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-auto">
-                            Last: {space.lastMessage.authorName}:{" "}
-                            {space.lastMessage.content}
-                          </p>
-                        )}
-                      </div>
-                      <div className="px-5 pb-4 pt-1 flex items-center justify-between gap-2">
-                        <button
-                          onClick={() => navigate(`/spaces/${space._id}`)}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors text-xs font-semibold"
-                        >
-                          Go to Space
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-            {/* ================= NOTES SECTION ================= */}
-            {filteredResults.notes && filteredResults.notes.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <FileText className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
-                  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
-                    {filteredResults.notes.length}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.notes.map((note) => (
-                    <div
-                      key={note._id}
-                      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 group"
-                    >
-                      <div className="p-6 pb-4">
-                        <div className="flex items-start gap-4 mb-4">
-                          <div className="w-14 h-14 bg-gradient-to-br from-[#9f3562]/10 to-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <FileText className="w-7 h-7 text-[#9f3562]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2 group-hover:text-[#9f3562] transition-colors">
-                              {renderText(note.title) || "Untitled Note"}
-                            </h3>
-                          </div>
-                        </div>
-
-                        {note.description && (
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                            {renderText(note.description)}
-                          </p>
-                        )}
-
-                        {(note.uploaderName || note.uploader) && (
-                          <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            {renderText(note.uploaderName || note.uploader)}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          {note.likes !== undefined && (
-                            <span className="flex items-center gap-1">
-                              <Heart className="w-3.5 h-3.5" />
-                              {note.likes}
-                            </span>
-                          )}
-                          {note.views !== undefined && (
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-3.5 h-3.5" />
-                              {note.views}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="px-6 pb-6">
-                        <button
-                          onClick={() => navigate(`/notes/${note._id}`)}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Details
-                        </button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </section>
             )}

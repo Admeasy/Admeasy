@@ -26,6 +26,7 @@ const Chatpage = () => {
   const messagesEndRef = useRef(null);
   const attachmentMenuRef = useRef(null);
   const initializationDone = useRef(false);
+  const menuCloseTimeoutRef = useRef(null);
 
   const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -33,6 +34,10 @@ const Chatpage = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target)) {
+        if (menuCloseTimeoutRef.current) {
+          clearTimeout(menuCloseTimeoutRef.current);
+          menuCloseTimeoutRef.current = null;
+        }
         setShowAttachmentMenu(false);
       }
     };
@@ -43,6 +48,15 @@ const Chatpage = () => {
     }
   }, [showAttachmentMenu]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (menuCloseTimeoutRef.current) {
+        clearTimeout(menuCloseTimeoutRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     // Only users can access user chats
     if (!user) {
@@ -50,9 +64,12 @@ const Chatpage = () => {
       return;
     }
 
-    if (id && !initializationDone.current) {
-      initializationDone.current = true;
-      initializeChat();
+    if (id) {
+      // Reset initialization flag when id changes
+      if (initializationDone.current !== id) {
+        initializationDone.current = id;
+        initializeChat();
+      }
     }
   }, [id, user, navigate]);
 
@@ -64,16 +81,21 @@ const Chatpage = () => {
       setChatType(null); // Reset chat type
       setChatId(null); // Reset chat ID
 
+      console.log('Initializing chat with ID:', id);
+
       // Try user-to-mentor chat first
       let chatResponse = await fetch(`/api/chats/${id}`, {
         method: 'POST',
         credentials: 'include'
       });
 
+      console.log('User-to-mentor chat response status:', chatResponse.status);
+
       let chatData;
       
       if (chatResponse.ok) {
         chatData = await chatResponse.json();
+        console.log('User-to-mentor chat data:', chatData);
         if (chatData.success && chatData.chat) {
           // User-to-mentor chat
           setChatType('userToMentor');
@@ -103,23 +125,35 @@ const Chatpage = () => {
           }
           setIsLoading(false);
           return;
+        } else {
+          console.warn('User-to-mentor chat response was OK but success is false or chat is missing:', chatData);
         }
+      } else {
+        // Log the error for debugging
+        const errorData = await chatResponse.json().catch(() => ({}));
+        console.error('User-to-mentor chat failed:', chatResponse.status, errorData);
       }
 
       // If user-to-mentor failed (404 or other error), try user-to-user chat
+      console.log('Trying user-to-user chat...');
       chatResponse = await fetch(`/api/user-chats/${id}`, {
         method: 'POST',
         credentials: 'include'
       });
 
+      console.log('User-to-user chat response status:', chatResponse.status);
+
       if (!chatResponse.ok) {
         const errorData = await chatResponse.json().catch(() => ({}));
+        console.error('User-to-user chat failed:', chatResponse.status, errorData);
         throw new Error(errorData.message || 'Failed to access chat');
       }
 
       chatData = await chatResponse.json();
+      console.log('User-to-user chat data:', chatData);
 
       if (!chatData.success || !chatData.chat) {
+        console.error('Invalid user-to-user chat response:', chatData);
         throw new Error('Invalid chat response');
       }
 
@@ -548,9 +582,9 @@ const Chatpage = () => {
                   key={message._id || `msg-${index}`}
                   className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
                 >
-                  {/* Sender Avatar - only show if not from same sender as previous message */}
-                  {!isPreviousMessageFromSameSender && !isUser && (
-                    <div className="flex-shrink-0">
+                  {/* Sender Avatar - always reserve space for alignment */}
+                  <div className="flex-shrink-0 w-10">
+                    {!isPreviousMessageFromSameSender && !isUser && (
                       <img
                         src={senderImage || fallbackProfilePic}
                         alt={senderName || 'User'}
@@ -559,8 +593,8 @@ const Chatpage = () => {
                           e.target.src = fallbackProfilePic;
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
                   {/* Message Bubble */}
                   <div
@@ -581,9 +615,9 @@ const Chatpage = () => {
                     </div>
                   </div>
                   
-                  {/* Sender Avatar for user messages - only show if not from same sender */}
-                  {!isPreviousMessageFromSameSender && isUser && (
-                    <div className="flex-shrink-0">
+                  {/* Sender Avatar for user messages - always reserve space for alignment */}
+                  <div className="flex-shrink-0 w-10">
+                    {!isPreviousMessageFromSameSender && isUser && (
                       <img
                         src={user?.image || user?.imageUrl || fallbackProfilePic}
                         alt={user?.name || 'You'}
@@ -592,8 +626,8 @@ const Chatpage = () => {
                           e.target.src = fallbackProfilePic;
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -616,22 +650,32 @@ const Chatpage = () => {
 
           <form onSubmit={sendMessage} className="flex items-center gap-2 relative">
             {/* Attachment Icon - Left Side */}
-            <div className="relative" ref={attachmentMenuRef}>
+            <div 
+              className="relative" 
+              ref={attachmentMenuRef}
+              onMouseEnter={() => {
+                // Clear any pending close timeout
+                if (menuCloseTimeoutRef.current) {
+                  clearTimeout(menuCloseTimeoutRef.current);
+                  menuCloseTimeoutRef.current = null;
+                }
+                // Only show on hover for desktop (screens wider than 768px)
+                if (window.innerWidth > 768) {
+                  setShowAttachmentMenu(true);
+                }
+              }}
+              onMouseLeave={() => {
+                // Only hide on hover leave for desktop with a small delay
+                if (window.innerWidth > 768) {
+                  menuCloseTimeoutRef.current = setTimeout(() => {
+                    setShowAttachmentMenu(false);
+                  }, 100); // Small delay to allow mouse to move to menu
+                }
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                onMouseEnter={() => {
-                  // Only show on hover for desktop (screens wider than 768px)
-                  if (window.innerWidth > 768) {
-                    setShowAttachmentMenu(true);
-                  }
-                }}
-                onMouseLeave={() => {
-                  // Only hide on hover leave for desktop
-                  if (window.innerWidth > 768) {
-                    setShowAttachmentMenu(false);
-                  }
-                }}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-[#9f3562] flex-shrink-0"
                 disabled={isSending || !isConnected}
               >
@@ -640,7 +684,17 @@ const Chatpage = () => {
 
               {/* Attachment Menu Popup - Compact */}
               {showAttachmentMenu && (
-                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5 min-w-[140px] z-50">
+                <div 
+                  className="absolute bottom-full left-0 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5 min-w-[140px] z-50"
+                  style={{ marginBottom: '0.5rem' }}
+                  onMouseEnter={() => {
+                    // Clear any pending close timeout when entering menu
+                    if (menuCloseTimeoutRef.current) {
+                      clearTimeout(menuCloseTimeoutRef.current);
+                      menuCloseTimeoutRef.current = null;
+                    }
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => {

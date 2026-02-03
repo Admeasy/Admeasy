@@ -19,7 +19,7 @@ const AdCard = ({ ad, isPreview = false, onAdUpdate, showEditDelete = false, onD
   // Initialize adState with proper isLiked boolean
   const [adState, setAdState] = useState({
     ...ad,
-    isLiked: ad.isLiked === true // Ensure it's always a boolean
+    isLiked: ad.isLiked === false // Ensure it's always a boolean
   });
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [showMenu, setShowMenu] = useState(false);

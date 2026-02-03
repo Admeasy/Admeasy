@@ -29,7 +29,7 @@ const generateAccessToken = (mentor) => {
             role: 'mentor'  // Add role to distinguish from user
         },
         process.env.JWT_ACCESS_SECRET,
-        { expiresIn: '12hr' }
+        { expiresIn: '7d' }
     );
 }
 
@@ -121,7 +121,7 @@ router.post('/register', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
@@ -167,31 +167,12 @@ router.post('/login', async (req, res) => {
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
         await mentor.save();
-        
-        // CRITICAL: Set session for Socket.io compatibility
-        if (req.session) {
-            req.session.mentorId = mentor._id;
-            req.session.userRole = 'mentor';
-            // Clear user session if exists
-            delete req.session.userId;
-            // Save session explicitly to ensure it's available for socket connections
-            await new Promise((resolve, reject) => {
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Error saving mentor session:', err);
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
-        }
-        
+
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
@@ -211,21 +192,6 @@ router.get('/me', authenticateMentorJWT, async (req, res) => {
         const mentor = await Mentor.findById(req.mentor.id).select('-password -refreshToken');
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
-        }
-
-        // CRITICAL: Ensure session is set for Socket.io
-        if (req.session) {
-            req.session.mentorId = mentor._id;
-            req.session.userRole = 'mentor';
-            // Clear user session if exists
-            delete req.session.userId;
-            // Explicitly save session
-            await new Promise((resolve) => {
-                req.session.save((err) => {
-                    if (err) console.error('Error saving mentor session in /me:', err);
-                    resolve();
-                });
-            });
         }
 
         res.json({ success: true, mentor });
@@ -302,7 +268,9 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
 
         const { name, username, phone, tagline, bio } = req.body;
         let competitiveExamsCleared = [];
+        let shouldUpdateExams = false;
         if (req.body.competitiveExamsCleared) {
+            shouldUpdateExams = true;
             try {
                 const parsedExams = typeof req.body.competitiveExamsCleared === 'string' ? JSON.parse(req.body.competitiveExamsCleared) : req.body.competitiveExamsCleared;
                 if (Array.isArray(parsedExams)) {
@@ -312,6 +280,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
                 }
             } catch (parseError) {
                 console.error('Error parsing competitiveExamsCleared:', parseError);
+                shouldUpdateExams = false;
             }
         }
 
@@ -375,7 +344,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         if (course) {
             updateData.course = course;
         }
-        if (competitiveExamsCleared.length > 0) {
+        if (shouldUpdateExams) {
             updateData.competitiveExamsCleared = competitiveExamsCleared;
         }
 
@@ -428,31 +397,12 @@ router.post('/refresh', async (req, res) => {
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(mentor);
-            
-            // CRITICAL: Set session for Socket.io compatibility
-            if (req.session) {
-                req.session.mentorId = mentor._id;
-                req.session.userRole = 'mentor';
-                // Clear user session if exists
-                delete req.session.userId;
-                // Save session explicitly to ensure it's available for socket connections
-                await new Promise((resolve, reject) => {
-                    req.session.save((err) => {
-                        if (err) {
-                            console.error('Error saving mentor session in refresh:', err);
-                            reject(err);
-                        } else {
-                            resolve();
-                        }
-                    });
-                });
-            }
-            
+
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
             res.json({ success: true });
         } catch (err) {

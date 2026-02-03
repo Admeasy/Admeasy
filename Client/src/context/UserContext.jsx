@@ -149,7 +149,9 @@ export function UserProvider({ children }) {
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
       const hasStoredUser = localStorage.getItem(USER_STORAGE_KEY);
 
-      if (storedRole === 'user' && hasStoredUser) {
+      // If we are NOT a mentor, try to restore user session
+      // This allows auto-login even if localStorage is cleared but cookie exists
+      if (storedRole !== 'mentor') {
         try {
           // Always verify with server - localStorage is just a cache
           await fetch("/api/users/refresh", {
@@ -168,36 +170,25 @@ export function UserProvider({ children }) {
               userObj.imageUrl = imageUrl;
             }
             setUser(userObj);
-            
-            // Check onboarding status if user is verified
-            if (userObj && userObj.isVerified) {
-              const onboardingRes = await fetch('/api/users/onboarding/status', {
-                credentials: 'include'
-              });
-              if (onboardingRes.ok) {
-                const onboardingData = await onboardingRes.json();
-                if (onboardingData.requiresOnboarding && !location.pathname.startsWith('/onboarding')) {
-                  // Redirect to onboarding if incomplete
-                  const userId = userObj._id || userObj.id;
-                  if (userId) {
-                    navigate(`/onboarding/${userId}`, { replace: true });
-                    toast.warn('Please complete your onboarding to continue');
-                  }
-                }
-              }
-            }
+
+            // Onboarding check removed to prevent forced redirects - handled by Banner now
           } else {
             // Server says not authenticated, clear localStorage
-            setUser(null);
-            localStorage.removeItem(USER_STORAGE_KEY);
-            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+            // Only clear if we were expecting a user
+            if (storedRole === 'user' || hasStoredUser) {
+              setUser(null);
+              localStorage.removeItem(USER_STORAGE_KEY);
+              localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+            }
           }
         } catch (err) {
           console.error('Auth verification failed:', err);
           // On error, clear potentially stale data
-          setUser(null);
-          localStorage.removeItem(USER_STORAGE_KEY);
-          localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+          if (storedRole === 'user') {
+            setUser(null);
+            localStorage.removeItem(USER_STORAGE_KEY);
+            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+          }
         }
       }
       setIsLoading(false);

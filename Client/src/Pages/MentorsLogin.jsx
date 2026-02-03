@@ -46,7 +46,7 @@ function MentorsLogin({ onLoginSuccess }) {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (!formData.mentorId.trim() || !formData.password.trim()) {
       setError("Mentor ID and password are required!");
@@ -132,7 +132,7 @@ function MentorsLogin({ onLoginSuccess }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="">
+          <div onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)} className="">
             {/* Mentor ID */}
             <div className="relative mb-4">
               <MdAlternateEmail className="absolute bottom-4 left-3 text-gray-400 text-2xl" />
@@ -185,14 +185,15 @@ function MentorsLogin({ onLoginSuccess }) {
             {/* Submit */}
             {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'pruple'} />
               : <button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-purple-900 hover:bg-purple-700 shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                 disabled={isSubmitting}
               >
                 Log In
               </button>
             }
-          </form>
+          </div>
           <p className="mt-4 text-sm text-gray-600">
             Not a mentor?{" "}
             <span

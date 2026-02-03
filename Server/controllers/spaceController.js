@@ -52,7 +52,6 @@ function formatSpaceSummary(space, currentActorId) {
     name: space.name,
     description: space.description,
     logo: space.logo || null,
-    logo: space.logo || null,
     membersCount,
     messagesCount,
     lastMessage: lastMessage
@@ -189,6 +188,33 @@ exports.getSuggestedSpaces = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching suggested spaces:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
+
+// GET /api/spaces/explore - all public spaces (includes spaces user is already a member of)
+exports.getAllPublicSpaces = async (req, res) => {
+  try {
+    const actor = getActorFromReq(req);
+
+    // Get all spaces without filtering by membership
+    const spaces = await Space.find({})
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const summaries = spaces.map((s) =>
+      formatSpaceSummary(s, actor?.id)
+    );
+
+    return res.json({
+      success: true,
+      spaces: summaries,
+    });
+  } catch (error) {
+    console.error('Error fetching all public spaces:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal Server Error',

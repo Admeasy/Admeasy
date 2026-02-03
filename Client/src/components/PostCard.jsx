@@ -154,8 +154,13 @@ const PostCard = ({ post, onPostUpdate }) => {
 
   const handleRepost = async (e) => {
     e.stopPropagation();
-    if (!user) {
+    if (!isAuthed) {
       toast.info('Log in to repost');
+      return;
+    }
+
+    if (mentor) {
+      toast.info("mentors cannot repost dude😁");
       return;
     }
 

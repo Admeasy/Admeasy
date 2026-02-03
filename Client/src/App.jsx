@@ -1,15 +1,16 @@
 import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
+import { useNavigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
 import Footer from './components/Footer'
 import MentorRegistration from './Pages/MentorRegistration'
 import MentorsLogin from './Pages/MentorsLogin';
+import EditProfile from './Pages/EditProfile';
 import EditMentorProfile from './Pages/EditMentorProfile';
 import MentorProfile from './Pages/MentorProfile';
-import Profile from './Pages/Profile';
 import LoginModal from './components/LoginModal';
 import Contact from './Pages/Contact'
 import About from './Pages/About'
@@ -19,20 +20,19 @@ import CollegeDetailed from './Pages/CollegeDetailed'
 import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsAndConditions from './Pages/TermsAndConditions'
 import ResetPassword from './Pages/ResetPassword';
-import MentorForgotPassword from './Pages/MentorForgotPassword';
-import MentorResetPassword from './Pages/MentorResetPassword';
 import Course from './Pages/Course'
 import Notes from './Pages/Notes';
 import NotesSearch from './Pages/NotesSearch';
 import AddNote from './Pages/AddNote';
-import EditProfile from './Pages/EditProfile'
+import SignUp from './Pages/SignUp'
+import LogIn from './Pages/LogIn'
+import Profile from './Pages/Profile'
 import Admin from './Pages/Admin'
 import ForgotPassword from './Pages/ForgotPassword';
 import Onboarding from './Pages/Onboarding';
 import ManageColleges from './Pages/ManageColleges'
 import ManageUsers from './Pages/ManageUsers'
 import ManageApplications from './Pages/ManageApplications'
-import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans'
 import JobApplications from './Pages/JobApplications'
 import MentorshipForm from './Pages/MentorshipForm'
 import Blogs from './Pages/Blogs'
@@ -53,8 +53,6 @@ import { NotFound } from './Pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import ManageBlogs from './Pages/ManageBlogs';
 import ManageNotes from './Pages/ManageNotes';
-import ManagePosts from './Pages/ManagePosts';
-import ManageSpaces from './Pages/ManageSpaces';
 import BlogDetail from './Pages/BlogDetail';
 import ManageAdvertisers from './Pages/ManageAdvertisers';
 import ManageAds from './Pages/ManageAds';
@@ -71,12 +69,11 @@ import VerifyEmail from './Pages/VerifyEmail';
 import { enableNotifications } from './Firebase/enableNotifications';
 import { onMessage } from 'firebase/messaging';
 import { messaging } from './Firebase/Firebase';
-import { useNavigate } from 'react-router-dom';
-import FeedbackBanner from './components/FeedbackBanner';
 import SubscriptionPlans from './Pages/SubscriptionPlans';
 import MySubscriptions from './Pages/MySubscriptions';
 import CheckPayments from './Pages/CheckPayments';
 import Spaces from './Pages/Spaces';
+import SpacesExplore from './Pages/SpacesExplore';
 import Space from './Pages/Space';
 import AdvertiseLanding from './Pages/AdvertiseLanding';
 import AdvertiserSignup from './Pages/AdvertiserSignup';
@@ -88,13 +85,20 @@ import EditAdvertiserProfile from './Pages/EditAdvertiserProfile';
 import CreateAd from './Pages/CreateAd';
 import EditAd from './Pages/EditAd';
 import MyAds from './Pages/MyAds';
+import OnboardingReminderBanner from './components/OnboardingReminderBanner';
+import ManagePosts from './Pages/ManagePosts';
+import ManageSpaces from './Pages/ManageSpaces';
+import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans';
+import MentorForgotPassword from './Pages/MentorForgotPassword';
+import MentorResetPassword from './Pages/MentorResetPassword';
 
 function App() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [randomBanner, SetRandomBanner] = useState(null);
   const isAdminRoute = location.pathname.startsWith('/admin');
   const { user, setUser, fetchUser } = useUser();
   const { mentor } = useMentor();
+  const navigate = useNavigate();
 
   // Username warning toast
   useEffect(() => {
@@ -154,10 +158,10 @@ function App() {
 
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground notification received:', payload);
-      
+
       // Show a toast notification
       toast.info(
-        <div 
+        <div
           onClick={() => navigate('/notifications')}
           style={{ cursor: 'pointer' }}
         >
@@ -253,10 +257,15 @@ function App() {
   );
 
   // Show old Navbar only on non-Layout, non-admin, non-auth routes
-  const shouldShowOldNavbar = !isAdminRoute && !usesLayout && !isAuthPage && location.pathname !== '/me/edit';
+  const shouldShowOldNavbar = !isAdminRoute && !usesLayout && !isAuthPage && !location.pathname.startsWith('/advertiser') && location.pathname !== '/me/edit';
 
   return (
     <>
+      {shouldShowOldNavbar && <Navbar />}
+
+
+      {!isAuthPage && <OnboardingReminderBanner />}
+
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -266,9 +275,20 @@ function App() {
         rtl={false}
         pauseOnFocusLoss
         draggable
-        pauseOnHover/>
-
+        pauseOnHover
+      />
       <Routes>
+        <Route path='/contact' element={<Contact />}></Route>
+        {/* <Route path='/modal' element={<LoginModal />}></Route> */}
+        <Route path='/about' element={<About />}></Route>
+        <Route path='/mentors' element={<Mentors />}></Route>
+        <Route path='/colleges' element={<Colleges />}></Route>
+        <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
+        <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
+        <Route path='/mentors/register' element={<MentorRegistration />}></Route>
+        <Route path='/mentors/login' element={<MentorsLogin />}></Route>
+        <Route path='/mentors/:username' element={<MentorProfile />}></Route>
+
         {/* ================= SIDEBAR LAYOUT ROUTES ================= */}
         <Route element={<Layout />}>
           <Route path="/about" element={<About />} />
@@ -300,15 +320,12 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+
           <Route path="/:username" element={<Profile />} />
 
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/colleges/:id" element={<CollegeDetailed />} />
           <Route path="/colleges/:collegeId/courses/:courseId" element={<Course />} />
-
-          <Route path="/blog" element={<Blogs />} />
-          <Route path="/blog/:id" element={<BlogDetail />} />
 
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:id" element={<BlogDetail />} />
@@ -353,6 +370,7 @@ function App() {
           <Route path="/posts/create" element={<CreatePost />} />
           {/* Spaces */}
           <Route path="/spaces" element={<Spaces />} />
+          <Route path="/spaces/explore" element={<SpacesExplore />} />
           <Route path="/spaces/:id" element={<Space />} />
         </Route>
 
@@ -369,16 +387,6 @@ function App() {
         <Route path="/mentors/register" element={<MentorRegistration />} />
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
-        {/* Profile Edit Route - outside Layout */}
-        <Route
-          path="/me/edit"
-          element={
-            <ProtectedRoute user={user || mentor}>
-              {mentor ? <EditMentorProfile /> : <EditProfile />}
-            </ProtectedRoute>
-          }
-        />
-
         <Route
           path="/chats/:id"
           element={
@@ -388,11 +396,37 @@ function App() {
           }
         />
 
+        {/* Profile Edit Route - outside Layout */}
         <Route
           path="/mentor/chats/:id"
           element={
             <ProtectedRoute mentor={true}>
               <MentorChat />
+            </ProtectedRoute>
+          }
+        />
+        <Route path='/policies' element={<PrivacyPolicy />}></Route>
+        <Route path='/t&c' element={<TermsAndConditions />}></Route>
+        <Route path='/reset-password/:token' element={<ResetPassword />}></Route>
+        <Route path='/reset-password' element={<ResetPassword />}></Route>
+        <Route path='/forgot-password' element={<ForgotPassword />}></Route>
+        {/* We don't need Signup route */}
+        <Route path='/login' element={<AuthPage />}></Route>
+
+        {/* If user Only then /me accessible */}
+        <Route
+          path="/me/edit"
+          element={
+            <ProtectedRoute user={user || mentor}>
+              {mentor ? <EditMentorProfile /> : <EditProfile />}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me"
+          element={
+            <ProtectedRoute user={mentor}>
+              <MentorProfile />
             </ProtectedRoute>
           }
         />
@@ -423,7 +457,7 @@ function App() {
         <Route path="/advertise" element={<AdvertiseLanding />} />
         <Route path="/advertiser/signup" element={<AdvertiserSignup />} />
         <Route path="/advertiser/login" element={<AdvertiserLogin />} />
-        
+
         <Route element={<AdvertiserLayout />}>
           <Route path="/advertiser" element={<AdvertiserDashboard />} />
           <Route path="/advertiser/dashboard" element={<AdvertiserDashboard />} />
