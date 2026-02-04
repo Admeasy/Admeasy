@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 const Note = require('../models/noteSchema');
-const BackblazeB2Client = require('../b2Client');
-
-const b2Client = new BackblazeB2Client();
+const cloudinary = require('../config/cloudinary'); // or wherever your cloudinary config is
+const fs = require('fs').promises;
+const path = require('path');
+const os = require('os');
 
 const buildFilter = ({ search, university, programme, course }) => {
   const filter = { status: 'published' };
@@ -28,6 +29,14 @@ const buildFilter = ({ search, university, programme, course }) => {
   }
 
   return filter;
+};
+
+// Helper function to write buffer to temporary file
+const bufferToTempFile = async (buffer, originalFilename) => {
+  const tempDir = os.tmpdir();
+  const tempPath = path.join(tempDir, `upload-${Date.now()}-${originalFilename}`);
+  await fs.writeFile(tempPath, buffer);
+  return tempPath;
 };
 
 exports.getNotes = async (req, res) => {
@@ -86,75 +95,224 @@ const updateCounter = async (req, res, field) => {
 exports.likeNote = (req, res) => updateCounter(req, res, 'likes');
 exports.viewNote = (req, res) => updateCounter(req, res, 'views');
 
-// Upload note
+// Upload note with Cloudinary compression
 exports.uploadNote = async (req, res) => {
+  let tempFilePath = null;
+  
   try {
+    // Validate mentor authentication
+    if (!req.mentor || !req.mentor._id) {
+      console.error('Upload note error: Mentor not authenticated');
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required. Please log in as a mentor.' 
+      });
+    }
+
     const { title, description, standard, pages, isFree, price, university, programme, course, tags } = req.body;
 
     // Validate required fields
-    if (!title || !description || !standard || !university || !programme || !course) {
+    const missingFields = [];
+    if (!title || !title.trim()) missingFields.push('title');
+    if (!description || !description.trim()) missingFields.push('description');
+    if (!standard || !standard.trim()) missingFields.push('standard');
+    if (!university || !university.trim()) missingFields.push('university');
+    if (!programme || !programme.trim()) missingFields.push('programme');
+    if (!course || !course.trim()) missingFields.push('course');
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: title, description, standard, university, programme, course'
+        message: `Missing required fields: ${missingFields.join(', ')}`
       });
     }
 
     // Check if file exists
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No file uploaded. Please select a PDF file.' 
+      });
+    }
+
+    // Validate file buffer
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'File is empty or corrupted. Please try uploading again.' 
+      });
     }
 
     // Validate file size (10MB)
     if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ success: false, message: 'File size must be less than 10MB' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'File size must be less than 10MB' 
+      });
     }
 
     // Validate file type
     if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ success: false, message: 'Only PDF files are allowed' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only PDF files are allowed' 
+      });
     }
 
-    // Upload file to B2
-    const fileName = `notes/${Date.now()}-${req.file.originalname}`;
-    const result = await b2Client.uploadBuffer(req.file.buffer, fileName);
-
-    // Construct the public URL for the uploaded file
-    let baseUrl = process.env.B2_BUCKET_URL;
-    if (baseUrl && baseUrl.startsWith('@')) {
-        baseUrl = baseUrl.substring(1);
-    }
-    baseUrl = baseUrl ? baseUrl.replace(/\/+$/, '') : `https://f005.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}`;
-    const fileUrl = `${baseUrl}/${fileName}`;
-
-    // Create note
-    const note = new Note({
+    console.log('Uploading note:', {
       title: title.trim(),
-      description: description.trim(),
-      standard: standard.trim(),
-      pages: pages ? parseInt(pages) : undefined,
-      isFree: isFree === 'true' || isFree === true,
-      price: price ? parseFloat(price) : undefined,
-      university: university.trim().toLowerCase(),
-      programme: programme.trim().toLowerCase(),
-      course: course.trim().toLowerCase(),
-      tags: tags ? tags.trim() : undefined,
-      fileUrl,
-      fileSize: req.file.size,
-      uploader: req.mentor._id,
-      uploaderName: req.mentor.name,
-      status: 'pending'
+      mentorId: req.mentor._id,
+      mentorName: req.mentor.name,
+      fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
+      fileName: req.file.originalname
     });
 
-    await note.save();
+    // Write buffer to temporary file for Cloudinary upload
+    try {
+      tempFilePath = await bufferToTempFile(req.file.buffer, req.file.originalname);
+      console.log('Temporary file created:', tempFilePath);
+    } catch (fileError) {
+      console.error('Error creating temporary file:', fileError);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to process file. Please try again.' 
+      });
+    }
+
+    // Validate Cloudinary configuration
+    if (!process.env.CLOUD_NAME || !process.env.CLOUD_KEY || !process.env.CLOUD_SECRET) {
+      console.error('Cloudinary configuration missing');
+      // Clean up temp file
+      if (tempFilePath) {
+        await fs.unlink(tempFilePath).catch(() => {});
+      }
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Server configuration error. Please contact support.' 
+      });
+    }
+
+    // Upload to Cloudinary with compression
+    let cloudinaryResult;
+    try {
+      cloudinaryResult = await cloudinary.uploader.upload(tempFilePath, {
+        resource_type: "auto",
+        folder: "notes",
+        access_mode: "public", 
+        public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, '_')}`
+      });
+      console.log('Cloudinary upload successful:', cloudinaryResult.secure_url);
+      console.log('Cloudinary file size:', (cloudinaryResult.bytes / 1024 / 1024).toFixed(2), 'MB');
+    } catch (cloudinaryError) {
+      console.error('Cloudinary upload error:', cloudinaryError);
+      // Clean up temp file
+      if (tempFilePath) {
+        await fs.unlink(tempFilePath).catch(() => {});
+      }
+      return res.status(500).json({ 
+        success: false, 
+        message: cloudinaryError.message || 'Failed to upload file to storage. Please try again.' 
+      });
+    }
+
+    // Clean up temporary file
+    try {
+      await fs.unlink(tempFilePath);
+      tempFilePath = null;
+    } catch (unlinkError) {
+      console.error('Error deleting temp file:', unlinkError);
+      // Continue even if cleanup fails
+    }
+
+    // Validate Cloudinary response
+    if (!cloudinaryResult || !cloudinaryResult.secure_url) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'File upload completed but failed to get file URL. Please try again.' 
+      });
+    }
+
+    // Create note with Cloudinary URL
+    let note;
+    try {
+      note = new Note({
+        title: title.trim(),
+        description: description.trim(),
+        standard: standard.trim(),
+        pages: pages && pages.trim() ? parseInt(pages) : undefined,
+        isFree: isFree === 'true' || isFree === true || isFree === 'true',
+        price: price && price.trim() ? parseFloat(price) : undefined,
+        university: university.trim().toLowerCase(),
+        programme: programme.trim().toLowerCase(),
+        course: course.trim().toLowerCase(),
+        tags: tags && tags.trim() ? tags.trim() : undefined,
+        fileUrl: cloudinaryResult.secure_url,
+        fileSize: cloudinaryResult.bytes,
+        cloudinaryPublicId: cloudinaryResult.public_id,
+        uploader: req.mentor._id,
+        uploaderName: req.mentor.name || 'Unknown',
+        status: 'pending'
+      });
+
+      await note.save();
+      console.log('Note saved successfully:', note._id);
+    } catch (dbError) {
+      console.error('Database error saving note:', dbError);
+      // Try to delete from Cloudinary if database save fails
+      if (cloudinaryResult && cloudinaryResult.public_id) {
+        try {
+          await cloudinary.uploader.destroy(cloudinaryResult.public_id, { resource_type: 'raw' });
+        } catch (deleteError) {
+          console.error('Error deleting from Cloudinary after DB failure:', deleteError);
+        }
+      }
+      return res.status(500).json({ 
+        success: false, 
+        message: dbError.message || 'Failed to save note. Please try again.' 
+      });
+    }
 
     res.status(201).json({
       success: true,
       message: 'Note uploaded successfully and is pending review',
-      data: note
+      data: note,
+      uploadInfo: {
+        originalSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
+        cloudinarySize: `${(cloudinaryResult.bytes / 1024 / 1024).toFixed(2)} MB`,
+        savings: `${((1 - cloudinaryResult.bytes / req.file.size) * 100).toFixed(2)}%`,
+        url: cloudinaryResult.secure_url
+      }
     });
   } catch (error) {
-    console.error('Error uploading note:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload note' });
+    // Clean up temporary file on error
+    if (tempFilePath) {
+      try {
+        await fs.unlink(tempFilePath);
+      } catch (unlinkError) {
+        console.error('Error deleting temp file in catch block:', unlinkError);
+      }
+    }
+
+    console.error('Unexpected error uploading note:', {
+      error: error.message,
+      stack: error.stack,
+      mentor: req.mentor ? req.mentor._id : 'not authenticated'
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to upload note. Please try again.';
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Invalid data provided. Please check all fields.';
+    } else if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      errorMessage = 'Database error. Please try again in a moment.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      message: errorMessage 
+    });
   }
 };
 
@@ -231,11 +389,25 @@ exports.deleteNote = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid note id' });
     }
 
-    const note = await Note.findByIdAndDelete(id);
+    const note = await Note.findById(id);
 
     if (!note) {
       return res.status(404).json({ success: false, message: 'Note not found' });
     }
+
+    // Delete from Cloudinary if cloudinaryPublicId exists
+    if (note.cloudinaryPublicId) {
+      try {
+        await cloudinary.uploader.destroy(note.cloudinaryPublicId, { resource_type: 'raw' });
+        console.log('File deleted from Cloudinary:', note.cloudinaryPublicId);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary:', cloudinaryError);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete from database
+    await Note.findByIdAndDelete(id);
 
     res.json({ success: true, message: 'Note deleted successfully' });
   } catch (error) {
@@ -244,320 +416,70 @@ exports.deleteNote = async (req, res) => {
   }
 };
 
-
-// Upload note
-exports.uploadNote = async (req, res) => {
+// Proxy PDF from Cloudinary with proper headers
+exports.proxyPdf = async (req, res) => {
   try {
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags } = req.body;
+    const { id } = req.params;
 
-    // Validate required fields
-    if (!title || !description || !standard || !university || !programme || !course) {
-      return res.status(400).json({
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid note id.' });
+    }
+
+    const note = await Note.findById(id);
+
+    if (!note || note.status !== 'published') {
+      return res.status(404).json({ success: false, message: 'Note not found.' });
+    }
+
+    if (!note.fileUrl) {
+      return res.status(404).json({ success: false, message: 'PDF file not found.' });
+    }
+
+    // Validate that fileUrl is a Cloudinary URL for security
+    if (!note.fileUrl.includes('cloudinary.com') && !note.fileUrl.includes('res.cloudinary.com')) {
+      return res.status(400).json({ success: false, message: 'Invalid file URL.' });
+    }
+
+    // Fetch PDF from Cloudinary
+    const response = await fetch(note.fileUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch PDF from Cloudinary: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({
         success: false,
-        message: 'Missing required fields: title, description, standard, university, programme, course'
+        message: `Failed to fetch PDF: ${response.status} ${response.statusText}`
       });
     }
 
-    // Check if file exists
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    // Verify content type
+    const contentType = response.headers.get('content-type');
+    if (contentType && !contentType.includes('application/pdf')) {
+      console.warn(`Unexpected content type from Cloudinary: ${contentType}`);
     }
 
-    // Validate file size (10MB)
-    if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ success: false, message: 'File size must be less than 10MB' });
-    }
+    // Get the PDF buffer
+    const buffer = await response.arrayBuffer();
 
-    // Validate file type
-    if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ success: false, message: 'Only PDF files are allowed' });
-    }
+    // Set proper headers for PDF viewing (critical for react-pdf)
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}.pdf"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Content-Length', buffer.byteLength);
 
-    // Upload file to B2
-    const fileName = `notes/${Date.now()}-${req.file.originalname}`;
-    const result = await b2Client.uploadBuffer(req.file.buffer, fileName);
+    // Send the PDF
+    res.send(Buffer.from(buffer));
 
-    // Construct the public URL for the uploaded file
-    let baseUrl = process.env.B2_BUCKET_URL;
-    if (baseUrl && baseUrl.startsWith('@')) {
-        baseUrl = baseUrl.substring(1);
-    }
-    baseUrl = baseUrl ? baseUrl.replace(/\/+$/, '') : `https://f005.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}`;
-    const fileUrl = `${baseUrl}/${fileName}`;
-
-    // Create note
-    const note = new Note({
-      title: title.trim(),
-      description: description.trim(),
-      standard: standard.trim(),
-      pages: pages ? parseInt(pages) : undefined,
-      isFree: isFree === 'true' || isFree === true,
-      price: price ? parseFloat(price) : undefined,
-      university: university.trim().toLowerCase(),
-      programme: programme.trim().toLowerCase(),
-      course: course.trim().toLowerCase(),
-      tags: tags ? tags.trim() : undefined,
-      fileUrl,
-      fileSize: req.file.size,
-      uploader: req.mentor._id,
-      uploaderName: req.mentor.name,
-      status: 'pending'
-    });
-
-    await note.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Note uploaded successfully and is pending review',
-      data: note
-    });
   } catch (error) {
-    console.error('Error uploading note:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload note' });
-  }
-};
-
-// Admin: Get all notes
-exports.getAllNotes = async (req, res) => {
-  try {
-    const { search, status } = req.query;
-    const filter = {};
-
-    if (search) {
-      const regex = new RegExp(search.trim(), 'i');
-      filter.$or = [
-        { title: regex },
-        { description: regex },
-        { uploaderName: regex },
-        { tags: regex },
-      ];
+    console.error('Error proxying PDF:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Error proxying PDF' });
     }
-
-    if (status && status !== 'all') {
-      filter.status = status;
-    }
-
-    const notes = await Note.find(filter)
-      .populate('uploader', 'email')
-      .sort({ createdAt: -1 });
-
-    res.json({ success: true, data: notes });
-  } catch (error) {
-    console.error('Error fetching all notes:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch notes' });
-  }
-};
-
-// Admin: Update note
-exports.updateNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, rejectionReason, isFeatured } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id' });
-    }
-
-    const updateData = {};
-    if (status) updateData.status = status;
-    if (rejectionReason !== undefined) updateData.rejectionReason = rejectionReason;
-    if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
-
-    // If publishing, set publishedAt
-    if (status === 'published') {
-      updateData.publishedAt = new Date();
-    }
-
-    const note = await Note.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
-    }
-
-    res.json({ success: true, data: note });
-  } catch (error) {
-    console.error('Error updating note:', error);
-    res.status(500).json({ success: false, message: 'Failed to update note' });
-  }
-};
-
-// Admin: Delete note
-exports.deleteNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id' });
-    }
-
-    const note = await Note.findByIdAndDelete(id);
-
-    if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
-    }
-
-    res.json({ success: true, message: 'Note deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting note:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete note' });
-  }
-};
-
-
-// Upload note
-exports.uploadNote = async (req, res) => {
-  try {
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags } = req.body;
-
-    // Validate required fields
-    if (!title || !description || !standard || !university || !programme || !course) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: title, description, standard, university, programme, course'
-      });
-    }
-
-    // Check if file exists
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-
-    // Validate file size (10MB)
-    if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ success: false, message: 'File size must be less than 10MB' });
-    }
-
-    // Validate file type
-    if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ success: false, message: 'Only PDF files are allowed' });
-    }
-
-    // Upload file to B2
-    const fileName = `notes/${Date.now()}-${req.file.originalname}`;
-    const result = await b2Client.uploadBuffer(req.file.buffer, fileName);
-
-    // Construct the public URL for the uploaded file
-    let baseUrl = process.env.B2_BUCKET_URL;
-    if (baseUrl && baseUrl.startsWith('@')) {
-        baseUrl = baseUrl.substring(1);
-    }
-    baseUrl = baseUrl ? baseUrl.replace(/\/+$/, '') : `https://f005.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}`;
-    const fileUrl = `${baseUrl}/${fileName}`;
-
-    // Create note
-    const note = new Note({
-      title: title.trim(),
-      description: description.trim(),
-      standard: standard.trim(),
-      pages: pages ? parseInt(pages) : undefined,
-      isFree: isFree === 'true' || isFree === true,
-      price: price ? parseFloat(price) : undefined,
-      university: university.trim().toLowerCase(),
-      programme: programme.trim().toLowerCase(),
-      course: course.trim().toLowerCase(),
-      tags: tags ? tags.trim() : undefined,
-      fileUrl,
-      fileSize: req.file.size,
-      uploader: req.mentor._id,
-      uploaderName: req.mentor.name,
-      status: 'pending'
-    });
-
-    await note.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Note uploaded successfully and is pending review',
-      data: note
-    });
-  } catch (error) {
-    console.error('Error uploading note:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload note' });
-  }
-};
-
-// Admin: Get all notes
-exports.getAllNotes = async (req, res) => {
-  try {
-    const { search, status } = req.query;
-    const filter = {};
-
-    if (search) {
-      const regex = new RegExp(search.trim(), 'i');
-      filter.$or = [
-        { title: regex },
-        { description: regex },
-        { uploaderName: regex },
-        { tags: regex },
-      ];
-    }
-
-    if (status && status !== 'all') {
-      filter.status = status;
-    }
-
-    const notes = await Note.find(filter)
-      .populate('uploader', 'email')
-      .sort({ createdAt: -1 });
-
-    res.json({ success: true, data: notes });
-  } catch (error) {
-    console.error('Error fetching all notes:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch notes' });
-  }
-};
-
-// Admin: Update note
-exports.updateNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, rejectionReason, isFeatured } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id' });
-    }
-
-    const updateData = {};
-    if (status) updateData.status = status;
-    if (rejectionReason !== undefined) updateData.rejectionReason = rejectionReason;
-    if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
-
-    // If publishing, set publishedAt
-    if (status === 'published') {
-      updateData.publishedAt = new Date();
-    }
-
-    const note = await Note.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
-    }
-
-    res.json({ success: true, data: note });
-  } catch (error) {
-    console.error('Error updating note:', error);
-    res.status(500).json({ success: false, message: 'Failed to update note' });
-  }
-};
-
-// Admin: Delete note
-exports.deleteNote = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id' });
-    }
-
-    const note = await Note.findByIdAndDelete(id);
-
-    if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
-    }
-
-    res.json({ success: true, message: 'Note deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting note:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete note' });
   }
 };

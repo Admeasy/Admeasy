@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, LogOut, Users, BookOpen, Trophy, MoreVertical, CreditCard } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LoadingButton from '../components/LoadingButton';
 import SEO from '../components/SEO';
+import PostCard from '../components/PostCard';
+import FollowersFollowingModal from '../components/FollowersFollowingModal';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 export default function MentorProfile() {
@@ -18,9 +20,19 @@ export default function MentorProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isMountedRef = useRef(true);
+  const [copied, setCopied] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [followersCount, setFollowersCount] = useState(null);
+  const [followingCount, setFollowingCount] = useState(null);
+  const [followersCountLoading, setFollowersCountLoading] = useState(true);
+  const [followingCountLoading, setFollowingCountLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState(null); // 'followers' or 'following'
 
   useEffect(() => {
-    // Wait for context to finish loading before fetching profile
     if (contextLoading) {
       return;
     }
@@ -35,17 +47,13 @@ export default function MentorProfile() {
 
       try {
         let mentorData;
-
-        // Determine if viewing own profile
         const isOwnProfileCheck = !username || (currentMentor && currentMentor.username === username);
 
         if (isOwnProfileCheck && currentMentor) {
-          // Use current mentor from context
           mentorData = currentMentor;
           if (mentorData.imageUrl) {
             setProfileImageUrl(mentorData.imageUrl);
           } else if (mentorData.image) {
-            // Try to fetch image URL
             try {
               const imageRes = await fetch('/api/mentors/me/pic', { credentials: 'include' });
               if (imageRes.ok) {
@@ -63,24 +71,20 @@ export default function MentorProfile() {
               setProfileImageUrl(fallbackProfilePic);
             }
           } else {
-            // No image field, use fallback
             setProfileImageUrl(fallbackProfilePic);
           }
         } else if (username) {
-          // Fetch mentor by username
           const res = await fetch(`/api/mentors/${username}`);
           if (!res.ok) {
             throw new Error('Mentor not found');
           }
           mentorData = await res.json();
 
-          // Fetch profile image if available
           if (mentorData.image) {
             try {
               const imageRes = await fetch(`/api/mentors/${mentorData._id}/pic`);
               if (imageRes.ok) {
                 const imageUrl = await imageRes.json();
-                console.log(imageUrl);
                 if (imageUrl) {
                   setProfileImageUrl(imageUrl);
                 } else {
@@ -94,20 +98,14 @@ export default function MentorProfile() {
               setProfileImageUrl(fallbackProfilePic);
             }
           } else {
-            // No image field, use fallback
             setProfileImageUrl(fallbackProfilePic);
           }
         } else {
-          // No username and no current mentor - redirect or show error
           throw new Error('No mentor data available');
         }
 
-        // Only update state if component is still mounted
         if (isMountedRef.current) {
-          // Set mentor data first
           setMentor(mentorData);
-          // Use requestAnimationFrame to ensure state update is processed before setting loading to false
-          // This ensures the component re-renders with mentor data before showing the content
           requestAnimationFrame(() => {
             if (isMountedRef.current) {
               setLoading(false);
@@ -130,7 +128,77 @@ export default function MentorProfile() {
     };
   }, [username, currentMentor, contextLoading]);
 
+  // Fetch posts when mentor is loaded
+  useEffect(() => {
+    if (!mentor || !mentor._id) return;
+
+    const fetchPosts = async () => {
+      setPostsLoading(true);
+      try {
+        const response = await fetch(`/api/posts/mentor/${mentor._id}?page=1&limit=10`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setPosts(data.posts);
+        }
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [mentor]);
+
+  // Fetch followers and following counts
+  useEffect(() => {
+    if (!mentor || !mentor._id) return;
+
+    const fetchCounts = async () => {
+      setFollowersCountLoading(true);
+      setFollowingCountLoading(true);
+      try {
+        const followersRes = await fetch(`/api/users/${mentor._id}/followers`, {
+          credentials: 'include',
+        });
+        const followingRes = await fetch(`/api/users/${mentor._id}/following`, {
+          credentials: 'include',
+        });
+
+        if (followersRes.ok) {
+          const followersData = await followersRes.json();
+          if (followersData.success) {
+            setFollowersCount(followersData.count || 0);
+          }
+        }
+        setFollowersCountLoading(false);
+
+        if (followingRes.ok) {
+          const followingData = await followingRes.json();
+          if (followingData.success) {
+            setFollowingCount(followingData.count || 0);
+          }
+        }
+        setFollowingCountLoading(false);
+      } catch (err) {
+        console.error('Error fetching counts:', err);
+        setFollowersCountLoading(false);
+        setFollowingCountLoading(false);
+      }
+    };
+
+    fetchCounts();
+  }, [mentor]);
+
   const handleLogout = async () => {
+    setShowMenu(false);
     const res = await fetch('/api/mentors/logout', {
       method: 'POST',
       credentials: 'include'
@@ -139,18 +207,54 @@ export default function MentorProfile() {
 
     if (!res.ok || !response.success) {
       toast.error('Failed to Log out!');
+    } else {
+      toast.success('Logged out successfully');
     }
 
     navigate('/');
     window.location.reload();
   }
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
+  const handleShareProfile = async () => {
+    const mentorUrl = `${window.location.origin}/mentors/${mentor.username || mentor._id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Share ${mentor.name}'s profile`, text: mentor.tagline, url: mentorUrl });
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        toast.error('Failed to share profile');
+      }
+    } else {
+      await navigator.clipboard.writeText(mentorUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   if (loading || contextLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600"> <LoadingButton /> Loading profile...</p>
+          <div className="w-16 h-16 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
@@ -173,7 +277,6 @@ export default function MentorProfile() {
     );
   }
 
-  // Extract exams array
   const exams = mentor.competitiveExamsCleared || [];
   const examList = Array.isArray(exams)
     ? exams.map(exam => {
@@ -181,7 +284,6 @@ export default function MentorProfile() {
     }).filter(exam => exam.name)
     : [];
 
-  // Prepare data for SEO
   const courseData = mentor.course && (typeof mentor.course === 'object' && mentor.course !== null
     ? mentor.course
     : (mentor.course ? (() => {
@@ -220,164 +322,327 @@ export default function MentorProfile() {
   const mentorImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';
   const mentorUrl = `https://admeasy.in/mentors/${mentor.username || mentor._id}`;
 
+  const isOwnProfile = currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username);
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <SEO
         title={mentorTitle}
         description={mentorDescription}
         keywords={mentorKeywords}
         image={mentorImage}
         url={mentorUrl} />
-      {/* Main Profile Container */}
-      <div className="max-w-4xl mx-auto px-4 pt-8">
-        {/* Profile Header - Instagram Style */}
-        <div className="bg-white rounded-xl shadow-3d p-6 mb-6 relative">
-          {currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username) && (!window.location.href.toString().includes('/mentors')) && (
-            <button
-              className="group flex items-center justify-start max-[400px]:w-[25px] max-[400px]:h-[25px] w-[45px] h-[45px] border-none rounded-full cursor-pointer absolute max-[400px]:top-1.75 max-[400px]:right-2.5 top-5 right-5 overflow-hidden shadow-[2px_2px_10px_rgba(0,0,0,0.199)] bg-red-500 transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] hover:w-[125px] hover:rounded-[40px]"
-              onClick={handleLogout}>
-              {/* Sign (Icon) */}
-              <div
-                className="w-full flex items-center justify-center transition-all duration-300 group-hover:w-[30%] group-hover:pl-5"
-              >
-                <svg viewBox="0 0 512 512" className="max-[400px]:w-[14px] w-[17px]">
-                  <path
-                    fill="white"
-                    d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"
-                  ></path>
-                </svg>
+
+      {/* Main Container with max width */}
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8 flex flex-col gap-8">
+        {/* Profile Card - Instagram Style */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden relative">
+          {/* Cover Background */}
+          <div className="h-24 sm:h-32 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 border-b border-slate-200"></div>
+
+          {/* Mentor Account Tag - Top Right */}
+          <div className="absolute top-4 right-4 z-10">
+            <span className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold rounded-full shadow-lg">
+              Mentor Account
+            </span>
+          </div>
+
+          {/* Profile Content */}
+          <div className="px-4 sm:px-6 pb-6">
+            {/* Profile Image - Overlapping cover */}
+            <div className="flex justify-between items-start -mt-12 sm:-mt-16 mb-4">
+              <div className="relative">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
+                  <img
+                    src={profileImageUrl || fallbackProfilePic}
+                    alt={mentor.name || mentor.username || 'Profile'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = fallbackProfilePic;
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* Text */}
-              <div
-                className="
-            absolute right-0 w-0 opacity-0 text-white 
-            text-[1.2em] font-semibold transition-all duration-300 
-            group-hover:opacity-100 group-hover:w-[70%] group-hover:pr-[10px]">
-                Logout
-              </div>
-            </button>
-          )}
-          <div className="flex flex-row items-center max-[400px]:gap-3 gap-6 md:gap-12 mb-4">
-            {/* Profile Picture */}
-            <div className="flex-shrink-0">
-              <div className="relative w-fit">
-                <img
-                  src={profileImageUrl || fallbackProfilePic}
-                  alt={mentor.name || mentor.username || 'Profile'}
-                  className="w-22 h-22 md:w-32 md:h-32 rounded-full object-cover border-4 border-gray-200"
-                  onError={(e) => {
-                    e.target.src = fallbackProfilePic;
-                  }}
-                />
-                <div className="absolute inset-0 rounded-full border-4 border-white shadow-lg"></div>
-              </div>
+              {/* Action Buttons */}
+              {isOwnProfile && (
+                <div className="flex gap-2 mt-2 items-center">
+                  <Link
+                    to="/me/edit"
+                    className="px-4 sm:px-6 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold text-sm text-gray-800 transition-colors flex items-center gap-2"
+                  >
+                    <Edit size={16} />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Link>
+
+                  {/* Share button */}
+                  <button
+                    onClick={handleShareProfile}
+                    className="
+                      inline-flex items-center gap-2
+                      rounded-xl border border-slate-200
+                      bg-white px-4 py-2
+                      text-sm font-medium text-slate-700
+                      shadow-sm
+                      transition-all
+                      hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600
+                      active:scale-95
+                    "
+                  >
+                    {/* Icon */}
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m6.632 2.684C15.114 13.062 15 12.518 15 12s.114-1.062.316-1.342M12 3v9m0 0l-3-3m3 3l3-3m-9 9a2 2 0 002 2h8a2 2 0 002-2"
+                      />
+                    </svg>
+
+                    {copied ? "Shared🎉" : "Share"}
+                  </button>
+
+                  {/* 3-dots menu with logout */}
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                      aria-label="More options"
+                    >
+                      <MoreVertical size={20} />
+                    </button>
+
+                    {showMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-3 text-left flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut size={18} />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Profile Info */}
-            <div className="flex-1 min-w-0">
-              {/* Username and Edit Button */}
-              <div className="flex flex-col gap-1 sm:gap-2">
-                <h1 className="max-[400px]:text-xl text-2xl md:text-3xl font-bold text-thead1">
-                  {mentor.username || 'Mentor'}
-                </h1>
+            <div className="space-y-3">
+              {/* Name and Username */}
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{mentor.name || mentor.username}</h1>
                 {mentor.name && (
-                  <h2 className="max-[400px]:text-base text-lg md:text-xl font-semibold text-tprimary">{mentor.name}</h2>
+                  <p className="text-sm sm:text-base text-gray-500">@{mentor.username}</p>
                 )}
-                {mentor.tagline && (
-                  <p className="max-[400px]:text-xs text-sm font-medium text-gray-700">{mentor.tagline}</p>
+              </div>
+
+              {/* Stats Row - Instagram Style */}
+              <div className="flex gap-6 sm:gap-8 py-3 border-y border-gray-200">
+                <button
+                  onClick={() => {
+                    e.preventDefault();
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{posts.length}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">Posts</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowModal(true);
+                    setModalType('followers');
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center justify-center min-h-[28px]">
+                    {followersCountLoading ? (
+                      <div className="w-5 h-5 border-2 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      followersCount ?? 0
+                    )}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-500">Followers</div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowModal(true);
+                    setModalType('following');
+                  }}
+                  className="text-center cursor-pointer hover:opacity-70 transition-opacity"
+                >
+                  <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center justify-center min-h-[28px]">
+                    {followingCountLoading ? (
+                      <div className="w-5 h-5 border-2 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      followingCount ?? 0
+                    )}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-500">Following</div>
+                </button>
+              </div>
+
+              {/* Bio/Tagline */}
+              {mentor.tagline && (
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{mentor.tagline}</p>
+              )}
+
+              {/* Education Info */}
+              <div className="space-y-2">
+                {courseData && (
+                  <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700">
+                    <GraduationCap size={18} className="text-blue-500 flex-shrink-0" />
+                    {collegeData ? (
+                      <Link to={`/colleges/${collegeData.id}/courses/${courseData.id}`} className="hover:underline">
+                        {courseData.name || courseData.title}
+                      </Link>
+                    ) : (
+                      <span>{courseData.name || courseData.title}</span>
+                    )}
+                  </div>
                 )}
+                {collegeData && (
+                  <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700">
+                    <MapPin size={18} className="text-red-500 flex-shrink-0" />
+                    <Link to={'/colleges/' + collegeData.id} className="hover:underline">
+                      {collegeData.name}
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons for Non-Owners */}
+              {!isOwnProfile && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (!user && !currentMentor) {
+                        toast.info('Please login to chat with mentors', {
+                          position: 'top-center',
+                        });
+                        navigate('/login');
+                        return;
+                      }
+                      navigate(`/chats/${mentor._id}`);
+                    }}
+                    className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold text-sm sm:text-base transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <MessagesSquare size={20} />
+                    Chat Now
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Exams Section - Grid Cards */}
+        {examList.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
+              <div className="p-2 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg">
+                <Trophy className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Competitive Exams</h2>
+                <p className="text-xs sm:text-sm text-gray-500">{examList.length} exam{examList.length !== 1 ? 's' : ''} cleared</p>
               </div>
             </div>
 
-          </div>
-          <div className="space-y-2">
-            {/* Details */}
-            <div className="flex flex-wrap gap-4 mt-4 text-xs sm:text-sm">
-              {mentor.course && (
-                (() => {
-                  const courseData = typeof mentor.course === 'object' && mentor.course !== null
-                    ? mentor.course
-                    : (mentor.course ? JSON.parse(mentor.course) : null);
-                  const collegeData = typeof mentor.college === 'object' && mentor.college !== null
-                    ? mentor.college
-                    : (mentor.college ? JSON.parse(mentor.college) : null);
-                  return courseData && collegeData ? (
-                    <Link to={`/colleges/${collegeData.id}/courses/${courseData.id}`} className="flex items-center gap-1.5 text-gray-600 hover:underline hover:cursor-pointer">
-                      <GraduationCap size={18} />
-                      <span>{courseData.name || courseData.title}</span>
-                    </Link>
-                  ) : courseData ? (
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <GraduationCap size={18} />
-                      <span>{courseData.name || courseData.title}</span>
-                    </div>
-                  ) : null;
-                })()
-              )}
-              {mentor.college && (
-                (() => {
-                  const collegeData = typeof mentor.college === 'object' && mentor.college !== null
-                    ? mentor.college
-                    : (mentor.college ? JSON.parse(mentor.college) : null);
-                  return collegeData ? (
-                    <Link to={'/colleges/' + collegeData.id} className="flex items-center gap-1.5 text-gray-600 hover:cursor-pointer hover:underline">
-                      <MapPin size={18} />
-                      <span>{collegeData.name}</span>
-                    </Link>
-                  ) : null;
-                })()
-              )}
-            </div>
-          </div>
-          {/* Chat Button - Only for users, not mentors */}
-          {!currentMentor && (
-            <button
-              onClick={(e) => {
-                // Navigate to chat with this mentor
-                navigate(`/chats/${mentor._id}`);
-              }}
-              className="w-full inline-flex justify-center items-center gap-2 mt-4 px-4 py-2 bg-thead1 border border-gray-300 rounded-lg text-sm font-semibold text-primary hover:bg-thead2 transition-colors"
-            >
-              <MessagesSquare size={18} />
-              Start Chat
-            </button>
-          )}
-          {/* Edit Profile Button */}
-          {currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username) && (
-            <Link
-              to="/me/edit"
-              className="w-full inline-flex justify-center items-center gap-2 mt-4 px-4 py-2 bg-thead1 border border-gray-300 rounded-lg text-sm font-semibold text-primary hover:bg-thead2 transition-colors"
-            >
-              <Edit size={16} />
-              Edit Profile
-            </Link>
-          )}
-        </div>
-
-        {/* Exams Section - Instagram Grid Style */}
-        {examList.length > 0 && (
-          <div className="bg-white rounded-lg shadow-3d p-6 mb-6">
-            <div className="flex items-center justify-center gap-2 mb-4 pb-3 border-b border-gray-200">
-              <Award className="text-blue-500" size={24} />
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Competitive Exams Cleared</h2>
-            </div>
-            <div className="grid max-[400px]:grid-cols-1 grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {examList.map((exam, index) => (
                 <div
                   key={index}
-                  className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100 hover:border-blue-300 transition-colors cursor-default"
+                  className="group relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-xl p-4 sm:p-5 border-2 border-transparent hover:border-purple-300 transition-all duration-300 cursor-default hover:shadow-lg"
                 >
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <span className="text-base font-bold text-thead2 text-center mb-1">{exam.name}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cleared</span>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+                        {exam.name}
+                      </h3>
+                    </div>
+                    <Award className="text-yellow-500 opacity-60 group-hover:opacity-100 transition-opacity" size={24} />
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Empty State for Exams */}
+        {examList.length === 0 && isOwnProfile && (
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trophy className="text-gray-400" size={32} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No exams added yet</h3>
+            <p className="text-sm text-gray-500 mb-4">Add your cleared competitive exams to showcase your achievements</p>
+            <Link
+              to="/me/edit"
+              className="inline-flex items-center gap-2 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors"
+            >
+              <Edit size={16} />
+              Edit Profile
+            </Link>
+          </div>
+        )}
+
+        {/* Posts Section */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
+            <div className="p-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg">
+              <MessagesSquare className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Posts</h2>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {postsLoading ? 'Loading...' : `${posts.length} post${posts.length !== 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+
+          {postsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard key={post._id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
+              <p className="text-sm text-gray-500">
+                {isOwnProfile ? 'Start sharing your thoughts and experiences!' : 'This mentor hasn\'t posted anything yet.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Followers/Following Modal */}
+      {showModal && (modalType === 'followers' || modalType === 'following') && (
+        <FollowersFollowingModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          targetId={mentor._id}
+          type={modalType}
+          profileType="mentor"
+        />
+      )}
     </div>
   );
 }
-

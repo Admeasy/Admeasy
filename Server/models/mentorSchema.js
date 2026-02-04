@@ -11,7 +11,9 @@ const Schema = new mongoose.Schema({
     },
     username: {
         type: String,
-        trim: true
+        trim: true,
+        unique: true,
+        sparse: true // Allows multiple null values
     },
     email: {
         type: String,
@@ -62,10 +64,16 @@ const Schema = new mongoose.Schema({
             required: true
         }
     }],
-    followers: [{
-        type: String,
-        trim: true
-    }],
+    // Array of follower IDs (can be Users or Mentors)
+    followers: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
+    // Array of followed user/mentor IDs (can be Users or Mentors)
+    following: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
     notesUploaded: {
         type: String,
         trim: true,
@@ -73,7 +81,14 @@ const Schema = new mongoose.Schema({
     refreshToken: {
         type: String,
         default: null
+    },
+    resetPasswordToken: {
+        type: String,
+        trim: true
+    },
+    resetPasswordExpire: {
+        type: Date
     }
 });
 
-module.exports = Admeasy.model('Mentors', Schema);
+module.exports = Admeasy.model('Mentor', Schema);

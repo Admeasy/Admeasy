@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useUser } from './UserContext';
 import { useMentor } from './MentorContext';
+import config from '../config';
+
 
 const SocketContext = createContext();
 
@@ -15,97 +17,153 @@ export const useSocket = () => {
 
 export const SocketProvider = ({ children }) => {
   const { user } = useUser();
-  const { mentor } = useMentor();
+  const { mentor, isLoading: mentorLoading } = useMentor();
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [onlineMentors, setOnlineMentors] = useState(new Set());
+  const reconnectTimeoutRef = useRef(null);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
-    // Initialize socket connection
-    const initSocket = () => {
-      const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-        withCredentials: true,
-        transports: ['websocket', 'polling']
-      });
-
-      socketRef.current = socket;
-
-      // Connection events
-      socket.on('connect', () => {
-        console.log('Connected to server');
-        setIsConnected(true);
-
-        // Join appropriate room based on user type
-        if (user && user._id) {
-          socket.emit('join_user', user._id);
-        } else if (mentor && mentor._id) {
-          socket.emit('join_mentor', mentor._id);
-        }
-      });
-
-      socket.on('disconnect', () => {
-        console.log('Disconnected from server');
-        setIsConnected(false);
-        setOnlineUsers(new Set());
-        setOnlineMentors(new Set());
-      });
-
-      // Presence tracking events
-      socket.on('user_online', (data) => {
-        setOnlineUsers(prev => new Set([...prev, data.userId]));
-      });
-
-      socket.on('user_offline', (data) => {
-        setOnlineUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(data.userId);
-          return newSet;
-        });
-      });
-
-      socket.on('mentor_online', (data) => {
-        setOnlineMentors(prev => new Set([...prev, data.mentorId]));
-      });
-
-      socket.on('mentor_offline', (data) => {
-        setOnlineMentors(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(data.mentorId);
-          return newSet;
-        });
-      });
-
-      return socket;
-    };
-
-    const socket = initSocket();
-
-    // Cleanup function
-    return () => {
-      if (socket) {
-        socket.disconnect();
-      }
-    };
-  }, []); // Only run once on mount
-
-  // Handle user/mentor changes
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !isConnected) return;
-
-    // Join appropriate room when user/mentor changes
-    if (user && user._id) {
-      socket.emit('join_user', user._id);
-    } else if (mentor && mentor._id) {
-      socket.emit('join_mentor', mentor._id);
+    if (mentorLoading) {
+      return;
     }
-  }, [user, mentor, isConnected]);
+
+    // Disconnect any existing socket if auth context is cleared
+    if (!user && !mentor) {
+      if (socketRef.current) {
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setIsConnected(false);
+      setOnlineUsers(new Set());
+      setOnlineMentors(new Set());
+      return;
+    }
+
+    // Recreate socket whenever the authenticated identity changes
+    if (socketRef.current) {
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
+    const socketUrl = config.apiUrl;
+
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: maxReconnectAttempts,
+      timeout: 20000,
+      autoConnect: true
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+    });
+
+    socket.on('authenticated', (data) => {
+      setIsConnected(true);
+    });
+
+    socket.on('auth_error', (data) => {
+      console.error('Authentication error:', data.message);
+      setIsConnected(false);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error.message);
+      setIsConnected(false);
+    });
+
+    socket.on('disconnect', (reason) => {
+      setIsConnected(false);
+      setOnlineUsers(new Set());
+      setOnlineMentors(new Set());
+    });
+
+    // Presence tracking events
+    socket.on('user_online', (data) => {
+      const userId = String(data.userId);
+      setOnlineUsers(prev => new Set([...prev, userId]));
+    });
+
+    socket.on('user_offline', (data) => {
+      const userId = String(data.userId);
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+    });
+
+    socket.on('mentor_online', (data) => {
+      const mentorId = String(data.mentorId);
+      setOnlineMentors(prev => new Set([...prev, mentorId]));
+    });
+
+    socket.on('mentor_offline', (data) => {
+      const mentorId = String(data.mentorId);
+      setOnlineMentors(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(mentorId);
+        return newSet;
+      });
+    });
+
+    // Listen for online_status responses
+    socket.on('online_status', (status) => {
+      if (status.userOnline && status.userId) {
+        const userId = String(status.userId);
+        if (status.userOnline) {
+          setOnlineUsers(prev => new Set([...prev, userId]));
+        } else {
+          setOnlineUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(userId);
+            return newSet;
+          });
+        }
+      }
+      if (status.mentorOnline !== undefined && status.mentorId) {
+        const mentorId = String(status.mentorId);
+        if (status.mentorOnline) {
+          setOnlineMentors(prev => new Set([...prev, mentorId]));
+        } else {
+          setOnlineMentors(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(mentorId);
+            return newSet;
+          });
+        }
+      }
+    });
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      const currentSocket = socketRef.current;
+      if (currentSocket) {
+        currentSocket.removeAllListeners();
+        currentSocket.disconnect();
+      }
+      socketRef.current = null;
+    };
+  }, [user?._id, mentor?._id, mentorLoading]); // Reconnect when identity changes
 
   // Utility functions
   const joinChat = (chatId) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('join_chat', chatId);
+    } else {
+      console.warn('Cannot join chat: socket not connected');
     }
   };
 
@@ -118,6 +176,12 @@ export const SocketProvider = ({ children }) => {
   const sendMessage = (data) => {
     if (socketRef.current && isConnected) {
       socketRef.current.emit('send_message', data);
+    } else {
+      console.error('Cannot send message: socket not connected');
+      // Emit error to trigger UI feedback
+      if (socketRef.current) {
+        socketRef.current.emit('message_error', { message: 'Not connected to server' });
+      }
     }
   };
 
@@ -127,22 +191,23 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
-  // Listen for online status responses
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
+  const joinSpace = (spaceId) => {
+    if (socketRef.current && isConnected) {
+      console.log('Joining space room:', spaceId);
+      socketRef.current.emit('join_space', spaceId);
+    } else {
+      console.warn('Cannot join space: socket not connected', {
+        hasSocket: !!socketRef.current,
+        isConnected
+      });
+    }
+  };
 
-    const handleOnlineStatus = (status) => {
-      // This could be enhanced to provide callbacks or state updates
-      console.log('Online status:', status);
-    };
-
-    socket.on('online_status', handleOnlineStatus);
-
-    return () => {
-      socket.off('online_status', handleOnlineStatus);
-    };
-  }, []);
+  const leaveSpace = (spaceId) => {
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit('leave_space', spaceId);
+    }
+  };
 
   const value = {
     socket: socketRef.current,
@@ -153,8 +218,10 @@ export const SocketProvider = ({ children }) => {
     leaveChat,
     sendMessage,
     getOnlineStatus,
-    isUserOnline: (userId) => onlineUsers.has(userId),
-    isMentorOnline: (mentorId) => onlineMentors.has(mentorId)
+    joinSpace,
+    leaveSpace,
+    isUserOnline: (userId) => userId ? onlineUsers.has(String(userId)) : false,
+    isMentorOnline: (mentorId) => mentorId ? onlineMentors.has(String(mentorId)) : false
   };
 
   return (

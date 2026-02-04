@@ -14,6 +14,8 @@ import Star from '../assets/Others/Star.webp'
 import { FaArrowRight } from 'react-icons/fa6';
 import ButtonIcon from '../components/ButtonIcon';
 import { useUser } from '../context/UserContext'
+import { useMentor } from '../context/MentorContext'
+import { GraduationCap } from 'lucide-react'
 import LogIn from '../Pages/LogIn';
 import { toast } from 'react-toastify';
 function classNames(...classes) {
@@ -41,7 +43,7 @@ const getRatingColor = (rating) => {
   if (!rating) return 'from-gray-300 to-gray-400';
   if (rating >= 4.5) return 'from-green-400 to-green-600';
   if (rating >= 4.0) return 'from-teal-400 to-teal-600';
-  if (rating >= 3.5) return 'from-blue-400 to-blue-600';
+  if (rating >= 3.5) return 'from-brand-light to-brand-dark';
   if (rating >= 3.0) return 'from-yellow-400 to-yellow-600';
   if (rating >= 2.0) return 'from-orange-400 to-orange-600';
   return 'from-red-400 to-red-600';
@@ -59,7 +61,7 @@ const RatingBar = ({ rating, label }) => {
         <h4 className="text-thead1 text-lg font-semibold">{label}</h4>
         <span className={`font-medium ${ratingValue >= 4.5 ? 'text-green-600' :
           ratingValue >= 4.0 ? 'text-teal-600' :
-            ratingValue >= 3.5 ? 'text-blue-600' :
+            ratingValue >= 3.5 ? 'text-[#9f3562]' :
               ratingValue >= 3.0 ? 'text-yellow-600' :
                 ratingValue >= 2.0 ? 'text-orange-600' :
                   'text-red-600'}`}>
@@ -79,25 +81,23 @@ const RatingBar = ({ rating, label }) => {
   );
 };
 
-export default function Tabs({college = {} }) {
+export default function Tabs({ college = {} }) {
   // Tabs component initialization
   const { user } = useUser();
+  const { mentor } = useMentor();
   const [selectedTab, setSelectedTab] = useState(0);
-  const [gallery, setGallery] = useState([]);
-  const [isGalleryLoading, setIsGalleryLoading] = useState(true);
-  const [galleryError, setGalleryError] = useState(null);
-  const [lastGalleryFetch, setLastGalleryFetch] = useState(null);
   const [recruitersWithLogos, setRecruitersWithLogos] = useState([]);
   const [isLoadingLogos, setIsLoadingLogos] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [mentors, setMentors] = useState([]);
+  const [isLoadingMentors, setIsLoadingMentors] = useState(true);
+  const loggedInAccount = user || mentor;
   const studentImages = import.meta.glob('../assets/UGs/*', { eager: true, query: '?url', import: 'default' });
 
   let [categories] = useState({
     Overview: [],
     Courses: [],
     Mentors: [],
-    Gallery: [],
     Rating: [],
     Contact: [],
   });
@@ -120,56 +120,116 @@ export default function Tabs({college = {} }) {
     }
   }
 
-  // Function to fetch gallery images
-  const fetchGalleryImages = async () => {
-    if (!college?._id) return;
-
-    setIsGalleryLoading(true);
-    setGalleryError(null);
-
-    try {
-      const res = await fetch(`/api/colleges/gallery/${college._id}`);
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch gallery: ${res.status} ${res.statusText}`);
+  // Fetch mentors from API for this college
+  useEffect(() => {
+    const fetchMentors = async () => {
+      // Get the college ID from the prop (handle both _id and id)
+      const currentCollegeId = college?._id || college?.id;
+      if (!currentCollegeId) {
+        setIsLoadingMentors(false);
+        setMentors([]);
+        return;
       }
 
-      const urls = await res.json();
+      setIsLoadingMentors(true);
+      try {
+        // Fetch all mentors from API
+        const mentorsResponse = await fetch('/api/mentors/');
+        if (!mentorsResponse.ok) {
+          throw new Error('Failed to fetch mentors');
+        }
 
-      if (!urls || urls.length === 0) {
-        throw new Error('No gallery images found');
+        const mentorsFromDB = await mentorsResponse.json();
+        
+        // Filter mentors by college ID - only show mentors from the same college
+        const collegeMentors = mentorsFromDB.filter((mentor) => {
+          // Parse mentor's college data
+          let mentorCollege = null;
+          if (typeof mentor.college === 'object' && mentor.college !== null) {
+            mentorCollege = mentor.college;
+          } else if (mentor.college) {
+            try {
+              mentorCollege = JSON.parse(mentor.college);
+            } catch {
+              // If parsing fails, try to use it as a string ID
+              mentorCollege = { id: mentor.college, _id: mentor.college };
+            }
+          }
+          
+          if (!mentorCollege) return false;
+          
+          // Get mentor's college ID (handle both id and _id)
+          const mentorCollegeId = mentorCollege.id || mentorCollege._id;
+          
+          // Convert both to strings for reliable comparison
+          const currentIdStr = String(currentCollegeId);
+          const mentorIdStr = String(mentorCollegeId);
+          
+          // Only include mentors whose college ID exactly matches
+          return mentorIdStr === currentIdStr;
+        });
+
+        // Process and fetch images for mentors
+        const processedMentors = await Promise.all(
+          collegeMentors.map(async (mentor) => {
+            const mentorCollege = typeof mentor.college === 'object' && mentor.college !== null
+              ? mentor.college
+              : (mentor.college ? (() => {
+                  try {
+                    return JSON.parse(mentor.college);
+                  } catch {
+                    return null;
+                  }
+                })() : null);
+            
+            const course = typeof mentor.course === 'object' && mentor.course !== null
+              ? mentor.course
+              : (mentor.course ? (() => {
+                  try {
+                    return typeof mentor.course === 'string' && mentor.course.startsWith('{') 
+                      ? JSON.parse(mentor.course) 
+                      : { name: mentor.course };
+                  } catch {
+                    return { name: mentor.course };
+                  }
+                })() : null);
+
+            // Fetch mentor image
+            let imageUrl = fallbackImage;
+            if (mentor._id) {
+              try {
+                const imageRes = await fetch(`/api/mentors/${mentor._id}/pic`);
+                if (imageRes.ok) {
+                  const url = await imageRes.json();
+                  if (url) imageUrl = url;
+                }
+              } catch (err) {
+                console.error('Error fetching mentor image:', err);
+              }
+            }
+
+            return {
+              ...mentor,
+              image: imageUrl,
+              college: mentorCollege?.name || mentor.college || '',
+              collegeId: mentorCollege?.id || mentorCollege?._id || '',
+              course: course?.name || course?.title || mentor.course || '',
+            };
+          })
+        );
+
+        setMentors(processedMentors);
+      } catch (err) {
+        console.error('Error fetching mentors:', err);
+        // Don't fallback to legacy students - only show mentors from API
+        setMentors([]);
+      } finally {
+        setIsLoadingMentors(false);
       }
+    };
 
-      setGallery(urls);
-      setLastGalleryFetch(Date.now());
-    } catch (err) {
-      console.error('Gallery fetch error:', err);
-      setGalleryError(err.message || 'Failed to load gallery images');
-      setGallery([]);
-    } finally {
-      setIsGalleryLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const students = college.students;
-    setMentors(students);
-  }, [])
-
-  // Fetch gallery images only when Gallery tab is selected
-  useEffect(() => {
-    if (selectedTab === 3) { // Gallery tab index is 3
-      fetchGalleryImages();
-    }
-  }, [selectedTab, college?._id]);
-
-  // Refresh gallery URLs every 59 minutes when Gallery tab is active
-  useEffect(() => {
-    if (selectedTab !== 3) return; // Only run when Gallery tab is active
-
-    const refreshInterval = setInterval(fetchGalleryImages, 59 * 60 * 1000);
-    return () => clearInterval(refreshInterval);
-  }, [selectedTab, college?._id]);
+    fetchMentors();
+  }, [college?._id, college?.id])
 
   // Function to get company logo URL
   const getCompanyLogo = async (companyName) => {
@@ -219,14 +279,14 @@ export default function Tabs({college = {} }) {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className='w-full'
         >
-          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-blue-900/20 p-1 overflow-x-auto">
+          <TabList className="w-full sm:w-4/5 mx-auto flex justify-around space-x-[calc(0.25rem/4)] sm:space-x-1 rounded-xl sm:rounded-2xl bg-brand-light/20 p-1 overflow-x-auto">
             {Object.keys(categories).map((category) => (
               <Tab
                 key={category}
                 className={({ selected }) =>
                   classNames(
                     'w-full rounded-xl sm:rounded-2xl px-1 py-1 sm:py-2.5 text-[14px] sm:text-[20px] font-medium',
-                    'ring-white/60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 cursor-pointer',
+                    'ring-white/60 ring-offset-2 ring-offset-[#9f3562] focus:outline-none focus:ring-2 cursor-pointer',
                     selected
                       ? 'bg-white text-link shadow'
                       : 'text-black hover:bg-white/[0.12] hover:text-link'
@@ -487,115 +547,120 @@ export default function Tabs({college = {} }) {
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Talk to UGs/Alumnis
               </h2>
-              <div className="w-full p-3 flex justify-evenly flex-wrap gap-10">
-                {mentors && mentors.length > 0 ? (mentors.map((student) => (
-                  <motion.div
-                    variants={fadeUpVariant}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, amount: 0.25 }}
-                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                    key={student._id}
-                    className="w-60 h-62 mt-4 relative flex flex-col items-center bg-primary rounded-xl shadow-3d p-6 transform hover:scale-105 transition-transform duration-300 ease-in-out border-none">
-                    <div className="flex flex-col space-y-1">
-                      {/* Image with College Logo Overlay */}
-                      <div>
-                        <img
-                          src={getStudentImageUrl(student.image)}
-                          className="aspect-square size-24 m-0 mx-auto rounded-full object-cover object-center shadow-md"
-                          onError={(e) => {
-                            e.target.src = fallbackImage;
-                          }} />
+              
+              {isLoadingMentors ? (
+                <div className="flex justify-center items-center min-h-[200px]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-light"></div>
+                </div>
+              ) : mentors && mentors.length > 0 ? (
+                <div className="w-full p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {mentors.map((mentorCard) => (
+                    <motion.div
+                      variants={fadeUpVariant}
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={{ once: true, amount: 0.25 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      key={mentorCard._id}
+                      className={`group bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col min-h-[320px] ${mentorCard.username ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (mentorCard.username) {
+                          navigate(`/${mentorCard.username}`);
+                        }
+                      }}
+                    >
+                      {/* Card Header with Image */}
+                      <div className="relative p-6 pb-4 flex-1">
+                        {/* Profile Image */}
+                        <div className="relative w-24 h-24 mx-auto mb-4 flex-shrink-0">
+                          <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-white shadow-lg group-hover:ring-[#9f3562]/20 transition-all duration-300">
+                            <img
+                              src={mentorCard.image || fallbackImage}
+                              className="w-full h-full object-cover object-center"
+                              style={{ aspectRatio: '1 / 1' }}
+                              onError={(e) => {
+                                e.target.src = fallbackImage;
+                              }}
+                              alt={mentorCard.name || 'Mentor'}
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Mentor Info */}
+                        <div className="text-center space-y-2">
+                          {/* Username */}
+                          {mentorCard.username && (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-[#9f3562] font-bold text-sm">@{mentorCard.username}</span>
+                            </div>
+                          )}
+
+                          {/* Name */}
+                          <h3 className="font-bold text-gray-900 text-base line-clamp-1">
+                            {mentorCard.name}
+                          </h3>
+
+                          {/* Tagline */}
+                          {mentorCard.tagline && (
+                            <p className="text-xs text-gray-600 line-clamp-2 px-2">
+                              {mentorCard.tagline}
+                            </p>
+                          )}
+
+                          {/* College */}
+                          {mentorCard.college && (
+                            <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg">
+                              <GraduationCap className="w-3.5 h-3.5 text-[#9f3562] flex-shrink-0" />
+                              <p className="text-xs font-medium text-gray-700 line-clamp-1">
+                                {mentorCard.college}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Course Badge */}
+                          {mentorCard.course && (
+                            <div className="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-medium">
+                              {mentorCard.course}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {/* Text Content */}
-                      <div className="mt-2 text-center flex flex-col space-y-1.5">
-                        {/* Student Name */}
-                        <p className="text-sm font-admeasy-bold text-[#1f1f1f]">{student.name}</p>
-                        {/* Highlighted College Name */}
-                        <p className="text-xs font-medium text-[#39365c]">{student.college}</p>
-                        {/* Course Badge */}
-                        <span className="w-fit mx-auto inline-block px-2 py-0.5 text-xs bg-gray-100 text-[#39365c] font-semibold rounded-full shadow-sm">
-                          {student.course}
-                        </span>
-                        <div className='absolute bottom-2.5 left-1/2 -translate-x-1/2 cursor-pointer' onClick={(e) => {
+
+                      {/* Card Footer with CTA */}
+                      <div className="px-6 pb-6 pt-2 flex justify-center items-center">
+                        <div className='cursor-pointer w-full flex justify-center' onClick={(e) => {
                           e.stopPropagation();
-                          if (user) {
-                            if(user.name=== undefined|| user.course=== undefined){
-                              navigate('/me')
-                              toast.info('Please Fill Your Informations')
-                              return;
+                          if (loggedInAccount) {
+                            const mentorIdentifier = mentorCard._id || mentorCard.username;
+                            if (mentorIdentifier) {
+                              if (user) {
+                                navigate(`/chats/${mentorIdentifier}`);
+                              } else if (mentor) {
+                                navigate(`/mentor/chats/${mentorIdentifier}`);
+                              }
+                            } else {
+                              toast.error('Unable to start chat. Mentor information is missing.', {
+                                position: 'top-center',
+                              });
                             }
-                            const message = `Hey Team Admeasy!\n I'm ${user.name}, a ${user.course} student from ${user.institute}. I'd love to connect with ${student.name} from ${college.name} to gain some real insights and perspective!`;
-                            const encodedMessage = encodeURIComponent(message);
-                            window.open(`https://wa.me/919243299145?text=${encodedMessage}`, "_blank");
                           } else {
-                            navigate('/login')
-                            toast.info('Please Login before talking to Mentors')
+                            navigate('/login');
+                            toast.info('Please Login before talking to Mentors', {
+                              position: 'top-center',
+                            });
                           }
                         }}>
                           <ButtonIcon text={'Chat Now'} />
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))) : (<h4 className='text-xl text-center'>No Mentors found...</h4>)}
-              </div>
-            </motion.section>
-          </TabPanel>
-
-          <TabPanel>
-            {/* Gallery */}
-            <motion.section
-              variants={fadeUpVariant}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="mt-10 w-[90%] mx-auto"
-            >
-              <h2 className='font-admeasy-extrabold text-center text-2xl sm:text-3xl text-thead1 mb-8'>Gallery</h2>
-              {isGalleryLoading ? (
-                <div className="flex justify-center items-center min-h-[200px]">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : galleryError ? (
-                <div className="text-center py-8 bg-primary rounded-2xl shadow-3d">
-                  <p className="text-lg text-tsecondary">{galleryError}</p>
+                    </motion.div>
+                  ))}
                 </div>
               ) : (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {gallery.map((url, idx) => (
-                    <div key={idx} className="relative">
-                      <img
-                        src={url}
-                        alt={`${college?.name || 'College'} Gallery Image ${idx + 1}`}
-                        className='w-full h-64 object-contain rounded-xl shadow-3d hover:scale-105 transition-transform duration-300'
-                        onError={(e) => {
-                          console.error(`Image ${idx + 1} failed to load:`, url);
-                          e.target.style.display = 'none';
-                          const placeholder = e.target.nextSibling;
-                          if (placeholder) {
-                            placeholder.style.display = 'flex';
-                          }
-                          // Only try to refresh if it's been a while since the last attempt
-                          if (Date.now() - lastGalleryFetch > 60 * 60 * 1000) { // 1 hour
-                            fetchGalleryImages();
-                          }
-                        }}
-                      />
-                      <div
-                        className="hidden w-full h-64 bg-gray-100 rounded-xl shadow-3d flex-col items-center justify-center text-gray-500 space-y-2"
-                      >
-                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <p className="text-lg font-medium">Image not available</p>
-                        <p className="text-sm text-gray-400">Unable to load image</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-12">
+                  <h4 className='text-xl text-center text-gray-600'>No Mentors found...</h4>
+                  <p className="text-sm text-gray-500 mt-2">Check back later for mentors from this college</p>
                 </div>
               )}
             </motion.section>

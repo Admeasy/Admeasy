@@ -168,7 +168,7 @@ router.get('/', async (req, res) => {
 
     // If no pagination params, return all colleges
     if (!page || !limit) {
-      const colleges = await College.find();
+      const colleges = await College.find().lean();
       return res.json(colleges);
     }
     const search = req.query.search ||''
@@ -183,10 +183,12 @@ router.get('/', async (req, res) => {
       : {};
 
 
-    // Paginated response
+    // Paginated response - OPTIMIZED: Using lean() and parallel queries
     const skip = (page - 1) * limit;
-    const total = await College.countDocuments(searchFilter);
-    const colleges = await College.find(searchFilter).skip(skip).limit(limit);
+    const [total, colleges] = await Promise.all([
+      College.countDocuments(searchFilter),
+      College.find(searchFilter).skip(skip).limit(limit).lean()
+    ]);
 
     res.json({
       total,

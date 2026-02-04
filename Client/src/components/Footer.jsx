@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FaFacebook, FaInstagram, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { IoLogoLinkedin, IoLogoWhatsapp } from "react-icons/io";
-import logo from '../assets/Admeasy/LOGO.webp'
+import logo from '../assets/Admeasy/AdmeasyLatest.png'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -23,13 +23,12 @@ const Footer = () => {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (form.email === ""||form.msg === "") {
+    if (form.email === "" || form.msg === "") {
       toast.error("Buddy! Empty Fields Are not really cool🫤")
       return;
     }
 
     const data = JSON.stringify({ email: form.email, msg: form.msg });
-    console.log(data);
 
     try {
       const res = await fetch('/api/messages', {
@@ -52,8 +51,8 @@ const Footer = () => {
       toast.error('Ahhh! An Error Occurred...😑')
     }
     setForm({
-      email:'',
-      msg:''
+      email: '',
+      msg: ''
     })
   };
 
@@ -249,7 +248,7 @@ const Footer = () => {
 
             {/* Social/proffesional Links In foooter */}
             <ul className="col-span-2 flex justify-start gap-6 lg:col-span-5 lg:justify-end">
-         
+
 
               <li>
                 <a
@@ -293,7 +292,7 @@ const Footer = () => {
         <div className="mt-8 border-t border-gray-100 pt-8 dark:border-gray-800">
           <div className="sm:flex sm:justify-between">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              &copy; 2025. Admeasy Admission Solutions Private Limited. All Rights Reserved.
+              &copy; 2026. Admeasy
             </p>
 
             <ul className="mt-8 flex flex-wrap justify-start gap-4 text-xs sm:mt-0 lg:justify-end">

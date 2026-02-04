@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react'
 
 // Tag component for keywords
 const Tag = ({ text, onRemove }) => (
-    <span className="inline-flex items-center bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full mr-2 mb-2">
+    <span className="inline-flex items-center text-sm px-2 py-1 rounded-full mr-2 mb-2 bg-brand-bg-light text-brand">
         {text}
         <button
             onClick={onRemove}
-            className="ml-1 text-blue-600 hover:text-blue-800 focus:outline-none"
+            className="ml-1 focus:outline-none hover:opacity-80 transition-opacity text-brand"
         >
             <FaTimes size={12} />
         </button>
@@ -656,7 +656,6 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                 } else if (key === 'videoReview') {
                     // Extract video code from various YouTube URL formats
                     const videoCode = extractVideoCode(formData.videoReview || '');
-                    console.log('Extracted video code:', videoCode);
                     submitData.append('vidReview', videoCode);
                 } else if (key === 'affiliation') {
                     // Handle affiliation based on college type
@@ -736,15 +735,15 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-primary rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="w-fit h-fit m-0 p-0 mx-auto text-2xl text-center font-bold text-thead1">
+                    <h2 className="w-fit h-fit m-0 p-0 mx-auto text-2xl text-center font-bold text-gray-900">
                         {editData ? 'Edit College' : 'Add New College'}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-gray-500 hover:text-brand-light transition-colors"
                     >
                         <FaTimes size={24} />
                     </button>
@@ -760,7 +759,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="name"
                                     value={formData.name}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -770,7 +769,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="logo"
                                     value={formData.logo}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -781,7 +780,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         name="affiliation"
                                         value={formData.type === 'Public' ? '' : formData.affiliation}
                                         onChange={handleFormChange}
-                                        className={`w-full p-2 border rounded-lg ${formData.type === 'Public'
+                                        className={`w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300 ${formData.type === 'Public'
                                                 ? 'bg-gray-200 text-gray-500'
                                                 : 'bg-white'
                                             }`}
@@ -801,7 +800,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="desc"
                                     value={formData.desc}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     rows="3"
                                     required
                                 />
@@ -812,7 +811,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="location"
                                     value={formData.location}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -822,7 +821,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="establishedYear"
                                     value={formData.establishedYear}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -831,7 +830,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="type"
                                     value={formData.type}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 >
                                     <option value="Public">Public</option>
@@ -844,7 +843,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="website"
                                     value={formData.website}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -866,7 +865,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             min="0"
                                             max="5"
                                             step="0.1"
-                                            className="w-full p-2 border rounded-lg bg-white disabled:bg-gray-200"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300 disabled:bg-gray-200"
                                             required
                                             disabled={ratingKey === 'overall'}
                                             title={ratingKey === 'overall' ? 'Overall rating is automatically calculated' : ''}
@@ -892,7 +891,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         name="videoReview"
                                         value={formData.videoReview || ''}
                                         onChange={handleFormChange}
-                                        className={`w-full p-2 border rounded-lg bg-white ${formData.videoReview && !isValidYouTubeUrl(formData.videoReview)
+                                        className={`w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300 ${formData.videoReview && !isValidYouTubeUrl(formData.videoReview)
                                             ? 'border-red-500'
                                             : 'border-gray-300'
                                             }`}
@@ -922,7 +921,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="email"
                                     value={formData.contact.email}
                                     onChange={(e) => handleFormChange(e, 'contact')}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -932,7 +931,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="phone"
                                     value={formData.contact.phone}
                                     onChange={(e) => handleFormChange(e, 'contact')}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -950,7 +949,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         value={formData[`${field}Input`] !== undefined ? formData[`${field}Input`] : formData[field].join('; ')}
                                         onChange={handleFormChange}
                                         placeholder={`Enter ${field} (separate them with a semicolon)`}
-                                        className="w-full p-2 border rounded-lg bg-white"
+                                        className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                         required
                                     />
                                 )}
@@ -982,7 +981,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     value={formData.package.average}
                                     onChange={(e) => handleFormChange(e, 'package')}
                                     placeholder="e.g., 8 LPA"
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -993,7 +992,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     value={formData.package.highest}
                                     onChange={(e) => handleFormChange(e, 'package')}
                                     placeholder="e.g., 12 LPA"
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -1003,7 +1002,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     name="placementRate"
                                     value={formData.placementRate}
                                     onChange={handleFormChange}
-                                    className="w-full p-2 border rounded-lg bg-white"
+                                    className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                     required
                                 />
                             )}
@@ -1015,8 +1014,8 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         <div className="space-y-4">
                             <div
                                 className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                                    ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
-                                    hover:border-blue-500 hover:bg-blue-50`}
+                                    ${dragActive ? 'border-brand bg-brand-bg-lighter' : 'border-gray-300'}
+                                    hover:border-gray-300`}
                                 onDragEnter={handleDrag}
                                 onDragLeave={handleDrag}
                                 onDragOver={handleDrag}
@@ -1097,12 +1096,12 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                     value={newKeyword}
                                     onChange={(e) => setNewKeyword(e.target.value)}
                                     placeholder="Add a custom keyword"
-                                    className="flex-1 p-2 border rounded-lg bg-white"
+                                    className="flex-1 px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                 />
                                 <button
                                     type="button"
                                     onClick={handleKeywordAdd}
-                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                    className="px-4 py-2 bg-brand text-white rounded-lg transition-colors hover:opacity-90"
                                 >
                                     Add
                                 </button>
@@ -1119,7 +1118,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                             <button
                                 type="button"
                                 onClick={addCourse}
-                                className="text-blue-500 hover:text-blue-700"
+                                className="text-brand hover:opacity-80 transition-colors"
                             >
                                 <FaPlus className="inline mr-1" /> Add Course
                             </button>
@@ -1142,7 +1141,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             type="text"
                                             value={course.title}
                                             onChange={(e) => handleCourseChange(courseIndex, 'title', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                     )}
@@ -1151,7 +1150,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             type="text"
                                             value={course.introDesc}
                                             onChange={(e) => handleCourseChange(courseIndex, 'introDesc', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                     )}
@@ -1159,7 +1158,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                         <textarea
                                             value={course.desc}
                                             onChange={(e) => handleCourseChange(courseIndex, 'desc', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             rows="3"
                                             required
                                         />
@@ -1169,7 +1168,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             type="number"
                                             value={course.duration}
                                             onChange={(e) => handleCourseChange(courseIndex, 'duration', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                     )}
@@ -1178,7 +1177,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             type="number"
                                             value={course.semesters}
                                             onChange={(e) => handleCourseChange(courseIndex, 'semesters', e.target.value)}
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                     )}
@@ -1190,7 +1189,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             min="0"
                                             max="5"
                                             step="0.1"
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                     )}
@@ -1201,7 +1200,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => addEligibilityCriteria(courseIndex)}
-                                                    className="text-blue-500 hover:text-blue-700"
+                                                    className="text-brand hover:opacity-80 transition-colors"
                                                 >
                                                     <FaPlus className="inline mr-1" /> Add Criteria
                                                 </button>
@@ -1214,7 +1213,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                             value={criteria}
                                                             onChange={(e) => handleEligibilityChange(courseIndex, criteriaIndex, e.target.value)}
                                                             placeholder="Enter eligibility criteria"
-                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                             required
                                                         />
                                                     </div>
@@ -1238,7 +1237,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                 type="number"
                                                 value={course.feeStructure.feePerSemester}
                                                 onChange={(e) => handleCourseChange(courseIndex, 'feeStructure', e.target.value, 'feePerSemester')}
-                                                className="w-full p-2 border rounded-lg bg-white"
+                                                className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                 required
                                             />
                                         )}
@@ -1250,7 +1249,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => addAdditionalFee(courseIndex)}
-                                                    className="text-blue-500 hover:text-blue-700"
+                                                    className="text-brand hover:opacity-80 transition-colors"
                                                 >
                                                     <FaPlus className="inline mr-1" /> Add Fee
                                                 </button>
@@ -1269,7 +1268,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                                 additionalIndex
                                                             )}
                                                             placeholder="Fee Type (e.g., Library Fee)"
-                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                             required
                                                         />
                                                         <input
@@ -1283,7 +1282,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                                 additionalIndex
                                                             )}
                                                             placeholder="Amount"
-                                                            className="w-full p-2 border rounded-lg bg-white"
+                                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                             required
                                                         />
                                                     </div>
@@ -1306,7 +1305,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             <button
                                                 type="button"
                                                 onClick={() => addScholarship(courseIndex)}
-                                                className="text-blue-500 hover:text-blue-700"
+                                                className="text-brand hover:opacity-80 transition-colors"
                                             >
                                                 <FaPlus className="inline mr-1" /> Add Scholarship
                                             </button>
@@ -1330,7 +1329,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                         type="text"
                                                         value={scholarship.name}
                                                         onChange={(e) => handleScholarshipChange(courseIndex, scholarshipIndex, 'name', e.target.value)}
-                                                        className="w-full p-2 border rounded-lg bg-white"
+                                                        className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                         required
                                                     />
                                                 )}
@@ -1338,7 +1337,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                     <textarea
                                                         value={scholarship.eligibilityCriteria}
                                                         onChange={(e) => handleScholarshipChange(courseIndex, scholarshipIndex, 'eligibilityCriteria', e.target.value)}
-                                                        className="w-full p-2 border rounded-lg bg-white"
+                                                        className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                         rows="2"
                                                         required
                                                     />
@@ -1348,7 +1347,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                         type="text"
                                                         value={scholarship.benefit}
                                                         onChange={(e) => handleScholarshipChange(courseIndex, scholarshipIndex, 'benefit', e.target.value)}
-                                                        className="w-full p-2 border rounded-lg bg-white"
+                                                        className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                         required
                                                     />
                                                 )}
@@ -1356,7 +1355,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                                     <textarea
                                                         value={scholarship.howToApply}
                                                         onChange={(e) => handleScholarshipChange(courseIndex, scholarshipIndex, 'howToApply', e.target.value)}
-                                                        className="w-full p-2 border rounded-lg bg-white"
+                                                        className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                                         rows="2"
                                                         required
                                                     />
@@ -1377,7 +1376,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                 <button
                                     type="button"
                                     onClick={addMoreInfo}
-                                    className="text-blue-500 hover:text-blue-700"
+                                    className="text-brand hover:opacity-80 transition-colors"
                                 >
                                     <FaPlus className="inline mr-1" /> Add Info
                                 </button>
@@ -1400,14 +1399,14 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             value={info.title || ''}
                                             onChange={(e) => handleMoreInfoChange(index, 'title', e.target.value)}
                                             placeholder="Title (e.g., Admission Process, Campus Life)"
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                         <textarea
                                             value={info.content || ''}
                                             onChange={(e) => handleMoreInfoChange(index, 'content', e.target.value)}
                                             placeholder="Content"
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             rows="3"
                                             required
                                         />
@@ -1425,7 +1424,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                 <button
                                     type="button"
                                     onClick={addStudent}
-                                    className="text-blue-500 hover:text-blue-700"
+                                    className="text-brand hover:opacity-80 transition-colors"
                                 >
                                     <FaPlus className="inline mr-1" /> Add Student
                                 </button>
@@ -1448,14 +1447,14 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             value={student.image}
                                             onChange={e => handleStudentChange(index, 'image', e.target.value)}
                                             placeholder="Image address"
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                         />
                                         <input
                                             type="text"
                                             value={student.name}
                                             onChange={e => handleStudentChange(index, 'name', e.target.value)}
                                             placeholder="Name"
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                         <input
@@ -1463,7 +1462,7 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                                             value={student.course}
                                             onChange={e => handleStudentChange(index, 'course', e.target.value)}
                                             placeholder="Course"
-                                            className="w-full p-2 border rounded-lg bg-white"
+                                            className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-light/50 focus:border-brand-light/50 transition-all duration-300"
                                             required
                                         />
                                     </div>
@@ -1472,17 +1471,17 @@ const AddCollegeForm = ({ onClose, onSubmit, editData = null }) => {
                         </div>
                     ))}
 
-                    <div className="flex justify-end space-x-3">
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                            className="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className={isSubmitting ? 'px-6 py-2.5 bg-gray-600 text-white rounded-lg transition-colors' : 'px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors'}
+                            className={`px-6 py-2.5 bg-gradient-to-r from-brand-light to-brand-dark hover:shadow-lg hover:shadow-brand-light/30 text-white rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? 'Submitting...' : 'Save'}

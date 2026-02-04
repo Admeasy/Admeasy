@@ -8,7 +8,8 @@ const authenticateMentorJWT = require('../middleware/mentorAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary');
+const { mentorForgotPassword, mentorResetPassword } = require('../controllers/mentorController');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -20,29 +21,52 @@ const verifyAdminFromCookie = (req) => {
     }
 };
 
+// Helper: generate JWT with role
 const generateAccessToken = (mentor) => {
-    return jwt.sign({ id: mentor._id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '12hr' });
+    return jwt.sign(
+        {
+            id: mentor._id,
+            role: 'mentor'  // Add role to distinguish from user
+        },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '7d' }
+    );
 }
 
 const generateRefreshToken = (mentor) => {
-    return jwt.sign({ id: mentor._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '28d' });
+    return jwt.sign(
+        {
+            id: mentor._id,
+            role: 'mentor'  // Add role to distinguish from user
+        },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '28d' }
+    );
 }
 
 const getPublicIdFromUrl = (imageUrl) => {
-    const parts = imageUrl.split('/upload/');
-    if (parts.length < 2) {
-        return null; // Not a valid Cloudinary URL format
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    try {
+        return extractPublicId(imageUrl);
+    } catch (error) {
+        return null;
     }
-    const publicIdWithExtension = parts[1];
-    const extensionName = path.extname(publicIdWithExtension);
-    const publicId = publicIdWithExtension.replace(extensionName, '');
-    return publicId;
 };
 
 // GET ALL MENTORS
 router.get('/', async (req, res) => {
     try {
-        const mentors = await Mentor.find();
+        const admin = verifyAdminFromCookie(req);
+
+        // Base exclusions (always exclude auth tokens/hashes)
+        let selectFields = '-password -refreshToken';
+
+        // If NOT admin, also exclude sensitive private contact info
+        if (!admin) {
+            selectFields += ' -email -phone';
+        }
+
+        const mentors = await Mentor.find().select(selectFields);
         res.status(200).json(mentors);
     } catch (error) {
         console.log(error);
@@ -97,7 +121,7 @@ router.post('/register', async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
@@ -111,6 +135,12 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 })
+
+// FORGOT PASSWORD
+router.post('/forgot-password', mentorForgotPassword);
+
+// RESET PASSWORD
+router.post('/reset-password/:token', mentorResetPassword);
 
 // LOGIN MENTOR
 router.post('/login', async (req, res) => {
@@ -137,11 +167,12 @@ router.post('/login', async (req, res) => {
         const refreshToken = generateRefreshToken(mentor);
         mentor.refreshToken = refreshToken;
         await mentor.save();
+
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
@@ -162,6 +193,7 @@ router.get('/me', authenticateMentorJWT, async (req, res) => {
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
+
         res.json({ success: true, mentor });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -202,7 +234,7 @@ router.get('/:id/pic', async (req, res) => {
 // GET MENTOR BY ID (must be before /:username route to avoid conflicts)
 router.get('/id/:id', async (req, res) => {
     try {
-        const mentor = await Mentor.findById(req.params.id);
+        const mentor = await Mentor.findById(req.params.id).select('-password -refreshToken -email');
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
@@ -216,7 +248,7 @@ router.get('/id/:id', async (req, res) => {
 // GET MENTOR BY USERNAME
 router.get('/:username', async (req, res) => {
     try {
-        const mentor = await Mentor.findOne({ username: req.params.username });
+        const mentor = await Mentor.findOne({ username: req.params.username }).select('-password -refreshToken -email');
         if (!mentor) {
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
@@ -236,7 +268,9 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
 
         const { name, username, phone, tagline, bio } = req.body;
         let competitiveExamsCleared = [];
+        let shouldUpdateExams = false;
         if (req.body.competitiveExamsCleared) {
+            shouldUpdateExams = true;
             try {
                 const parsedExams = typeof req.body.competitiveExamsCleared === 'string' ? JSON.parse(req.body.competitiveExamsCleared) : req.body.competitiveExamsCleared;
                 if (Array.isArray(parsedExams)) {
@@ -246,6 +280,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
                 }
             } catch (parseError) {
                 console.error('Error parsing competitiveExamsCleared:', parseError);
+                shouldUpdateExams = false;
             }
         }
 
@@ -279,6 +314,29 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
             return res.status(404).json({ success: false, message: 'Mentor not found' });
         }
 
+        // Check username uniqueness if username is being changed
+        if (username && username !== existingMentor.username) {
+            const normalizedUsername = username.trim().toLowerCase();
+            // Escape special regex characters to match literally
+            const escapedUsername = normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Check if username is already taken by another mentor
+            const mentorWithUsername = await Mentor.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') },
+                _id: { $ne: req.params.id }
+            });
+
+            // Also check if username is taken by a user
+            const User = require('../models/userSchema');
+            const userWithUsername = await User.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
+            });
+
+            if (mentorWithUsername || userWithUsername) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
+        }
+
         const updateData = { name, username, phone, tagline, bio };
         if (college) {
             updateData.college = college;
@@ -286,7 +344,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         if (course) {
             updateData.course = course;
         }
-        if (competitiveExamsCleared.length > 0) {
+        if (shouldUpdateExams) {
             updateData.competitiveExamsCleared = competitiveExamsCleared;
         }
 
@@ -339,11 +397,12 @@ router.post('/refresh', async (req, res) => {
         try {
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
             const newAccessToken = generateAccessToken(mentor);
+
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
             res.json({ success: true });
         } catch (err) {

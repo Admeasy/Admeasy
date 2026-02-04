@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import { MdAlternateEmail, MdLockOutline } from "react-icons/md";
 import { Eye, EyeOff, X } from "lucide-react";
 import { motion } from "framer-motion";
-import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
+import mentorsLogo from "../assets/Admeasy/AdmeasyLatest.png";
 import { Upload, User, BookOpen, GraduationCap, Sparkles, FileText, Calendar } from "lucide-react";
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import LoadingButton from "../components/LoadingButton";
+import SEO from "../components/SEO";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 // Animation variant
 const fadeUpVariant = {
@@ -18,15 +21,17 @@ const fadeUpVariant = {
 // ✅ Main Wrapper Component
 export default function MentorPortal() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
+  const isStandalone = location.pathname === '/mentors/login';
 
   return (
-    <>
+    <div className={isStandalone ? "h-screen flex items-center justify-center" : ""}>
       {!isLoggedIn ? (
         <MentorsLogin onLoginSuccess={() => setIsLoggedIn(true)} />
       ) : (
         <MentorsProfile />
       )}
-    </>
+    </div>
   );
 }
 
@@ -41,7 +46,7 @@ function MentorsLogin({ onLoginSuccess }) {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (!formData.mentorId.trim() || !formData.password.trim()) {
       setError("Mentor ID and password are required!");
@@ -64,8 +69,13 @@ function MentorsLogin({ onLoginSuccess }) {
       if (res.ok) {
         // Fetch mentor data and store in context
         setUser(null); // ensure user session is cleared
-        await fetchMentor();
-        
+        const loggedInMentor = await fetchMentor();
+        if (loggedInMentor) {
+          enableNotifications(loggedInMentor._id, "mentor", true);
+        }
+
+
+
         // Wait for mentor to be available in localStorage (set by MentorContext)
         // This ensures the ProtectedRoute will see the mentor in context
         let attempts = 0;
@@ -78,9 +88,9 @@ function MentorsLogin({ onLoginSuccess }) {
           await new Promise(resolve => setTimeout(resolve, 50));
           attempts++;
         }
-        
-        // Navigate to profile edit page
-        navigate('/me');
+
+        // Navigate to feed page after successful login
+        navigate('/');
       } else {
         setError(data.message || "Invalid username or password");
       }
@@ -93,27 +103,36 @@ function MentorsLogin({ onLoginSuccess }) {
   };
 
   return (
+    <div className="flex items-center justify-center py-4">
       <motion.section
         variants={fadeUpVariant}
         initial="hidden"
         animate="visible"
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl">
+        className="w-full max-w-md p-2 py-5 bg-white shadow-lg rounded-2xl">
+        <SEO
+          title="Mentors Login | Admeasy"
+          description="Login to your Mentor account to access your dashboard and start mentoring students."
+          keywords="mentors, login, dashboard, mentoring, students, education, IIT, IIM, DU colleges, engineering colleges, medical colleges, college search"
+          url="https://admeasy.in/mentors/login"
+        />
         <div className="flex flex-col items-center">
-          <img
-            src={mentorsLogo}
-            className="w-40 mb-4"
-            draggable="false"
-            alt="Mentors Login"
-          />
-
+          <div className="mb-4 text-center">
+            <img
+              src={mentorsLogo}
+              className="w-40"
+              draggable="false"
+              alt="Mentors Login"
+            />
+            <p className="font-admeasy-bold primary-color text-1xl">Mentors</p>
+          </div>
           {error && (
             <div className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-center text-xs font-semibold mb-2">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="">
+          <div onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)} className="">
             {/* Mentor ID */}
             <div className="relative mb-4">
               <MdAlternateEmail className="absolute bottom-4 left-3 text-gray-400 text-2xl" />
@@ -121,7 +140,7 @@ function MentorsLogin({ onLoginSuccess }) {
                 type="text"
                 name="mentorId"
                 placeholder="Email"
-                className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                 value={formData.mentorId}
                 onChange={(e) =>
                   setFormData({ ...formData, mentorId: e.target.value })
@@ -137,7 +156,7 @@ function MentorsLogin({ onLoginSuccess }) {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
-                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
@@ -153,30 +172,42 @@ function MentorsLogin({ onLoginSuccess }) {
               </button>
             </div>
 
+            {/* Forget Password Link */}
+            <div className="text-right mb-4">
+              <span
+                onClick={() => navigate('/mentors/forgot-password')}
+                className="text-sm text-purple-700 hover:text-purple-900 cursor-pointer font-semibold hover:underline"
+              >
+                Forget password?
+              </span>
+            </div>
+
             {/* Submit */}
-            {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'pruple'}/>
-        :   <button
-          type="submit"
-          className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-purple-900 hover:bg-purple-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-          disabled={isSubmitting}
-        >
-          Log In
-        </button>
-        }
-          </form>
-        <p className="mt-4 text-sm text-gray-600">
-          Not a mentor?{" "}
-          <span
-            onClick={() => navigate('/careers/mentorship/apply')}
-            className="font-semibold text-purple-700 hover:text-purple-900 cursor-pointer 
+            {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'pruple'} />
+              : <button
+                type="button"
+                onClick={handleSubmit}
+                className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-purple-900 hover:bg-purple-700 shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                disabled={isSubmitting}
+              >
+                Log In
+              </button>
+            }
+          </div>
+          <p className="mt-4 text-sm text-gray-600">
+            Not a mentor?{" "}
+            <span
+              onClick={() => navigate('/careers/mentorship/apply')}
+              className="font-semibold text-purple-700 hover:text-purple-900 cursor-pointer 
                underline underline-offset-4 decoration-purple-400 
                hover:decoration-purple-700 transition-all"
-          >
-            Apply for mentorship
-          </span>
-        </p>
+            >
+              Apply for mentorship
+            </span>
+          </p>
         </div>
       </motion.section>
+    </div>
   );
 }
 
@@ -194,9 +225,8 @@ function MentorsProfile() {
   const [exams, setExams] = useState([]);
 
   const handleInputChange = (e) => {
-    const {name, type,value} = e.target
+    const { name, type, value } = e.target
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    console.log(e.target.value)
   };
 
   const handleImageUpload = (e) => {
@@ -220,7 +250,6 @@ function MentorsProfile() {
   };
 
   const handleSubmit = () => {
-    console.log("Profile updated:", { ...formData, exams });
     alert("Profile updated successfully!");
   };
 
@@ -229,7 +258,7 @@ function MentorsProfile() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-brand-light to-brand-dark bg-clip-text text-transparent mb-2">
             Edit Profile
           </h1>
           <p className="text-gray-600 text-sm">Share your story with the student community</p>
@@ -266,7 +295,7 @@ function MentorsProfile() {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">{formData.name || "Your Name"}</h3>
-                <label htmlFor="profile-upload" className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium">
+                <label htmlFor="profile-upload" className="text-sm text-[#9f3562] hover:text-[#b24a78] cursor-pointer font-medium">
                   Change profile photo
                 </label>
               </div>
@@ -318,8 +347,8 @@ function MentorsProfile() {
                   onChange={handleInputChange}
                   rows="4"
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none resize-none"
-                  placeholder="Your Bio"/>
-                <p className={`inline-block text-xs ${formData.bio.length>150?'text-red-700':'text-gray-500'} mt-1.5`}>{formData.bio.length}</p> <span className="text-xs text-gray-500">/150</span>
+                  placeholder="Your Bio" />
+                <p className={`inline-block text-xs ${formData.bio.length > 150 ? 'text-red-700' : 'text-gray-500'} mt-1.5`}>{formData.bio.length}</p> <span className="text-xs text-gray-500">/150</span>
               </div>
 
               {/* Course */}
@@ -402,10 +431,10 @@ function MentorsProfile() {
             </div>
 
             {/* Submit Button */}
-             <div className="mt-8 flex gap-4">
+            <div className="mt-8 flex gap-4">
               <button
                 onClick={handleSubmit}
-                className="cursor-pointer flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-4 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="cursor-pointer flex-1 bg-gradient-to-r from-brand-light to-brand-dark text-white font-semibold py-4 rounded-lg hover:from-brand-dark hover:to-brand-hover transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 Save Profile
               </button>

@@ -142,22 +142,35 @@ const Colleges = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+                <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="relative z-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
+                </div>
             </div>
         );
     }
 
     return (
-        <main className='min-h-screen p-6 sm:p-8'>
+        <main className='min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden p-6 sm:p-8 transition-all duration-300 selection:bg-[#9f3562]/20 selection:text-[#9f3562]'>
+            {/* Enhanced Ambient Background */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+                <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+            </div>
+
             <button 
-                className='admin-back-button' 
+                className='absolute top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 bg-white/95 backdrop-blur-sm hover:bg-white rounded-xl transition-all duration-300 shadow-sm border border-gray-200 hover:shadow-md hover:border-[#9f3562]/30 text-gray-700 hover:text-[#9f3562]' 
                 onClick={() => navigate(-1)}
             >
                 <FaArrowLeft />
+                Back
             </button>
             
-            <h1 className="admin-heading">
+            <h1 className="w-fit h-fit m-0 p-0 mx-auto text-gray-900 font-admeasy-bold text-3xl sm:text-5xl text-center mb-8 relative z-10">
                 Manage Colleges
             </h1>
 
@@ -167,10 +180,10 @@ const Colleges = () => {
                 showError(error)
             )}
 
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto relative z-10">
                 <button
                     onClick={handleAddNew}
-                    className="mb-4 px-3 sm:px-6 py-1.25 sm:py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+                    className="mb-6 px-4 py-2.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white rounded-xl transition-all duration-300 flex items-center hover:scale-105 active:scale-95"
                 >
                     <FaPlus className="mr-2" />
                     Add New College
@@ -185,7 +198,7 @@ const Colleges = () => {
                         placeholder="Search colleges..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-3 text-tprimary placeholder:text-tsecondary border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="block w-full pl-10 pr-3 py-3 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 shadow-sm"
                     />
                 </div>
 
@@ -193,13 +206,13 @@ const Colleges = () => {
                     {filteredColleges.map((college) => (
                         <li 
                             key={college._id} 
-                            className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 p-3 sm:p-6 bg-white rounded-xl shadow-lg hover:shadow-md"
+                            className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 p-3 sm:p-6 bg-white/95 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#9f3562]/30"
                         >
-                            <span className="text-xl font-medium">{college.name}</span>
+                            <span className="text-xl font-medium text-gray-900">{college.name}</span>
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => handleEdit(college._id)}
-                                    className="px-3 sm:px-6 py-1.25 sm:py-2.5 flex items-center gap-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                    className="px-3 sm:px-6 py-1.25 sm:py-2.5 flex items-center gap-2 bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:shadow-lg hover:shadow-[#9f3562]/30 text-white rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
                                 >
                                     <FaEdit className="inline" />
                                     Edit
@@ -207,7 +220,7 @@ const Colleges = () => {
                                 <button
                                     onClick={() => handleDelete(college._id)}
                                     disabled={deletingCollegeId === college._id}
-                                    className={`px-3 sm:px-6 py-1.25 sm:py-2.5 flex items-center gap-2 ${deletingCollegeId === college._id ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'} text-white rounded-lg transition-colors`}
+                                    className={`px-3 sm:px-6 py-1.25 sm:py-2.5 flex items-center gap-2 ${deletingCollegeId === college._id ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'} text-white rounded-xl transition-all duration-300 hover:scale-105 active:scale-95`}
                                 >
                                     {deletingCollegeId === college._id ? (
                                         <>

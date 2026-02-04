@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Enrollment = require('../models/Enrollments')
+const Enrollment = require('../models/enrollmentSchema')
 const { verifyAdminToken } = require('../middleware/adminAuth');
 
 // ✅ Get all enrollments (admin only)

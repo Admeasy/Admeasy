@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { X, Upload, RotateCw, Check } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { useDropzone } from 'react-dropzone';
@@ -92,6 +92,53 @@ export default function MentorsProfile() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null, message: '' });
+
+  // Real-time username availability check
+  useEffect(() => {
+    const checkUsernameAvailability = async () => {
+      const username = formData.username?.trim();
+
+      // Reset status if username is empty or same as current
+      if (!username || username === mentorData?.username) {
+        setUsernameStatus({ checking: false, available: null, message: '' });
+        return;
+      }
+
+      // Validate username format (alphanumeric, underscore, hyphen, period, 3-30 chars)
+      if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(username)) {
+        setUsernameStatus({
+          checking: false,
+          available: false,
+          message: 'Username must be 3-30 characters and contain only letters, numbers, underscores, hyphens, or periods'
+        });
+        return;
+      }
+
+      setUsernameStatus({ checking: true, available: null, message: 'Checking availability...' });
+
+      try {
+        const res = await fetch(`/api/check-username/${encodeURIComponent(username)}`);
+        const data = await res.json();
+
+        if (data.success) {
+          setUsernameStatus({
+            checking: false,
+            available: data.available,
+            message: data.available ? 'Username is available ✓' : 'Username is already taken'
+          });
+        } else {
+          setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+        setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsernameAvailability, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.username, mentorData?.username]);
 
   useEffect(() => {
     async function fetchColleges() {
@@ -101,7 +148,7 @@ export default function MentorsProfile() {
     }
     fetchColleges();
   }, [])
-  
+
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -141,7 +188,7 @@ export default function MentorsProfile() {
       setUploadProgress(30);
 
       const croppedBlob = await getCroppedImg(tempImageSrc, croppedAreaPixels, rotation);
-      
+
       setUploadProgress(60);
 
       // Check if cropped image is still under 300KB
@@ -233,7 +280,7 @@ export default function MentorsProfile() {
     }
 
     if (name === 'course') {
-      const matchedCourse = selectedCollege?.courses?.find(course => 
+      const matchedCourse = selectedCollege?.courses?.find(course =>
         course.title === value || course.name === value
       );
       setSelectedCourse(matchedCourse || null);
@@ -270,6 +317,23 @@ export default function MentorsProfile() {
   // Form Handler
   const handleSubmit = async () => {
     if (isSubmitting) return;
+
+    // Validate username if it's changed
+    if (formData.username && formData.username !== mentorData?.username) {
+      if (usernameStatus.checking) {
+        toast.error('Please wait while we check username availability');
+        return;
+      }
+      if (usernameStatus.available === false) {
+        toast.error('Please choose a different username');
+        return;
+      }
+      if (usernameStatus.available === null && formData.username.trim() !== '') {
+        toast.error('Please wait for username validation to complete');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -280,9 +344,9 @@ export default function MentorsProfile() {
 
       const collegePayload = formData.college?.name
         ? {
-            name: formData.college.name,
-            id: formData.college.id || selectedCollege?._id?.toString() || selectedCollege?.id || ''
-          }
+          name: formData.college.name,
+          id: formData.college.id || selectedCollege?._id?.toString() || selectedCollege?.id || ''
+        }
         : null;
 
       if (collegePayload) {
@@ -293,9 +357,9 @@ export default function MentorsProfile() {
 
       const coursePayload = formData.course?.name
         ? {
-            name: formData.course.name,
-            id: formData.course.id || selectedCourse?._id?.toString() || selectedCourse?.id || ''
-          }
+          name: formData.course.name,
+          id: formData.course.id || selectedCourse?._id?.toString() || selectedCourse?.id || ''
+        }
         : null;
 
       if (coursePayload) {
@@ -306,17 +370,15 @@ export default function MentorsProfile() {
       payload.append('bio', formData.aboutYou);
       payload.append('tagline', formData.oneLiner);
 
-      if (exams.length) {
-        // Filter out exams with empty names and format as objects
-        const validExams = exams
-          .filter(exam => exam.name && exam.name.trim())
-          .map(exam => ({
-            name: exam.name.trim()
-          }));
-        if (validExams.length > 0) {
-          payload.append('competitiveExamsCleared', JSON.stringify(validExams));
-        }
-      }
+      // Always process exams, defaulting to empty array if none
+      const validExams = exams
+        .filter(exam => exam.name && exam.name.trim())
+        .map(exam => ({
+          name: exam.name.trim()
+        }));
+
+      // Always append competitiveExamsCleared, even if empty, so backend knows to update/clear it
+      payload.append('competitiveExamsCleared', JSON.stringify(validExams));
 
       if (profilePic) {
         payload.append('image', profilePic);
@@ -350,11 +412,16 @@ export default function MentorsProfile() {
     }
   };
 
+
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* 3-dots menu with logout */}
+
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-6">
-          
+
           {/* Profile Picture Section */}
           <div className="flex flex-col items-center mb-6">
             <div className="relative">
@@ -370,14 +437,13 @@ export default function MentorsProfile() {
                 </div>
               )}
             </div>
-            
+
             <div {...getRootProps()} className="mt-3 cursor-pointer">
               <input {...getInputProps()} />
-              <div className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                isDragActive 
-                  ? 'bg-blue-100 text-blue-700 border-2 border-blue-400 border-dashed' 
-                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
-              }`}>
+              <div className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isDragActive
+                ? 'bg-blue-100 text-blue-700 border-2 border-blue-400 border-dashed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                }`}>
                 <Upload className="inline-block mr-2 w-4 h-4" />
                 {isDragActive ? 'Drop image here' : 'Upload Photo'}
               </div>
@@ -405,9 +471,25 @@ export default function MentorsProfile() {
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${usernameStatus.available === false
+                ? 'border-red-300 focus:ring-red-500'
+                : usernameStatus.available === true
+                  ? 'border-green-300 focus:ring-green-500'
+                  : 'border-gray-300 focus:ring-blue-500'
+                }`}
               placeholder="Your Username"
             />
+            {formData.username && (
+              <div className="mt-1 text-sm">
+                {usernameStatus.checking ? (
+                  <span className="text-gray-500">Checking...</span>
+                ) : usernameStatus.message ? (
+                  <span className={usernameStatus.available === true ? 'text-green-600' : 'text-red-600'}>
+                    {usernameStatus.message}
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
@@ -444,7 +526,7 @@ export default function MentorsProfile() {
               onChange={handleInputChange}
               options={selectedCollege?.courses || []}
               placeholder={selectedCollege ? "Search and select course" : "Select a college first"}
-              
+
               getOptionLabel={(course) => course.title || course.name || ''}
               getOptionValue={(course) => course._id || course.id || ''}
             />

@@ -6,18 +6,15 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const upload = require('../middleware/multer')
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary')
-
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary')
 
 const getPublicIdFromUrl = (imageUrl) => {
-    const parts = imageUrl.split('/upload/');
-    if (parts.length < 2) {
-        return null; // Not a valid Cloudinary URL format
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    try {
+        return extractPublicId(imageUrl);
+    } catch (error) {
+        return null;
     }
-    const publicIdWithExtension = parts[1];
-    const extensionName = path.extname(publicIdWithExtension);
-    const publicId = publicIdWithExtension.replace(extensionName, '');
-    return publicId;
 };
 // ✅ Get all blogs (public)
 

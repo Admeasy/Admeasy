@@ -4,7 +4,7 @@ import { useState } from "react";
 const ButtonIcon = ({ text, icon, ...props }) => {
   return (
     <button
-      className="cursor-pointer group relative overflow-hidden bg-blue-600 text-white text-[12px] font-medium px-2 py-1 pl-1 rounded-2xl flex items-center gap-1 border-none transition-all duration-200 active:scale-95"
+      className="cursor-pointer group relative overflow-hidden bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white text-[12px] font-medium px-2 py-1 pl-1 rounded-2xl flex items-center gap-1 border-none transition-all duration-200 active:scale-95 hover:shadow-lg hover:shadow-[#9f3562]/30"
       {...props}
     >
       <div className="relative">

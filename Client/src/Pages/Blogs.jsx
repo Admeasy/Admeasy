@@ -57,15 +57,10 @@ const Blogs = () => {
     fetchBlogs();
   }, []);
 
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [navigate])
-
   const fetchBlogs = async () => {
     // Check if cache is valid
     const now = Date.now();
     if (blogsCache && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
-      console.log('Using cached blogs data');
       setBlogs(blogsCache);
       setIsLoading(false);
       return;
@@ -93,38 +88,53 @@ const Blogs = () => {
   };
 
   const handleBlogClick = (blogId) => {
-    navigate(`/blog/${blogId}`);
+    navigate(`/blogs/${blogId}`);
   };
+
+  // Wrapper div for consistent layout spacing
+  const LayoutWrapper = ({ children }) => (
+    <div className="transition-all duration-300 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+      {/* Enhanced Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+      </div>
+      <div className="relative z-10">
+        {children}
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
-      <>
+      <LayoutWrapper>
         <SEO
           title="Blog - Education & College Admissions | Admeasy"
-          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-          keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories."
+          keywords="education blog, college admissions blog, career guidance"
           url="https://admeasy.in/blog"
         />
-        <div className="p-6 flex justify-center flex-wrap gap-6 min-h-screen">
-          {/* Show multiple skeleton cards for better UX */}
+        <div className="p-6 flex justify-center flex-wrap gap-6">
           {[...Array(6)].map((_, index) => (
             <BlogCardSkeleton key={index} />
           ))}
         </div>
-      </>
+      </LayoutWrapper>
     );
   }
 
   if (error) {
     return (
-      <>
+      <LayoutWrapper>
         <SEO
-          title="Blog - Education & College Admissions | Admeasy"
-          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-          keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
+          title="Blog - Error | Admeasy"
+          description="Error loading blogs."
+          keywords="error"
           url="https://admeasy.in/blog"
         />
-        <div className="flex justify-center items-center min-h-screen">
+        <div className="flex justify-center items-center min-h-[80vh]">
           <div className="text-center p-6 bg-white rounded-2xl shadow-lg max-w-md">
             <div className="mb-4">
               <svg className="w-16 h-16 mx-auto text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,26 +145,26 @@ const Blogs = () => {
             <p className="text-gray-600 text-sm mb-6">{error}</p>
             <button
               onClick={fetchBlogs}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md hover:shadow-lg"
+              className="px-6 py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all font-medium shadow-md"
             >
               Try Again
             </button>
           </div>
         </div>
-      </>
+      </LayoutWrapper>
     );
   }
 
   if (blogs.length === 0) {
     return (
-      <>
+      <LayoutWrapper>
         <SEO
-          title="Blog - Education & College Admissions | Admeasy"
-          description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-          keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
-          url="https://admeasy.in/blog"
+          title="Admeasy Blogs - Education & College Admissions | Admeasy"
+          description="Read our latest blogs on college admissions, education tips, career guidance."
+          keywords="education blog"
+          url="https://admeasy.in/blogs"
         />
-        <div className="flex justify-center items-center min-h-screen">
+        <div className="flex justify-center items-center min-h-[80vh]">
           <div className="text-center p-6">
             <div className="mb-4">
               <svg className="w-20 h-20 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,24 +175,24 @@ const Blogs = () => {
             <p className="text-gray-400 text-sm">Check back soon for new content!</p>
           </div>
         </div>
-      </>
+      </LayoutWrapper>
     );
   }
 
   return (
-    <>
+    <LayoutWrapper>
       <SEO
-        title="Blogs - Education & College Admissions | Admeasy"
-        description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories. Stay updated with the latest trends in education."
-        keywords="education blog, college admissions blog, career guidance, student tips, education news, college advice"
-        url="https://admeasy.in/blog"
+        title="Admeasy Blogs - Education & College Admissions | Admeasy"
+        description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories."
+        keywords="education blog, college admissions blog, career guidance"
+        url="https://admeasy.in/blogs"
       />
-      <div className="p-6 flex justify-center flex-wrap gap-6 min-h-screen">
+      <div className="p-6 flex justify-center flex-wrap gap-6 relative z-10">
         {blogs.map((blog) => (
           <div
             key={blog._id}
             onClick={() => handleBlogClick(blog._id)}
-            className="flex flex-col md:flex-row items-center max-w-2xl bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer hover:border-indigo-200"
+            className="flex flex-col md:flex-row items-center max-w-2xl bg-white/95 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer hover:border-[#9f3562]/30"
           >
             {/* Thumbnail */}
             <div className="p-1 flex-shrink-0">
@@ -201,7 +211,7 @@ const Blogs = () => {
             {/* Content */}
             <div className="flex flex-col justify-between p-5 flex-1">
               {/* Title */}
-              <h1 className="text-[16px] md:text-xl font-admeasy-bold text-gray-800 hover:text-indigo-600 transition-colors line-clamp-2 md:line-clamp-1">
+              <h1 className="text-[16px] md:text-xl font-admeasy-bold text-gray-800 hover:text-[#9f3562] transition-colors line-clamp-2 md:line-clamp-1">
                 {blog.Title} | Admeasy
               </h1>
 
@@ -223,7 +233,7 @@ const Blogs = () => {
                 {/* Right: Time + Category */}
                 <div className="flex items-center space-x-3">
                   <span>⏱️ {blog.readingTime} min read</span>
-                  <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full font-medium">
+                  <span className="bg-[#9f3562]/10 text-[#9f3562] px-3 py-1 rounded-full font-medium">
                     {blog.category}
                   </span>
                 </div>
@@ -232,7 +242,7 @@ const Blogs = () => {
           </div>
         ))}
       </div>
-    </>
+    </LayoutWrapper>
   );
 };
 

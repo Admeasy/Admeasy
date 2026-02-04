@@ -1,39 +1,28 @@
 const express = require('express');
 const { resetPassword, forgotPassword } = require('../controllers/userController.js')
+const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
+const { generateAccessToken, generateRefreshToken, setTokenCookies } = require('../utils/auth.js');
 const router = express.Router();
-const User = require('../models/userSchema');
+const User = require('../models/userSchema.js');
 const crypto = require('crypto')
 const nodemailer = require('nodemailer')
 const multer = require('multer');
-const BackblazeB2Client = require('../b2Client');
+const BackblazeB2Client = require('../b2Client.js');
 const b2 = new BackblazeB2Client();
 const path = require('path');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary.js');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db.js');
-const { verifyAdminToken } = require('../middleware/adminAuth');
-const passport = require('../middleware/passport');
+const NotificationService = require('../services/notificationService.js');
+const { verifyAdminToken } = require('../middleware/adminAuth.js');
+const passport = require('../middleware/passport.js');
+const { authenticateRequired, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Helper: generate JWT
-function generateAccessToken(user) {
-    return jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_ACCESS_SECRET,
-        { expiresIn: '12hr' }
-    );
-}
-
-function generateRefreshToken(user) {
-    return jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_REFRESH_SECRET,
-        { expiresIn: '28d' }
-    );
-}
 
 // Helper: Get frontend URL for redirects (works for both dev and production)
 function getFrontendUrl() {
@@ -44,7 +33,17 @@ function getFrontendUrl() {
     return process.env.NODE_ENV === 'production' ? 'https://admeasy.in' : 'http://localhost:5173';
 }
 
-// Helper: check if image is a Google URL and handle accordingly
+// Helper: Extract public_id from Cloudinary URL
+function extractCloudinaryPublicId(url) {
+    if (!url || typeof url !== 'string') return null;
+    try {
+        return extractPublicId(url);
+    } catch (error) {
+        return null;
+    }
+}
+
+// Helper: check if image is a Google URL, Cloudinary URL, or Backblaze file and handle accordingly
 async function processUserImage(user) {
     if (!user.image) return user;
 
@@ -53,8 +52,11 @@ async function processUserImage(user) {
         // Use proxy URL to avoid rate limiting
         user.image = `/api/users/proxy-image?url=${encodeURIComponent(user.image)}`;
         return user;
+    } else if (user.image.includes('cloudinary.com')) {
+        // It's a Cloudinary URL, return as-is (already public)
+        return user;
     } else {
-        // It's a Backblaze file, get authorized URL
+        // It's a Backblaze file, get authorized URL (for backward compatibility)
         try {
             const imageName = user.image;
             user.image = await b2.getDownloadAuthorization(imageName);
@@ -74,56 +76,165 @@ router.get('/', verifyAdminToken, async (req, res) => {
 // SIGN UP
 router.post('/signup', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, username } = req.body;
 
         // Validate
-        if (!email || !password) {
+        if (!email || !password || !username) {
             return res
                 .status(400)
-                .json({ success: false, message: 'Email and password are required' });
+                .json({ success: false, message: 'Email, password, and username are required' });
         }
 
-        // Check existing user
-        const existing = await User.findOne({ email });
-        if (existing) {
+        // Check existing user by email
+        const existingEmail = await User.findOne({ email });
+        if (existingEmail) {
             return res
                 .status(409)
                 .json({ success: false, message: 'Email already registered' });
         }
 
-        // Hash password & create user
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword });
+        // Check availability of username
+        const normalizedUsername = username.trim().toLowerCase();
+        const existingUsername = await User.findOne({
+            username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+        });
 
-        // Generate tokens
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-        user.refreshToken = refreshToken;
+        if (existingUsername) {
+            return res
+                .status(409)
+                .json({ success: false, message: 'Username is already taken' });
+        }
+
+        // Also check if username is taken by a mentor
+        const Mentor = require('../models/mentorSchema.js');
+        const existingMentorUsername = await Mentor.findOne({
+            username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+        });
+
+        if (existingMentorUsername) {
+            return res
+                .status(409)
+                .json({ success: false, message: 'Username is already taken' });
+        }
+
+        // Hash password & create user (isVerified defaults to false)
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({
+            email,
+            password: hashedPassword,
+            username: normalizedUsername,
+            isVerified: false // Explicitly set to false
+        });
+
+        // Save user first
         await user.save();
 
-        // Set cookies
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000, // 12 hours
-        });
+        // Send verification email immediately after signup
+        try {
+            const crypto = require('crypto');
+            const nodemailer = require('nodemailer');
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
-        });
+            // Create verification token
+            const token = crypto.randomBytes(32).toString("hex");
+            const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-        // Response
+            user.emailVerifyToken = tokenHash;
+            user.emailVerifyExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+            await user.save({ validateBeforeSave: false });
+
+            // VERIFY URL
+            const getFrontendUrl = () => {
+                return process.env.NODE_ENV === "production"
+                    ? "https://admeasy.in"
+                    : "http://localhost:5173";
+            };
+            const verifyURL = `${getFrontendUrl()}/verify-email/${token}`;
+
+            // SEND EMAIL with retry logic
+            const transporter = nodemailer.createTransport({
+                host: "smtp.zoho.in",
+                port: 465,
+                secure: true,
+                auth: {
+                    user: process.env.SMTP_EMAIL,
+                    pass: process.env.SMTP_PASS,
+                },
+                connectionTimeout: 10000,
+                socketTimeout: 10000,
+            });
+
+            const maxRetries = 3;
+            let emailSent = false;
+            let lastError = null;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    await transporter.sendMail({
+                        from: `"Admeasy" <${process.env.SMTP_EMAIL}>`,
+                        to: user.email,
+                        subject: "Verify Your Admeasy Account",
+                        text: `Please verify your email address by clicking the following link: ${verifyURL}`,
+                        html: `
+                        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background-color: #f4f7f6;">
+                            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e1e8ed;">
+                                <div style="text-align: center; margin-bottom: 30px;">
+                                    <h1 style="color: #2c3e50; font-size: 28px; font-weight: 700; margin: 0;">Welcome to Admeasy!</h1>
+                                </div>
+                                <p style="font-size: 16px; color: #505e6b; line-height: 1.6; margin-bottom: 25px;">
+                                    Thanks for signing up! We're excited to have you join our community. Before you get started, we just need to confirm that this is your email address.
+                                </p>
+                                <div style="text-align: center; margin: 35px 0;">
+                                    <a href="${verifyURL}" style="display: inline-block; padding: 14px 30px; background: linear-gradient(135deg, #4e6bff 0%, #3a52d4 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; box-shadow: 0 4px 15px rgba(78, 107, 255, 0.3); transition: transform 0.2s;">
+                                        Verify Email Address
+                                    </a>
+                                </div>
+                                <p style="font-size: 14px; color: #7f8c8d; line-height: 1.6;">
+                                    This link will expire in 24 hours. If you did not create an account, you can safely ignore this email.
+                                </p>
+                                <hr style="margin: 30px 0; border: none; border-top: 1px solid #ecf0f1;" />
+                                <p style="font-size: 12px; color: #bdc3c7; text-align: center; margin: 0;">
+                                    &copy; ${new Date().getFullYear()} Admeasy. All rights reserved.<br>
+                                    Helping Students Make Better Decisions.
+                                </p>
+                            </div>
+                        </div>
+                        `
+                    });
+                    emailSent = true;
+                    break;
+                } catch (emailErr) {
+                    lastError = emailErr;
+                    console.error(`Verification email send attempt ${attempt}/${maxRetries} failed:`, emailErr.message);
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                    }
+                }
+            }
+
+            if (!emailSent) {
+                // Clean up token if email failed
+                user.emailVerifyToken = undefined;
+                user.emailVerifyExpiry = undefined;
+                await user.save({ validateBeforeSave: false });
+                console.error('Failed to send verification email during signup after all retries:', lastError);
+                // Don't fail signup - user can request resend
+            }
+        } catch (emailErr) {
+            console.error('Error sending verification email during signup:', emailErr);
+            // Continue even if email sending fails - user can request resend later
+        }
+
+        // DO NOT auto-login unverified users
+        // Return success but user must verify email before accessing protected routes
         return res.status(201).json({
             id: user._id,
             success: true,
-            message: 'User registered successfully',
+            message: 'User registered successfully. Please check your email to verify your account.',
+            requiresVerification: true
         });
 
     } catch (err) {
+        console.error('Signup error:', err);
         return res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -145,9 +256,9 @@ router.post('/onboarding', async (req, res) => {
 
         // If user doesn't exist, create new account
         if (!user) {
-            const { email, password } = req.body;
-            if (!email || !password) {
-                return res.status(400).json({ success: false, message: 'Email and password are required for new accounts' });
+            const { email, password, username } = req.body;
+            if (!email || !password || !username) {
+                return res.status(400).json({ success: false, message: 'Email, password, and username are required for new accounts' });
             }
 
             const existing = await User.findOne({ email });
@@ -155,8 +266,27 @@ router.post('/onboarding', async (req, res) => {
                 return res.status(409).json({ success: false, message: 'Email already registered. Please log in first.' });
             }
 
+            // Check availability of username
+            const normalizedUsername = username.trim().toLowerCase();
+            const existingUsername = await User.findOne({
+                username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+            });
+
+            if (existingUsername) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
+
+            const Mentor = require('../models/mentorSchema.js');
+            const existingMentorUsername = await Mentor.findOne({
+                username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+            });
+
+            if (existingMentorUsername) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
+
             const hashedPassword = await bcrypt.hash(password, 10);
-            user = new User({ email, password: hashedPassword });
+            user = new User({ email, password: hashedPassword, username: normalizedUsername });
         }
 
         // Check if user has already completed onboarding
@@ -171,6 +301,7 @@ router.post('/onboarding', async (req, res) => {
             languages,
             city,
             phone,
+            username,
             educationType,
             board,
             universityName,
@@ -191,6 +322,27 @@ router.post('/onboarding', async (req, res) => {
         if (languages && Array.isArray(languages)) user.languages = languages;
         if (city) user.city = city;
         if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
+
+        // Handle username update if provided and not already set
+        if (username && !user.username) {
+            const normalizedUsername = username.trim().toLowerCase();
+            const escapedUsername = normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Check uniqueness
+            const existingUser = await User.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
+            });
+            const Mentor = require('../models/mentorSchema.js');
+            const existingMentor = await Mentor.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
+            });
+
+            if (existingUser || existingMentor) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
+            user.username = normalizedUsername;
+        }
+
         if (educationType) user.educationType = educationType;
         if (board) user.board = board;
         if (universityName) user.universityName = universityName;
@@ -220,7 +372,20 @@ router.post('/onboarding', async (req, res) => {
             }
         }
 
-        // Mark onboarding as completed
+        // Validate onboarding completion before marking as complete
+        const { validateOnboardingCompletion } = require('../utils/onboardingValidation');
+        const validation = validateOnboardingCompletion(user);
+
+        if (!validation.isComplete) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please complete all required fields',
+                missingFields: validation.missingFields,
+                errors: validation.errors
+            });
+        }
+
+        // Mark onboarding as completed only if validation passes
         user.hasCompletedOnboarding = true;
 
         // Generate tokens if user is new
@@ -228,30 +393,24 @@ router.post('/onboarding', async (req, res) => {
             const accessToken = generateAccessToken(user);
             const refreshToken = generateRefreshToken(user);
             user.refreshToken = refreshToken;
-            res.cookie('accessToken', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
-            });
-            res.cookie('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
-            });
+            setTokenCookies(res, accessToken, refreshToken);
         }
 
         await user.save();
 
-        res.status(200).json({ success: true, message: 'Onboarding completed successfully', user: await User.findById(user._id).select('-password -refreshToken') });
+        res.status(200).json({
+            success: true,
+            message: 'Onboarding completed successfully',
+            user: await User.findById(user._id).select('-password -refreshToken'),
+            hasCompletedOnboarding: true
+        });
     } catch (err) {
         console.error('Onboarding error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// CHECK ONBOARDING STATUS - Check if user can access onboarding
+// CHECK ONBOARDING STATUS - Check if user can access onboarding and get completion status
 router.get('/onboarding/status', async (req, res) => {
     try {
         let user = null;
@@ -259,26 +418,49 @@ router.get('/onboarding/status', async (req, res) => {
             const token = req.cookies['accessToken'];
             try {
                 const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-                user = await User.findById(decoded.id).select('hasCompletedOnboarding email');
+                user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Not logged in, can access onboarding
-                return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+                return res.json({
+                    success: true,
+                    canAccess: true,
+                    reason: 'not_logged_in',
+                    requiresOnboarding: false
+                });
             }
         }
 
         if (!user) {
             // Not logged in, can access onboarding
-            return res.json({ success: true, canAccess: true, reason: 'not_logged_in' });
+            return res.json({
+                success: true,
+                canAccess: true,
+                reason: 'not_logged_in',
+                requiresOnboarding: false
+            });
         }
 
-        // If user has completed onboarding, they cannot access it
-        // if (user.hasCompletedOnboarding) {
-        //     return res.json({ success: true, canAccess: false, reason: 'already_completed' });
-        // }
+        // Check onboarding completion status
+        const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+        const onboardingStatus = checkOnboardingStatus(user);
 
-        // User is logged in but hasn't completed onboarding
-        return res.json({ success: true, canAccess: true, reason: 'not_completed' });
+        // User can access onboarding if it's incomplete
+        // User cannot access onboarding if it's already completed
+        const canAccess = onboardingStatus.requiresOnboarding;
+
+        return res.json({
+            success: true,
+            canAccess,
+            requiresOnboarding: onboardingStatus.requiresOnboarding,
+            hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+            isComplete: onboardingStatus.isComplete,
+            missingFields: onboardingStatus.missingFields || [],
+            recommendedFields: onboardingStatus.recommendedFields || [],
+            errors: onboardingStatus.errors || [],
+            reason: canAccess ? 'not_completed' : 'already_completed'
+        });
     } catch (err) {
+        console.error('Onboarding status check error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -302,23 +484,31 @@ router.post('/login', async (req, res) => {
         if (!valid) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
+
+        if (!user.isVerified) {
+            return res.status(403).json({ success: false, message: 'Please verify your email address to log in.', isNotVerified: true });
+        }
+
+        // Check onboarding completion
+        const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+        const onboardingStatus = checkOnboardingStatus(user);
+
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
         user.refreshToken = refreshToken;
         await user.save();
-        res.cookie('accessToken', accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 12 * 60 * 60 * 1000 // 12 hours
+
+        setTokenCookies(res, accessToken, refreshToken);
+        res.json({
+            success: true,
+            message: 'Logged in successfully',
+            requiresOnboarding: onboardingStatus.requiresOnboarding,
+            hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+            onboardingStatus: {
+                isComplete: onboardingStatus.isComplete,
+                missingFields: onboardingStatus.missingFields || []
+            }
         });
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
-        });
-        res.json({ success: true, message: 'Logged in successfully' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -334,13 +524,17 @@ router.get('/auth/google', (req, res, next) => {
     passport.authenticate('google', {
         scope: ['profile', 'email'],
         accessType: 'offline',
-        prompt: 'consent'
+        prompt: 'consent',
+        session: false // Disable sessions, use JWT instead
     })(req, res, next);
 });
 
 // Google OAuth callback
 router.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed` }),
+    passport.authenticate('google', {
+        failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed`,
+        session: false // Disable sessions, use JWT instead
+    }),
     async (req, res) => {
         try {
             // Safety check: ensure user is authenticated
@@ -355,27 +549,30 @@ router.get('/auth/google/callback',
             req.user.refreshToken = refreshToken;
             await req.user.save();
 
+            // For Google OAuth, email is already verified by Google
+            // Mark as verified if not already verified
+            if (!req.user.isVerified) {
+                req.user.isVerified = true;
+                req.user.emailVerifyToken = undefined;
+                req.user.emailVerifyExpiry = undefined;
+                await req.user.save();
+            }
+
             // Set cookies
-            res.cookie('accessToken', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
-            });
-            res.cookie('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
-            });
+            setTokenCookies(res, accessToken, refreshToken);
 
             // Redirect to frontend
             const frontendUrl = getFrontendUrl();
-            // Check if user has completed onboarding
-            if (req.user.hasCompletedOnboarding) {
-                res.redirect(`${frontendUrl}/me/edit?oauth_success=true`);
-            } else {
+
+            // Check onboarding completion status
+            const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+            const onboardingStatus = checkOnboardingStatus(req.user);
+
+            // Always redirect to onboarding if incomplete, regardless of flag
+            if (onboardingStatus.requiresOnboarding) {
                 res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
+            } else {
+                res.redirect(`${frontendUrl}/?oauth_success=true`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
@@ -387,28 +584,40 @@ router.get('/auth/google/callback',
 // LOGOUT
 router.post('/logout', async (req, res) => {
     try {
-        // Passport logout (for Google/session users)
-        req.logout(function (err) {
-            if (err) {
-                return res.status(500).json({ success: false, message: err.message });
+        // Get refresh token from cookie to identify user
+        const refreshToken = req.cookies['refreshToken'];
+
+        // Clear refresh token from database if it exists
+        if (refreshToken) {
+            try {
+                await User.updateOne(
+                    { refreshToken: refreshToken },
+                    { $unset: { refreshToken: 1 } }
+                );
+
+            } catch (dbErr) {
+                // Log error but don't fail logout if DB update fails
+                console.error('Error clearing refresh token from database:', dbErr);
             }
-            req.session?.destroy(() => {
-                // Clear cookies as before
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
-                res.clearCookie('refreshToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
-                res.json({ success: true, message: 'Logged out' });
-            });
+        }
+
+        // Clear cookies
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/'
         });
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/'
+        });
+
+        res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
-        console.log(err);
+        console.error('Logout error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -417,7 +626,10 @@ router.post('/logout', async (req, res) => {
 router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
-        if (!refreshToken) return res.status(401).json({ success: false, message: 'No refresh token' });
+        if (!refreshToken) {
+            // No refresh token - user is not logged in, return success but indicate no refresh happened
+            return res.json({ success: true, refreshed: false, message: 'No refresh token available' });
+        }
 
         // Check if user exists and has this refresh token (not logged out)
         const user = await User.findOne({ refreshToken });
@@ -426,14 +638,16 @@ router.post('/refresh', async (req, res) => {
             res.clearCookie('accessToken', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/'
             });
             res.clearCookie('refreshToken', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/'
             });
-            return res.status(403).json({ success: false, message: 'User has logged out' });
+            return res.json({ success: true, refreshed: false, message: 'User has logged out' });
         }
 
         try {
@@ -442,23 +656,26 @@ router.post('/refresh', async (req, res) => {
             res.cookie('accessToken', newAccessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 12 * 60 * 60 * 1000 // 12 hours
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                path: '/'
             });
-            res.json({ success: true });
+            res.json({ success: true, refreshed: true });
         } catch (err) {
             // Refresh token is invalid or expired, clear cookies
             res.clearCookie('accessToken', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/'
             });
             res.clearCookie('refreshToken', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/'
             });
-            return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+            return res.json({ success: true, refreshed: false, message: 'Invalid or expired refresh token' });
         }
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -514,6 +731,41 @@ router.get('/me', async (req, res) => {
     }
 });
 
+// GET CURRENT USER VERIFICATION STATUS (for email verification modal polling)
+router.get('/me/verification-status', async (req, res) => {
+    try {
+        let user = null;
+
+        // Check for JWT in cookie (primary method for newly signed up users)
+        if (req.cookies['accessToken']) {
+            const token = req.cookies['accessToken'];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id).select('isVerified');
+            } catch (jwtErr) {
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
+        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            // JWT in header fallback
+            const token = req.headers.authorization.split(' ')[1];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                user = await User.findById(decoded.id).select('isVerified');
+            } catch (jwtErr) {
+                return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+            }
+        }
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        res.json({ success: true, isVerified: user.isVerified });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // UPDATE CURRENT USER (supports both session and JWT)
 router.put('/me', upload.single('image'), async (req, res) => {
     try {
@@ -562,6 +814,32 @@ router.put('/me', upload.single('image'), async (req, res) => {
         } = req.body;
 
         if (name) user.name = name;
+
+        // Check username uniqueness if username is being changed
+        if (req.body.username !== undefined && req.body.username !== user.username) {
+            const normalizedUsername = req.body.username.trim().toLowerCase();
+            // Escape special regex characters to match literally
+            const escapedUsername = normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Check if username is already taken by another user
+            const userWithUsername = await User.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') },
+                _id: { $ne: user._id }
+            });
+
+            // Also check if username is taken by a mentor
+            const Mentor = require('../models/mentorSchema.js');
+            const mentorWithUsername = await Mentor.findOne({
+                username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
+            });
+
+            if (userWithUsername || mentorWithUsername) {
+                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            }
+
+            user.username = req.body.username;
+        }
+
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
@@ -596,10 +874,36 @@ router.put('/me', upload.single('image'), async (req, res) => {
         if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
         // Handle image upload if file provided
         if (req.file) {
-            const ext = path.extname(req.file.originalname).toLowerCase();
-            const fileName = `users/${user._id + ext}`;
-            await b2.uploadBuffer(req.file.buffer, fileName);
-            user.image = fileName;
+            try {
+                // Delete old image from Cloudinary if it exists and is a Cloudinary URL
+                if (user.image && user.image.includes('cloudinary.com')) {
+                    const publicId = extractCloudinaryPublicId(user.image);
+                    if (publicId) {
+                        try {
+                            await deleteFromCloudinary(publicId);
+                        } catch (deleteErr) {
+                            console.error('Error deleting old Cloudinary image:', deleteErr);
+                            // Continue with upload even if delete fails
+                        }
+                    }
+                }
+                // Also handle old Backblaze images for backward compatibility
+                else if (user.image && !user.image.includes('googleusercontent.com') && !user.image.includes('cloudinary.com')) {
+                    try {
+                        await b2.deleteFiles(user.image);
+                    } catch (deleteErr) {
+                        console.error('Error deleting old Backblaze image:', deleteErr);
+                        // Continue with upload even if delete fails
+                    }
+                }
+
+                // Upload new image to Cloudinary
+                const cloudUrl = await uploadToCloudinary(req.file.buffer, 'users');
+                user.image = cloudUrl;
+            } catch (uploadError) {
+                console.error('Error uploading image to Cloudinary:', uploadError);
+                return res.status(500).json({ success: false, message: 'Error uploading image' });
+            }
         }
 
         await user.save();
@@ -664,8 +968,11 @@ router.get('/me/pic', async (req, res) => {
         if (user.image.includes('googleusercontent.com')) {
             // Return proxy URL to avoid rate limiting
             return res.json(`/api/users/proxy-image?url=${encodeURIComponent(user.image)}`);
+        } else if (user.image.includes('cloudinary.com')) {
+            // It's a Cloudinary URL, return as-is (already public)
+            return res.json(user.image);
         } else {
-            // It's a Backblaze file, get authorized URL
+            // It's a Backblaze file, get authorized URL (for backward compatibility)
             try {
                 const files = await b2.listFiles(user.image);
                 if (!files || files.length === 0) {
@@ -746,8 +1053,11 @@ router.get('/:userId/image', verifyAdminToken, async (req, res) => {
         if (user.image.includes('googleusercontent.com')) {
             // Return proxy URL to avoid rate limiting
             return res.json(`/api/users/proxy-image?url=${encodeURIComponent(user.image)}`);
+        } else if (user.image.includes('cloudinary.com')) {
+            // It's a Cloudinary URL, return as-is (already public)
+            return res.json(user.image);
         } else {
-            // It's a Backblaze file, get authorized URL
+            // It's a Backblaze file, get authorized URL (for backward compatibility)
             try {
                 const files = await b2.listFiles(user.image);
                 if (!files || files.length === 0) {
@@ -767,50 +1077,72 @@ router.get('/:userId/image', verifyAdminToken, async (req, res) => {
     }
 });
 
-router.delete('/:userId', async (req, res) => {
+router.delete(
+    '/:userId',
+    authenticateRequired,
+    requireSelfOrAdmin,
+    async (req, res) => {
+        try {
+            const user = await User.findById(req.params.userId);
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+
+            // Delete image if present (handle Cloudinary, Backblaze, but not Google images)
+            if (user.image && !user.image.includes('googleusercontent.com')) {
+                try {
+                    if (user.image.includes('cloudinary.com')) {
+                        // Delete from Cloudinary
+                        const publicId = extractCloudinaryPublicId(user.image);
+                        if (publicId) {
+                            await deleteFromCloudinary(publicId);
+                        }
+                    } else {
+                        // Delete from Backblaze (for backward compatibility)
+                        await b2.deleteFiles(user.image);
+                    }
+                } catch (err) {
+                    console.error('Error deleting user image:', err);
+                    // Continue with user deletion even if image deletion fails
+                }
+            }
+            await User.findByIdAndDelete(req.params.userId);
+
+            res.json({ success: true, message: 'User and image deleted successfully (if applicable)' });
+        } catch (err) {
+            res.status(500).json({ success: false, message: err.message });
+        }
+    })
+
+// EMAIL VERIFICATION
+router.post("/send-verification-email", sendEmailVerification);
+router.get("/verify-email/:token", verifyEmail);
+
+// GET VERIFICATION STATUS (for frontend polling)
+router.get("/verification-status", async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId);
+        const token = req.cookies['accessToken'];
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const user = await User.findById(decoded.id || decoded._id).select('isVerified email');
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Delete manually uploaded image if present and not a Google image
-        if (user.image && !user.image.includes('googleusercontent.com')) {
-            try {
-                await b2.deleteFiles(user.image);
-            } catch (err) {
-                return res.status(500).json({ success: false, message: 'Unable to delete User image.' });
-            }
-        }
-        // If this is self-deletion, flush and destroy the session
-        if (req.user && req.user._id && req.user._id.toString() === req.params.userId && req.session && req.logout) {
-            req.logout(function (err) {
-                if (err) {
-                    console.error('Error logging out user:', err);
-                }
-                req.session.destroy((err) => {
-                    if (err) {
-                        console.error('Error destroying session:', err);
-                    }
-                });
-            });
-        }
-
-        await User.findByIdAndDelete(req.params.userId);
-
-        // Remove all sessions for this user from the session store
-        try {
-            const sessionCollection = Users.collection('sessions');
-            await sessionCollection.deleteMany({ "session": { $regex: req.params.userId } });
-        } catch (err) {
-            console.error('Error deleting user sessions from MongoDB:', err);
-        }
-
-        res.json({ success: true, message: 'User and image deleted successfully (if applicable)' });
+        return res.json({
+            success: true,
+            isVerified: user.isVerified || false,
+            email: user.email
+        });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        return res.status(401).json({ success: false, message: 'Invalid token' });
     }
-})
+});
 
 // RESET PASSWORD
 router.post("/forgot-password", forgotPassword);
@@ -821,60 +1153,388 @@ router.get('/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const token = req.cookies['accessToken'];
-        
+
         if (!token) {
             return res.status(401).json({ success: false, message: 'Not authenticated' });
         }
-        
+
         let decoded;
         try {
             decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         } catch (err) {
             return res.status(401).json({ success: false, message: 'Invalid or expired token' });
         }
-        
+
         // Check if this is a mentor by checking if there's a mentor with this ID
-        const Mentor = require('../models/mentorSchema');
-        const mentor = await Mentor.findById(decoded.id);
-        
+        // OPTIMIZED: Using lean() and parallel queries where possible
+        const Mentor = require('../models/mentorSchema.js');
+        const mentor = await Mentor.findById(decoded.id).lean();
+
         if (mentor) {
             // It's a mentor - verify they have a chat with this user
-            const Chat = require('../models/chatSchema');
-            const chat = await Chat.findOne({
+            const UserToMentorChat = require('../models/userToMentorChatSchema.js');
+            const chat = await UserToMentorChat.findOne({
                 userId,
                 mentorId: decoded.id,
                 isActive: true
-            });
-            
+            }).lean();
+
             if (!chat) {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: 'You can only view details of users you have chats with' 
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only view details of users you have chats with'
                 });
             }
         } else {
             // It's a regular user - they can only view their own profile
             if (decoded.id !== userId) {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: 'You can only view your own profile' 
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only view your own profile'
                 });
             }
         }
-        
-        // Find the user
-        const user = await User.findById(userId).select('-password -refreshToken');
+
+        // Find the user - OPTIMIZED: Using lean() for faster queries
+        const user = await User.findById(userId).select('-password -refreshToken').lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
-        
+
         // Process image if needed
-        const processedUser = await processUserImage(user.toObject());
-        
+        const processedUser = await processUserImage(user);
+
         res.json(processedUser);
     } catch (err) {
         console.error('Error fetching user:', err);
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * POST /api/users/:targetId/follow
+ * Follow a user or mentor (authenticated users and mentors can follow anyone)
+ */
+router.post('/:targetId/follow', async (req, res) => {
+    try {
+        const token = req.cookies?.accessToken;
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const targetId = req.params.targetId;
+        const Mentor = require('../models/mentorSchema.js');
+
+        // Get the follower (can be user or mentor)
+        let follower = null;
+        let followerType = null;
+
+        if (decoded.role === 'mentor') {
+            follower = await Mentor.findById(decoded.id || decoded._id);
+            followerType = 'mentor';
+        } else {
+            follower = await User.findById(decoded.id || decoded._id);
+            followerType = 'user';
+        }
+
+        if (!follower) {
+            return res.status(404).json({ success: false, message: 'Follower not found' });
+        }
+
+        // Prevent self-follow
+        if (follower._id.toString() === targetId) {
+            return res.status(400).json({ success: false, message: 'Cannot follow yourself' });
+        }
+
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+        let targetType = 'user';
+
+        if (!target) {
+            target = await Mentor.findById(targetId);
+            targetType = 'mentor';
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'Target user or mentor not found' });
+        }
+
+        // Initialize arrays if they don't exist (for existing records)
+        if (!follower.following) {
+            follower.following = [];
+        }
+        if (!target.followers) {
+            target.followers = [];
+        }
+
+        // Check if already following
+        const isFollowing = follower.following.some(
+            id => id.toString() === targetId
+        );
+
+        if (isFollowing) {
+            // Unfollow
+            follower.following = follower.following.filter(
+                id => id.toString() !== targetId
+            );
+            target.followers = target.followers.filter(
+                id => id.toString() !== follower._id.toString()
+            );
+            await follower.save();
+            await target.save();
+
+            return res.json({
+                success: true,
+                message: 'Unfollowed successfully',
+                isFollowing: false,
+                followersCount: target.followers.length
+            });
+        } else {
+            // Follow
+            follower.following.push(target._id);
+            target.followers.push(follower._id);
+            await follower.save();
+            await target.save();
+
+
+            // Notify target using new notification system
+            (async () => {
+                try {
+                    const NotificationManager = require('../services/notificationManager');
+                    const isFollowBack = target.following && target.following.some(id => id.toString() === follower._id.toString());
+                    const followerName = follower.name || follower.username || 'Someone';
+
+                    // Determine notification type and message
+                    const notificationType = isFollowBack ? 'FOLLOW_BACK' : 'FOLLOW';
+                    const message = isFollowBack
+                        ? `${followerName} followed you back`
+                        : `${followerName} started following you`;
+
+                    // Get follower username for originPath
+                    const followerUsername = follower.username || follower._id.toString();
+                    const originPath = `/${followerUsername}`;
+
+                    // Determine recipient role
+                    const recipientRole = targetType === 'mentor' ? 'mentor' : 'user';
+                    const followerRole = followerType === 'mentor' ? 'mentor' : 'user';
+
+                    await NotificationManager.createAndSend({
+                        recipientId: target._id,
+                        recipientRole,
+                        actorId: follower._id,
+                        type: notificationType,
+                        entityType: 'USER',
+                        entityId: follower._id,
+                        originPath,
+                        message,
+                        actorInfo: { name: followerName, username: followerUsername },
+                    });
+
+                    // If it's a follow-back, also notify the follower
+                    if (isFollowBack) {
+                        const targetName = target.name || target.username || 'Someone';
+                        const targetUsername = target.username || target._id.toString();
+
+                        await NotificationManager.createAndSend({
+                            recipientId: follower._id,
+                            recipientRole: followerRole,
+                            actorId: target._id,
+                            type: 'FOLLOW_BACK',
+                            entityType: 'USER',
+                            entityId: target._id,
+                            originPath: `/${targetUsername}`,
+                            message: `${targetName} followed you back`,
+                            actorInfo: { name: targetName, username: targetUsername },
+                        });
+                    }
+                } catch (notifyError) {
+                    console.error('Error sending follow notification:', notifyError);
+                }
+            })();
+
+            return res.json({
+                success: true,
+                message: 'Followed successfully',
+                isFollowing: true,
+                followersCount: target.followers.length
+            });
+        }
+    } catch (error) {
+        console.error('Error following/unfollowing:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/users/:targetId/follow-status
+ * Check if current user/mentor is following a target user or mentor (optional auth)
+ */
+router.get('/:targetId/follow-status', async (req, res) => {
+    try {
+        const token = req.cookies?.accessToken;
+        let isFollowing = false;
+        const targetId = req.params.targetId;
+
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                const Mentor = require('../models/mentorSchema.js');
+
+                // Get the current user/mentor
+                let currentUser = null;
+                if (decoded.role === 'mentor') {
+                    currentUser = await Mentor.findById(decoded.id || decoded._id);
+                } else {
+                    currentUser = await User.findById(decoded.id || decoded._id);
+                }
+
+                if (currentUser && currentUser.following) {
+                    isFollowing = currentUser.following.some(
+                        id => id.toString() === targetId
+                    );
+                }
+            } catch (err) {
+                // Token invalid, user not logged in
+            }
+        }
+
+        // Find the target (can be user or mentor) to get followers count
+        const Mentor = require('../models/mentorSchema.js');
+        let target = await User.findById(targetId);
+
+        if (!target) {
+            target = await Mentor.findById(targetId);
+        }
+
+        const followersCount = target && target.followers ? target.followers.length : 0;
+
+        res.json({
+            success: true,
+            isFollowing,
+            followersCount
+        });
+    } catch (error) {
+        console.error('Error checking follow status:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/users/:targetId/followers
+ * Get list of followers for a user or mentor
+ */
+router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
+    try {
+        const targetId = req.params.targetId;
+        const Mentor = require('../models/mentorSchema.js');
+
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+
+        if (!target) {
+            target = await Mentor.findById(targetId);
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'User or mentor not found' });
+        }
+
+        const followersIds = target.followers || [];
+
+        if (followersIds.length === 0) {
+            return res.json({
+                success: true,
+                followers: [],
+                count: 0
+            });
+        }
+
+        // Fetch all users and mentors in parallel using $in operator
+        const [users, mentors] = await Promise.all([
+            User.find({ _id: { $in: followersIds } }).select('name username image imageUrl _id').lean(),
+            Mentor.find({ _id: { $in: followersIds } }).select('name username image imageUrl _id').lean()
+        ]);
+
+        // Create maps for quick lookup
+        const userMap = new Map(users.map(u => [u._id.toString(), { ...u, type: 'user' }]));
+        const mentorMap = new Map(mentors.map(m => [m._id.toString(), { ...m, type: 'mentor' }]));
+
+        // Build followers array maintaining the original order
+        const followers = followersIds
+            .map(id => {
+                const idStr = id.toString();
+                return userMap.get(idStr) || mentorMap.get(idStr);
+            })
+            .filter(Boolean); // Remove any undefined entries
+
+        res.json({
+            success: true,
+            followers,
+            count: followers.length
+        });
+    } catch (error) {
+        console.error('Error fetching followers:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/users/:targetId/following
+ * Get list of users/mentors that the target is following
+ */
+router.get('/:targetId/following', authenticateRequired, async (req, res) => {
+    try {
+        const targetId = req.params.targetId;
+        const Mentor = require('../models/mentorSchema.js');
+
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+
+        if (!target) {
+            target = await Mentor.findById(targetId);
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'User or mentor not found' });
+        }
+
+        const followingIds = target.following || [];
+
+        if (followingIds.length === 0) {
+            return res.json({
+                success: true,
+                following: [],
+                count: 0
+            });
+        }
+
+        // Fetch all users and mentors in parallel using $in operator
+        const [users, mentors] = await Promise.all([
+            User.find({ _id: { $in: followingIds } }).select('name username image imageUrl _id').lean(),
+            Mentor.find({ _id: { $in: followingIds } }).select('name username image imageUrl _id').lean()
+        ]);
+
+        // Create maps for quick lookup
+        const userMap = new Map(users.map(u => [u._id.toString(), { ...u, type: 'user' }]));
+        const mentorMap = new Map(mentors.map(m => [m._id.toString(), { ...m, type: 'mentor' }]));
+
+        // Build following array maintaining the original order
+        const following = followingIds
+            .map(id => {
+                const idStr = id.toString();
+                return userMap.get(idStr) || mentorMap.get(idStr);
+            })
+            .filter(Boolean); // Remove any undefined entries
+
+        res.json({
+            success: true,
+            following,
+            count: following.length
+        });
+    } catch (error) {
+        console.error('Error fetching following:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
 

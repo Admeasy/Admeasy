@@ -24,13 +24,19 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: Number,
     },
+    username: {
+        type: String,
+        trim: true,
+        unique: true,
+        sparse: true // Allows multiple null values
+    },
     email: {
         type: String,
         required: true
     },
     password: {
         type: String,
-       required: false, // Optional for Google OAuth users
+        required: false, // Optional for Google OAuth users
         select: false // do not return by default
     },
     googleId: {
@@ -104,13 +110,36 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    resetPasswordToken:{
-        type:String,
-        trim:true
+    resetPasswordToken: {
+        type: String,
+        trim: true
     },
-    resetPasswordExpire:{
-        type:Date
-    }
+    resetPasswordExpire: {
+        type: Date
+    },
+    // Array of reposted mentor post IDs
+    reposts: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'MentorPosts',
+        default: []
+    },
+    // Array of followed user/mentor IDs (can be Users or Mentors)
+    following: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
+    // Array of follower IDs (can be Users or Mentors)
+    followers: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: []
+    },
+    //  Verify email 
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    emailVerifyToken: String,
+    emailVerifyExpiry: Date
 })
 
 module.exports = Users.model('Users', userSchema);

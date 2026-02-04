@@ -7,6 +7,8 @@ import mentorsLogo from "../assets/Admeasy/MentorsLoginLogo.webp";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMentor } from "../context/MentorContext";
 import { useUser } from "../context/UserContext";
+import { enableNotifications } from "../Firebase/enableNotifications";
+
 
 // Animation variants
 const fadeUpVariant = {
@@ -83,15 +85,15 @@ const MentorRegistration = () => {
         }
 
         setError("");
-        
+
         // Second verification using verify2 route
         try {
             const res = await fetch('/api/apply/mentorship/verify2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     email: formData.email.trim(),
-                    id: id 
+                    id: id
                 }),
                 credentials: 'include'
             });
@@ -149,13 +151,17 @@ const MentorRegistration = () => {
 
             if (res.ok) {
                 toast.success("Account created successfully!");
-                
+
                 // Clear any user session to ensure we're in mentor mode
                 setUser(null);
-                
+
                 // Fetch mentor data and store in context
-                await fetchMentor();
-                
+                const registeredMentor = await fetchMentor();
+                if (registeredMentor) {
+                    enableNotifications(registeredMentor._id, "mentor", true);
+                }
+
+
                 // Wait for mentor to be available in localStorage (set by MentorContext)
                 // This ensures the ProtectedRoute will see the mentor in context
                 let attempts = 0;
@@ -168,9 +174,9 @@ const MentorRegistration = () => {
                     await new Promise(resolve => setTimeout(resolve, 50));
                     attempts++;
                 }
-                
-                // Navigate to profile page
-                navigate('/me');
+
+                // Navigate to feed page after successful registration
+                navigate('/');
             } else {
                 setError(data.message || "Registration failed");
             }
@@ -183,13 +189,18 @@ const MentorRegistration = () => {
     };
 
     return (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 min-w-screen min-h-screen flex items-center justify-center">
+        <div className="bg-gradient-to-br from-gray-50 via-white to-pink-50/40 p-4 min-w-screen min-h-screen flex items-center justify-center relative overflow-x-hidden">
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+            </div>
             <motion.section
                 variants={fadeUpVariant}
                 initial="hidden"
                 animate="visible"
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl"
+                className="w-full max-w-md p-2 pb-5 bg-white shadow-lg rounded-2xl relative z-10"
             >
                 <div className="flex flex-col items-center">
                     <img
@@ -230,7 +241,7 @@ const MentorRegistration = () => {
                                                 type="email"
                                                 name="email"
                                                 placeholder="Email"
-                                                className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                                                className="pl-11 pr-4 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                                                 value={formData.email}
                                                 onChange={(e) => {
                                                     setFormData({ ...formData, email: e.target.value });
@@ -246,7 +257,7 @@ const MentorRegistration = () => {
                                             type="button"
                                             onClick={handleNext}
                                             disabled={isSubmitting}
-                                            className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50">
+                                            className="w-full bg-[#9f3562] text-white font-bold py-3 rounded-full shadow-md hover:bg-[#b24a78] transition disabled:opacity-50">
                                             Next
                                         </button>
                                     </motion.div>
@@ -265,7 +276,7 @@ const MentorRegistration = () => {
                                                 type={showPassword ? "text" : "password"}
                                                 name="password"
                                                 placeholder="Password"
-                                                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                                                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                                                 value={formData.password}
                                                 onChange={(e) => {
                                                     setFormData({ ...formData, password: e.target.value });
@@ -290,7 +301,7 @@ const MentorRegistration = () => {
                                                 type={showConfirmPassword ? "text" : "password"}
                                                 name="confirmPassword"
                                                 placeholder="Confirm Password"
-                                                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-indigo-300 outline-none"
+                                                className="pl-11 pr-12 py-4 rounded-full w-full bg-[#e9e9e9] text-gray-700 font-bold shadow-md focus:ring-2 focus:ring-brand-light/30 outline-none"
                                                 value={formData.confirmPassword}
                                                 onChange={(e) => {
                                                     setFormData({
@@ -333,7 +344,7 @@ const MentorRegistration = () => {
                                         <button
                                             type="submit"
                                             disabled={isSubmitting}
-                                            className="w-full bg-indigo-500 text-white font-bold py-3 rounded-full shadow-md hover:bg-indigo-600 transition disabled:opacity-50"
+                                            className="w-full bg-[#9f3562] text-white font-bold py-3 rounded-full shadow-md hover:bg-[#b24a78] transition disabled:opacity-50"
                                         >
                                             {isSubmitting ? "Creating Account..." : "Create Account"}
                                         </button>

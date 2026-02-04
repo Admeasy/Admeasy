@@ -1,31 +1,152 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FaInfoCircle } from "react-icons/fa";
+import { X, Upload, RotateCw, Check, GraduationCap } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext'
 import LoadingButton from '../components/LoadingButton';
+
+// Exams list (same as onboarding)
+const examsList = [
+  "CUET",
+  "JEE",
+  "NEET UG",
+  "CLAT",
+  "UPSC",
+  "IPMAT",
+  "CAT",
+  "CA FOUNDATION",
+  "CA INTERMEDIATE",
+  "CA FINAL",
+  "CFA L1",
+  "CFA L2",
+  "CFA L3",
+  "PAT",
+  "AILET",
+  "SLAT",
+  "NPAT",
+  "SET",
+  "CUET (Christ University)",
+  "St. Xavier Entrance Test",
+  "AIIMS NURSING",
+  "ICAR AIEEA",
+  "NEET PG",
+  "GATE",
+  "SAT (abroad)",
+  "ACT (abroad)",
+  "CEED (PG for Design)",
+  "UCEED (UG for Design)",
+  "CLAT PG",
+  "LSAT - India",
+  "MH CET",
+  "STATE CIVIL SERVICES",
+  "AMU BA LLB ENTRANCE",
+  "CUET - PG",
+  "AILET - PG",
+  "XAT",
+  "NMAT",
+  "SNAP",
+  "MAT",
+  "CMAT",
+  "ATMA",
+  "GMAT",
+  "TISS-NET",
+  "MICAT",
+  "UPSEE",
+  "MAH-MCA MET",
+  "NIMCET",
+  "JAM",
+  "JEST",
+  "GATE (economics in IIT Delhi/IIT Bombay)",
+  "CS (CSEET)",
+  "CS Executive Exam (Module I & II)",
+  "CS Professional Exam (Module I, II & III)",
+  "ACCA",
+  "CMA FOUNDATION",
+  "CMA INTERMEDIATE",
+  "CMA FINAL",
+  "SSC",
+  "FRM (Financial Risk Manager)",
+  "CUET UG (Science)",
+  "CUET UG (Maths)",
+  "CUET UG (Commerce)",
+  "CUET UG (Arts)",
+  "CUET UG (Law)",
+];
+
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+// Crop helper function
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+
+async function getCroppedImg(imageSrc, pixelCrop, rotation = 0) {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const maxSize = Math.max(image.width, image.height);
+  const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
+
+  canvas.width = safeArea;
+  canvas.height = safeArea;
+
+  ctx.translate(safeArea / 2, safeArea / 2);
+  ctx.rotate((rotation * Math.PI) / 180);
+  ctx.translate(-safeArea / 2, -safeArea / 2);
+
+  ctx.drawImage(
+    image,
+    safeArea / 2 - image.width * 0.5,
+    safeArea / 2 - image.height * 0.5
+  );
+
+  const data = ctx.getImageData(0, 0, safeArea, safeArea);
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.putImageData(
+    data,
+    Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, 'image/jpeg', 0.95);
+  });
+}
 
 // Utility function to check if user profile is complete
 function isProfileComplete(user) {
   if (!user) return false;
   // List all required fields
   const requiredFields = ['name', 'email', 'phone', 'institute', 'gender'];
-  
+
   // Check basic required fields
   for (let field of requiredFields) {
     if (!user[field] || user[field] === '') return false;
   }
-  
+
   // Check if course exists (either as course or courseLevel)
   const courseValue = user.course || user.courseLevel;
   if (!courseValue || courseValue === '') return false;
-  
+
   // For 11th/12th and above, streamOrYear is also required
   const needsStreamOrYear = courseValue !== 'Class 9th' && courseValue !== 'Class 10th';
-  
+
   if (needsStreamOrYear) {
     // Check if course has (streamOrYear) part OR courseDetails exists
     if (user.course && user.course.includes('(')) {
@@ -45,8 +166,19 @@ const EditProfile = () => {
   const { user, setUser, fetchUser } = useUser();
   const [profilePic, setProfilePic] = useState(null);
   const [preview, setPreview] = useState(null);
+
+  // Image cropping states
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [form, setForm] = useState({
     name: '',
+    username: '',
     email: '',
     phone: '',
     institute: '',
@@ -75,17 +207,22 @@ const EditProfile = () => {
   const [isEmpty, setIsEmpty] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null, message: '' });
+  const [exams, setExams] = useState([]); // Array of strings for user exams
+  const examSectionRef = useRef(null);
+
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Check if any required value in the form is an empty string
     const requiredFields = ['name', 'phone', 'institute', 'course', 'gender'];
     const anyEmpty = requiredFields.some(field => !form[field] || form[field] === "");
-    
+
     // Also check streamOrYear if applicable
     const needsStreamOrYear = form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th';
     const streamOrYearEmpty = needsStreamOrYear && (!form.streamOrYear || form.streamOrYear === "");
-    
+
     setIsEmpty(anyEmpty || streamOrYearEmpty);
   }, [form]);
 
@@ -95,16 +232,16 @@ const EditProfile = () => {
 
   useEffect(() => {
     if (user && !hasInitialized) {
-      
+
       // Determine course and streamOrYear from multiple possible sources
       let courseValue = '';
       let streamOrYearValue = '';
-      
+
       // Priority 1: Check if user.course exists and has the combined format
       if (user.course && user.course.includes('(')) {
         courseValue = user.course.split(' (')[0];
         streamOrYearValue = user.course.split('(')[1].replace(')', '');
-      } 
+      }
       // Priority 2: Check if user.course exists without combined format
       else if (user.course) {
         courseValue = user.course;
@@ -113,17 +250,18 @@ const EditProfile = () => {
       else if (user.courseLevel) {
         courseValue = user.courseLevel;
       }
-      
+
       // For streamOrYear, check courseDetails from onboarding if not already set
       if (!streamOrYearValue && user.courseDetails) {
         streamOrYearValue = user.courseDetails;
       }
-      
+
       // Determine institute from multiple sources
       const instituteValue = user.institute || user.schoolName || user.collegeName || '';
-      
+
       setForm({
         name: user.name || '',
+        username: user.username || '',
         email: user.email || '',
         phone: user.phone || '',
         institute: instituteValue,
@@ -146,7 +284,12 @@ const EditProfile = () => {
         reasonForAdmeasy: user.reasonForAdmeasy || '',
         reasonForAdmeasyInput: user.reasonForAdmeasyInput || ''
       });
-      
+
+      // Initialize exams array from user data
+      setExams(user.examsPreparingFor && Array.isArray(user.examsPreparingFor) 
+        ? [...user.examsPreparingFor] 
+        : []);
+
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
       setLoading(false);
       setHasInitialized(true);
@@ -179,32 +322,158 @@ const EditProfile = () => {
     }
   }, []);
 
+  // Real-time username availability check
+  useEffect(() => {
+    const checkUsernameAvailability = async () => {
+      const username = form.username?.trim();
+
+      // Reset status if username is empty or same as current
+      if (!username || username === user?.username) {
+        setUsernameStatus({ checking: false, available: null, message: '' });
+        return;
+      }
+
+      // Validate username format (alphanumeric, underscore, hyphen, period, 3-30 chars)
+      if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(username)) {
+        setUsernameStatus({
+          checking: false,
+          available: false,
+          message: 'Username must be 3-30 characters and contain only letters, numbers, underscores, hyphens, or periods'
+        });
+        return;
+      }
+
+      setUsernameStatus({ checking: true, available: null, message: 'Checking availability...' });
+
+      try {
+        const res = await fetch(`/api/check-username/${encodeURIComponent(username)}`);
+        const data = await res.json();
+
+        if (data.success) {
+          setUsernameStatus({
+            checking: false,
+            available: data.available,
+            message: data.available ? 'Username is available ✓' : 'Username is already taken'
+          });
+        } else {
+          setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+        setUsernameStatus({ checking: false, available: false, message: 'Error checking username' });
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsernameAvailability, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [form.username, user?.username]);
+
   // Onchange
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setIsDirty(true);
   };
 
-  const handlePicChange = (e) => {
-    const file = e.target.files[0];
-    setProfilePic(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const onDrop = useCallback((acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    // Check file size (300KB = 307200 bytes)
+    if (file.size > 307200) {
+      toast.error('Image size must be less than 300KB');
+      return;
     }
-    setIsDirty(true);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTempImageSrc(reader.result);
+      setCropModalOpen(true);
+      setRotation(0);
+      setZoom(1);
+      setCrop({ x: 0, y: 0 });
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] },
+    maxFiles: 1,
+    multiple: false
+  });
+
+  const handleCropConfirm = async () => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(30);
+
+      const croppedBlob = await getCroppedImg(tempImageSrc, croppedAreaPixels, rotation);
+
+      setUploadProgress(60);
+
+      // Check if cropped image is still under 300KB
+      if (croppedBlob.size > 307200) {
+        toast.error('Cropped image is still too large. Please zoom in more or choose a different image.');
+        setIsUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+
+      const file = new File([croppedBlob], 'profile.jpg', { type: 'image/jpeg' });
+      setProfilePic(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+        setUploadProgress(100);
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadProgress(0);
+          setCropModalOpen(false);
+          setIsDirty(true);
+        }, 500);
+      };
+      reader.readAsDataURL(croppedBlob);
+    } catch (e) {
+      console.error('Error cropping image:', e);
+      toast.error('Error processing image');
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    console.log('Submitting form with:', form);
-    
+
+
     // Validation: all required fields
     if (!form.name.trim() || !form.phone.toString().trim() || !form.institute || !form.course || !form.gender || ((form.course !== 'Class 9th' && form.course !== 'Class 10th') && !form.streamOrYear)) {
       toast.error('Please fill all required fields.');
       return;
+    }
+
+    // Validate username if it's changed
+    if (form.username && form.username !== user?.username) {
+      if (usernameStatus.checking) {
+        toast.error('Please wait while we check username availability');
+        return;
+      }
+      if (usernameStatus.available === false) {
+        toast.error('Please choose a different username');
+        return;
+      }
+      if (usernameStatus.available === null && form.username.trim() !== '') {
+        toast.error('Please wait for username validation to complete');
+        return;
+      }
     }
 
     // mobile Function
@@ -220,10 +489,11 @@ const EditProfile = () => {
 
     const formData = new FormData();
     formData.append('name', form.name);
+    if (form.username) formData.append('username', form.username);
     formData.append('phone', form.phone);
     formData.append('gender', form.gender);
     formData.append('institute', form.institute);
-    
+
     // Combine course and streamOrYear if both are present
     let courseValue = form.course;
     if (form.course !== 'Class 9th' && form.course !== 'Class 10th' && form.streamOrYear) {
@@ -241,9 +511,8 @@ const EditProfile = () => {
     }
 
     formData.append('course', courseValue);
-    
-    console.log('Sending course value:', courseValue);
-  
+
+
     // Onboarding fields
     if (form.languages && Array.isArray(form.languages)) {
       formData.append('languages', JSON.stringify(form.languages));
@@ -258,32 +527,37 @@ const EditProfile = () => {
     if (form.courseLevel) formData.append('courseLevel', form.courseLevel);
     if (form.courseDetails) formData.append('courseDetails', form.courseDetails);
     if (form.collegeName) formData.append('collegeName', form.collegeName);
-    if (form.examsPreparingFor && Array.isArray(form.examsPreparingFor)) {
-      formData.append('examsPreparingFor', JSON.stringify(form.examsPreparingFor));
+    // Update examsPreparingFor from exams state
+    if (exams.length > 0) {
+      const validExams = exams.filter(exam => exam && exam.trim());
+      if (validExams.length > 0) {
+        formData.append('examsPreparingFor', JSON.stringify(validExams));
+      }
+    } else {
+      formData.append('examsPreparingFor', JSON.stringify([]));
     }
     if (form.reasonForAdmeasy) formData.append('reasonForAdmeasy', form.reasonForAdmeasy);
     if (form.reasonForAdmeasyInput) formData.append('reasonForAdmeasyInput', form.reasonForAdmeasyInput);
-    
+
     if (profilePic) {
       formData.append('image', profilePic);
     }
-    
+
     setLoading(true);
     setIsSubmitting(true);
-    
+
     try {
       const res = await fetch('/api/users/me', {
         method: 'PUT',
         credentials: 'include',
         body: formData
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         const updatedUser = data.user || {};
-        
-        console.log('Updated user from API:', updatedUser);
-        
+
+
         // Parse course and streamOrYear for form state
         let course = updatedUser.course || '';
         let streamOrYear = '';
@@ -291,9 +565,10 @@ const EditProfile = () => {
           streamOrYear = course.split('(')[1].replace(')', '');
           course = course.split(' (')[0];
         }
-        
+
         setForm({
           name: updatedUser.name || form.name,
+          username: updatedUser.username || form.username,
           email: updatedUser.email || form.email,
           phone: updatedUser.phone || form.phone,
           institute: updatedUser.institute || form.institute,
@@ -316,13 +591,18 @@ const EditProfile = () => {
           reasonForAdmeasy: updatedUser.reasonForAdmeasy || form.reasonForAdmeasy,
           reasonForAdmeasyInput: updatedUser.reasonForAdmeasyInput || form.reasonForAdmeasyInput
         });
-        
+
+        // Sync exams state with updated user data
+        setExams(updatedUser.examsPreparingFor && Array.isArray(updatedUser.examsPreparingFor) 
+          ? [...updatedUser.examsPreparingFor] 
+          : []);
+
         setPreview(updatedUser.image || fallbackProfilePic);
         setProfilePic(null);
-        
+
         // Update the user context
         await fetchUser();
-        
+
         toast.success('Profile updated successfully');
         navigate('/');
       } else {
@@ -346,31 +626,48 @@ const EditProfile = () => {
     navigate('/');
   };
 
-  const handleLogout = async () => {
-    try {
-      const res = await fetch('/api/users/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (res.ok) {
-        setUser(null);
-        // Clear any localStorage items
-        localStorage.clear();
-        // Force a page reload to clear any cached state
-        toast.success('Logged out successfully');
-        window.location.href = '/';
-      }
-    } catch (err) {
-      console.error('Logout failed:', err);
-      toast.error('Failed to logout');
-    }
-  };
+
 
   const { pathname } = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  // Auto-focus exam section when navigating with ?focus=exams
+  useEffect(() => {
+    if (searchParams.get('focus') === 'exams' && examSectionRef.current) {
+      setTimeout(() => {
+        examSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Remove the query param after scrolling
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('focus');
+        navigate({ search: newSearchParams.toString() }, { replace: true });
+      }, 300);
+    }
+  }, [searchParams, navigate]);
+
+  // Exam management functions
+  const addExam = () => {
+    setExams([...exams, '']);
+    setIsDirty(true);
+  };
+
+  const updateExam = (index, value) => {
+    const updatedExams = exams.map((exam, i) => {
+      if (i === index) {
+        return value;
+      }
+      return exam;
+    });
+    setExams(updatedExams);
+    setIsDirty(true);
+  };
+
+  const removeExam = (index) => {
+    setExams(exams.filter((_, i) => i !== index));
+    setIsDirty(true);
+  };
 
   if (loading) {
     return (
@@ -381,240 +678,365 @@ const EditProfile = () => {
   }
 
   return (
-   <main className="
+    <>
+      <main className="
   relative max-w-md mx-auto my-10 p-8 
   bg-primary rounded-2xl shadow-3d 
   backdrop-blur-lg border border-white/20
 ">
 
-  {/* Logout */}
-  <div className="flex w-full justify-end mb-2">
-    <button
-      className="
-        group flex items-center justify-start 
-        w-[45px] h-[45px] 
-        border-none rounded-full cursor-pointer relative overflow-hidden 
-        shadow-[2px_2px_10px_rgba(0,0,0,0.15)]
-        bg-red-500/90 transition-all duration-300 
-        active:translate-x-[2px] active:translate-y-[2px]
-        hover:w-[130px] hover:rounded-[40px]
-      "
-      onClick={handleLogout}
-    >
-      <div className="
-        w-full flex items-center justify-center transition-all duration-300 
-        group-hover:w-[30%] group-hover:pl-5
-      ">
-        <svg viewBox="0 0 512 512" className="w-[18px]">
-          <path
-            fill="white"
-            d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"
-          ></path>
-        </svg>
-      </div>
+        {/* TITLE */}
+        <h2 className="text-3xl font-admeasy-extrabold text-center mb-6 text-tprimary drop-shadow-sm">
+          My Profile
+        </h2>
 
-      <div className="
-        absolute right-0 w-0 opacity-0 text-white 
-        text-[1.1em] font-semibold tracking-wide transition-all duration-300 
-        group-hover:opacity-100 group-hover:w-[65%] group-hover:pr-[14px]
-      ">
-        Logout
-      </div>
-    </button>
-  </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
-  {/* TITLE */}
-  <h2 className="text-3xl font-admeasy-extrabold text-center mb-6 text-tprimary drop-shadow-sm">
-    My Profile
-  </h2>
-
-  <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
-    {/* PROFILE IMAGE */}
-    <div className="flex flex-col items-center">
-      <label htmlFor="profile-pic" className="cursor-pointer group">
-        <img
-          src={preview || fallbackProfilePic}
-          alt="Profile Preview"
-          className="
+          {/* PROFILE IMAGE */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <img
+                src={preview || fallbackProfilePic}
+                alt="Profile Preview"
+                className="
             w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 
-            group-hover:border-tprimary transition
-            shadow-md group-hover:shadow-lg duration-200
+            shadow-md duration-200
           "
-          onError={e => e.target.src = fallbackProfilePic}
-        />
-      </label>
+                onError={e => e.target.src = fallbackProfilePic}
+              />
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full mb-2">
+                  <div className="text-white text-xs font-semibold">{uploadProgress}%</div>
+                </div>
+              )}
+            </div>
 
-      <input
-        id="profile-pic"
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handlePicChange}
-      />
+            <div {...getRootProps()} className="mt-2 cursor-pointer">
+              <input {...getInputProps()} />
+              <div className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isDragActive
+                ? 'bg-blue-100 text-blue-700 border-2 border-blue-400 border-dashed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                }`}>
+                <Upload className="inline-block mr-2 w-4 h-4" />
+                {isDragActive ? 'Drop image here' : 'Upload Photo'}
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 mt-2">Max 300KB • JPG, PNG, GIF</span>
+          </div>
 
-      <span className="text-xs text-gray-600">
-        Click image to change
-      </span>
-    </div>
-
-    {/* FORM INPUTS */}
-    <label className="flex flex-col gap-1 text-sm font-semibold">
-      Name
-      <input
-        type="text"
-        name="name"
-        value={form.name}
-        onChange={handleChange}
-        required
-        className="
+          {/* FORM INPUTS */}
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Name
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-tprimary
           transition
         "
-      />
-    </label>
+            />
+          </label>
 
-    <label className="flex flex-col gap-1 text-sm font-semibold">
-      Gender
-      <select
-        name="gender"
-        value={form.gender}
-        onChange={handleChange}
-        required
-        className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Username
+            <input
+              type="text"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              className={`
+          w-full px-3 py-2 rounded-lg border shadow-sm
+          bg-white/90
+          focus:outline-none focus:ring-2 transition
+          ${usernameStatus.available === false
+                  ? 'border-red-300 focus:ring-red-500'
+                  : usernameStatus.available === true
+                    ? 'border-green-300 focus:ring-green-500'
+                    : 'border-gray-300 focus:ring-tprimary'
+                }
+        `}
+              placeholder="Choose a username"
+            />
+            {form.username && (
+              <span className={`text-xs mt-1 ${usernameStatus.available === true ? 'text-green-600' :
+                usernameStatus.available === false ? 'text-red-600' :
+                  'text-gray-500'
+                }`}>
+                {usernameStatus.checking ? 'Checking...' : usernameStatus.message || ''}
+              </span>
+            )}
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Gender
+            <select
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+              required
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-tprimary
         "
-      >
-        <option value="">Select Gender</option>
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-        <option value="other">Rather not to say</option>
-      </select>
-    </label>
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Rather not to say</option>
+            </select>
+          </label>
 
-    <label className="flex flex-col gap-1 text-sm font-semibold">
-      Email
-      <input
-        type="email"
-        name="email"
-        value={form.email}
-        disabled
-        className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Email
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              disabled
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-200 
           bg-gray-100 text-gray-400 cursor-not-allowed shadow-sm
         "
-      />
-    </label>
+            />
+          </label>
 
-    <label className="flex flex-col gap-1 text-sm font-semibold">
-      Phone Number (+91)
-      <input
-        type="tel"
-        name="phone"
-        value={form.phone}
-        required
-        onChange={handleChange}
-        className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Phone Number (+91)
+            <input
+              type="tel"
+              name="phone"
+              value={form.phone}
+              required
+              onChange={handleChange}
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:outline-none focus:ring-2 focus:ring-tprimary
         "
-      />
-    </label>
+            />
+          </label>
 
-    <label className="flex flex-col gap-1 text-sm font-semibold">
-      Institute / School
-      <input
-        type="text"
-        name="institute"
-        value={form.institute}
-        required
-        onChange={handleChange}
-        className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Institute / School
+            <input
+              type="text"
+              name="institute"
+              value={form.institute}
+              required
+              onChange={handleChange}
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:ring-2 focus:ring-tprimary
         "
-      />
-    </label>
+            />
+          </label>
 
-    <label className="flex flex-col gap-1 text-sm font-semibold">
-      Course
-      <select
-        name="course"
-        value={form.course}
-        onChange={handleChange}
-        required
-        className="
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Course
+            <select
+              name="course"
+              value={form.course}
+              onChange={handleChange}
+              required
+              className="
           w-full px-3 py-2 rounded-lg border border-gray-300 
           bg-white/90 shadow-sm
           focus:ring-2 focus:ring-tprimary
         "
-      >
-        <option value="">Select Course</option>
-        <option value="Class 9th">Class 9th</option>
-        <option value="Class 10th">Class 10th</option>
-        <option value="Class 11th">Class 11th</option>
-        <option value="Class 12th">Class 12th</option>
-        <option value="Diploma">Diploma</option>
-        <option value="Post Diploma">Post Diploma</option>
-        <option value="Graduation">Graduation</option>
-        <option value="Post Graduation">Post Graduation</option>
-        <option value="Doctorate">Doctorate</option>
-      </select>
-    </label>
+            >
+              <option value="">Select Course</option>
+              <option value="Class 9th">Class 9th</option>
+              <option value="Class 10th">Class 10th</option>
+              <option value="Class 11th">Class 11th</option>
+              <option value="Class 12th">Class 12th</option>
+              <option value="Diploma">Diploma</option>
+              <option value="Post Diploma">Post Diploma</option>
+              <option value="Graduation">Graduation</option>
+              <option value="Post Graduation">Post Graduation</option>
+              <option value="Doctorate">Doctorate</option>
+            </select>
+          </label>
 
-    {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' && (
-      <label className="flex flex-col gap-1 text-sm font-semibold">
-        Stream / Course Name + Year
-        <input
-          type="text"
-          name="streamOrYear"
-          value={form.streamOrYear}
-          onChange={handleChange}
-          required
-          placeholder="E.g., B.Tech Mechanical — 2nd Year"
-          className="
+          {form.course && form.course !== 'Class 9th' && form.course !== 'Class 10th' && (
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              Stream / Course Name + Year
+              <input
+                type="text"
+                name="streamOrYear"
+                value={form.streamOrYear}
+                onChange={handleChange}
+                required
+                placeholder="E.g., B.Tech Mechanical — 2nd Year"
+                className="
             w-full px-3 py-2 rounded-lg border border-gray-300 
             bg-white/90 shadow-sm
             focus:ring-2 focus:ring-tprimary
           "
-        />
-      </label>
-    )}
+              />
+            </label>
+          )}
 
-    {/* BUTTONS */}
-    <div className="flex gap-4 justify-center mt-6">
-    
-        {isSubmitting ? <LoadingButton text={'Saving'} variant={'blue'}/> :   
-        <button
-        type="submit"
-        className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-        disabled={isSubmitting || isEmpty}>
-          Save
-          </button>
-          }
+          {/* Exams Section */}
+          <div ref={examSectionRef} className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-[#9f3562]" />
+                Exams Preparing For
+              </label>
+              <button
+                type="button"
+                onClick={addExam}
+                className="text-sm text-[#9f3562] hover:text-[#b14270] font-medium transition-colors"
+              >
+                + Add Exam
+              </button>
+            </div>
+            {exams.length === 0 ? (
+              <div className="text-sm text-gray-500 py-4 text-center border border-gray-200 rounded-lg bg-gray-50">
+                No exams added yet. Click "Add Exam" to add one.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {exams.map((exam, index) => (
+                  <div key={index} className="flex gap-3 items-center p-3 border border-gray-300 rounded-lg bg-white/90">
+                    <div className="flex-1">
+                      <select
+                        value={exam}
+                        onChange={(e) => updateExam(index, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9f3562] text-sm bg-white"
+                      >
+                        <option value="">Select an exam</option>
+                        {examsList.map((examName) => (
+                          <option key={examName} value={examName}>
+                            {examName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeExam(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
+                      aria-label="Remove exam"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-      <button
-        type="button"
-        onClick={handleCancel}
-        className="
+          {/* BUTTONS */}
+          <div className="flex gap-4 justify-center mt-6">
+
+            {isSubmitting ? <LoadingButton text={'Saving'} variant={'blue'} /> :
+              <button
+                type="submit"
+                className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                disabled={isSubmitting || isEmpty}>
+                Save
+              </button>
+            }
+
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="
           px-6 py-2 rounded-lg border border-gray-300 bg-white 
           text-gray-700 font-semibold shadow-sm 
           hover:bg-gray-100 transition
           disabled:bg-gray-100 disabled:cursor-not-allowed
         "
-        disabled={!isDirty}
-      >
-        Cancel
-      </button>
-    </div>
-  </form>
-</main>
+              disabled={!isDirty}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </main>
+
+      {/* Crop Modal */}
+      {cropModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-lg supports-[backdrop-filter]:backdrop-blur-2xl flex items-center justify-center z-[1001] p-4 transition-all duration-300">
+          {/* Allowing z-index more than navbar is not allowed, employees shall only use it on this pop-up  */}
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Crop Profile Picture</h3>
+              <button
+                onClick={() => setCropModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="relative h-96 bg-gray-100">
+              <Cropper
+                image={tempImageSrc}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Zoom</label>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleRotate}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md font-medium flex items-center justify-center gap-2"
+                >
+                  <RotateCw size={18} />
+                  Rotate 90°
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCropConfirm}
+                  disabled={isUploading}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <>Processing {uploadProgress}%</>
+                  ) : (
+                    <>
+                      <Check size={18} />
+                      Confirm
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
 
   );
 }

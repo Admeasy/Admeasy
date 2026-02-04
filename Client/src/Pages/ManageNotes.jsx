@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaEye, FaCheck, FaTimes, FaDownload, FaStar, FaTrash } from 'react-icons/fa';
+import { FaEye, FaCheck, FaTimes, FaDownload, FaStar, FaTrash, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 const fadeUpVariant = {
@@ -10,6 +10,7 @@ const fadeUpVariant = {
 };
 
 const ManageNotes = () => {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,8 +145,12 @@ const ManageNotes = () => {
 
   if (loading && notes.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 flex justify-center items-center relative overflow-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="relative z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
+        </div>
       </div>
     );
   }
@@ -156,19 +161,29 @@ const ManageNotes = () => {
       initial="hidden"
       animate="visible"
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="min-h-screen p-8 bg-gray-50">
-      <div className="max-w-7xl mx-auto">
+      className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden p-6 sm:p-8 transition-all duration-300 selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
+      {/* Enhanced Ambient Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
+      </div>
+
+      <button className="absolute top-6 left-6 z-10 flex items-center gap-2 px-4 py-2 bg-white/95 backdrop-blur-sm hover:bg-white rounded-xl transition-all duration-300 shadow-sm border border-gray-200 hover:shadow-md hover:border-[#9f3562]/30 text-gray-700 hover:text-[#9f3562]" onClick={() => navigate(-1)}>
+        <FaArrowLeft />
+        Back
+      </button>
+
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="mb-8">
-          <Link to="/admin" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
-            ← Back to Admin Dashboard
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Manage Notes</h1>
-          <p className="text-gray-600">Review and manage all uploaded notes</p>
+          <h1 className="w-fit h-fit m-0 p-0 mx-auto text-gray-900 font-admeasy-bold text-3xl sm:text-5xl text-center mb-2 relative z-10">Manage Notes</h1>
+          <p className="text-gray-600 text-center relative z-10">Review and manage all uploaded notes</p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:border-[#9f3562]/30 p-6 mb-6 transition-all duration-300">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <input
@@ -176,14 +191,14 @@ const ManageNotes = () => {
                 placeholder="Search notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
               />
             </div>
             <div className="md:w-48">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-white/95 backdrop-blur-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -197,23 +212,23 @@ const ManageNotes = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:border-[#9f3562]/30 p-6 transition-all duration-300">
             <div className="text-2xl font-bold text-gray-900">{notes.length}</div>
             <div className="text-gray-600">Total Notes</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:border-[#9f3562]/30 p-6 transition-all duration-300">
             <div className="text-2xl font-bold text-yellow-600">
               {notes.filter(n => n.status === 'pending').length}
             </div>
             <div className="text-gray-600">Pending Review</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:border-[#9f3562]/30 p-6 transition-all duration-300">
             <div className="text-2xl font-bold text-green-600">
               {notes.filter(n => n.status === 'published').length}
             </div>
             <div className="text-gray-600">Published</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:border-[#9f3562]/30 p-6 transition-all duration-300">
             <div className="text-2xl font-bold text-red-600">
               {notes.filter(n => n.status === 'rejected').length}
             </div>
@@ -222,10 +237,10 @@ const ManageNotes = () => {
         </div>
 
         {/* Notes Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 mx-auto mb-4" style={{ borderColor: '#993e66' }}></div>
               <p className="text-gray-500">Loading notes...</p>
             </div>
           ) : notes.length === 0 ? (
@@ -296,7 +311,7 @@ const ManageNotes = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => window.open(note.fileUrl, '_blank')}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="hover:opacity-80 transition-colors" style={{ color: '#993e66' }}
                             title="Download/View File"
                           >
                             <FaDownload />
@@ -351,15 +366,15 @@ const ManageNotes = () => {
 
         {/* Rejection Modal */}
         {showModal && selectedNote && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Reject Note</h3>
+          <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-gray-200 shadow-2xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Reject Note</h3>
               <p className="text-gray-600 mb-4">
                 Provide a reason for rejecting "{selectedNote.title}":
               </p>
               <textarea
                 id="rejectionReason"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                className="w-full px-4 py-2.5 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 mb-4"
                 rows="3"
                 placeholder="Reason for rejection..."
               />
@@ -369,7 +384,7 @@ const ManageNotes = () => {
                     setShowModal(false);
                     setSelectedNote(null);
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   Cancel
                 </button>
@@ -379,7 +394,7 @@ const ManageNotes = () => {
                     handleStatusUpdate(selectedNote._id, 'rejected', reason);
                   }}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   {actionLoading ? 'Rejecting...' : 'Reject'}
                 </button>
