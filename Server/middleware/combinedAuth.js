@@ -23,24 +23,12 @@ const authenticateOptional = async (req, res, next) => {
       const mentor = await Mentor.findById(decoded.id || decoded._id);
       if (mentor) {
         req.mentor = mentor;
-        if (req.session) {
-          req.session.mentorId = mentor._id;
-          req.session.userRole = 'mentor';
-          // Clear user session if exists
-          delete req.session.userId;
-        }
       }
     } else {
       // Default to user (or if role is 'user' or undefined)
       const user = await User.findById(decoded.id || decoded._id);
       if (user) {
         req.user = user;
-        if (req.session) {
-          req.session.userId = user._id;
-          req.session.userRole = 'user';
-          // Clear mentor session if exists
-          delete req.session.mentorId;
-        }
       }
     }
   } catch (error) {
@@ -60,6 +48,7 @@ const authenticateRequired = async (req, res, next) => {
   const token = req.cookies?.accessToken;
 
   if (!token) {
+    console.log('authenticateRequired - No token found');
     return res.status(401).json({
       success: false,
       message: 'Authentication required',
@@ -68,42 +57,41 @@ const authenticateRequired = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    console.log('authenticateRequired - Decoded token role:', decoded.role, 'id:', decoded.id || decoded._id);
 
     if (decoded.role === 'mentor') {
       const mentor = await Mentor.findById(decoded.id || decoded._id);
       if (!mentor) {
+        console.log('authenticateRequired - Mentor not found for ID:', decoded.id || decoded._id);
         return res.status(401).json({
           success: false,
           message: 'Mentor not found',
         });
       }
       req.mentor = mentor;
-      if (req.session) {
-        req.session.mentorId = mentor._id;
-        req.session.userRole = 'mentor';
-        // Clear user session if exists
-        delete req.session.userId;
-      }
+      console.log('authenticateRequired - Set req.mentor');
       return next();
-    } else {
+    } else if (decoded.role === 'user') {
       // Default to user
       const user = await User.findById(decoded.id || decoded._id);
       if (!user) {
+        console.log('authenticateRequired - User not found for ID:', decoded.id || decoded._id);
         return res.status(401).json({
           success: false,
           message: 'User not found',
         });
       }
       req.user = user;
-      if (req.session) {
-        req.session.userId = user._id;
-        req.session.userRole = 'user';
-        // Clear mentor session if exists
-        delete req.session.mentorId;
-      }
+      console.log('authenticateRequired - Set req.user, userId:', user._id);
       return next();
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token',
+      });
     }
   } catch (error) {
+    console.error('authenticateRequired - Token verification error:', error.message);
     return res.status(401).json({
       success: false,
       message: 'Invalid or expired token',

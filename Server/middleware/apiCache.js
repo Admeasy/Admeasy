@@ -7,16 +7,13 @@ const Mentor = require('../models/mentorSchema');
 const cache = new NodeCache({ stdTTL: 600 });
 
 // Helper to get user ID from request (supports both users and mentors)
+// Uses JWT-based authentication only (no sessions)
 async function getUserIdFromRequest(req) {
-    // Check session first
-    if (req.session?.userId) return `user:${req.session.userId}`;
-    if (req.session?.mentorId) return `mentor:${req.session.mentorId}`;
-    
-    // Check req.user/req.mentor (set by auth middleware)
+    // Check req.user/req.mentor (set by JWT auth middleware)
     if (req.user?._id) return `user:${req.user._id}`;
     if (req.mentor?._id) return `mentor:${req.mentor._id}`;
     
-    // Try to get from token
+    // Try to get from token if middleware hasn't set req.user/req.mentor yet
     const token = req.cookies?.accessToken;
     if (token) {
         try {

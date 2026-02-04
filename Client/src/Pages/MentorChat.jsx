@@ -703,9 +703,9 @@ const MentorChat = () => {
                   key={message._id || `msg-${index}`}
                   className={`flex items-end gap-2 ${isMentor ? 'justify-end' : 'justify-start'}`}
                 >
-                  {/* Sender Avatar - only show if not from same sender as previous message */}
-                  {!isPreviousMessageFromSameSender && !isMentor && (
-                    <div className="flex-shrink-0">
+                  {/* Sender Avatar - always reserve space for alignment */}
+                  <div className="flex-shrink-0 w-10">
+                    {!isPreviousMessageFromSameSender && !isMentor && (
                       <img
                         src={senderImage || fallbackProfilePic}
                         alt={senderName || 'User'}
@@ -714,8 +714,8 @@ const MentorChat = () => {
                           e.target.src = fallbackProfilePic;
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
                   {/* Message Bubble */}
                   <div
@@ -736,9 +736,9 @@ const MentorChat = () => {
                     </div>
                   </div>
                   
-                  {/* Sender Avatar for mentor messages - only show if not from same sender */}
-                  {!isPreviousMessageFromSameSender && isMentor && (
-                    <div className="flex-shrink-0">
+                  {/* Sender Avatar for mentor messages - always reserve space for alignment */}
+                  <div className="flex-shrink-0 w-10">
+                    {!isPreviousMessageFromSameSender && isMentor && (
                       <img
                         src={mentor?.image || mentor?.imageUrl || fallbackProfilePic}
                         alt={mentor?.name || 'You'}
@@ -747,8 +747,8 @@ const MentorChat = () => {
                           e.target.src = fallbackProfilePic;
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })}

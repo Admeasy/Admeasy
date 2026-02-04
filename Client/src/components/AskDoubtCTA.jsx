@@ -144,13 +144,19 @@ const AskDoubtCTA = () => {
   }, [isDismissed, showCTA, isLoggedIn]);
 
   const handleDismiss = (e) => {
+    e.preventDefault();
     e.stopPropagation();
     setShowCTA(false);
     setIsDismissed(true);
     sessionStorage.setItem(DISMISSED_KEY, 'true');
   };
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    // Don't navigate if clicking the dismiss button
+    if (e.target.closest('button[aria-label="Dismiss"]')) {
+      return;
+    }
+    
     // Mark as shown
     sessionStorage.setItem(ASK_DOUBT_STORAGE_KEY, Date.now().toString());
     setShowCTA(false);
@@ -235,8 +241,9 @@ const AskDoubtCTA = () => {
 
             {/* Dismiss button */}
             <button
+              type="button"
               onClick={handleDismiss}
-              className="flex-shrink-0 p-1 rounded-full hover:bg-white/20 
+              className="flex-shrink-0 p-1 rounded-full hover:bg-black 
                        transition-colors duration-200"
               aria-label="Dismiss"
             >

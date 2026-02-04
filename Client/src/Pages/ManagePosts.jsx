@@ -13,6 +13,7 @@ const ManagePosts = () => {
   const [deletingPostId, setDeletingPostId] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageModal, setImageModal] = useState(null);
+  const [postCount, setPostCount] = useState(0);
 
   useEffect(() => {
     verifyAuth();
@@ -88,6 +89,10 @@ const ManagePosts = () => {
     );
   });
 
+  useEffect(() => {
+    setPostCount(filteredPosts.length);
+  }, [filteredPosts]);
+
   const formatDateTime = (iso) => {
     if (!iso) return "";
     try {
@@ -157,6 +162,15 @@ const ManagePosts = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-10 pr-3 py-3 bg-white/95 backdrop-blur-sm text-gray-900 placeholder:text-gray-500 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/50 focus:border-[#9f3562]/50 transition-all duration-300 shadow-sm"
           />
+        </div>
+
+        <div className="flex items-center justify-center mb-6">
+          <div className="bg-white/95 backdrop-blur-sm shadow-sm rounded-xl p-4 flex flex-col items-center w-64 border border-gray-200 hover:border-[#9f3562]/30 transition-all duration-300">
+            <h2 className="text-xl font-bold text-gray-800">Total Posts</h2>
+            <p className="text-3xl font-extrabold text-[#9f3562] mt-1">
+              {postCount}
+            </p>
+          </div>
         </div>
 
         {filteredPosts.length === 0 && (

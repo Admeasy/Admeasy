@@ -9,6 +9,7 @@ import SpaceSuggestionSwiper from '../components/SpaceSuggestionSwiper';
 import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
+import AdCard from '../components/AdCard';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -22,6 +23,7 @@ const Feed = () => {
   const location = useLocation();
 
   const [posts, setPosts] = useState([]);
+  const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -49,6 +51,15 @@ const Feed = () => {
     setPosts((prev) =>
       prev.map((p) =>
         p._id === updatedPost._id ? { ...p, ...updatedPost } : p
+      )
+    );
+  }, []);
+
+  const updateAdInFeed = useCallback((updatedAd) => {
+    // Update the ad in the ads array
+    setAds((prev) =>
+      prev.map((a) =>
+        a._id === updatedAd._id ? { ...a, ...updatedAd } : a
       )
     );
   }, []);
@@ -120,6 +131,11 @@ const Feed = () => {
         pageNum < data.pagination.pages
       );
       setPage(pageNum);
+
+      // Fetch ads on first page load
+      if (pageNum === 1) {
+        fetchAds();
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to load posts. Please try again.');
@@ -130,6 +146,23 @@ const Feed = () => {
       isFetchingRef.current = false;
     }
   }, [saveFeedState]);
+
+  // Fetch ads
+  const fetchAds = useCallback(async () => {
+    try {
+      const response = await fetch('/api/ads/feed/random?limit=5', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.ads) {
+          setAds(data.ads);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch ads:', error);
+    }
+  }, []);
 
   // Load more posts (for infinite scroll)
   const loadMore = useCallback(() => {
@@ -229,6 +262,7 @@ const Feed = () => {
         sessionStorage.removeItem(FEED_STORAGE_KEY);
       }
       fetchPosts(1, false);
+      fetchAds(); // Fetch ads on initial load
     }
   }, []); // Only run on mount
 
@@ -436,7 +470,7 @@ const Feed = () => {
               {!user && !mentor && (
                 <button
                   onClick={() => navigate('/login')}
-                  className="w-fit h-fit px-1 py-1 font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl cursor-pointer hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-1500"
+                  className="w-fit h-fit px-1.5 py-1 font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg cursor-pointer hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-1500"
                 >
                   Log in to interact
                 </button>
@@ -456,20 +490,32 @@ const Feed = () => {
             </div>
           ) : (
             <div ref={feedContainerRef} className="space-y-8">
-              {posts.map((post, index) => (
-                <div key={post._id} className="relative">
-                  <PostViewTracker postId={post._id}>
-                    <PostCard
-                      post={post}
-                      onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
-                    />
-                  </PostViewTracker>
-                  {/* Add mentor suggestion swiper after the first post */}
-                  {index === 0 && <MentorSuggestionSwiper />}
-                  {/* Add space suggestion swiper after the 3rd post */}
-                  {index === 2 && <SpaceSuggestionSwiper />}
-                </div>
-              ))}
+              {posts.map((post, index) => {
+                const shouldShowAd = ads.length > 0 && index > 0 && index % 5 === 0;
+                const adIndex = Math.floor(index / 5) % ads.length;
+                const ad = shouldShowAd ? ads[adIndex] : null;
+
+                return (
+                  <div key={post._id} className="relative">
+                    <PostViewTracker postId={post._id}>
+                      <PostCard
+                        post={post}
+                        onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
+                      />
+                    </PostViewTracker>
+                    {/* Add mentor suggestion swiper after the first post */}
+                    {index === 0 && <MentorSuggestionSwiper />}
+                    {/* Add space suggestion swiper after the 3rd post */}
+                    {index === 2 && <SpaceSuggestionSwiper />}
+                    {/* Insert ad after every 5 posts */}
+                    {ad && (
+                      <div className="mt-8">
+                        <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
               {/* Infinite scroll trigger */}
               {hasMore && (
