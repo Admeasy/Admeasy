@@ -48,7 +48,7 @@ const NotesSearch = () => {
   isFree: true,
   likes: 10,
   views: 100,
-  tags: "CA Foundation Law",   // ❌ STRING
+  tags: "CA Foundation Law",   //  String form hai instead of array
   course: "bcom",
 },
 
