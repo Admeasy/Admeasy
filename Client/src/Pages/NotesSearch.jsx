@@ -38,6 +38,20 @@ const NotesSearch = () => {
       tags: ["JEE", "Physics", "Advanced", "Engineering"],
       course: "btech",
     },
+    {
+  _id: "bad-1",
+  title: "CA Foundation Law Notes",
+  description: "Law notes",
+  uploaderName: "Test User",
+  standard: "CA Foundation",
+  pages: 120,
+  isFree: true,
+  likes: 10,
+  views: 100,
+  tags: "CA Foundation Law",   // ❌ STRING
+  course: "bcom",
+},
+
   ];
 
   useEffect(() => {
@@ -89,7 +103,7 @@ const NotesSearch = () => {
     return notes.filter(note => {
       const title = note.title?.toLowerCase() ?? "";
       const course = note.course?.toLowerCase() ?? "";
-      const tags = note.tags?.map(t => t.toLowerCase()).join(" ") ?? "";
+      const tags = Array.isArray(note.tags)? note.tags.map(t => String(t).toLowerCase()).join(" ") : "";
       return title.includes(query) || course.includes(query) || tags.includes(query);
     });
   }, [notes, searchQuery]);
