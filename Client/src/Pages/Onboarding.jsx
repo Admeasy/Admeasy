@@ -376,6 +376,114 @@ export default function Onboarding() {
   );
 }
 
+
+
+// Form page End
+
+// Step 1: Name & Gender
+function Step1({ form }) {
+  const { register, setValue, watch, formState } = form;
+  const { errors } = formState;
+
+  const selectedGender = watch("gender");
+
+  const genderOptions = useMemo(
+    () => [
+      { value: "male", label: "Male", icon: male },
+      { value: "female", label: "Female", icon: female },
+      { value: "other", label: "Other", icon: other },
+    ],
+    []
+  );
+
+  const handleGenderSelect = useCallback(
+    (value) => {
+      setValue("gender", value, { shouldValidate: true, shouldDirty: true });
+    },
+    [setValue]
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
+          Let's get to know you better
+        </h2>
+        <p className="text-gray-600">Tell us a bit about yourself</p>
+      </div>
+
+      {/* Name Field */}
+      <div className="space-y-2">
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          Your Name
+        </label>
+        <input
+          id="name"
+          type="text"
+          {...register("name", { required: "Please enter your name" })}
+          placeholder="Enter your full name"
+          className={`w-full border-2 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition ${errors.name ? "border-red-500" : "border-gray-300"
+            }`}
+          autoComplete="name"
+          aria-invalid={errors.name ? "true" : "false"}
+          aria-describedby={errors.name ? "name-error" : undefined}
+        />
+        {errors.name && (
+          <p
+            id="name-error"
+            className="text-red-500 text-sm flex items-center gap-1"
+            role="alert"
+          >
+            {errors.name.message}
+          </p>
+        )}
+      </div>
+
+      {/* Gender Field */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Gender
+        </label>
+        <input type="hidden" {...register("gender", { required: true })} />
+        <div
+          className="grid grid-cols-3 gap-3"
+          role="radiogroup"
+          aria-label="Gender selection"
+          aria-describedby={errors.gender ? "gender-error" : undefined}
+        >
+          {genderOptions.map(({ value, label, icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleGenderSelect(value)}
+              role="radio"
+              aria-checked={selectedGender === value}
+              aria-label={label}
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedGender === value
+                ? "border-blue-500 bg-blue-50 text-blue-600"
+                : "border-gray-300 hover:border-gray-400 text-gray-600"
+                }`}
+            >
+              <img src={icon} className="w-12" alt="" />
+              <span className="font-medium">{label}</span>
+            </button>
+          ))}
+        </div>
+        {errors.gender && (
+          <p
+            id="gender-error"
+            className="text-red-500 text-sm flex items-center gap-1"
+            role="alert"
+          >
+            Please select a gender
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- HELPER COMPONENT FOR UNIVERSITY SEARCH ---
 function UniversityInput({ register, setValue, watch, error }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -1058,6 +1166,291 @@ function Step4College({ form }) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+// Step 6 College
+function Step6College({ form }) {
+  const { register, formState, setValue, watch } = form;
+  const { user } = useUser();
+
+  const [selectedExams, setSelectedExams] = useState(watch("examsPreparingFor") || []);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [errors, setErrors] = useState({});
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Initialize selectedExams from form data if available
+  const formExams = watch("examsPreparingFor");
+  useEffect(() => {
+    if (formExams && Array.isArray(formExams) && formExams.length > 0 && selectedExams.length === 0) {
+      setSelectedExams(formExams);
+    }
+  }, [formExams, selectedExams.length]);
+
+  // Sync selectedExams with form when it changes
+  useEffect(() => {
+    if (JSON.stringify(formExams) !== JSON.stringify(selectedExams)) {
+      setValue("examsPreparingFor", selectedExams, { shouldValidate: true });
+    }
+
+  }, [selectedExams, setValue]);
+
+  // Filter exams based on search query
+  const filteredExams = examsList.filter((exam) =>
+    exam.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const toggleExam = (exam) => {
+    setSelectedExams((prev) =>
+      prev.includes(exam)
+        ? prev.filter((e) => e !== exam)
+        : [...prev, exam]
+    );
+    if (errors.examsPreparingFor) {
+      setErrors({});
+    }
+  };
+
+  const removeExam = (exam) => {
+    setSelectedExams((prev) => prev.filter((e) => e !== exam));
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-800 ">Almost Done!</h2>
+        <p className="text-gray-600">
+          Tell us about how you going to use admeasy and exams you’re preparing for 🎯
+        </p>
+      </div>
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="space-y-4">
+          {/* What Brings You to Admeasy */}
+          <div className="mt-8">
+            <label className="block text-base font-semibold text-gray-900 mb-3">
+              What brings you to Admeasy?
+            </label>
+            <p className="text-sm text-gray-600 mb-4">
+              Choose the reason that best describes your goal 💡
+            </p>
+            <p className="text-sm text-red-800">
+              {errors.reasonForAdmeasy}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { label: "Just Exploring", color: "bg-blue-50", iconBg: "bg-blue-100", icon: "🧭" },
+                { label: "Finding Mentorship", color: "bg-purple-50", iconBg: "bg-purple-100", icon: "🤝" },
+                { label: "Switching College or Course", color: "bg-yellow-50", iconBg: "bg-yellow-100", icon: "🔄" },
+                { label: "Internship or Placement Opportunities", color: "bg-green-50", iconBg: "bg-green-100", icon: "💼" },
+                { label: "Scholarship", color: "bg-pink-50", iconBg: "bg-pink-100", icon: "🎓" },
+              ].map((option) => {
+                const selectedReason = watch("reasonForAdmeasy");
+                const isSelected = selectedReason === option.label;
+
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() =>
+                      setValue(
+                        "reasonForAdmeasy",
+                        isSelected ? "" : option.label // 🧠 toggle selection on second click
+                      )
+                    }
+                    className={`relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 ${isSelected
+                      ? "border-blue-500 bg-blue-100 shadow-md"
+                      : "border-transparent hover:border-gray-300"
+                      } ${option.color}`}
+                  >
+                    <div
+                      className={`w-10 h-10 flex items-center justify-center rounded-full text-lg ${option.iconBg}`}
+                    >
+                      {option.icon}
+                    </div>
+                    <span className="text-gray-900 font-medium text-left">
+                      {option.label}
+                    </span>
+                    {isSelected && (
+                      <div className="absolute top-3 right-3 bg-blue-600 text-white rounded-full p-1">
+                        <Check className="w-4 h-4" />
+                      </div>
+                    )}
+                  </button>
+
+
+                );
+              })}
+            </div>
+
+            {/* Input for optional text */}
+            <div className="mt-5">
+              <input
+                type="text"
+                {...register("reasonForAdmeasyInput")}
+                placeholder="Tell us more (optional)..."
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all text-gray-900 placeholder-gray-500"
+              />
+            </div>
+            {errors.examsPreparingFor && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg animate-in slide-in-from-top duration-300">
+                <svg
+                  className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p className="text-sm text-red-800">
+                  {errors.examsPreparingFor.message}
+                </p>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-base font-semibold text-gray-900 mb-2">
+              Which exams are you preparing for?
+            </label>
+            <p className="text-sm text-gray-600 mb-4">
+              Search and select exams to customize your learning experience
+            </p>
+          </div>
+
+
+          {/* Selected Exams Tags */}
+          {selectedExams.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {selectedExams.map((exam) => (
+                <div
+                  key={exam}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium animate-in fade-in zoom-in duration-200"
+                >
+                  {exam}
+                  <button
+                    onClick={() => removeExam(exam)}
+                    className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                    aria-label={`Remove ${exam}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Search Input */}
+          <div className="relative">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsDropdownOpen(true)}
+                placeholder="Search for exams..."
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all text-gray-900 placeholder-gray-500"
+              />
+            </div>
+
+            {/* Dropdown List */}
+            {isDropdownOpen && (
+              <div
+                ref={dropdownRef}
+                className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+              >
+                {filteredExams.length > 0 ? (
+                  <div className="py-2">
+                    {filteredExams.map((exam) => {
+                      const isSelected = selectedExams.includes(exam);
+                      return (
+                        <button
+                          key={exam}
+                          type="button"
+                          onClick={() => toggleExam(exam)}
+                          className={`w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''
+                            }`}
+                        >
+                          <span
+                            className={`font-medium ${isSelected ? 'text-blue-700' : 'text-gray-900'
+                              }`}
+                          >
+                            {exam}
+                          </span>
+                          {isSelected && (
+                            <div className="bg-blue-600 rounded-full p-1">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-8 text-center text-gray-500">
+                    <p className="text-sm">No exams found matching "{searchQuery}"</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Selection Summary */}
+          {selectedExams.length > 0 && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <span className="font-semibold">{selectedExams.length}</span> exam
+                {selectedExams.length > 1 ? 's' : ''} selected
+              </p>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {errors.examsPreparingFor && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg animate-in slide-in-from-top duration-300">
+              <svg
+                className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p className="text-sm text-red-800">
+                {errors.examsPreparingFor.message}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
