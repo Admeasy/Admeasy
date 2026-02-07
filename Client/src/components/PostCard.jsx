@@ -617,7 +617,6 @@ const PostCard = ({ post, onPostUpdate }) => {
           />
         </div>
 
-<<<<<<< .merge_file_xxTzG3
         {/* Comment Preview */}
         {postState.commentPreview && (
           <div className="px-5 sm:px-6 pb-3 sm:pb-4">
@@ -676,8 +675,6 @@ const PostCard = ({ post, onPostUpdate }) => {
           </div>
         )}
 
-=======
->>>>>>> .merge_file_nYqOjD
         {/* Post Image */}
         {post.image && (
           <div className="relative w-full group/image overflow-hidden">
