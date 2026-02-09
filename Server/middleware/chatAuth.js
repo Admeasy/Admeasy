@@ -3,29 +3,50 @@ const UserToUserChat = require('../models/userToUserChatSchema');
 const MentorToMentorChat = require('../models/mentorToMentorChatSchema');
 const User = require('../models/userSchema');
 const Mentor = require('../models/mentorSchema');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 // Middleware to check if user is authenticated and is a user (not mentor)
+// Uses JWT authentication instead of session-based
 const requireUser = async (req, res, next) => {
     try {
-        // Check if user is authenticated via session
-        if (!req.session || !req.session.userId) {
+        // Check for JWT token in cookies
+        const token = req.cookies?.accessToken;
+        if (!token) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required'
             });
         }
 
-        // Verify user exists
-        const user = await User.findById(req.session.userId);
-        if (!user) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            
+            // Check if this token is for a user (not a mentor)
+            if (decoded.role && decoded.role === 'mentor') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Mentor token not valid for user routes'
+                });
+            }
+
+            // Verify user exists
+            const user = await User.findById(decoded.id || decoded._id);
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            req.user = user;
+            next();
+        } catch (jwtErr) {
             return res.status(401).json({
                 success: false,
-                message: 'User not found'
+                message: 'Invalid or expired token'
             });
         }
-
-        req.user = user;
-        next();
     } catch (error) {
         console.error('User authentication error:', error);
         res.status(500).json({
@@ -36,27 +57,46 @@ const requireUser = async (req, res, next) => {
 };
 
 // Middleware to check if mentor is authenticated
+// Uses JWT authentication instead of session-based
 const requireMentor = async (req, res, next) => {
     try {
-        // Check if mentor is authenticated via session
-        if (!req.session || !req.session.mentorId) {
+        // Check for JWT token in cookies
+        const token = req.cookies?.accessToken;
+        if (!token) {
             return res.status(401).json({
                 success: false,
                 message: 'Mentor authentication required'
             });
         }
 
-        // Verify mentor exists
-        const mentor = await Mentor.findById(req.session.mentorId);
-        if (!mentor) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            
+            // Check if this token is for a mentor (not a user)
+            if (decoded.role && decoded.role === 'user') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'User token not valid for mentor routes'
+                });
+            }
+
+            // Verify mentor exists
+            const mentor = await Mentor.findById(decoded.id || decoded._id);
+            if (!mentor) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Mentor not found'
+                });
+            }
+
+            req.mentor = mentor;
+            next();
+        } catch (jwtErr) {
             return res.status(401).json({
                 success: false,
-                message: 'Mentor not found'
+                message: 'Invalid or expired token'
             });
         }
-
-        req.mentor = mentor;
-        next();
     } catch (error) {
         console.error('Mentor authentication error:', error);
         res.status(500).json({
@@ -80,14 +120,14 @@ const requireUserToMentorChatParticipant = async (req, res, next) => {
             if (req.mentor) {
                 // Mentor accessing user chat
                 chat = await UserToMentorChat.findOne({
-                    mentorId: req.mentor.id,
+                    mentorId: req.mentor._id || req.mentor.id,
                     userId: userId,
                     isActive: true
                 });
             } else if (req.user) {
                 // User accessing mentor chat
                 chat = await UserToMentorChat.findOne({
-                    userId: req.user.id,
+                    userId: req.user._id || req.user.id,
                     mentorId: mentorId,
                     isActive: true
                 });
@@ -95,14 +135,14 @@ const requireUserToMentorChatParticipant = async (req, res, next) => {
         } else if (mentorId && req.user) {
             // Route like /api/chats/:mentorId/messages - find chat by user and mentor
             chat = await UserToMentorChat.findOne({
-                userId: req.user.id,
+                userId: req.user._id || req.user.id,
                 mentorId: mentorId,
                 isActive: true
             });
         } else if (userId && req.mentor) {
             // Route like /api/mentor/chats/:userId/messages - find chat by mentor and user
             chat = await UserToMentorChat.findOne({
-                mentorId: req.mentor.id,
+                mentorId: req.mentor._id || req.mentor.id,
                 userId: userId,
                 isActive: true
             });
@@ -115,9 +155,9 @@ const requireUserToMentorChatParticipant = async (req, res, next) => {
 
             if (chat) {
                 const isParticipant = req.user
-                    ? chat.userId.toString() === req.user.id.toString()
+                    ? chat.userId.toString() === (req.user._id || req.user.id).toString()
                     : req.mentor
-                        ? chat.mentorId.toString() === req.mentor.id.toString()
+                        ? chat.mentorId.toString() === (req.mentor._id || req.mentor.id).toString()
                         : false;
 
                 if (!isParticipant) {
@@ -170,7 +210,7 @@ const requireUserInitiatedUserToMentorChat = (req, res, next) => {
 const requireUserToUserChatParticipant = async (req, res, next) => {
     try {
         const { userId } = req.params;
-        const currentUserId = req.user?.id;
+        const currentUserId = req.user?._id || req.user?.id;
 
         if (!currentUserId) {
             return res.status(401).json({
@@ -221,7 +261,7 @@ const requireUserToUserChatParticipant = async (req, res, next) => {
 const requireMentorToMentorChatParticipant = async (req, res, next) => {
     try {
         const { mentorId } = req.params;
-        const currentMentorId = req.mentor?.id;
+        const currentMentorId = req.mentor?._id || req.mentor?.id;
 
         if (!currentMentorId) {
             return res.status(401).json({

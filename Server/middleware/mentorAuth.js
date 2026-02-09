@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const Mentor = require('../models/mentorSchema');
 require('dotenv').config();
 
-// Middleware: authenticate Mentor JWT and set session
+// Middleware: authenticate Mentor JWT (pure JWT, no sessions)
 async function authenticateMentorJWT(req, res, next) {
     const token = req.cookies['accessToken'];
     if (!token) {
@@ -26,29 +26,6 @@ async function authenticateMentorJWT(req, res, next) {
         }
         
         req.mentor = mentor;
-        
-        // CRITICAL: Set session for Socket.io compatibility
-        if (req.session) {
-            req.session.mentorId = mentor._id;
-            req.session.userRole = 'mentor';
-            // Clear user session if exists
-            delete req.session.userId;
-            // Force session save - await to ensure it's saved before proceeding
-            await new Promise((resolve, reject) => {
-                req.session.save((err) => {
-                    if (err) {
-                        console.error('Error saving mentor session:', err);
-                        reject(err);
-                    } else {
-                        console.log('Mentor session saved successfully:', mentor._id);
-                        resolve();
-                    }
-                });
-            });
-        } else {
-            console.warn('No session object available in mentor auth middleware');
-        }
-        
         next();
 
     } catch (err) {

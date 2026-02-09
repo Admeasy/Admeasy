@@ -490,6 +490,7 @@ export default function Onboarding() {
       </div>
     </div>
   );
+}
 
 
 
@@ -1564,4 +1565,3 @@ export default function Onboarding() {
       </div>
     );
   }
-}

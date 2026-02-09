@@ -140,7 +140,7 @@ export default function Tabs({ college = {} }) {
         }
 
         const mentorsFromDB = await mentorsResponse.json();
-        
+
         // Filter mentors by college ID - only show mentors from the same college
         const collegeMentors = mentorsFromDB.filter((mentor) => {
           // Parse mentor's college data
@@ -155,16 +155,16 @@ export default function Tabs({ college = {} }) {
               mentorCollege = { id: mentor.college, _id: mentor.college };
             }
           }
-          
+
           if (!mentorCollege) return false;
-          
+
           // Get mentor's college ID (handle both id and _id)
           const mentorCollegeId = mentorCollege.id || mentorCollege._id;
-          
+
           // Convert both to strings for reliable comparison
           const currentIdStr = String(currentCollegeId);
           const mentorIdStr = String(mentorCollegeId);
-          
+
           // Only include mentors whose college ID exactly matches
           return mentorIdStr === currentIdStr;
         });
@@ -175,24 +175,24 @@ export default function Tabs({ college = {} }) {
             const mentorCollege = typeof mentor.college === 'object' && mentor.college !== null
               ? mentor.college
               : (mentor.college ? (() => {
-                  try {
-                    return JSON.parse(mentor.college);
-                  } catch {
-                    return null;
-                  }
-                })() : null);
-            
+                try {
+                  return JSON.parse(mentor.college);
+                } catch {
+                  return null;
+                }
+              })() : null);
+
             const course = typeof mentor.course === 'object' && mentor.course !== null
               ? mentor.course
               : (mentor.course ? (() => {
-                  try {
-                    return typeof mentor.course === 'string' && mentor.course.startsWith('{') 
-                      ? JSON.parse(mentor.course) 
-                      : { name: mentor.course };
-                  } catch {
-                    return { name: mentor.course };
-                  }
-                })() : null);
+                try {
+                  return typeof mentor.course === 'string' && mentor.course.startsWith('{')
+                    ? JSON.parse(mentor.course)
+                    : { name: mentor.course };
+                } catch {
+                  return { name: mentor.course };
+                }
+              })() : null);
 
             // Fetch mentor image
             let imageUrl = fallbackImage;
@@ -334,8 +334,8 @@ export default function Tabs({ college = {} }) {
               </h2>
               {college?.vidReview ?
                 (college?.vidReview.includes('shorts/') ?
-                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}?rel=0&showinfo=0&modestbranding=1`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen className='max-[380px]:w-full max-[380px]:h-120 w-fit h-135 mx-auto aspect-auto rounded-xl'></iframe> :
-                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerPolicy="strict-origin-when-cross-origin" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe>) :
+                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}?rel=0&showinfo=0&modestbranding=1`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-presentation" className='max-[380px]:w-full max-[380px]:h-120 w-fit h-135 mx-auto aspect-auto rounded-xl'></iframe> :
+                  <iframe src={`https://www.youtube.com/embed/${college?.vidReview}`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; fullscreen; web-share" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-presentation" className='w-full sm:w-fit h-115 sm:h-100 mx-auto aspect-auto rounded-xl'></iframe>) :
                 <h4 className=''>No Video Review available</h4>}
               {/* {college?.vidReview &&
                 college?.vidReview.includes('shorts/') ? <embed src={`https://www.youtube.com/embed/${college?.vidReview.replace('shorts/', '')}`}
@@ -547,7 +547,7 @@ export default function Tabs({ college = {} }) {
               <h2 className="font-admeasy-extrabold text-center text-xl sm:text-3xl text-thead1">
                 Talk to UGs/Alumnis
               </h2>
-              
+
               {isLoadingMentors ? (
                 <div className="flex justify-center items-center min-h-[200px]">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-light"></div>

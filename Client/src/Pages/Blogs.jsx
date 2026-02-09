@@ -88,7 +88,7 @@ const Blogs = () => {
   };
 
   const handleBlogClick = (blogId) => {
-    navigate(`/blog/${blogId}`);
+    navigate(`/blogs/${blogId}`);
   };
 
   // Wrapper div for consistent layout spacing
@@ -159,10 +159,10 @@ const Blogs = () => {
     return (
       <LayoutWrapper>
         <SEO
-          title="Blog - Education & College Admissions | Admeasy"
+          title="Admeasy Blogs - Education & College Admissions | Admeasy"
           description="Read our latest blogs on college admissions, education tips, career guidance."
           keywords="education blog"
-          url="https://admeasy.in/blog"
+          url="https://admeasy.in/blogs"
         />
         <div className="flex justify-center items-center min-h-[80vh]">
           <div className="text-center p-6">
@@ -182,10 +182,10 @@ const Blogs = () => {
   return (
     <LayoutWrapper>
       <SEO
-        title="Blogs - Education & College Admissions | Admeasy"
+        title="Admeasy Blogs - Education & College Admissions | Admeasy"
         description="Read our latest blogs on college admissions, education tips, career guidance, and student success stories."
         keywords="education blog, college admissions blog, career guidance"
-        url="https://admeasy.in/blog"
+        url="https://admeasy.in/blogs"
       />
       <div className="p-6 flex justify-center flex-wrap gap-6 relative z-10">
         {blogs.map((blog) => (
