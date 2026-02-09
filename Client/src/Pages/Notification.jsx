@@ -21,14 +21,6 @@ const Notification = () => {
   const [showMenuForId, setShowMenuForId] = useState(null);
   const menuRefs = useRef({});
 
-  const [permissionGranted, setPermissionGranted] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermissionGranted(Notification.permission === 'granted');
-    }
-  }, []);
-
   useEffect(() => {
     if (!user && !mentor) {
       navigate('/login');
@@ -228,12 +220,11 @@ const Notification = () => {
     const role = mentor ? 'mentor' : 'user';
     // Force re-request permission even if previously denied
     await enableNotifications(loggedInAccount._id, role, true);
-
-    // Check permission again
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermissionGranted(Notification.permission === 'granted');
-    }
   };
+
+  const isNotificationPermissionGranted = typeof window !== 'undefined' &&
+    'Notification' in window &&
+    Notification.permission === 'granted';
 
   if (loading) {
     return (
@@ -276,7 +267,7 @@ const Notification = () => {
                 Mark all as read
               </button>
             )}
-            {!permissionGranted && (
+            {!isNotificationPermissionGranted && (
               <button
                 onClick={handleEnableNotifications}
                 className="flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-[10px] sm:text-sm font-medium"
@@ -309,10 +300,10 @@ const Notification = () => {
               const actorDisplayName = actor.username || actor.name || null;
               const actorImage = actor.image || null;
 
-              // Clean up the message - remove "Someone", "Unknown", "undefined" and actor name if duplicated
+              // Clean up the message - remove "Someone", "Unknown", and actor name if duplicated
               let displayMessage = notification.message || '';
-              // Remove "Someone" and "Unknown" and "undefined" from the beginning of the message
-              displayMessage = displayMessage.replace(/^(Someone|Unknown|undefined)\s+/i, '');
+              // Remove "Someone" and "Unknown" from the beginning of the message
+              displayMessage = displayMessage.replace(/^(Someone|Unknown)\s+/i, '');
               // Remove actor name if it appears at the start (to avoid duplication)
               if (actor.name && actor.name !== 'Unknown' && actor.name !== 'Someone') {
                 displayMessage = displayMessage.replace(new RegExp(`^${actor.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+`, 'i'), '');
