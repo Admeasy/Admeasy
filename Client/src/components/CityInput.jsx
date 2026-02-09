@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { MapPin } from "lucide-react";
 
-export default function CityInput() {
-  const [query, setQuery] = useState("");
-  const [cities, setCities] = useState([]);
-  const [selectedCity, setSelectedCity] = useState("");
+export default function CityInput({ value, onChange, error, placeholder = "Type your city..." }) {
+  const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Debounced fetch for autocomplete
   useEffect(() => {
     const fetchCities = async () => {
-      if (query.trim().length < 2) {
-        setCities([]);
+      // If value is short or undefined, don't fetch
+      if (!value || value.trim().length < 3) {
+        setSuggestions([]);
         return;
       }
 
@@ -19,66 +21,82 @@ export default function CityInput() {
         const response = await axios.get(
           `https://wft-geo-db.p.rapidapi.com/v1/geo/cities`,
           {
-            params: { namePrefix: query, limit: 5 },
+            params: { namePrefix: value, limit: 5, countryIds: 'IN' },
             headers: {
               "X-RapidAPI-Key": '6fa46a8610mshe02ec2fbdfecb4fp16267djsn02ca1ff6e44f',
               "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com",
             },
           }
         );
-        setCities(response.data.data.map((c) => c.city));
+        setSuggestions(response.data.data.map((c) => c.city));
       } catch (error) {
         console.error("Error fetching cities:", error);
       }
       setLoading(false);
     };
 
-    const delay = setTimeout(fetchCities, 400); // debounce (wait for typing)
+    const delay = setTimeout(() => {
+      if (showSuggestions) fetchCities();
+    }, 400);
+
     return () => clearTimeout(delay);
-  }, [query]);
+  }, [value, showSuggestions]);
 
   const handleSelect = (city) => {
-    setSelectedCity(city);
-    setQuery(city);
-    setCities([]);
+    onChange(city);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const handleChange = (e) => {
+    onChange(e.target.value);
+    setShowSuggestions(true);
+  };
+
+  const handleBlur = () => {
+    // Delay hiding suggestions to allow click event to register
+    setTimeout(() => setShowSuggestions(false), 200);
   };
 
   return (
-    <div className="flex flex-col items-center mt-10">
-      <div className="relative w-80">
+    <div className="relative">
+      <div className="relative">
         <input
           type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type your city..."
-          className="w-full border border-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={value || ""}
+          onChange={handleChange}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          className={`w-full border-2 rounded-lg p-3 pr-10 outline-none transition ${error ? "border-red-500 focus:ring-red-200" : "border-gray-300 focus:ring-blue-500 hover:border-blue-400"
+            }`}
+          autoComplete="off"
         />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <MapPin size={18} />
+        </div>
+      </div>
 
-        {loading && (
-          <div className="absolute top-full mt-1 w-full text-center text-gray-500 text-sm">
-            Loading...
-          </div>
-        )}
+      {error && <p className="text-red-500 text-sm mt-1">{error.message}</p>}
 
-        {cities.length > 0 && (
-          <div className="absolute z-10 w-full bg-white border border-gray-300 mt-1 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-            {cities.map((city, index) => (
+      {showSuggestions && (suggestions.length > 0 || loading) && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+          {loading ? (
+            <div className="p-3 text-sm text-gray-500 text-center">
+              Loading...
+            </div>
+          ) : (
+            suggestions.map((city, index) => (
               <div
                 key={index}
                 onClick={() => handleSelect(city)}
-                className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
+                className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-0 transition-colors"
               >
                 {city}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {selectedCity && (
-        <p className="mt-4 text-lg font-medium text-gray-700">
-          Selected City: <span className="text-blue-600">{selectedCity}</span>
-        </p>
+            ))
+          )}
+        </div>
       )}
     </div>
   );

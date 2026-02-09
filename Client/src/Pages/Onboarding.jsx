@@ -18,6 +18,9 @@ import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { toast } from "react-toastify";
+import { Controller } from "react-hook-form";
+import CityInput from "../components/CityInput";
+import { MapPin, Navigation } from "lucide-react";
 
 // --- VALIDATION SCHEMAS ---
 
@@ -26,6 +29,7 @@ const step1Schema = z.object({
   name: z.string().min(2, "Enter your full name"),
   email: z.string().email("Enter a valid email"),
   phone: z.string().min(10, "Enter a valid phone number"),
+  city: z.string().min(2, "Enter your city"),
 });
 
 // Step 2: Username, Password
@@ -33,22 +37,22 @@ const step2Schema = (requirePassword = false, requireUsername = false) =>
   z.object({
     ...(requirePassword
       ? {
-          password: z
-            .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Za-z]/, "Password must contain a letter")
-            .regex(/[0-9]/, "Password must contain a number")
-            .regex(/[^A-Za-z0-9]/, "Password must contain a special character"),
-        }
+        password: z
+          .string()
+          .min(8, "Password must be at least 8 characters")
+          .regex(/[A-Za-z]/, "Password must contain a letter")
+          .regex(/[0-9]/, "Password must contain a number")
+          .regex(/[^A-Za-z0-9]/, "Password must contain a special character"),
+      }
       : {}),
     ...(requireUsername
       ? {
-          username: z
-            .string()
-            .min(3, "Username must be at least 3 characters")
-            .max(20, "Username must be at most 20 characters")
-            .regex(/^[a-z0-9_]+$/, "Lowercase, numbers & underscore only"),
-        }
+        username: z
+          .string()
+          .min(3, "Username must be at least 3 characters")
+          .max(20, "Username must be at most 20 characters")
+          .regex(/^[a-z0-9_]+$/, "Lowercase, numbers & underscore only"),
+      }
       : {}),
   });
 
@@ -120,6 +124,7 @@ export default function Onboarding() {
     username: "",
     name: "",
     phone: "",
+    city: "",
   });
   const [educationType, setEducationType] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -209,6 +214,7 @@ export default function Onboarding() {
         email: user.email || "",
         username: user.username || "",
         name: user.name || "",
+        city: user.city || "",
       };
       setFormData((prev) => ({ ...userDefaults, ...prev }));
       form.reset({ ...form.getValues(), ...userDefaults });
@@ -466,15 +472,75 @@ function UniversityInput({ register, setValue, watch, error }) {
 // --- STEPS COMPONENTS ---
 
 function Step1({ form }) {
-  const { register, formState } = form;
+  const { register, formState, control, setValue } = form;
   const { errors } = formState;
   const { user } = useUser();
+  const [detecting, setDetecting] = useState(false);
+  const [showDeniedModal, setShowDeniedModal] = useState(false);
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetecting(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const apiKey = import.meta.env.VITE_GEOLOCATION_API_KEY;
+
+          // Using OpenWeatherMap Reverse Geocoding API
+          const response = await axios.get(
+            `http://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`
+          );
+
+          if (response.data && response.data.length > 0) {
+            const result = response.data[0];
+
+            // Filter for India
+            if (result.country && result.country !== 'IN') {
+              toast.error("Admeasy is currently available only in India 🇮🇳");
+              return;
+            }
+
+            const city = result.name || result.local_names?.en;
+            if (city) {
+              setValue("city", city, { shouldValidate: true });
+              toast.success(`📍 Located ${city}`);
+            } else {
+              toast.error("Could not verify city name. Please enter manually.");
+            }
+          } else {
+            // Fallback or handle empty result
+            toast.error("Could not find city. Please enter manually.");
+          }
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          toast.error("Location detection failed. Please enter manually."); // Fallback
+        } finally {
+          setDetecting(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setDetecting(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setShowDeniedModal(true);
+        } else {
+          toast.error("Location detection failed. Please retry or enter manually.");
+        }
+      }
+    );
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold text-gray-800">
-          📝 Basic Information
+          Basic Information
         </h2>
         <p className="text-gray-600">Let's start with your details ✨</p>
       </div>
@@ -533,6 +599,90 @@ function Step1({ form }) {
           <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
         )}
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          City
+        </label>
+        <div className="flex gap-2 items-start">
+          <div className="flex-1">
+            <Controller
+              name="city"
+              control={control}
+              render={({ field }) => (
+                <CityInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.city}
+                  placeholder="Enter your city"
+                />
+              )}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleDetectLocation}
+            disabled={detecting}
+            className="flex items-center justify-center p-3 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Detect my location"
+          >
+            {detecting ? (
+              <span className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+            ) : (
+              <Navigation size={20} className={detecting ? "animate-pulse" : ""} />
+            )}
+          </button>
+        </div>
+      </div>
+
+      <LocationDeniedModal
+        isOpen={showDeniedModal}
+        onClose={() => setShowDeniedModal(false)}
+        onAllow={() => {
+          setShowDeniedModal(false);
+          handleDetectLocation();
+        }}
+      />
+    </div>
+  );
+}
+
+function LocationDeniedModal({ isOpen, onClose, onAllow }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl scale-100 transform transition-all m-4">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+            <MapPin size={32} className="text-red-500" />
+          </div>
+
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Location Access Needed
+            </h3>
+            <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+              We only use your location to improve college recommendations. Your data is private.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 pt-2">
+            <button
+              onClick={onAllow}
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              Allow Location Access
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-colors"
+            >
+              Enter City Manually
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -570,24 +720,22 @@ function Step2({ form, debouncedCheck, usernameStatus, usernameMessage }) {
                 setValue("username", val, { shouldValidate: true });
                 debouncedCheck(val);
               }}
-              className={`w-full border-2 rounded-lg p-3 pl-11 focus:ring-2 outline-none transition ${
-                usernameStatus === "available"
-                  ? "border-green-400 focus:ring-green-400"
-                  : usernameStatus === "taken" || usernameStatus === "invalid"
-                    ? "border-red-400 focus:ring-red-400"
-                    : "border-gray-300 focus:ring-blue-500"
-              }`}
+              className={`w-full border-2 rounded-lg p-3 pl-11 focus:ring-2 outline-none transition ${usernameStatus === "available"
+                ? "border-green-400 focus:ring-green-400"
+                : usernameStatus === "taken" || usernameStatus === "invalid"
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-blue-500"
+                }`}
             />
           </div>
           {usernameMessage && (
             <p
-              className={`mt-1 text-xs font-semibold ${
-                usernameStatus === "available"
-                  ? "text-green-600"
-                  : usernameStatus === "taken" || usernameStatus === "invalid"
-                    ? "text-red-600"
-                    : "text-gray-500"
-              }`}
+              className={`mt-1 text-xs font-semibold ${usernameStatus === "available"
+                ? "text-green-600"
+                : usernameStatus === "taken" || usernameStatus === "invalid"
+                  ? "text-red-600"
+                  : "text-gray-500"
+                }`}
             >
               {usernameMessage}
             </p>
@@ -667,11 +815,10 @@ function Step3({ form }) {
             // RESET 'isNotAffiliated' so school doesn't see manual input
             setValue("isNotAffiliated", false);
           }}
-          className={`flex flex-col items-center gap-4 p-8 rounded-xl border-2 transition-all ${
-            selectedType === "school"
-              ? "border-blue-500 bg-blue-50 text-blue-600 shadow-lg"
-              : "border-gray-300 hover:border-gray-400 text-gray-600 hover:shadow-md"
-          }`}
+          className={`flex flex-col items-center gap-4 p-8 rounded-xl border-2 transition-all ${selectedType === "school"
+            ? "border-blue-500 bg-blue-50 text-blue-600 shadow-lg"
+            : "border-gray-300 hover:border-gray-400 text-gray-600 hover:shadow-md"
+            }`}
         >
           <img src={school} className="w-22" alt="School" />
           <span className="text-xl font-semibold">School</span>
@@ -684,11 +831,10 @@ function Step3({ form }) {
             // Optional: reset if you want, or keep previous state
             setValue("isNotAffiliated", false);
           }}
-          className={`flex flex-col items-center gap-4 p-8 rounded-xl border-2 transition-all ${
-            selectedType === "college"
-              ? "border-blue-500 bg-blue-50 text-blue-600 shadow-lg"
-              : "border-gray-300 hover:border-gray-400 text-gray-600 hover:shadow-md"
-          }`}
+          className={`flex flex-col items-center gap-4 p-8 rounded-xl border-2 transition-all ${selectedType === "college"
+            ? "border-blue-500 bg-blue-50 text-blue-600 shadow-lg"
+            : "border-gray-300 hover:border-gray-400 text-gray-600 hover:shadow-md"
+            }`}
         >
           <img src={college} className="w-22" alt="College" />
           <span className="text-xl font-semibold">College</span>
@@ -735,11 +881,10 @@ function Step3({ form }) {
                         key={board}
                         type="button"
                         onClick={() => setValue("board", board)}
-                        className={`px-6 py-3 rounded-full border-2 font-medium transition-all duration-300 ${
-                          selectedBoard === board
-                            ? "bg-blue-600 border-blue-600 text-white shadow-md scale-105"
-                            : "border-gray-300 text-gray-700 hover:bg-blue-50"
-                        }`}
+                        className={`px-6 py-3 rounded-full border-2 font-medium transition-all duration-300 ${selectedBoard === board
+                          ? "bg-blue-600 border-blue-600 text-white shadow-md scale-105"
+                          : "border-gray-300 text-gray-700 hover:bg-blue-50"
+                          }`}
                       >
                         {board}
                       </button>
