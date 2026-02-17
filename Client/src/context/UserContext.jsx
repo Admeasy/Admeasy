@@ -55,41 +55,40 @@ export function UserProvider({ children }) {
         // Store the intended path and set OAuth flag
         const intendedPath = location.pathname;
         sessionStorage.setItem('oauth_in_progress', 'true');
-        sessionStorage.setItem('oauth_intended_path', intendedPath);
+        sessionStorage.setItem('oauth_intended_path', intendedPath || '/');
 
-        // Remove the query parameter from URL (but keep the pathname)
-        navigate(intendedPath, { replace: true });
+        // Check for token in URL (fallback if cookies fail)
+        const params = new URLSearchParams(location.search);
+        const urlToken = params.get('token');
 
         // Retry function to fetch user data
-        const fetchUserWithRetry = async (retries = 3, delay = 500) => {
+        const fetchUserWithRetry = async (retries = 3, delay = 1000) => {
           for (let i = 0; i < retries; i++) {
             try {
-              // Wait before each attempt (longer delay for first attempt)
-              if (i > 0) {
-                await new Promise(resolve => setTimeout(resolve, delay));
+              // Wait before each attempt (longer delay for first attempt to ensure cookies are processed)
+              if (i === 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
               } else {
-                // First attempt: wait a bit longer to ensure cookies are set
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, delay));
               }
 
               // Try to refresh token first (optional - tokens are fresh but this ensures they're valid)
               try {
-                const refreshRes = await fetch("/api/users/refresh", {
-                  method: "POST",
-                  credentials: "include",
-                });
-                if (!refreshRes.ok) {
-                  const refreshError = await refreshRes.json().catch(() => ({}));
-                  // Token refresh failed, continuing anyway
-                  // Continue anyway - tokens might still be valid
-                }
+                // Only try refresh if not the first attempt, or if we want to be extra sure
+                // Skipping refresh on first attempt to rely on the just-set cookies
               } catch (refreshErr) {
-                // Token refresh error (non-fatal)
+                // ignore
               }
 
-              // Fetch user data directly (tokens should be in cookies)
+              // Fetch user data directly (tokens should be in cookies, or use URL token fallback)
+              const headers = {};
+              if (urlToken) {
+                headers['Authorization'] = `Bearer ${urlToken}`;
+              }
+
               const res = await fetch("/api/users/me", {
                 credentials: "include",
+                headers: headers
               });
 
               if (res.ok) {
@@ -98,40 +97,57 @@ export function UserProvider({ children }) {
 
                 // Fetch profile picture
                 try {
-                  const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+                  const imageHeaders = {};
+                  if (urlToken) imageHeaders['Authorization'] = `Bearer ${urlToken}`;
+
+                  const imageRes = await fetch('/api/users/me/pic', {
+                    credentials: 'include',
+                    headers: imageHeaders
+                  });
                   if (imageRes.ok) {
                     const imageUrl = await imageRes.json();
                     userObj.imageUrl = imageUrl;
                   }
                 } catch (imageErr) {
-                  // Failed to fetch profile picture
+                  console.error("Failed to fetch profile picture", imageErr);
                 }
 
                 setUser(userObj);
-                // Navigation will be handled by the useEffect that watches for user changes
+
+                // Clear the query parameter only after successful fetch
+                navigate(intendedPath || '/', { replace: true });
                 return true; // Success
               } else {
-                const errorData = await res.json().catch(() => ({}));
-                // Failed to fetch user
+                console.warn(`Attempt ${i + 1} failed to fetch user: ${res.status} ${res.statusText}`);
+                try {
+                  const errData = await res.json();
+                  console.warn('Error details:', errData);
+                } catch (e) { }
 
-                // If it's the last attempt, give up
+                // If 401, maybe cookies aren't there yet.
+                // If it's the last attempt, give up & navigate to login to prevent stuck state
                 if (i === retries - 1) {
                   console.error('All retry attempts failed to fetch user after OAuth');
                   setUser(null);
                   localStorage.removeItem(USER_STORAGE_KEY);
                   localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+
+                  // Clear query param and go to login
+                  navigate('/login?error=auth_failed_after_oauth', { replace: true });
                   return false;
                 }
               }
             } catch (err) {
-              // Error fetching user
+              console.error(`OAuth verification attempt ${i + 1} error:`, err);
 
               // If it's the last attempt, give up
               if (i === retries - 1) {
-                console.error('OAuth verification failed after all retries:', err);
                 setUser(null);
                 localStorage.removeItem(USER_STORAGE_KEY);
                 localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+
+                // Clear query param and go to login
+                navigate('/login?error=auth_failed_after_oauth_error', { replace: true });
                 return false;
               }
             }
@@ -151,44 +167,56 @@ export function UserProvider({ children }) {
 
       // If we are NOT a mentor, try to restore user session
       // This allows auto-login even if localStorage is cleared but cookie exists
+      // If we are NOT a mentor, try to restore user session
+      // This allows auto-login even if localStorage is cleared but cookie exists
       if (storedRole !== 'mentor') {
         try {
           // Always verify with server - localStorage is just a cache
-          await fetch("/api/users/refresh", {
-            method: "POST",
-            credentials: "include",
-          });
+          // Try refresh first to ensure valid session
+          try {
+            await fetch("/api/users/refresh", {
+              method: "POST",
+              credentials: "include",
+            });
+          } catch (e) {
+            console.log("Silent refresh attempt failed", e);
+          }
+
           const res = await fetch("/api/users/me", {
             credentials: "include",
           });
+
           if (res.ok) {
             const data = await res.json();
             let userObj = data.user;
-            const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
-            if (imageRes.ok) {
-              const imageUrl = await imageRes.json();
-              userObj.imageUrl = imageUrl;
-            }
-            setUser(userObj);
 
-            // Onboarding check removed to prevent forced redirects - handled by Banner now
+            try {
+              const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+              if (imageRes.ok) {
+                const imageUrl = await imageRes.json();
+                userObj.imageUrl = imageUrl;
+              }
+            } catch (e) {
+              console.warn("Profile pic fetch failed", e);
+            }
+
+            setUser(userObj);
           } else {
-            // Server says not authenticated, clear localStorage
-            // Only clear if we were expecting a user
-            if (storedRole === 'user' || hasStoredUser) {
-              setUser(null);
-              localStorage.removeItem(USER_STORAGE_KEY);
-              localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+            console.warn("Auth check failed with status:", res.status);
+            // Only clear if strictly unauthorized (401) or forbidden (403)
+            // For 500 errors, we might want to keep the userlogged in optimistically or just do nothing
+            if (res.status === 401 || res.status === 403) {
+              if (storedRole === 'user' || hasStoredUser) {
+                setUser(null);
+                localStorage.removeItem(USER_STORAGE_KEY);
+                localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+              }
             }
           }
         } catch (err) {
-          console.error('Auth verification failed:', err);
-          // On error, clear potentially stale data
-          if (storedRole === 'user') {
-            setUser(null);
-            localStorage.removeItem(USER_STORAGE_KEY);
-            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
-          }
+          console.error('Auth verification network failed:', err);
+          // Network error? Do NOT logout immediately. 
+          // Keep existing stale state if possible, or just do nothing.
         }
       }
       setIsLoading(false);

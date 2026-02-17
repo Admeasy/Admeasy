@@ -25,20 +25,30 @@ function generateRefreshToken(user) {
 }
 
 const setTokenCookies = (res, accessToken, refreshToken) => {
-    res.cookie('accessToken', accessToken, {
+    // Determine if we are in production
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    console.log('Setting token cookies:', {
+        isProduction,
+        env: process.env.NODE_ENV
+    });
+
+    const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        secure: isProduction, // Secure true in production
+        sameSite: isProduction ? 'none' : 'lax', // None in production for cross-site
+        domain: isProduction ? '.admeasy.in' : undefined, // Production domain
         path: '/'
+    };
+
+    res.cookie('accessToken', accessToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
     res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 28 * 24 * 60 * 60 * 1000, // 28 days
-        path: '/'
+        ...cookieOptions,
+        maxAge: 28 * 24 * 60 * 60 * 1000 // 28 days
     });
 };
 

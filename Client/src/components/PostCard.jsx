@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, ExternalLink, Youtube, Repeat2, UserPlus, UserCheck, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,7 @@ import { useMentor } from '../context/MentorContext';
 import EditPostModal from './EditPostModal';
 import ConfirmModal from './ConfirmModal';
 import { processMentions } from '../utils/processMentions';
+import { truncateHtml } from '../utils/textUtils';
 
 const PostCard = ({ post, onPostUpdate }) => {
   const navigate = useNavigate();
@@ -15,8 +16,24 @@ const PostCard = ({ post, onPostUpdate }) => {
   const { mentor } = useMentor();
   const isAuthed = Boolean(user || mentor);
 
+  // Read More State
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // SINGLE SOURCE OF TRUTH
   const [postState, setPostState] = useState(post);
+
+  // Calculate processed and truncated content
+  // Must depend on postState to reflect edits immediately
+  const processedContent = useMemo(() =>
+    processMentions(postState.content || post.content),
+    [postState.content, post.content]
+  );
+
+  const truncatedContent = useMemo(() =>
+    truncateHtml(processedContent, 30),
+    [processedContent]
+  );
+
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [isFollowing, setIsFollowing] = useState(post.isFollowing || false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
@@ -583,7 +600,7 @@ const PostCard = ({ post, onPostUpdate }) => {
         <div className="px-5 sm:px-6 pb-4">
           <div
             className="text-gray-800 break-words leading-relaxed text-sm sm:text-[15px] post-content"
-            dangerouslySetInnerHTML={{ __html: processMentions(postState.content || post.content) }}
+            dangerouslySetInnerHTML={{ __html: isExpanded ? processedContent : (truncatedContent.hasMore ? truncatedContent.html : processedContent) }}
             onClick={(e) => {
               // Handle mention link clicks
               const mentionLink = e.target.closest('a.mention-link');
@@ -615,6 +632,17 @@ const PostCard = ({ post, onPostUpdate }) => {
               }
             }}
           />
+          {truncatedContent.hasMore && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
+            >
+              {isExpanded ? 'Show less' : 'Read more'}
+            </button>
+          )}
         </div>
 
         {/* Comment Preview */}

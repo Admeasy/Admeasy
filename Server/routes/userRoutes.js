@@ -25,12 +25,16 @@ const upload = multer({ storage });
 
 
 // Helper: Get frontend URL for redirects (works for both dev and production)
+// Helper: Get frontend URL for redirects (works for both dev and production)
 function getFrontendUrl() {
     if (process.env.FRONTEND_URL) {
         return process.env.FRONTEND_URL;
     }
-    // Default based on environment
-    return process.env.NODE_ENV === 'production' ? 'https://admeasy.in' : 'http://localhost:5173';
+    // Default to production URL in production, or localhost in dev
+    if (process.env.NODE_ENV === "production") {
+        return "https://admeasy.in";
+    }
+    return "http://localhost:5173";
 }
 
 // Helper: Extract public_id from Cloudinary URL
@@ -141,6 +145,7 @@ router.post('/signup', async (req, res) => {
             user.emailVerifyToken = tokenHash;
             user.emailVerifyExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
             await user.save({ validateBeforeSave: false });
+
 
             // VERIFY URL
             const getFrontendUrl = () => {
@@ -561,6 +566,9 @@ router.get('/auth/google/callback',
             // Set cookies
             setTokenCookies(res, accessToken, refreshToken);
 
+            console.log("JWT issued:", accessToken);
+            console.log("Cookie sent to browser");
+
             // Redirect to frontend
             const frontendUrl = getFrontendUrl();
 
@@ -570,9 +578,9 @@ router.get('/auth/google/callback',
 
             // Always redirect to onboarding if incomplete, regardless of flag
             if (onboardingStatus.requiresOnboarding) {
-                res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
+                res.redirect(`${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}`);
             } else {
-                res.redirect(`${frontendUrl}/?oauth_success=true`);
+                res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
@@ -623,6 +631,7 @@ router.post('/logout', async (req, res) => {
 });
 
 // REFRESH TOKEN
+// REFRESH TOKEN
 router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
@@ -631,10 +640,45 @@ router.post('/refresh', async (req, res) => {
             return res.json({ success: true, refreshed: false, message: 'No refresh token available' });
         }
 
+        // ROLE CHECK: Verify if this is a User token before checking DB to avoid clearing Mentor cookies
+        const jwt = require('jsonwebtoken'); // Ensure jwt is available
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        } catch (err) {
+            // Verify failed (expired or invalid)
+            // SAFELY check if it was a Mentor token before clearing cookies
+            const unsafeDecoded = jwt.decode(refreshToken);
+            if (unsafeDecoded && unsafeDecoded.role && unsafeDecoded.role !== 'user') {
+                return res.status(403).json({ success: false, message: 'Role mismatch' });
+            }
+
+            // It was a user token (or unknown), so safe to clear
+            res.clearCookie('accessToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/'
+            });
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/'
+            });
+            return res.json({ success: true, refreshed: false, message: 'Invalid or expired refresh token' });
+        }
+
+        // Verify succeeded
+        if (decoded.role && decoded.role !== 'user') {
+            // Valid token but not for User
+            return res.status(403).json({ success: false, message: 'Role mismatch' });
+        }
+
         // Check if user exists and has this refresh token (not logged out)
         const user = await User.findOne({ refreshToken });
         if (!user) {
-            // User has logged out or token is invalid, clear cookies
+            // User has logged out or token is invalid/revoked, clear cookies
             res.clearCookie('accessToken', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
@@ -650,33 +694,18 @@ router.post('/refresh', async (req, res) => {
             return res.json({ success: true, refreshed: false, message: 'User has logged out' });
         }
 
-        try {
-            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-            const newAccessToken = generateAccessToken(user);
-            res.cookie('accessToken', newAccessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-                path: '/'
-            });
-            res.json({ success: true, refreshed: true });
-        } catch (err) {
-            // Refresh token is invalid or expired, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            return res.json({ success: true, refreshed: false, message: 'Invalid or expired refresh token' });
-        }
+        // Issue new access token
+        const newAccessToken = generateAccessToken(user);
+        res.cookie('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            domain: process.env.NODE_ENV === 'production' ? '.admeasy.in' : undefined,
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/'
+        });
+        res.json({ success: true, refreshed: true });
+
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -720,7 +749,14 @@ router.get('/me', async (req, res) => {
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }
-        if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
+        if (!user) {
+            console.log('GET /me failed: User not found or not authenticated', {
+                hasUser: !!req.user,
+                authHeader: req.headers.authorization ? 'Present' : 'Missing',
+                cookie: req.cookies['accessToken'] ? 'Present' : 'Missing'
+            });
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
 
         // Process the user's image (handle Google URLs vs Backblaze files)
         const processedUser = await processUserImage(user);
@@ -807,7 +843,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
         const {
-            name, institute, course, phone, gender,
+            name, institute, course, phone, gender, dateOfBirth,
             languages, city, educationType, board, universityName,
             class: userClass, stream, schoolName, courseLevel, courseDetails,
             collegeName, examsPreparingFor, reasonForAdmeasy, reasonForAdmeasyInput
@@ -843,7 +879,16 @@ router.put('/me', upload.single('image'), async (req, res) => {
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
+
         if (gender) user.gender = gender;
+        if (dateOfBirth) {
+            const dobDate = new Date(dateOfBirth);
+            const today = new Date();
+            if (dobDate > today) {
+                return res.status(400).json({ success: false, message: 'Date of Birth cannot be in the future' });
+            }
+            user.dateOfBirth = dobDate;
+        }
 
         // Onboarding fields - handle JSON strings from FormData
         if (languages !== undefined) {
@@ -1424,7 +1469,7 @@ router.get('/:targetId/follow-status', async (req, res) => {
  * GET /api/users/:targetId/followers
  * Get list of followers for a user or mentor
  */
-router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
+router.get('/:targetId/followers', async (req, res) => {
     try {
         const targetId = req.params.targetId;
         const Mentor = require('../models/mentorSchema.js');
@@ -1483,7 +1528,7 @@ router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
  * GET /api/users/:targetId/following
  * Get list of users/mentors that the target is following
  */
-router.get('/:targetId/following', authenticateRequired, async (req, res) => {
+router.get('/:targetId/following', async (req, res) => {
     try {
         const targetId = req.params.targetId;
         const Mentor = require('../models/mentorSchema.js');

@@ -9,8 +9,6 @@ import LoadingButton from '../components/LoadingButton';
 import { useNavigate } from 'react-router-dom';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
-
-
 // Crop helper function
 const createImage = (url) =>
   new Promise((resolve, reject) => {
@@ -72,7 +70,8 @@ export default function MentorsProfile() {
     course: { name: '', id: '' },
     college: { name: '', id: '' },
     aboutYou: '',
-    oneLiner: ''
+    oneLiner: '',
+    dateOfBirth: ''
   });
 
   const [profilePic, setProfilePic] = useState(null);
@@ -243,7 +242,8 @@ export default function MentorsProfile() {
         course: normalizedCourse,
         college: normalizedCollege,
         aboutYou: mentorData.bio || '',
-        oneLiner: mentorData.tagline || ''
+        oneLiner: mentorData.tagline || '',
+        dateOfBirth: mentorData.dateOfBirth ? new Date(mentorData.dateOfBirth).toISOString().split('T')[0] : ''
       });
 
       if (mentorData.imageUrl) {
@@ -335,7 +335,7 @@ export default function MentorsProfile() {
     }
 
     setIsSubmitting(true);
-
+    console.log(formData)
     try {
       const payload = new FormData();
 
@@ -369,6 +369,7 @@ export default function MentorsProfile() {
       }
       payload.append('bio', formData.aboutYou);
       payload.append('tagline', formData.oneLiner);
+      payload.append('dateOfBirth', formData.dateOfBirth);
 
       // Always process exams, defaulting to empty array if none
       const validExams = exams
@@ -597,6 +598,19 @@ export default function MentorsProfile() {
               rows="4"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Tell us about yourself..."
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleInputChange}
+              max={new Date().toISOString().split("T")[0]}
+              min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split("T")[0]}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 

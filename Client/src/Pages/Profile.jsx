@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -28,12 +28,12 @@ export default function Profile() {
   useEffect(() => {
     // Wait for user/mentor data to load before checking
     if (mentorLoading || userLoading) return;
-    
+
     if (username && location.pathname !== '/me') {
-      const isOwnProfile = 
+      const isOwnProfile =
         (currentMentor && currentMentor.username === username) ||
         (currentUser && currentUser.username === username);
-      
+
       if (isOwnProfile) {
         navigate('/me', { replace: true });
       }
@@ -277,7 +277,7 @@ export default function Profile() {
         setPostsLoading(false);
         return;
       }
-      
+
       setPostsLoading(true);
       try {
         const endpoint = profileType === 'mentor'
@@ -322,7 +322,7 @@ export default function Profile() {
   // Function to load all posts
   const handleShowAllPosts = async () => {
     if (!profile || !profile._id || showAllPosts) return;
-    
+
     setPostsLoading(true);
     try {
       const endpoint = profileType === 'mentor'
@@ -874,6 +874,27 @@ export default function Profile() {
                     )}
                   </>
                 )}
+
+                {/* Age Display for Mentors */}
+                {isMentor && profile.dateOfBirth && (() => {
+                  const dob = new Date(profile.dateOfBirth);
+                  const today = new Date();
+                  let age = today.getFullYear() - dob.getFullYear();
+                  const m = today.getMonth() - dob.getMonth();
+                  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                  }
+
+                  if (age > 0) {
+                    return (
+                      <div className="flex items-center gap-2 text-sm sm:text-base text-gray-700">
+                        <Calendar size={18} className="text-green-600 flex-shrink-0" />
+                        <span>{age} years old</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Action Button for Non-Owners */}
