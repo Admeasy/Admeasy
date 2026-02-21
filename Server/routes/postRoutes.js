@@ -53,16 +53,16 @@ async function populateUser(userId) {
 // Extracts @username patterns from HTML content
 function extractMentions(content) {
   if (!content || typeof content !== 'string') return [];
-  
+
   // Remove HTML tags and get plain text
   const plainText = content.replace(/<[^>]*>/g, ' ');
-  
+
   // Match @username patterns (alphanumeric and underscore)
   const mentionRegex = /@([a-zA-Z0-9_]+)/g;
   const matches = plainText.match(mentionRegex);
-  
+
   if (!matches) return [];
-  
+
   // Extract unique usernames (remove @ symbol)
   const usernames = [...new Set(matches.map(match => match.substring(1)))];
   return usernames;
@@ -301,7 +301,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean();
-      
+
       const total = await Post.countDocuments();
       feedResult = {
         posts: fallbackPosts,
@@ -313,7 +313,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         },
       };
     }
-    
+
     const posts = feedResult.posts;
 
     // OPTIMIZED: Batch all user lookups to avoid N+1 queries
@@ -377,7 +377,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
           isMentor: false,
         });
       });
-      
+
       // Fetch mentors (check which IDs are mentors)
       const commentMentors = await Mentor.find({ _id: { $in: commentAuthorIdsArray } })
         .select('name image _id username')
@@ -460,14 +460,22 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         // Separate mentor and user comments
         const mentorComments = [];
         const userComments = [];
-        
+
         allComments.forEach(comment => {
+          // Skip comments that engage in "self-replying" with identical content
+          // This prevents the "double vision" effect where post content appears as a comment
+          const stripHtml = (html) => (html || '').replace(/<[^>]*>/g, '').trim();
+          if (stripHtml(comment.content) === stripHtml(post.content)) {
+            return;
+          }
+
           if (comment.userId) {
             // Handle both ObjectId (from .lean()) and populated objects
-            const commentUserId = comment.userId._id 
-              ? comment.userId._id.toString() 
+            const commentUserId = comment.userId._id
+              ? comment.userId._id.toString()
               : comment.userId.toString();
             const commentAuthor = commentAuthorsMap.get(commentUserId);
+
             if (commentAuthor && commentAuthor.isMentor) {
               mentorComments.push(comment);
             } else if (commentAuthor) {
@@ -482,11 +490,11 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
 
         // Prioritize mentor comments
         const selectedComment = mentorComments.length > 0 ? mentorComments[0] : (userComments.length > 0 ? userComments[0] : null);
-        
+
         if (selectedComment && selectedComment.userId) {
           // Handle both ObjectId (from .lean()) and populated objects
-          const commentUserId = selectedComment.userId._id 
-            ? selectedComment.userId._id.toString() 
+          const commentUserId = selectedComment.userId._id
+            ? selectedComment.userId._id.toString()
             : selectedComment.userId.toString();
           const commentAuthor = commentAuthorsMap.get(commentUserId);
           if (commentAuthor) {
@@ -1395,7 +1403,7 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
     );
 
     const wasLiked = existingLikeIndex > -1;
-    
+
     if (existingLikeIndex > -1) {
       post.likes.splice(existingLikeIndex, 1);
       post.likesCount = Math.max(0, post.likesCount - 1);
@@ -1698,7 +1706,7 @@ router.post("/:postId/comments/:commentId/like", authenticateRequired, async (re
           const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
           const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
           const recipientId = comment.userId;
-          
+
           // Determine recipient role - need to check if it's a user or mentor
           // For now, assume user (could be enhanced to check actual role)
           const recipientRole = 'user';
@@ -1850,7 +1858,7 @@ router.delete("/:postId/comments/:commentId", authenticateRequired, async (req, 
 router.get("/mentions/search", async (req, res) => {
   try {
     const { q = "" } = req.query;
-    
+
     if (!q.trim()) {
       return res.json({
         success: true,

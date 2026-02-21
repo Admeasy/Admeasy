@@ -41,29 +41,29 @@ const MentorSuggestionSwiper = () => {
   function isLikelyFemaleName(name) {
     if (!name) return false;
     const nameLower = name.toLowerCase().trim();
-    
+
     // Common female name endings in Indian names
     const femaleEndings = ['a', 'i', 'ya', 'iya', 'ika', 'ita', 'ina', 'ani', 'ini', 'priya', 'shree', 'shri'];
     const femalePatterns = ['devi', 'kumari', 'bai', 'ben', 'begum'];
-    
+
     // Check for common female name patterns
     for (const pattern of femalePatterns) {
       if (nameLower.includes(pattern)) return true;
     }
-    
+
     // Check for common endings
     for (const ending of femaleEndings) {
       if (nameLower.endsWith(ending) && nameLower.length > 2) {
         return true;
       }
     }
-    
+
     // Common female first names (Indian context)
     const commonFemaleNames = ['priya', 'kavya', 'ananya', 'aditi', 'sneha', 'neha', 'riya', 'diya', 'tanya', 'puja', 'meera', 'radha', 'sita', 'laxmi', 'saraswati', 'durga', 'parvati', 'ganga', 'yamuna', 'vedika', 'veda', 'vedha'];
     for (const femaleName of commonFemaleNames) {
       if (nameLower.includes(femaleName)) return true;
     }
-    
+
     return false;
   }
 
@@ -72,7 +72,7 @@ const MentorSuggestionSwiper = () => {
     const femaleMentors = [];
     const maleMentors = [];
     const unknownMentors = [];
-    
+
     mentors.forEach(mentor => {
       const name = mentor.name || '';
       if (isLikelyFemaleName(name)) {
@@ -84,22 +84,22 @@ const MentorSuggestionSwiper = () => {
         unknownMentors.push(mentor);
       }
     });
-    
+
     // Shuffle each group
     const shuffledFemale = shuffleArray(femaleMentors);
     const shuffledMale = shuffleArray(maleMentors);
     const shuffledUnknown = shuffleArray(unknownMentors);
-    
+
     // Prioritize female mentors: 70% female, 30% male/unknown
     const targetFemaleCount = Math.ceil(mentors.length * 0.7);
     const targetMaleCount = mentors.length - targetFemaleCount;
-    
+
     const result = [
       ...shuffledFemale.slice(0, Math.min(targetFemaleCount, shuffledFemale.length)),
       ...shuffledMale.slice(0, Math.min(targetMaleCount, shuffledMale.length)),
       ...shuffledUnknown.slice(0, Math.max(0, targetMaleCount - shuffledMale.length))
     ];
-    
+
     // Shuffle the final result slightly to mix them, but keep female majority
     return shuffleArray(result);
   }
@@ -110,9 +110,9 @@ const MentorSuggestionSwiper = () => {
         setLoading(true);
         const response = await fetch("/api/mentors/");
         if (!response.ok) throw new Error("Failed to fetch mentors");
-        
+
         const data = await response.json();
-        
+
         // Filter out current user/mentor if logged in
         let filteredMentors = data;
         if (isAuthed) {
@@ -120,7 +120,7 @@ const MentorSuggestionSwiper = () => {
           if (currentId) {
             filteredMentors = data.filter(m => m._id?.toString() !== currentId.toString());
           }
-          
+
           // Filter out mentors that user is already following
           if (user?.following && Array.isArray(user.following) && user.following.length > 0) {
             const followingIds = new Set(user.following.map(id => id.toString()));
@@ -138,7 +138,7 @@ const MentorSuggestionSwiper = () => {
         // Fetch images for each mentor candidate
         const mentorsWithImages = await Promise.all(
           candidatesToCheck.map(async (mentor) => {
-            let imageUrl = fallbackImage;
+            let imageUrl = mentor.image || fallbackImage;
             if (mentor._id) {
               try {
                 const imageRes = await fetch(`/api/mentors/${mentor._id}/pic`);
@@ -162,7 +162,7 @@ const MentorSuggestionSwiper = () => {
           const hasName = mentor.name && mentor.name.trim() !== "";
           const hasUsername = mentor.username && mentor.username.trim() !== "";
           const hasProfilePic = mentor.imageUrl && mentor.imageUrl !== fallbackImage;
-          
+
           // Keep mentor if they have at least one of: name, username, or profile picture
           return hasName || hasUsername || hasProfilePic;
         });
@@ -349,9 +349,9 @@ const MentorSuggestionSwiper = () => {
             });
           }}
           breakpoints={{
-            0: { slidesPerView: 2.2, spaceBetween: 12 },
-            640: { slidesPerView: 3.5, spaceBetween: 16 },
-            1024: { slidesPerView: 4.5, spaceBetween: 20 },
+            0: { slidesPerView: 1.5, spaceBetween: 12 },
+            640: { slidesPerView: 2.5, spaceBetween: 16 },
+            1024: { slidesPerView: 4.2, spaceBetween: 20 },
           }}
           className="pb-2"
         >
@@ -360,77 +360,18 @@ const MentorSuggestionSwiper = () => {
             const isLoading = loadingFollows[mentorItem._id] || false;
             const mentorProfilePath = mentorItem.username ? `/${mentorItem.username}` : null;
 
-            return (
-              <SwiperSlide key={mentorItem._id || index} className="h-auto">
-                {mentorProfilePath ? (
-                  <Link
-                    to={mentorProfilePath}
-                    className="block h-full"
-                  >
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="flex flex-col items-center justify-between h-[200px] p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
-                    >
-                      {/* Profile Image */}
-                      <div className="relative flex-shrink-0">
-                        <img
-                          src={mentorItem.imageUrl || fallbackImage}
-                          alt={mentorItem.name || "Mentor"}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
-                          onError={(e) => {
-                            if (e.target.src !== fallbackImage) {
-                              e.target.src = fallbackImage;
-                            }
-                          }}
-                        />
-                      </div>
-
-                      {/* Name - fixed height to ensure alignment */}
-                      <h4 className="text-sm font-semibold text-gray-900 text-center line-clamp-2 min-h-[2.5rem] flex items-center justify-center">
-                        {mentorItem.name || "Mentor"}
-                      </h4>
-
-                      {/* Follow Button */}
-                      <button
-                        onClick={(e) => handleFollow(e, mentorItem._id)}
-                        disabled={isLoading}
-                        className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 flex-shrink-0 ${
-                          isFollowing
-                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                            : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/50"
-                        }`}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : isFollowing ? (
-                          <>
-                            <UserCheck className="w-3 h-3" />
-                            <span>Following</span>
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="w-3 h-3" />
-                            <span>Follow</span>
-                          </>
-                        )}
-                      </button>
-                    </motion.div>
-                  </Link>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="flex flex-col items-center justify-between h-[200px] p-4 bg-gray-50 rounded-xl cursor-default"
-                  >
-                    {/* Profile Image */}
-                    <div className="relative flex-shrink-0">
+            // Shared Layout Content
+            const CardContent = () => (
+              <>
+                <div className="flex flex-col items-center w-full flex-1">
+                  {/* Profile Image - Top Center */}
+                  <div className="relative mb-3">
+                    <div className="w-20 h-20 rounded-full p-1 bg-white shadow-sm border border-gray-100">
                       <img
                         src={mentorItem.imageUrl || fallbackImage}
                         alt={mentorItem.name || "Mentor"}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                        loading="lazy"
+                        className="w-full h-full rounded-full object-cover"
                         onError={(e) => {
                           if (e.target.src !== fallbackImage) {
                             e.target.src = fallbackImage;
@@ -438,36 +379,87 @@ const MentorSuggestionSwiper = () => {
                         }}
                       />
                     </div>
+                  </div>
 
-                    {/* Name - fixed height to ensure alignment */}
-                    <h4 className="text-sm font-semibold text-gray-900 text-center line-clamp-2 min-h-[2.5rem] flex items-center justify-center">
-                      {mentorItem.name || "Mentor"}
+                  {/* Text Content */}
+                  <div className="text-center w-full px-1">
+                    {/* Full Name */}
+                    <h4 className="text-sm font-bold text-gray-900 line-clamp-1 mb-0.5">
+                      {mentorItem.name || "Admeasy Mentor"}
                     </h4>
 
-                    {/* Follow Button */}
-                    <button
-                      onClick={(e) => handleFollow(e, mentorItem._id)}
-                      disabled={isLoading}
-                      className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 flex-shrink-0 ${
-                        isFollowing
-                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/50"
+                    {/* Username */}
+                    {mentorItem.username && (
+                      <p className="text-xs text-gray-400 font-medium mb-2">
+                        @{mentorItem.username}
+                      </p>
+                    )}
+
+                    {/* College Name */}
+                    {(mentorItem.college?.name || typeof mentorItem.college === 'string') && (
+                      <p className="text-xs font-semibold text-gray-700 line-clamp-1 mb-1 leading-tight" title={mentorItem.college?.name || mentorItem.college}>
+                        {mentorItem.college?.name || mentorItem.college}
+                      </p>
+                    )}
+
+                    {/* Course */}
+                    {(mentorItem.course?.name || typeof mentorItem.course === 'string') && (
+                      <p className="text-[10px] text-gray-500 line-clamp-1 font-medium bg-gray-100 px-2 py-0.5 rounded-full inline-block mt-1" title={mentorItem.course?.name || mentorItem.course}>
+                        {mentorItem.course?.name || mentorItem.course}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Follow Button - Fixed at bottom */}
+                <div className="w-full mt-3">
+                  <button
+                    onClick={(e) => handleFollow(e, mentorItem._id)}
+                    disabled={isLoading}
+                    className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${isFollowing
+                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                      : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30"
                       }`}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : isFollowing ? (
+                      <>
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Following</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Follow</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            );
+
+            return (
+              <SwiperSlide key={mentorItem._id || index} className="h-auto">
+                {mentorProfilePath ? (
+                  <Link to={mentorProfilePath} className="block h-full">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="flex flex-col items-center justify-between h-[280px] p-4 bg-white rounded-xl border border-gray-100 hover:border-[#9f3562]/20 hover:shadow-lg hover:shadow-pink-50 transition-all duration-300 cursor-pointer group"
                     >
-                      {isLoading ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : isFollowing ? (
-                        <>
-                          <UserCheck className="w-3 h-3" />
-                          <span>Following</span>
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-3 h-3" />
-                          <span>Follow</span>
-                        </>
-                      )}
-                    </button>
+                      <CardContent />
+                    </motion.div>
+                  </Link>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="flex flex-col items-center justify-between h-[280px] p-4 bg-white rounded-xl border border-gray-100 hover:border-[#9f3562]/20 hover:shadow-lg hover:shadow-pink-50 transition-all duration-300 cursor-default group"
+                  >
+                    <CardContent />
                   </motion.div>
                 )}
               </SwiperSlide>
@@ -483,7 +475,7 @@ const MentorSuggestionSwiper = () => {
               whileTap={{ scale: 0.95 }}
               className="px-6 py-2.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-300 flex items-center gap-2"
             >
-              <span>Discover more</span>
+              <span>View All</span>
               <IoIosArrowForward className="w-4 h-4" />
             </motion.button>
           </Link>

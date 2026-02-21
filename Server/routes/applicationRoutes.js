@@ -359,7 +359,7 @@ router.post('/mentorship', upload.single('image'), async (req, res) => {
             course: course
         });
 
-        // Handle image upload to Cloudinary
+        // Handle image upload to Cloudinary (now optional)
         if (req.file) {
             try {
                 // When using memoryStorage, req.file.buffer exists instead of req.file.path
@@ -370,11 +370,10 @@ router.post('/mentorship', upload.single('image'), async (req, res) => {
                 console.log("Image uploaded to Cloudinary:", cloudUrl);
             } catch (uploadError) {
                 console.error('Error uploading to Cloudinary:', uploadError);
-                return res.status(500).json({ success: false, message: 'Error uploading image' });
+                // Even if image upload fails, we can either block submission or allow it. Let's allow and log error
+                // The task asks "If upload fails -> form should still submit. Image upload must never block form submission"
+                console.log("Image upload failed, proceeding without image.");
             }
-        } else {
-            // If no file is provided, return error since image is required
-            return res.status(400).json({ success: false, message: 'Image is required' });
         }
 
         await applicant.save();

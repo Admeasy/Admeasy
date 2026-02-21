@@ -645,63 +645,7 @@ const PostCard = ({ post, onPostUpdate }) => {
           )}
         </div>
 
-        {/* Comment Preview */}
-        {postState.commentPreview && (
-          <div className="px-5 sm:px-6 pb-3 sm:pb-4">
-            {postState.commentPreview.isMentor && (
-              <div className="mb-2">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm">
-                  Mentor Comment
-                </span>
-              </div>
-            )}
-            <div className="flex items-start gap-2.5 sm:gap-3">
-              <img
-                src={postState.commentPreview.author?.image || fallbackProfilePic}
-                alt={postState.commentPreview.author?.name || 'User'}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border border-gray-200"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className="text-xs sm:text-sm font-semibold text-gray-900 cursor-pointer hover:text-[#9f3562] transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (postState.commentPreview.author?.username) {
-                        navigate(`/${postState.commentPreview.author.username}`);
-                      }
-                    }}
-                  >
-                    {postState.commentPreview.author?.name || 'User'}
-                  </span>
-                  {postState.commentPreview.author?.username && (
-                    <span
-                      className="text-xs text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/${postState.commentPreview.author.username}`);
-                      }}
-                    >
-                      @{postState.commentPreview.author.username}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-2"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {postState.commentPreview.content}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Post Image */}
         {post.image && (

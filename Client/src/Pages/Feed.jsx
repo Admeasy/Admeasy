@@ -10,6 +10,9 @@ import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import AdCard from '../components/AdCard';
+import NoteSuggestionSwiper from '../components/NoteSuggestionSwiper';
+import BlogSuggestionSwiper from '../components/BlogSuggestionSwiper';
+import CollegeSuggestionSwiper from '../components/CollegeSuggestionSwiper';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -118,7 +121,19 @@ const Feed = () => {
       }
 
       setPosts((prev) => {
-        const newPosts = append ? [...prev, ...data.posts] : data.posts;
+        // Deduplicate posts based on _id
+        const incomingPosts = append ? data.posts : data.posts;
+        const existingIds = new Set(prev.map(p => p._id));
+
+        let newPosts;
+        if (append) {
+          // Filter out duplicates from incoming posts
+          const uniqueIncoming = incomingPosts.filter(p => !existingIds.has(p._id));
+          newPosts = [...prev, ...uniqueIncoming];
+        } else {
+          newPosts = incomingPosts;
+        }
+
         // Save state after updating posts
         setTimeout(() => {
           saveFeedState(pageNum, newPosts, window.scrollY);
@@ -128,7 +143,7 @@ const Feed = () => {
 
       setHasMore(
         data.posts.length === 20 &&
-        pageNum < data.pagination.pages
+        pageNum < (data.pagination.pages || 100) // Fallback for pages
       );
       setPage(pageNum);
 
@@ -174,27 +189,27 @@ const Feed = () => {
   // Restore scroll position and load saved state
   useEffect(() => {
     // Check if we're returning from a post detail page
-    const isReturningFromPost = document.referrer.includes('/posts/') || 
-                                 sessionStorage.getItem('admeasy:fromPostDetail') === 'true';
-    
+    const isReturningFromPost = document.referrer.includes('/posts/') ||
+      sessionStorage.getItem('admeasy:fromPostDetail') === 'true';
+
     if (isReturningFromPost) {
       sessionStorage.removeItem('admeasy:fromPostDetail');
     }
-    
+
     const savedState = loadFeedState();
-    
+
     // Always restore if we have saved state and are returning from post detail
     // OR if saved state is recent (within 10 minutes)
     const shouldRestore = savedState && (
-      isReturningFromPost || 
+      isReturningFromPost ||
       (Date.now() - savedState.timestamp < 10 * 60 * 1000)
     );
-    
+
     if (shouldRestore && savedState.scrollPosition > 0) {
       // We have saved state, restore it
       shouldRestoreScrollRef.current = true;
       setPage(savedState.page);
-      
+
       // Load all pages up to saved page
       const loadAllPages = async () => {
         setLoading(true);
@@ -213,16 +228,16 @@ const Feed = () => {
             }
           }
           setPosts(allPosts);
-          
+
           // Restore scroll position after posts are fully rendered
           // Use multiple attempts to ensure DOM is ready
           let attempts = 0;
           const maxAttempts = 10;
-          
+
           const restoreScroll = () => {
             attempts++;
             const scrollTarget = savedState.scrollPosition || 0;
-            
+
             // Check if we can scroll to the target position
             if (scrollTarget > 0 && document.body.scrollHeight >= scrollTarget) {
               window.scrollTo({
@@ -242,7 +257,7 @@ const Feed = () => {
               shouldRestoreScrollRef.current = false;
             }
           };
-          
+
           // Start restoration after initial render
           setTimeout(restoreScroll, 100);
         } catch (err) {
@@ -253,7 +268,7 @@ const Feed = () => {
           setLoading(false);
         }
       };
-      
+
       loadAllPages();
     } else {
       // No saved state or not returning from post, normal load
@@ -300,7 +315,7 @@ const Feed = () => {
     let scrollTimeout;
     const handleScroll = () => {
       if (shouldRestoreScrollRef.current) return; // Don't save during restoration
-      
+
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         // Save immediately with current scroll position
@@ -333,11 +348,11 @@ const Feed = () => {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     // Save state when location changes (user navigates to post detail)
     // Also save on visibility change (tab switch)
     document.addEventListener('visibilitychange', handleLocationChange);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleLocationChange);
@@ -507,6 +522,12 @@ const Feed = () => {
                     {index === 0 && <MentorSuggestionSwiper />}
                     {/* Add space suggestion swiper after the 3rd post */}
                     {index === 2 && <SpaceSuggestionSwiper />}
+                    {/* Add note suggestion swiper after the 5th post */}
+                    {index === 4 && <NoteSuggestionSwiper />}
+                    {/* Add blog suggestion swiper after the 7th post */}
+                    {index === 6 && <BlogSuggestionSwiper />}
+                    {/* Add college suggestion swiper after the 9th post */}
+                    {index === 8 && <CollegeSuggestionSwiper />}
                     {/* Insert ad after every 5 posts */}
                     {ad && (
                       <div className="mt-8">
@@ -519,7 +540,7 @@ const Feed = () => {
 
               {/* Infinite scroll trigger */}
               {hasMore && (
-                <div 
+                <div
                   ref={observerTargetRef}
                   className="flex justify-center pt-8 pb-12 min-h-[100px]"
                 >
