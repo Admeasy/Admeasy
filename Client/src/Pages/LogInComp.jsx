@@ -60,29 +60,31 @@ const LogInComp = ({ setAuthMode, onNotVerified }) => {
       });
       const data = await res.json();
 
-      if (res.ok) {
+if (res.ok) {
         setEmail('');
         setPassword('');
         setMentor(null);
-        const loggedInUser = await fetchUser();
+        
+        // Pass the switchToken from backend to fetchUser so it saves the account
+        const loggedInUser = await fetchUser(data.switchToken); 
+        
         if (loggedInUser) {
           enableNotifications(loggedInUser._id, "user", true);
         }
 
-        // Check if onboarding is required
         const requiresOnboarding = data.requiresOnboarding || 
                                   !data.hasCompletedOnboarding ||
                                   (data.onboardingStatus && !data.onboardingStatus.isComplete);
 
         if (requiresOnboarding && loggedInUser) {
-          const userId = loggedInUser._id || loggedInUser.id;
           toast.info("Please complete your profile to continue");
-          navigate(`/onboarding/${userId}`, { replace: true });
+          navigate(`/onboarding/${loggedInUser._id}`, { replace: true });
         } else {
           toast.success("You're all set!");
           navigate('/');
         }
-      } else {
+      }
+      else {
 
         if (data.isNotVerified) {
           onNotVerified(email);

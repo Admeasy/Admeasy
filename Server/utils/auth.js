@@ -24,6 +24,19 @@ function generateRefreshToken(user) {
     );
 }
 
+// NEW: Generates a long-lived token specifically for switching accounts without a password
+function generateSwitchToken(user) {
+    return jwt.sign(
+        {
+            id: user._id,
+            email: user.email,
+            role: user.role || 'user'
+        },
+        process.env.JWT_REFRESH_SECRET, // Reusing refresh secret
+        { expiresIn: '365d' } // Valid for 1 year like Instagram
+    );
+}
+
 const setTokenCookies = (res, accessToken, refreshToken) => {
     res.cookie('accessToken', accessToken, {
         httpOnly: true,
@@ -45,5 +58,6 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
 module.exports = {
     generateAccessToken,
     generateRefreshToken,
+    generateSwitchToken,
     setTokenCookies
 };
