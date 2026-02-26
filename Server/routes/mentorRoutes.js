@@ -10,6 +10,7 @@ const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
 const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary');
 const { mentorForgotPassword, mentorResetPassword } = require('../controllers/mentorController');
+const { clearTokenCookies, setTokenCookies } = require('../utils/auth');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -410,18 +411,7 @@ router.post('/refresh', async (req, res) => {
             }
 
             // It was a mentor token (or unknown), so safe to clear
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
+            clearTokenCookies(res);
             return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
         }
 
@@ -434,18 +424,7 @@ router.post('/refresh', async (req, res) => {
         const mentor = await Mentor.findOne({ refreshToken });
         if (!mentor) {
             // User has logged out or token is invalid, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
+            clearTokenCookies(res);
             return res.status(403).json({ success: false, message: 'User has logged out' });
         }
 
@@ -473,16 +452,7 @@ router.post('/logout', authenticateMentorJWT, async (req, res) => {
         await Mentor.findByIdAndUpdate(req.mentor.id, { refreshToken: null });
 
         // Clear cookies
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax'
-        });
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax'
-        });
+        clearTokenCookies(res);
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
         console.log(err);

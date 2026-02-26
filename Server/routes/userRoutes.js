@@ -1,7 +1,7 @@
 const express = require('express');
 const { resetPassword, forgotPassword } = require('../controllers/userController.js')
 const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
-const { generateAccessToken, generateRefreshToken, setTokenCookies } = require('../utils/auth.js');
+const { generateAccessToken, generateRefreshToken, setTokenCookies, clearTokenCookies } = require('../utils/auth.js');
 const router = express.Router();
 const User = require('../models/userSchema.js');
 const crypto = require('crypto')
@@ -610,18 +610,7 @@ router.post('/logout', async (req, res) => {
         }
 
         // Clear cookies
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/'
-        });
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/'
-        });
+        clearTokenCookies(res);
 
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
@@ -654,18 +643,7 @@ router.post('/refresh', async (req, res) => {
             }
 
             // It was a user token (or unknown), so safe to clear
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
+            clearTokenCookies(res);
             return res.json({ success: true, refreshed: false, message: 'Invalid or expired refresh token' });
         }
 
@@ -679,18 +657,7 @@ router.post('/refresh', async (req, res) => {
         const user = await User.findOne({ refreshToken });
         if (!user) {
             // User has logged out or token is invalid/revoked, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
+            clearTokenCookies(res);
             return res.json({ success: true, refreshed: false, message: 'User has logged out' });
         }
 
@@ -726,11 +693,7 @@ router.get('/me', async (req, res) => {
                 user = await User.findById(decoded.id).select('-password -refreshToken');
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         } else if (req.cookies['accessToken']) {
@@ -741,11 +704,7 @@ router.get('/me', async (req, res) => {
                 user = await User.findById(decoded.id).select('-password -refreshToken');
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }
@@ -817,11 +776,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         } else if (req.cookies['accessToken']) {
@@ -832,11 +787,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }
@@ -979,11 +930,7 @@ router.get('/me/pic', async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         } else if (req.cookies['accessToken']) {
@@ -994,11 +941,7 @@ router.get('/me/pic', async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }

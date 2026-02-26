@@ -52,8 +52,23 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     });
 };
 
+const clearTokenCookies = (res) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        domain: isProduction ? '.admeasy.in' : undefined,
+        path: '/'
+    };
+
+    res.clearCookie('accessToken', cookieOptions);
+    res.clearCookie('refreshToken', cookieOptions);
+};
+
 module.exports = {
     generateAccessToken,
     generateRefreshToken,
-    setTokenCookies
+    setTokenCookies,
+    clearTokenCookies
 };

@@ -144,7 +144,7 @@ function App() {
     const loggedInAccount = user || mentor;
     const role = mentor ? 'mentor' : 'user';
 
-    if (loggedInAccount && Notification.permission !== 'granted') {
+    if (loggedInAccount && typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission !== 'granted') {
       // Small delay to not interfere with initial page load
       const timer = setTimeout(() => {
         enableNotifications(loggedInAccount._id, role);
