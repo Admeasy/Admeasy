@@ -446,7 +446,7 @@ const Feed = () => {
       />
 
       {/* Notification Bell */}
-      <NotificationBell />
+      {/* <NotificationBell /> */}
 
       {/* Ask Doubt CTA */}
       <AskDoubtCTA />
