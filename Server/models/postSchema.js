@@ -18,6 +18,10 @@ const postSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    hashtags: [{          // NEW: Array of strings for hashtags
+      type: String,
+      trim: true,
+    }],
     image: {
       type: String, // Cloudinary URL
       default: null,
@@ -149,6 +153,7 @@ postSchema.pre('validate', function(next) {
 });
 
 // Indexes for efficient queries
+postSchema.index({ hashtags: 1 });
 postSchema.index({ mentorId: 1, createdAt: -1 });
 postSchema.index({ userId: 1, createdAt: -1 });
 postSchema.index({ createdAt: -1 });

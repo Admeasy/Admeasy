@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
-const buildFilter = ({ search, university, programme, course }) => {
+const buildFilter = ({ search, university, programme, course, hashtag }) => { // Added hashtag
   const filter = { status: 'published' };
 
   if (search) {
@@ -15,7 +15,13 @@ const buildFilter = ({ search, university, programme, course }) => {
       { description: regex },
       { uploaderName: regex },
       { tags: regex },
+      { hashtags: regex } // NEW
     ];
+  }
+
+  if (hashtag) {
+    // If user clicks a tag, e.g. ?hashtag=React, find notes containing it
+    filter.hashtags = { $in: [hashtag] }; 
   }
 
   if (university && university !== 'all') {
@@ -109,8 +115,7 @@ exports.uploadNote = async (req, res) => {
       });
     }
 
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags } = req.body;
-
+    const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags } = req.body;
     // Validate required fields
     const missingFields = [];
     if (!title || !title.trim()) missingFields.push('title');
@@ -246,6 +251,7 @@ exports.uploadNote = async (req, res) => {
         programme: programme.trim().toLowerCase(),
         course: course.trim().toLowerCase(),
         tags: tags && tags.trim() ? tags.trim() : undefined,
+        hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse the incoming stringified array
         fileUrl: cloudinaryResult.secure_url,
         fileSize: cloudinaryResult.bytes,
         cloudinaryPublicId: cloudinaryResult.public_id,
