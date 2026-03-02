@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'; 
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
-import NotesCard from '../components/NotesCard'; // NEW IMPORT
+import NotesCard from '../components/NotesCard';
 import PostViewTracker from '../components/PostViewTracker';
 import MentorSuggestionSwiper from '../components/MentorSuggestionSwiper';
 import SpaceSuggestionSwiper from '../components/SpaceSuggestionSwiper';
@@ -11,9 +11,10 @@ import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import AdCard from '../components/AdCard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
+import { motion } from 'framer-motion';
 
 const FEED_STORAGE_KEY = 'admeasy:feed:state';
 
@@ -22,9 +23,11 @@ const Feed = () => {
   const { mentor } = useMentor();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const tagFilter = searchParams.get('tag');
 
   const [posts, setPosts] = useState([]);
-  const [notes, setNotes] = useState([]); // NEW STATE FOR NOTES
+  const [notes, setNotes] = useState([]); 
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -35,6 +38,7 @@ const Feed = () => {
   const observerTargetRef = useRef(null);
   const shouldRestoreScrollRef = useRef(false);
   const feedContainerRef = useRef(null); 
+  const isFirstRender = useRef(true);
 
 
   const updatePostInFeed = useCallback((updatedPost) => {
@@ -62,6 +66,9 @@ const Feed = () => {
 
   // Save feed state to sessionStorage
   const saveFeedState = useCallback((currentPage, currentPosts, scrollPosition) => {
+      // Don't save feed state if we are currently filtering by a tag to avoid weird restores
+      if (tagFilter) return; 
+
       try {
         const state = {
           page: currentPage,
@@ -73,7 +80,7 @@ const Feed = () => {
       } catch (err) {
         console.error('Failed to save feed state:', err);
       }
-    }, []);
+    }, [tagFilter]);
 
     // Load feed state from sessionStorage
     const loadFeedState = useCallback(() => {
@@ -93,10 +100,11 @@ const Feed = () => {
       }, []);
 
 
-  // NEW: Fetch Notes Function
+  // Fetch Notes Function
   const fetchNotes = useCallback(async () => {
     try {
-      const response = await fetch('/api/notes', { credentials: 'include' });
+      const url = tagFilter ? `/api/notes?hashtag=${encodeURIComponent(tagFilter)}` : '/api/notes';
+      const response = await fetch(url, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         const notesList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
@@ -105,7 +113,7 @@ const Feed = () => {
     } catch (error) {
       console.error('Failed to fetch notes:', error);
     }
-  }, []);
+  }, [tagFilter]);
 
     // Fetch ads
   const fetchAds = useCallback(async () => {
@@ -132,10 +140,8 @@ const Feed = () => {
     try {
       pageNum === 1 ? setLoading(true) : setLoadingMore(true);
 
-      const response = await fetch(
-        `/api/posts?page=${pageNum}&limit=20`,
-        { credentials: 'include' }
-      );
+      const url = `/api/posts?page=${pageNum}&limit=20${tagFilter ? `&hashtag=${encodeURIComponent(tagFilter)}` : ''}`;
+      const response = await fetch(url, { credentials: 'include' });
 
       if (!response.ok) throw new Error('Failed to fetch posts');
 
@@ -162,7 +168,7 @@ const Feed = () => {
       // Fetch ads and Notes on first page load
       if (pageNum === 1) {
         fetchAds();
-        fetchNotes(); //  Call fetchNotes here
+        fetchNotes(); 
       }
     } catch (err) {
       console.error(err);
@@ -172,9 +178,7 @@ const Feed = () => {
       setLoadingMore(false);
       isFetchingRef.current = false;
     }
-  }, [saveFeedState, fetchNotes, fetchAds]); // fetchNotes dependency add ki
-
-
+  }, [saveFeedState, fetchNotes, fetchAds, tagFilter]); 
 
     // Load more posts (for infinite scroll)
     const loadMore = useCallback(() => {
@@ -183,9 +187,8 @@ const Feed = () => {
       fetchPosts(nextPage, true);
     }, [page, loadingMore, hasMore, fetchPosts]);
 
-  // Restore scroll position and load saved state
+  // Restore scroll position and load saved state (Runs only on mount)
   useEffect(() => {
-      // Check if we're returning from a post detail page
       const isReturningFromPost = document.referrer.includes('/posts/') || 
                                    sessionStorage.getItem('admeasy:fromPostDetail') === 'true';
       
@@ -200,7 +203,7 @@ const Feed = () => {
         (Date.now() - savedState.timestamp < 10 * 60 * 1000)
       );
       
-      if (shouldRestore && savedState.scrollPosition > 0) {
+      if (shouldRestore && savedState.scrollPosition > 0 && !tagFilter) {
         shouldRestoreScrollRef.current = true;
         setPage(savedState.page);
         
@@ -221,10 +224,8 @@ const Feed = () => {
               }
             }
             setPosts(allPosts);
-            fetchNotes(); // Restore hone par bhi notes fetch karo
+            fetchNotes(); 
 
-            // Restore scroll position after posts are fully rendered
-            // Use multiple attempts to ensure DOM is ready            
             let attempts = 0;
             const maxAttempts = 10;
             
@@ -232,7 +233,6 @@ const Feed = () => {
               attempts++;
               const scrollTarget = savedState.scrollPosition || 0;
               
-              // Check if we can scroll to the target position
               if (scrollTarget > 0 && document.body.scrollHeight >= scrollTarget) {
                 window.scrollTo({
                   top: scrollTarget,
@@ -266,7 +266,23 @@ const Feed = () => {
         }
         fetchPosts(1, false);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+  // Refetch when the hashtag filter changes
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return; // Skip the first render as the restore-scroll useEffect handles it
+    }
+    
+    setPosts([]);
+    setNotes([]);
+    setPage(1);
+    setHasMore(true);
+    fetchPosts(1, false);
+    window.scrollTo(0, 0); // Scroll to top when filter is applied/removed
+  }, [tagFilter, fetchPosts]);
 
   // Infinite scroll with IntersectionObserver
   useEffect(() => {
@@ -332,7 +348,6 @@ const Feed = () => {
       };
   
       window.addEventListener('beforeunload', handleBeforeUnload);
-      
       document.addEventListener('visibilitychange', handleLocationChange);
       
       return () => {
@@ -344,23 +359,18 @@ const Feed = () => {
     }, [page, posts, saveFeedState, location.pathname]);
 
 
-  //  NEW: Merge Posts and Notes Logic
+  // Merge Posts and Notes Logic
   const feedItems = useMemo(() => {
-    // Posts ko identify karne ke liye 'type' add kar sakte hain (optional, kyunki structure alag hai)
     const formattedPosts = posts.map(p => ({ ...p, contentType: 'post' }));
     
-    // Notes ko bhi same structure mein laane ki koshish, createdAt date formatting ensure karein
     const formattedNotes = notes.map(n => ({ 
       ...n, 
       contentType: 'note',
-      // Ensure date format is compatible for sorting
       createdAt: n.publishedAt || n.createdAt 
     }));
 
-    // Merge arrays
     const combined = [...formattedPosts, ...formattedNotes];
 
-    // Sort by Date Descending (Newest first)
     return combined.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
@@ -426,7 +436,6 @@ const Feed = () => {
 
 
   if (loading) {
-    // Loading state
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
           <div className="flex flex-col items-center gap-4">
@@ -440,13 +449,10 @@ const Feed = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden">
       <SEO
-        title="Admeasy"
+        title={tagFilter ? `#${tagFilter} - Admeasy Feed` : "Admeasy"}
         description="Discover knowledge shared by mentors"
         url="https://admeasy.in"
       />
-
-      {/* Notification Bell */}
-      {/* <NotificationBell /> */}
 
       {/* Ask Doubt CTA */}
       <AskDoubtCTA />
@@ -501,10 +507,36 @@ const Feed = () => {
               </div>
            </div>
 
+          {/* Active Hashtag Filter Banner */}
+          {tagFilter && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+              className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gradient-to-r from-pink-50 to-white p-4 rounded-2xl border border-pink-100 shadow-sm gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-[#9f3562] text-white p-2 rounded-xl">
+                  <span className="font-bold text-lg">#</span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Showing results for hashtag</p>
+                  <p className="text-lg font-bold text-gray-900">{tagFilter}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => navigate('/')} 
+                className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-red-500 bg-white px-4 py-2 rounded-xl border border-gray-200 hover:border-red-200 transition-all cursor-pointer"
+              >
+                <X size={16} /> Clear Filter
+              </button>
+            </motion.div>
+          )}
+
           {/* Feed Loop Updated */}
           {feedItems.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center shadow">
-              <p className="text-lg font-semibold text-gray-800">No content available yet</p>
+              <p className="text-lg font-semibold text-gray-800">
+                {tagFilter ? `No posts found for #${tagFilter}` : "No content available yet"}
+              </p>
               <p className="text-gray-500 mt-1">Check back later for updates</p>
             </div>
           ) : (
@@ -514,17 +546,14 @@ const Feed = () => {
                 const adIndex = Math.floor(index / 5) % ads.length;
                 const ad = shouldShowAd ? ads[adIndex] : null;
 
-                // CONDITION: Check if item is a Note or Post
                 if (item.contentType === 'note') {
                   return (
                     <div key={item._id || index} className="relative">
-                      {/* Render Note Card */}
                       <NotesCard note={item} />
                       
-                      {/* Swipers logic for Notes too if needed */}
-                      {index === 0 && <MentorSuggestionSwiper />}
-                      {index === 2 && <SpaceSuggestionSwiper />}
-                      {ad && (
+                      {index === 0 && !tagFilter && <MentorSuggestionSwiper />}
+                      {index === 2 && !tagFilter && <SpaceSuggestionSwiper />}
+                      {ad && !tagFilter && (
                         <div className="mt-8">
                           <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
                         </div>
@@ -533,7 +562,6 @@ const Feed = () => {
                   );
                 }
 
-                // Default Post Rendering
                 return (
                   <div key={item._id || index} className="relative">
                     <PostViewTracker postId={item._id}>
@@ -542,12 +570,10 @@ const Feed = () => {
                         onPostUpdate={updatePostInFeed}
                       />
                     </PostViewTracker>
-                    {/* Add mentor suggestion swiper after the first post */}
-                    {index === 0 && <MentorSuggestionSwiper />}
-                    {/* Add space suggestion swiper after the 3rd post */}
-                    {index === 2 && <SpaceSuggestionSwiper />}
-                    {/* Insert ad after every 5 posts */}
-                    {ad && (
+                    
+                    {index === 0 && !tagFilter && <MentorSuggestionSwiper />}
+                    {index === 2 && !tagFilter && <SpaceSuggestionSwiper />}
+                    {ad && !tagFilter && (
                       <div className="mt-8">
                         <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
                       </div>

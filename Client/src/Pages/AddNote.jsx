@@ -25,6 +25,26 @@ const AddNote = () => {
   const [fileError, setFileError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // NEW: Hashtag State & Logic
+  const [hashtags, setHashtags] = useState([]);
+  const [hashtagInput, setHashtagInput] = useState('');
+
+  const handleHashtagKeyDown = (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      // Remove any '#' the user might have typed manually to prevent double ##
+      const newTag = hashtagInput.trim().replace(/^#/, ''); 
+      if (newTag && !hashtags.includes(newTag)) {
+        setHashtags([...hashtags, newTag]);
+      }
+      setHashtagInput('');
+    }
+  };
+
+  const removeHashtag = (tagToRemove) => {
+    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
+  };
+
   // Redirect if not a mentor or not authenticated
   useEffect(() => {
     if (!isLoading && !mentor) {
@@ -180,6 +200,9 @@ const AddNote = () => {
           }
         }
       });
+
+      // NEW: Add hashtags to FormData
+      submitData.append('hashtags', JSON.stringify(hashtags));
 
       // Validate file before adding
       if (!selectedFile) {
@@ -488,19 +511,33 @@ const AddNote = () => {
               </div>
             </div>
 
-            {/* Tags */}
+{/* Dynamic Hashtags */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags (optional)
+                Hashtags for SEO
               </label>
-              <input
-                type="text"
-                name="tags"
-                value={formData.tags}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., accounting, ca, foundation (comma separated)"
-              />
+              <div className="w-full p-2 border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent min-h-[42px] bg-white flex flex-wrap gap-2 items-center">
+                {hashtags.map((tag, index) => (
+                  <span key={index} className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                    #{tag}
+                    <button 
+                      type="button" 
+                      onClick={() => removeHashtag(tag)}
+                      className="hover:text-red-500 rounded-full p-0.5 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={hashtagInput}
+                  onChange={(e) => setHashtagInput(e.target.value)}
+                  onKeyDown={handleHashtagKeyDown}
+                  className="flex-1 outline-none border-none bg-transparent min-w-[120px] text-sm"
+                  placeholder={hashtags.length === 0 ? "Type tag & press Space..." : "Add more..."}
+                />
+              </div>
             </div>
 
             {/* Submit Button */}

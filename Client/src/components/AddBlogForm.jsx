@@ -45,6 +45,10 @@ const AddBlogForm = ({ onClose, onSubmit, editData }) => {
   const [readingTime, setReadingTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // NEW: Hashtags for Blogs
+  const [hashtags, setHashtags] = useState([]);
+  const [hashtagInput, setHashtagInput] = useState('');
+
   useEffect(() => {
     if (editData) {
       setAuthor(editData.Author || "");
@@ -52,8 +56,26 @@ const AddBlogForm = ({ onClose, onSubmit, editData }) => {
       setContent(editData.content || "");
       setCategory(editData.category || "");
       setReadingTime(editData.readingTime?.toString() || "");
+      if (editData.hashtags) setHashtags(editData.hashtags); // NEW
     }
   }, [editData]);
+
+
+  const handleHashtagKeyDown = (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = hashtagInput.trim().replace(/^#/, '');
+      if (newTag && !hashtags.includes(newTag)) {
+        setHashtags([...hashtags, newTag]);
+      }
+      setHashtagInput('');
+    }
+  };
+
+  const removeHashtag = (tagToRemove) => {
+    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,6 +100,8 @@ const AddBlogForm = ({ onClose, onSubmit, editData }) => {
       formData.append("content", content);
       formData.append("category", category);
       formData.append("readingTime", Number(readingTime));
+
+      formData.append("hashtags", JSON.stringify(hashtags)); // NEW: Send hashtags as a JSON string
 
       await onSubmit(formData);
     } catch (err) {
@@ -242,6 +266,32 @@ const AddBlogForm = ({ onClose, onSubmit, editData }) => {
               placeholder="Write your blog content here..."
               className="bg-white rounded-lg"
             />
+          </div>
+
+          {/* Dynamic Hashtags */}
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">
+              Hashtags (Press Space to add)
+            </label>
+            <div className="w-full px-4 py-2 bg-white/95 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-[#9f3562]/50 min-h-[48px] flex flex-wrap gap-2 items-center">
+              {hashtags.map((tag, index) => (
+                <span key={index} className="bg-gray-100 text-[#9f3562] px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                  #{tag}
+                  <button type="button" onClick={() => removeHashtag(tag)} className="hover:text-red-500">
+                    <FaTimes size={10} />
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={hashtagInput}
+                onChange={(e) => setHashtagInput(e.target.value)}
+                onKeyDown={handleHashtagKeyDown}
+                disabled={isSubmitting}
+                className="flex-1 outline-none border-none bg-transparent min-w-[120px] text-sm text-gray-900 placeholder:text-gray-400"
+                placeholder={hashtags.length === 0 ? "e.g. #Education" : "Add more..."}
+              />
+            </div>
           </div>
 
           {/* Category & Reading Time */}
