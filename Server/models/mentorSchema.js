@@ -29,6 +29,9 @@ const Schema = new mongoose.Schema({
         type: Number,
         trim: true
     },
+    dateOfBirth: {
+        type: Date,
+    },
     college: {
         name: {
             type: String,

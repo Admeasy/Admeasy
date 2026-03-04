@@ -74,7 +74,7 @@ const LeftSidebar = ({
           setUser(null);
           localStorage.clear();
           toast.success("Logged out successfully");
-          navigate('/');
+          window.location.href = '/';
         }
       } else if (mentor) {
         const res = await fetch('/api/mentors/logout', {
@@ -86,7 +86,7 @@ const LeftSidebar = ({
           setMentor(null);
           localStorage.clear();
           toast.success("Logged out successfully");
-          navigate('/');
+          window.location.href = '/';
         }
       }
     } catch (err) {
@@ -97,7 +97,7 @@ const LeftSidebar = ({
 
   return (
     <>
-      {/* ================= DESKTOP SIDEBAR (768px and above) ================= */}
+      {/*DESKTOP SIDEBAR (768px and above)*/}
       <motion.aside
         initial="expanded"
         animate={{
@@ -191,8 +191,8 @@ const LeftSidebar = ({
 
                 <motion.div className="relative z-10 flex-shrink-0">
                   {item.icon === "profilePhoto" ? <img
-                    src={loggedInAccount.imageUrl || loggedInAccount.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
-                    alt={loggedInAccount.name}
+                    src={loggedInAccount?.imageUrl || loggedInAccount?.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}
+                    alt={loggedInAccount?.name}
                     className="w-6 h-6 rounded-full object-cover ring-2 ring-[#9f3562]/30 group-hover:ring-[#9f3562]/60 transition-all"
                   /> : <Icon className="w-5 h-5" />}
                   {/* Unread message notification badge for Chats */}

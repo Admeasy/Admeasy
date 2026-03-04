@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, ArrowLeft, UserCircle2, Upload, RotateCw, Check, X } from 'lucide-react';
+import { Users, Plus, ArrowLeft, UserCircle2, BookOpen, RotateCw, Check, X } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import SEO from '../components/SEO';
+import NotesLibraryModal from '../components/NotesLibraryModal'; // 👈 IMPORTED MODAL
 
 const Spaces = () => {
   const navigate = useNavigate();
@@ -18,11 +19,16 @@ const Spaces = () => {
   const [suggestedSpaces, setSuggestedSpaces] = useState([]);
   const [loadingMySpaces, setLoadingMySpaces] = useState(true);
   const [loadingSuggested, setLoadingSuggested] = useState(true);
+  
+  // State for Create Space
   const [creating, setCreating] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
   const [newSpaceDescription, setNewSpaceDescription] = useState('');
   const [newSpaceLogo, setNewSpaceLogo] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // State for Notes Modal
+  const [showNotesModal, setShowNotesModal] = useState(false); // 👈 NEW STATE
 
   // Cropping state for logo
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -338,6 +344,8 @@ const Spaces = () => {
         description="Join public study spaces and communities with mentors and students."
         url="https://admeasy.in/spaces"
       />
+      
+      {/* Background Shapes */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"
@@ -355,6 +363,8 @@ const Spaces = () => {
       </div>
 
       <div className="max-w-4xl mx-auto relative z-10">
+        
+        {/* --- Header Section --- */}
         <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
@@ -372,23 +382,42 @@ const Spaces = () => {
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow-lg hover:shadow-[#9f3562]/30 cursor-pointer flex-shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Create Space
-          </button>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            
+            {/* 👇 NEW: Notes Library Button */}
+            <button
+              type="button"
+              onClick={() => setShowNotesModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow-lg hover:shadow-[#9f3562]/30 cursor-pointer flex-shrink-0"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Notes</span>
+            </button>
+
+            {/* Existing Create Space Button */}
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow-lg hover:shadow-[#9f3562]/30 cursor-pointer flex-shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Create Space</span>
+              <span className="sm:hidden">Create</span>
+            </button>
+          </div>
+
         </div>
 
-        {/* Create Space Dialog Overlay */}
+        {/* Create Space Form Modal (Existing) */}
         {showCreateForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-xs px-3">
             <form
               onSubmit={handleCreateSpace}
               className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col max-h-[90vh]"
             >
+              {/* Form Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#9f3562]/10 via-pink-100 to-purple-100 flex items-center justify-center flex-shrink-0">
@@ -416,8 +445,10 @@ const Spaces = () => {
                   <X className="w-4 h-4" />
                 </button>
               </div>
+
+              {/* Form Body */}
               <div className="px-4 pt-4 pb-3 overflow-y-auto space-y-4">
-                {/* Logo: single circular input with preview & text */}
+                {/* Logo Input */}
                 <div className="flex flex-col items-center gap-2">
                   <div
                     {...getRootProps()}
@@ -445,7 +476,7 @@ const Spaces = () => {
                   </p>
                 </div>
 
-                {/* Name */}
+                {/* Name Input */}
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] sm:text-xs font-medium text-gray-700">
                     Space name
@@ -461,7 +492,7 @@ const Spaces = () => {
                   />
                 </div>
 
-                {/* Description */}
+                {/* Description Input */}
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] sm:text-xs font-medium text-gray-700">
                     Description
@@ -477,6 +508,8 @@ const Spaces = () => {
                   />
                 </div>
               </div>
+
+              {/* Form Footer */}
               <div className="px-4 pb-4 pt-2 border-t border-gray-100 flex justify-end">
                 <button
                   type="submit"
@@ -491,6 +524,7 @@ const Spaces = () => {
           </div>
         )}
 
+        {/* Main Content (My Spaces & Suggested) */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 bg-white/90 rounded-2xl border border-gray-100 shadow-sm">
             <div className="w-12 h-12 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin mb-4" />
@@ -619,9 +653,15 @@ const Spaces = () => {
           </div>
         </div>
       )}
+
+      {/* 👇 NEW: Notes Library Modal */}
+      <NotesLibraryModal 
+        isOpen={showNotesModal} 
+        onClose={() => setShowNotesModal(false)} 
+      />
+
     </main>
   );
 };
 
 export default Spaces;
-

@@ -27,8 +27,7 @@ const Schema = new mongoose.Schema({
         trim: true
     },
     image: {
-        type: String,
-        required: true
+        type: String
     },
     isAccepted: {
         type: Boolean

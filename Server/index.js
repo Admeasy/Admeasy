@@ -4,8 +4,6 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -39,6 +37,7 @@ const allowedOrigins = [
   'https://admeasy.in',
   'https://development.admeasy.in',
   'http://localhost:5173',
+  'http://127.0.0.1:5173',
 ].filter(Boolean);
 
 if (process.env.NODE_ENV === 'production') {
@@ -46,7 +45,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Check required environment variables
-const requiredEnvVars = ['MONGODB_USERS_URI', 'SESSION_SECRET'];
+const requiredEnvVars = ['MONGODB_USERS_URI', 'JWT_ACCESS_SECRET'];
 const missing = requiredEnvVars.filter((k) => !process.env[k] || process.env[k].trim() === '');
 if (missing.length) {
   console.error('Missing required environment variables:', missing.join(', '));
@@ -58,15 +57,12 @@ if (missing.length) {
 
 // CORS configuration
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  exposedHeaders: ['Content-Type', 'Content-Disposition'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  origin: [
+    "http://localhost:5173",
+    "https://admeasy.in",
+    "https://www.admeasy.in"
+  ],
+  credentials: true
 }));
 
 // Basic middleware
@@ -74,23 +70,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Session configuration - MUST be before Socket.io setup
-const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_USERS_URI,
-    touchAfter: 24 * 3600, // lazy session update
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
-});
+// Session configuration removed - using JWT only
 
-app.use(sessionMiddleware);
 
 // Socket.io setup with session integration
 // Make io available to controllers
@@ -110,7 +91,8 @@ const io = socketIo(server, {
 });
 
 // Share session with Socket.io - CRITICAL FIX
-io.engine.use(sessionMiddleware);
+// Socket.io JWT auth is handled below
+
 
 // Set global.io so controllers can emit events
 global.io = io;
@@ -314,9 +296,9 @@ app.get('/api/profile/:username', async (req, res) => {
     // Check advertiser
     let advertiser = await Advertiser.findOne({ username }).select('-password -refreshToken');
     if (advertiser) {
-      const adsCount = await require('./models/adSchema').countDocuments({ 
-        advertiserId: advertiser._id, 
-        status: 'live' 
+      const adsCount = await require('./models/adSchema').countDocuments({
+        advertiserId: advertiser._id,
+        status: 'live'
       });
       return res.status(200).json({
         success: true,
@@ -895,12 +877,12 @@ io.on('connection', (socket) => {
       // Use consistent room name format with string spaceId
       const roomName = `space:${normalizedSpaceId}`;
       socket.join(roomName);
-      
+
       // Track which space this user is currently viewing
       socket.currentSpaceId = normalizedSpaceId;
-      
+
       console.log(`Socket ${socket.id} joined space room: ${roomName} (spaceId: ${normalizedSpaceId})`);
-      
+
       // Get room size for debugging
       const room = io.sockets.adapter.rooms.get(roomName);
       const roomSize = room ? room.size : 0;

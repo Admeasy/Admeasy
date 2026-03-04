@@ -21,6 +21,11 @@ import {
 import { HiOutlineUserGroup } from "react-icons/hi";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
+import MentorSuggestionSwiper from "../components/MentorSuggestionSwiper";
+import SpaceSuggestionSwiper from "../components/SpaceSuggestionSwiper";
+import NoteSuggestionSwiper from "../components/NoteSuggestionSwiper";
+import BlogSuggestionSwiper from "../components/BlogSuggestionSwiper";
+import CollegeSuggestionSwiper from "../components/CollegeSuggestionSwiper";
 
 /* ================= SAFE RENDER HELPER ================= */
 const renderText = (value) => {
@@ -101,8 +106,13 @@ const Explore = () => {
     return () => clearTimeout(timer);
   }, [searchInput, searchParams, setSearchParams]);
 
-  // Fetch suggested spaces (independent of search query)
+  // Fetch suggested spaces
   useEffect(() => {
+    if (activeTab !== "spaces" && !(activeTab === "all" && query)) {
+      setSpacesLoading(false);
+      return;
+    }
+
     const fetchSpaces = async () => {
       try {
         setSpacesLoading(true);
@@ -111,7 +121,7 @@ const Explore = () => {
         });
         if (res.data?.success) {
           let fetchedSpaces = res.data.spaces || [];
-          
+
           // If there's a search query, filter spaces by name/description
           if (query.trim()) {
             const searchLower = query.toLowerCase();
@@ -121,7 +131,7 @@ const Explore = () => {
               return nameMatch || descMatch;
             });
           }
-          
+
           setSpaces(fetchedSpaces);
         }
       } catch (err) {
@@ -131,11 +141,17 @@ const Explore = () => {
       }
     };
     fetchSpaces();
-  }, [query]);
+  }, [query, activeTab]);
 
   useEffect(() => {
     // Skip fetching if activeTab is "spaces" (handled by spaces useEffect)
     if (activeTab === "spaces") {
+      return;
+    }
+
+    // Skip fetching for default view (swipers handle data)
+    if (activeTab === "all" && !query) {
+      setLoading(false);
       return;
     }
 
@@ -173,12 +189,12 @@ const Explore = () => {
     fetchResults();
   }, [query, activeTab]);
 
-  const totalResults = activeTab === "spaces" 
-    ? spaces.length 
+  const totalResults = activeTab === "spaces"
+    ? spaces.length
     : Object.values(results).reduce(
-        (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0),
-        0
-      );
+      (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0),
+      0
+    );
 
   const getFilteredResults = () => {
     if (activeTab === "all") {
@@ -276,7 +292,18 @@ const Explore = () => {
         </div>
 
         {/* ================= RESULTS SECTION ================= */}
-        {loading ? (
+        {!query && activeTab === "all" ? (
+          <div className="-mt-4">
+            <MentorSuggestionSwiper />
+            <SpaceSuggestionSwiper />
+            <CollegeSuggestionSwiper />
+            <NoteSuggestionSwiper />
+            <BlogSuggestionSwiper />
+            <div className="text-center pb-10">
+              <p className="text-sm text-gray-400">Search above to explore specific categories</p>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-16 h-16 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin mb-4" />
             <p className="text-gray-500 font-medium">Searching...</p>
@@ -383,75 +410,75 @@ const Explore = () => {
             )}
 
             {/* ================= SPACES SECTION ================= */}
-            {((activeTab === "all" && !spacesLoading && spaces && spaces.length > 0) || 
+            {((activeTab === "all" && !spacesLoading && spaces && spaces.length > 0) ||
               (activeTab === "spaces" && !spacesLoading && filteredResults.spaces && filteredResults.spaces.length > 0)) && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <HiOutlineUserGroup className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Spaces</h2>
-                  <span
-                    onClick={() => navigate("/spaces/explore")}
-                    className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold"
-                  >
-                    View More
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(activeTab === "spaces" ? filteredResults.spaces : spaces).slice(0, 6).map((space) => (
-                    <div
-                      key={space._id}
-                      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col group"
+                <section>
+                  <div className="flex items-center gap-3 mb-4">
+                    <HiOutlineUserGroup className="w-6 h-6 text-[#9f3562]" />
+                    <h2 className="text-2xl font-bold text-gray-900">Spaces</h2>
+                    <span
+                      onClick={() => navigate("/spaces/explore")}
+                      className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold"
                     >
-                      <div className="p-5 flex-1 flex flex-col">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <img src={space.logo} alt={space.name} className="w-10 h-10 rounded-full object-cover" />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-gray-900 text-base mb-1 break-words">
-                                {space.name}
-                              </h3>
-                              <p className="text-xs text-gray-500">
-                                {space.membersCount || 0} member{(space.membersCount || 0) === 1 ? "" : "s"}
-                              </p>
+                      View More
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {(activeTab === "spaces" ? filteredResults.spaces : spaces).slice(0, 6).map((space) => (
+                      <div
+                        key={space._id}
+                        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#9f3562]/20 transition-all duration-300 flex flex-col group"
+                      >
+                        <div className="p-5 flex-1 flex flex-col">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <img src={space.logo} alt={space.name} className="w-10 h-10 rounded-full object-cover" />
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-gray-900 text-base mb-1 break-words">
+                                  {space.name}
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                  {space.membersCount || 0} member{(space.membersCount || 0) === 1 ? "" : "s"}
+                                </p>
+                              </div>
                             </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/spaces/${space._id}`);
+                              }}
+                              className="flex-shrink-0 px-3 py-1.5 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors text-xs font-semibold whitespace-nowrap"
+                            >
+                              Join
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/spaces/${space._id}`);
-                            }}
-                            className="flex-shrink-0 px-3 py-1.5 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors text-xs font-semibold whitespace-nowrap"
-                          >
-                            Join
-                          </button>
+                          {space.description && (
+                            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                              {space.description}
+                            </p>
+                          )}
+                          {space.lastMessage && (
+                            <p className="text-[11px] text-gray-400 line-clamp-1 mt-auto">
+                              Last: {space.lastMessage.authorName}:{" "}
+                              {space.lastMessage.content}
+                            </p>
+                          )}
                         </div>
-                        {space.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                            {space.description}
-                          </p>
-                        )}
-                        {space.lastMessage && (
-                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-auto">
-                            Last: {space.lastMessage.authorName}:{" "}
-                            {space.lastMessage.content}
-                          </p>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex justify-center">
-                  <button
-                    onClick={() => navigate("/spaces/explore")}
-                    className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
-                  >
-                    View More Spaces
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </section>
-            )}
+                    ))}
+                  </div>
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => navigate("/spaces/explore")}
+                      className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-[#9f3562] text-[#9f3562] rounded-lg hover:bg-[#9f3562] hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm hover:shadow-md"
+                    >
+                      View More Spaces
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </section>
+              )}
 
             {/* ================= MENTORS SECTION ================= */}
             {filteredResults.mentors && filteredResults.mentors.length > 0 && (

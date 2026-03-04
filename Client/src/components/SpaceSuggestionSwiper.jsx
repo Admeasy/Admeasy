@@ -32,19 +32,19 @@ const SpaceSuggestionSwiper = () => {
           credentials: "include",
         });
         if (!response.ok) throw new Error("Failed to fetch spaces");
-        
+
         const data = await response.json();
-        
+
         if (!data.success) {
           throw new Error(data.message || "Failed to fetch spaces");
         }
 
         // Filter out spaces user is already a member of
         let filteredSpaces = data.spaces || [];
-        
+
         // Filter to only show non-member spaces
         filteredSpaces = filteredSpaces.filter(space => !space.isMember);
-        
+
         // Limit to 10 spaces
         filteredSpaces = filteredSpaces.slice(0, 10);
 
@@ -61,7 +61,7 @@ const SpaceSuggestionSwiper = () => {
 
   const handleJoin = async (e, spaceId) => {
     e.stopPropagation();
-    
+
     if (!isAuthed) {
       toast.info("Log in to join spaces");
       navigate("/login");
@@ -160,9 +160,9 @@ const SpaceSuggestionSwiper = () => {
             });
           }}
           breakpoints={{
-            0: { slidesPerView: 2.2, spaceBetween: 12 },
-            640: { slidesPerView: 3.5, spaceBetween: 16 },
-            1024: { slidesPerView: 4.5, spaceBetween: 20 },
+            0: { slidesPerView: 1.5, spaceBetween: 12 },
+            640: { slidesPerView: 2.5, spaceBetween: 16 },
+            1024: { slidesPerView: 4.2, spaceBetween: 20 },
           }}
           className="pb-2"
         >
@@ -196,9 +196,8 @@ const SpaceSuggestionSwiper = () => {
                         />
                       ) : null}
                       <div
-                        className={`w-16 h-16 rounded-full bg-gradient-to-br from-[#9f3562]/10 via-pink-100 to-purple-100 flex items-center justify-center border-2 border-white shadow-md ${
-                          space.logo ? "hidden" : ""
-                        }`}
+                        className={`w-16 h-16 rounded-full bg-gradient-to-br from-[#9f3562]/10 via-pink-100 to-purple-100 flex items-center justify-center border-2 border-white shadow-md ${space.logo ? "hidden" : ""
+                          }`}
                       >
                         <span className="text-lg font-semibold text-[#9f3562]">
                           {space.name?.[0]?.toUpperCase() || "S"}
@@ -227,11 +226,10 @@ const SpaceSuggestionSwiper = () => {
                   <button
                     onClick={(e) => handleJoin(e, space._id)}
                     disabled={isLoading || isMember}
-                    className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 flex-shrink-0 ${
-                      isMember
-                        ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/50"
-                    }`}
+                    className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 flex-shrink-0 ${isMember
+                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/50"
+                      }`}
                   >
                     {isLoading ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -261,7 +259,7 @@ const SpaceSuggestionSwiper = () => {
               whileTap={{ scale: 0.95 }}
               className="px-6 py-2.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-300 flex items-center gap-2"
             >
-              <span>Discover more</span>
+              <span>View All</span>
               <IoIosArrowForward className="w-4 h-4" />
             </motion.button>
           </Link>
