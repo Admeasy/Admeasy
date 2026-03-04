@@ -47,6 +47,10 @@ const noteSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  hashtags: [{          // NEW: Array of strings for hashtags
+    type: String,
+    trim: true
+  }],
   fileUrl: {
     type: String,
     required: true
@@ -106,7 +110,8 @@ noteSchema.index({
   title: 'text',
   description: 'text',
   uploaderName: 'text',
-  tags: 'text'
+  tags: 'text',
+  hashtags: 1
 });
 
 module.exports = Admeasy.model('Note', noteSchema);

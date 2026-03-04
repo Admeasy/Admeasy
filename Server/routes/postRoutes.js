@@ -248,6 +248,7 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
           author,
           content: post.content,
           image: post.image,
+          hashtags: post.hashtags || [],
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
           isEdited: post.isEdited || false,
@@ -287,24 +288,29 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
+    // NEW: Extract hashtag from query
+    const hashtag = req.query.hashtag;
+
     // Use ranking algorithm to get personalized feed
     let feedResult;
-    try {
-      feedResult = await getRankedFeed(currentUser, page, limit);
-    } catch (rankingError) {
-      console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
-      // Fallback to simple date-based sorting if ranking fails
+
+    // NEW: If a hashtag is searched, bypass ranking and filter directly
+    if (hashtag) {
       const skip = (page - 1) * limit;
-      const fallbackPosts = await Post.find()
+      // Case-insensitive regex match for the hashtag
+      const filter = { hashtags: new RegExp(`^${hashtag}$`, 'i') };
+
+      const filteredPosts = await Post.find(filter)
         .populate('mentorId', 'name username image')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean();
 
-      const total = await Post.countDocuments();
+      const total = await Post.countDocuments(filter);
+
       feedResult = {
-        posts: fallbackPosts,
+        posts: filteredPosts,
         pagination: {
           page,
           limit,
@@ -312,6 +318,32 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
           pages: Math.ceil(total / limit),
         },
       };
+    } else {
+      // Normal behavior: Use ranking algorithm
+      try {
+        feedResult = await getRankedFeed(currentUser, page, limit);
+      } catch (rankingError) {
+        console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
+        // Fallback to simple date-based sorting if ranking fails
+        const skip = (page - 1) * limit;
+        const fallbackPosts = await Post.find()
+          .populate('mentorId', 'name username image')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean();
+
+        const total = await Post.countDocuments();
+        feedResult = {
+          posts: fallbackPosts,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        };
+      }
     }
 
     const posts = feedResult.posts;
@@ -520,6 +552,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         author: author, // Add 'author' key for clarity
         content: post.content,
         image: post.image,
+        hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -621,6 +654,7 @@ router.get("/user/:userId", async (req, res) => {
         author: author,
         content: post.content,
         image: post.image,
+        hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -746,6 +780,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
         author: author,
         content: post.content,
         image: post.image,
+        hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -979,6 +1014,7 @@ router.get("/:postId", async (req, res) => {
       author: author, // Add 'author' key for clarity
       content: post.content,
       image: post.image,
+      hashtags: post.hashtags || [],
       externalLink: post.externalLink,
       likes: populatedLikes,
       likesCount: post.likesCount,
@@ -1011,7 +1047,7 @@ router.get("/:postId", async (req, res) => {
  */
 router.post("/", authenticateRequired, upload.single("image"), async (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, hashtags } = req.body; // NEW: Extract hashtags from req.body
 
     if (!content || !content.trim()) {
       return res.status(400).json({
@@ -1051,6 +1087,7 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
     const postData = {
       content: content.trim(),
       image: imageUrl,
+      hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse and save the hashtags array
     };
 
     if (req.mentor) {
@@ -1111,6 +1148,7 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
         author: author, // Add 'author' key for clarity
         content: post.content,
         image: post.image,
+        hashtags: post.hashtags || [], // NEW: Send hashtags back to the client immediately
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -1169,13 +1207,15 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
   }
 });
 
+
 /**
  * PUT /api/posts/:postId
  * Update a post (only the creator - mentor or user)
  */
 router.put("/:postId", authenticateRequired, upload.single("image"), async (req, res) => {
   try {
-    const { content } = req.body;
+    // NEW: Also extract hashtags in case the edit form sends them
+    const { content, hashtags } = req.body;
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
@@ -1200,6 +1240,7 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
       post.editedAt = new Date();
 
       const detectedUrl = detectUrl(content);
+      // ... (Keep your existing linkPreview logic here)
       if (detectedUrl) {
         try {
           const linkPreview = await generateLinkPreview(detectedUrl);
@@ -1224,7 +1265,13 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
       }
     }
 
+    // NEW: Update hashtags if they are provided during edit
+    if (hashtags) {
+      post.hashtags = JSON.parse(hashtags);
+    }
+
     if (req.file) {
+      // ... (Keep your existing image upload logic here)
       if (post.image) {
         try {
           const publicId = getPublicIdFromUrl(post.image);
@@ -1249,7 +1296,7 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
 
     await post.save();
 
-    // Populate the appropriate author (mentor or user)
+    // ... (Keep your existing populate and author logic here)
     if (post.mentorId) {
       await post.populate('mentorId', 'name username image');
     } else if (post.userId) {
@@ -1257,7 +1304,6 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
       post.userId = user;
     }
 
-    // Format response based on author type
     const author = post.mentorId
       ? {
         _id: post.mentorId._id,
@@ -1274,7 +1320,6 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
         }
         : null;
 
-    // Create mention notifications (async, don't block response)
     if (content && content.trim()) {
       const actorId = req.mentor ? req.mentor._id : req.user._id;
       const actorRole = req.mentor ? 'mentor' : 'user';
@@ -1284,15 +1329,17 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
       });
     }
 
+    // NEW: Add hashtags to the response!
     res.json({
       success: true,
       message: "Post updated successfully",
       post: {
         _id: post._id,
-        mentor: author, // Keep 'mentor' key for backward compatibility
-        author: author, // Add 'author' key for clarity
+        mentor: author,
+        author: author,
         content: post.content,
         image: post.image,
+        hashtags: post.hashtags || [], // <--- THIS IS THE CRUCIAL FIX
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,

@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
-const buildFilter = ({ search, university, programme, course }) => {
+const buildFilter = ({ search, university, programme, course, hashtag }) => { // Added hashtag
   const filter = { status: 'published' };
 
   if (search) {
@@ -15,7 +15,13 @@ const buildFilter = ({ search, university, programme, course }) => {
       { description: regex },
       { uploaderName: regex },
       { tags: regex },
+      { hashtags: regex } // NEW
     ];
+  }
+
+  if (hashtag) {
+    // If user clicks a tag, e.g. ?hashtag=React, find notes containing it
+    filter.hashtags = { $in: [hashtag] }; 
   }
 
   if (university && university !== 'all') {
@@ -109,8 +115,7 @@ exports.uploadNote = async (req, res) => {
       });
     }
 
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags } = req.body;
-
+    const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags } = req.body;
     // Validate required fields
     const missingFields = [];
     if (!title || !title.trim()) missingFields.push('title');
@@ -246,6 +251,7 @@ exports.uploadNote = async (req, res) => {
         programme: programme.trim().toLowerCase(),
         course: course.trim().toLowerCase(),
         tags: tags && tags.trim() ? tags.trim() : undefined,
+        hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse the incoming stringified array
         fileUrl: cloudinaryResult.secure_url,
         fileSize: cloudinaryResult.bytes,
         cloudinaryPublicId: cloudinaryResult.public_id,
@@ -417,6 +423,9 @@ exports.deleteNote = async (req, res) => {
 };
 
 // Proxy PDF from Cloudinary with proper headers
+// Server/controllers/noteController.js ke end mein
+
+// Proxy PDF from Cloudinary directly using Redirect
 exports.proxyPdf = async (req, res) => {
   try {
     const { id } = req.params;
@@ -435,46 +444,15 @@ exports.proxyPdf = async (req, res) => {
       return res.status(404).json({ success: false, message: 'PDF file not found.' });
     }
 
-    // Validate that fileUrl is a Cloudinary URL for security
-    if (!note.fileUrl.includes('cloudinary.com') && !note.fileUrl.includes('res.cloudinary.com')) {
-      return res.status(400).json({ success: false, message: 'Invalid file URL.' });
+    let finalUrl = note.fileUrl;
+
+    // Browser ke andar open karne ke liye (Download rokne ke liye) fl_inline add karein
+    if (finalUrl.includes('cloudinary.com') && !finalUrl.includes('/fl_inline/')) {
+      finalUrl = finalUrl.replace('/upload/', '/upload/fl_inline/');
     }
 
-    // Fetch PDF from Cloudinary
-    const response = await fetch(note.fileUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch PDF from Cloudinary: ${response.status} ${response.statusText}`);
-      return res.status(response.status).json({
-        success: false,
-        message: `Failed to fetch PDF: ${response.status} ${response.statusText}`
-      });
-    }
-
-    // Verify content type
-    const contentType = response.headers.get('content-type');
-    if (contentType && !contentType.includes('application/pdf')) {
-      console.warn(`Unexpected content type from Cloudinary: ${contentType}`);
-    }
-
-    // Get the PDF buffer
-    const buffer = await response.arrayBuffer();
-
-    // Set proper headers for PDF viewing (critical for react-pdf)
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${(note.title || 'note').replace(/[^a-z0-9]/gi, '_')}.pdf"`);
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Content-Length', buffer.byteLength);
-
-    // Send the PDF
-    res.send(Buffer.from(buffer));
+    // Node Server RAM bachane ke liye seedha Cloudinary par redirect karein
+    return res.redirect(302, finalUrl);
 
   } catch (error) {
     console.error('Error proxying PDF:', error);

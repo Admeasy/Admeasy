@@ -645,7 +645,23 @@ const PostCard = ({ post, onPostUpdate }) => {
           )}
         </div>
 
-
+        {/* NEW: Clickable Hashtags Display */}
+        {postState.hashtags && postState.hashtags.length > 0 && (
+          <div className="px-5 sm:px-6 pb-4 flex flex-wrap gap-2">
+            {postState.hashtags.map((tag, idx) => (
+              <span
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/explore?tag=${encodeURIComponent(tag)}`); // Navigates to feed with filter
+                }}
+                className="text-[#9f3562] bg-[#9f3562]/10 px-2.5 py-1 rounded-md text-xs font-bold hover:bg-[#9f3562] hover:text-white transition-all cursor-pointer shadow-sm"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Post Image */}
         {post.image && (

@@ -53,6 +53,24 @@ const NotesCard = ({ note, compact = false }) => {
             {renderText(note.description)}
           </p>
 
+          {/* NEW: Clickable Hashtags Display */}
+          {note.hashtags && note.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {note.hashtags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevents opening the note detail page
+                    navigate(`/explore?tag=${encodeURIComponent(tag)}`); // Navigates to feed with filter
+                  }}
+                  className="text-[#9f3562] bg-[#9f3562]/10 px-2.5 py-1 rounded-md text-[11px] font-bold hover:bg-[#9f3562] hover:text-white transition-all cursor-pointer shadow-sm"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Price + Stats */}
           <div className="flex flex-wrap items-center gap-3 mt-2">
             {/* Price */}

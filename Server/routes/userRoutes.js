@@ -1,7 +1,7 @@
 const express = require('express');
-const { resetPassword, forgotPassword } = require('../controllers/userController.js')
+const { resetPassword, forgotPassword, switchAccount } = require('../controllers/userController.js')
 const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
-const { generateAccessToken, generateRefreshToken, setTokenCookies, clearTokenCookies } = require('../utils/auth.js');
+const { generateAccessToken, generateRefreshToken, generateSwitchToken, setTokenCookies } = require('../utils/auth.js');
 const router = express.Router();
 const User = require('../models/userSchema.js');
 const crypto = require('crypto')
@@ -500,6 +500,7 @@ router.post('/login', async (req, res) => {
 
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
+        const switchToken = generateSwitchToken(user);
         user.refreshToken = refreshToken;
         await user.save();
 
@@ -507,6 +508,7 @@ router.post('/login', async (req, res) => {
         res.json({
             success: true,
             message: 'Logged in successfully',
+            switchToken,
             requiresOnboarding: onboardingStatus.requiresOnboarding,
             hasCompletedOnboarding: user.hasCompletedOnboarding || false,
             onboardingStatus: {
@@ -518,6 +520,10 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// SWITCH ACCOUNT
+router.post('/switch-account', switchAccount);
+
 
 // GOOGLE OAUTH ROUTES
 // Initiate Google OAuth

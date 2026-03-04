@@ -27,6 +27,10 @@ const MentorPost = () => {
   const [posts, setPosts] = useState([]);
   const [fetching, setFetching] = useState(true);
   
+  // NEW: Hashtag State
+  const [hashtags, setHashtags] = useState([]);
+  const [hashtagInput, setHashtagInput] = useState('');
+  
   // Check if coming from "Ask a Doubt" CTA
   const isAskDoubt = searchParams.get('askDoubt') === 'true';
   
@@ -61,56 +65,31 @@ const MentorPost = () => {
         } catch (error) {
           console.error('Error focusing editor:', error);
         }
-      }, 300); // Small delay to ensure editor is ready
+      }, 300);
 
       return () => clearTimeout(timer);
     }
   }, [isAskDoubt]);
 
-  // ... (fetchPosts and handleImageChange logic remains the same)
   /* ----------------------------------
-
      Fetch Mentor Posts
-
   ----------------------------------- */
-
   const fetchPosts = async () => {
-
     try {
-
       setFetching(true);
-
       const res = await fetch("/api/posts", {
-
         credentials: "include",
-
       });
-
-
-
       const data = await res.json();
-
       if (!data.success) throw new Error("Failed to fetch posts");
-
-
-
       setPosts(data.posts || []);
-
     } catch (err) {
-
       console.error(err);
-
       toast.error("Failed to load posts");
-
     } finally {
-
       setFetching(false);
-
     }
-
   };
-
-
 
   useEffect(() => {
     fetchPosts();
@@ -175,7 +154,6 @@ const MentorPost = () => {
   const handleContentChange = (value) => {
     setContent(value);
     
-    // Use setTimeout to ensure Quill has updated
     setTimeout(() => {
       if (!quillRef.current) return;
       const quill = quillRef.current.getEditor();
@@ -186,9 +164,7 @@ const MentorPost = () => {
         return;
       }
 
-      // Get text before cursor (plain text, no HTML)
       const text = quill.getText(0, selection.index);
-      // Match @ followed by word characters (letters, numbers, underscore)
       const match = text.match(/@([a-zA-Z0-9_]*)$/);
       
       if (match) {
@@ -196,7 +172,6 @@ const MentorPost = () => {
         setMentionQuery(query);
         setShowMentionPopup(true);
         
-        // Calculate popup position
         try {
           const bounds = quill.getBounds(selection.index);
           const editorElement = quill.root.closest('.ql-container') || quill.root;
@@ -207,7 +182,6 @@ const MentorPost = () => {
             left: editorRect.left + bounds.left,
           });
         } catch (e) {
-          // Fallback position
           const editorElement = quill.root.closest('.ql-container') || quill.root;
           const editorRect = editorElement.getBoundingClientRect();
           setMentionPosition({
@@ -231,24 +205,15 @@ const MentorPost = () => {
     
     if (!selection) return;
 
-    // Get text before cursor
     const text = quill.getText(0, selection.index);
     const match = text.match(/@([a-zA-Z0-9_]*)$/);
     
     if (match) {
       const startIndex = selection.index - match[0].length;
-      
-      // Delete the @query text
       quill.deleteText(startIndex, match[0].length);
-      
-      // Insert mention with a space after for better UX
       const mentionText = `@${mention.username || mention.name || 'user'} `;
       quill.insertText(startIndex, mentionText);
-      
-      // Move cursor after mention
       quill.setSelection(startIndex + mentionText.length);
-      
-      // Update content state
       setContent(quill.root.innerHTML);
     }
     
@@ -256,7 +221,6 @@ const MentorPost = () => {
     setMentionQuery("");
   }, []);
 
-  // Handle keyboard navigation in mention popup
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!showMentionPopup || mentionSuggestions.length === 0) return;
@@ -288,7 +252,6 @@ const MentorPost = () => {
     }
   }, [showMentionPopup, mentionSuggestions, selectedMentionIndex, insertMention]);
 
-  // Close mention popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -307,75 +270,62 @@ const MentorPost = () => {
     }
   }, [showMentionPopup]);
 
-
-
   /* ----------------------------------
-
      Handle Image Change
-
   ----------------------------------- */
-
   const handleImageChange = (e) => {
-
     const file = e.target.files[0];
-
     if (!file) return;
 
-
-
     if (!file.type.startsWith("image/")) {
-
       toast.error("Only image files are allowed");
-
       return;
-
     }
-
-
 
     setImage(file);
-
     setPreview(URL.createObjectURL(file));
-
   };
 
+  /* ----------------------------------
+     NEW: Hashtag Logic
+  ----------------------------------- */
+  const handleHashtagKeyDown = (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = hashtagInput.trim().replace(/^#/, '');
+      if (newTag && !hashtags.includes(newTag)) {
+        setHashtags([...hashtags, newTag]);
+      }
+      setHashtagInput('');
+    }
+  };
 
+  const removeHashtag = (tagToRemove) => {
+    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
+  };
 
   /* ----------------------------------
-
      Create Post
-
   ----------------------------------- */
-
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
-
-
     if (!content.trim() || content === '<p><br></p>') {
-
       toast.error("Post content is required");
-
       return;
-
     }
 
-
-
     try {
-
       setLoading(true);
 
-
-
       const formData = new FormData();
-
       formData.append("content", content);
-
       if (image) formData.append("image", image);
-
-
+      
+      // Add hashtags to form data
+      if (hashtags.length > 0) {
+        formData.append("hashtags", JSON.stringify(hashtags));
+      }
 
       const res = await fetch("/api/posts", {
         method: "POST",
@@ -389,10 +339,8 @@ const MentorPost = () => {
         throw new Error(data.message || "Failed to create post");
       }
 
-      // Track post creation for "Ask a Doubt" CTA logic
       try {
         sessionStorage.setItem('admeasy:askDoubt:lastPost', Date.now().toString());
-        // Reset dismissal state so CTA can show again after some time
         sessionStorage.removeItem('admeasy:askDoubt:dismissed');
       } catch (err) {
         console.error('Error tracking post creation:', err);
@@ -402,9 +350,9 @@ const MentorPost = () => {
       setContent("");
       setImage(null);
       setPreview(null);
+      setHashtags([]); // Reset hashtags on success
       fetchPosts();
       
-      // Remove askDoubt param from URL after successful post
       if (isAskDoubt) {
         navigate('/posts/create', { replace: true });
       }
@@ -414,8 +362,8 @@ const MentorPost = () => {
     } finally {
       setLoading(false);
     }
-
   };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 bg-[#f8fafc] min-h-screen">
       <style>{`
@@ -555,6 +503,26 @@ const MentorPost = () => {
             </AnimatePresence>
           </div>
 
+          {/* Dynamic Hashtag Input for Post */}
+          <div className="mt-4 mb-2 p-3 border border-slate-200 rounded-xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all flex flex-wrap gap-2 items-center bg-slate-50">
+            {hashtags.map((tag, index) => (
+              <span key={index} className="bg-[#9f3562]/10 text-[#9f3562] px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                #{tag}
+                <button type="button" onClick={() => removeHashtag(tag)} className="hover:text-red-500 transition-colors">
+                  <X size={14} />
+                </button>
+              </span>
+            ))}
+            <input
+              type="text"
+              value={hashtagInput}
+              onChange={(e) => setHashtagInput(e.target.value)}
+              onKeyDown={handleHashtagKeyDown}
+              className="flex-1 outline-none border-none bg-transparent min-w-[150px] text-sm text-slate-700 placeholder:text-slate-400"
+              placeholder={hashtags.length === 0 ? "Add Hashtags to reach more people..." : "Add more tags..."}
+            />
+          </div>
+
           <div className="flex items-center justify-between mt-5">
             <label className="group flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-slate-600 cursor-pointer hover:bg-slate-100 transition-all">
               <ImagePlus size={18} className="text-pink-500 group-hover:scale-110 transition-transform" />
@@ -651,7 +619,6 @@ const MentorPost = () => {
                   className="text-[15px] text-slate-700 post-content leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: processMentions(post.content) }}
                   onClick={(e) => {
-                    // Handle mention link clicks
                     const mentionLink = e.target.closest('a.mention-link');
                     if (mentionLink) {
                       e.preventDefault();
@@ -663,24 +630,30 @@ const MentorPost = () => {
                       return;
                     }
 
-                    // Intercept clicks on other links within post content
                     const link = e.target.closest('a');
                     if (link && link.href) {
                       e.preventDefault();
                       e.stopPropagation();
                       let cleanUrl = link.href;
-                      // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
                       cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
-                      // Remove any HTML tags (decoded)
                       cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
-                      // Remove any remaining angle brackets
                       cleanUrl = cleanUrl.replace(/[<>]/g, '');
-                      // Trim whitespace
                       cleanUrl = cleanUrl.trim();
                       window.open(cleanUrl, '_blank', 'noopener,noreferrer');
                     }
                   }}
                 />
+
+                {/* Hashtags Display (Optional here, but useful) */}
+                {post.hashtags && post.hashtags.length > 0 && (
+                   <div className="mt-4 flex flex-wrap gap-2">
+                     {post.hashtags.map((tag, idx) => (
+                       <span key={idx} className="text-[#9f3562] text-sm font-medium hover:underline cursor-pointer">
+                         #{tag}
+                       </span>
+                     ))}
+                   </div>
+                )}
 
                 {post.image && (
                   <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
@@ -700,17 +673,11 @@ const MentorPost = () => {
                     rel="noreferrer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Clean URL before opening
                       let cleanUrl = post.externalLink.url;
-                      // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
                       cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
-                      // Remove any HTML tags (decoded)
                       cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
-                      // Remove any remaining angle brackets
                       cleanUrl = cleanUrl.replace(/[<>]/g, '');
-                      // Trim whitespace
                       cleanUrl = cleanUrl.trim();
-                      // Update href with cleaned URL
                       e.currentTarget.href = cleanUrl;
                     }}
                     className="group mt-5 flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-transparent hover:border-pink-200 hover:bg-white transition-all"
