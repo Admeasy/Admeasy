@@ -254,7 +254,13 @@ const Explore = () => {
               return (
                 <button
                   key={tab.value}
-                  onClick={() => setActiveTab(tab.value)}
+                  onClick={() => {
+                    if (tab.value === "notes") {
+                      navigate("/notes");
+                    } else {
+                      setActiveTab(tab.value);
+                    }
+                  }}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap cursor-pointer border ${isActive ? "bg-[#9f3562] text-white border-transparent shadow-md shadow-pink-200" : "bg-white text-gray-600 hover:bg-gray-200 border-gray-200"}`}
                 >
                   <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-gray-500"}`} />

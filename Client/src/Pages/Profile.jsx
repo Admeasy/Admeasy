@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 import PostCard from '../components/PostCard';
+import NotesCard from '../components/NotesCard';
 import FollowersFollowingModal from '../components/FollowersFollowingModal';
 import AdvertiserProfile from './AdvertiserProfile';
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -58,7 +59,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('posts');
   const [reposts, setReposts] = useState([]);
   const [repostsLoading, setRepostsLoading] = useState(false);
-
+  const [notes, setNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowingLoading, setIsFollowingLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -389,6 +391,29 @@ export default function Profile() {
       fetchReposts();
     }
   }, [activeTab, profile]);
+
+  // Fetch notes when Notes tab is active
+  useEffect(() => {
+    if (activeTab === 'notes' && notes.length === 0 && profile?._id) {
+      const fetchNotes = async () => {
+        setNotesLoading(true);
+        try {
+          // Backend URL me uploader query pass kar rahe hain
+          const res = await fetch(`/api/notes?uploader=${profile._id}`);
+          const data = await res.json();
+          if (data.success) {
+            setNotes(data.data);
+          }
+        } catch (err) {
+          console.error('Error fetching notes:', err);
+        } finally {
+          setNotesLoading(false);
+        }
+      };
+
+      fetchNotes();
+    }
+  }, [activeTab, profile, notes.length]);
 
   // Fetch followers and following counts
   useEffect(() => {
@@ -1082,6 +1107,29 @@ export default function Profile() {
               )}
             </button>
 
+            {/* NOTES TAB BUTTON */}
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm sm:text-base font-medium transition-all relative ${activeTab === 'notes'
+                ? 'text-[#9f3562] bg-[#9f3562]/10'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+            >
+              <FileText size={20} className={activeTab === 'notes' ? 'text-[#9f3562]' : 'text-gray-400'} />
+              Notes
+              {notes.length > 0 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${activeTab === 'notes' ? 'bg-[#9f3562]/20 text-[#9f3562]' : 'bg-gray-100 text-gray-600'}`}>
+                  {notes.length}
+                </span>
+              )}
+              {activeTab === 'notes' && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#9f3562]"
+                />
+              )}
+            </button>
+
             <button
               onClick={() => setActiveTab('reposts')}
               className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm sm:text-base font-medium transition-all relative ${activeTab === 'reposts'
@@ -1105,7 +1153,7 @@ export default function Profile() {
             </button>
           </div>
 
-          {/* Tab Content */}
+{/* Tab Content */}
           <div className="p-4 sm:p-6">
             <AnimatePresence mode="wait">
               {activeTab === 'posts' ? (
@@ -1149,7 +1197,7 @@ export default function Profile() {
                     </div>
                   )}
                 </motion.div>
-              ) : (
+              ) : activeTab === 'reposts' ? (
                 <motion.div
                   key="reposts"
                   initial={{ opacity: 0, y: 10 }}
@@ -1177,7 +1225,40 @@ export default function Profile() {
                     </div>
                   )}
                 </motion.div>
-              )}
+              ) : activeTab === 'notes' ? (
+                <motion.div
+                  key="notes"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {notesLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="w-8 h-8 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : notes.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {notes.map((note) => (
+                        <NotesCard key={note._id} note={note} compact={true} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No notes yet</h3>
+                      <p className="text-sm text-gray-500">
+                        {isOwnProfile ? 'Start sharing your knowledge by uploading notes!' : 'This user hasn\'t uploaded any notes yet.'}
+                      </p>
+                      {isOwnProfile && (
+                        <Link to="/add-note" className="mt-4 inline-block px-6 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors">
+                          Upload Notes
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              ) : null}
             </AnimatePresence>
           </div>
         </div>
