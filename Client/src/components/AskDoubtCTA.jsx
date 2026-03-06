@@ -53,8 +53,8 @@ const AskDoubtCTA = () => {
 
     // Check scroll behavior
     const scrollDistance = scrollDistanceRef.current;
-    const scrollTime = scrollStartTimeRef.current 
-      ? Date.now() - scrollStartTimeRef.current 
+    const scrollTime = scrollStartTimeRef.current
+      ? Date.now() - scrollStartTimeRef.current
       : 0;
 
     // Show if:
@@ -156,13 +156,13 @@ const AskDoubtCTA = () => {
     if (e.target.closest('button[aria-label="Dismiss"]')) {
       return;
     }
-    
+
     // Mark as shown
     sessionStorage.setItem(ASK_DOUBT_STORAGE_KEY, Date.now().toString());
     setShowCTA(false);
     setIsDismissed(true);
     sessionStorage.setItem(DISMISSED_KEY, 'true');
-    
+
     // Navigate to create post with query param for auto-focus
     navigate('/posts/create?askDoubt=true');
   };
@@ -184,21 +184,21 @@ const AskDoubtCTA = () => {
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
-          transition={{ 
-            type: 'spring', 
-            stiffness: 300, 
+          transition={{
+            type: 'spring',
+            stiffness: 300,
             damping: 25,
-            duration: 0.4 
+            duration: 0.4
           }}
           className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 
                      sm:bottom-24 md:bottom-28"
-          style={{ 
+          style={{
             maxWidth: 'calc(100% - 2rem)',
             width: 'auto',
             minWidth: '280px'
           }}
         >
-          <div 
+          <div
             onClick={handleClick}
             className="relative bg-gradient-to-r from-[#9f3562] to-[#b14270] 
                      text-white rounded-2xl px-4 py-3 shadow-lg 
@@ -214,11 +214,11 @@ const AskDoubtCTA = () => {
             {/* Icon */}
             <div className="flex-shrink-0">
               <motion.div
-                animate={{ 
+                animate={{
                   rotate: [0, -10, 10, -10, 0],
                   scale: [1, 1.1, 1, 1.1, 1]
                 }}
-                transition={{ 
+                transition={{
                   duration: 2,
                   repeat: Infinity,
                   repeatDelay: 3,
@@ -243,8 +243,8 @@ const AskDoubtCTA = () => {
             <button
               type="button"
               onClick={handleDismiss}
-              className="flex-shrink-0 p-1 rounded-full hover:bg-black 
-                       transition-colors duration-200"
+              className="flex-shrink-0 p-1 rounded-full hover:bg-black/20 
+                       transition-colors duration-200 relative z-10"
               aria-label="Dismiss"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -252,7 +252,7 @@ const AskDoubtCTA = () => {
 
             {/* Pulse animation ring */}
             <motion.div
-              className="absolute inset-0 rounded-2xl border-2 border-white/30"
+              className="absolute inset-0 rounded-2xl border-2 border-white/30 pointer-events-none"
               animate={{
                 scale: [1, 1.05, 1],
                 opacity: [0.5, 0.3, 0.5],

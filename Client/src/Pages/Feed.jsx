@@ -562,8 +562,8 @@ const Feed = () => {
               <p className="text-gray-500 mt-1">Check back later for updates</p>
             </div>
           ) : (
-            <div ref={feedContainerRef} className="space-y-8">
-              {posts.map((post, index) => {
+            <div ref={feedContainerRef} className="space-y-4 sm:space-y-8">
+              {feedItems.map((item, index) => {
                 const shouldShowAd = ads.length > 0 && index > 0 && index % 5 === 0;
                 const adIndex = Math.floor(index / 5) % ads.length;
                 const ad = shouldShowAd ? ads[adIndex] : null;
@@ -576,7 +576,7 @@ const Feed = () => {
                       {index === 0 && !tagFilter && <MentorSuggestionSwiper />}
                       {index === 2 && !tagFilter && <SpaceSuggestionSwiper />}
                       {ad && !tagFilter && (
-                        <div className="mt-8">
+                        <div className="mt-4 sm:mt-8">
                           <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
                         </div>
                       )}
@@ -585,10 +585,10 @@ const Feed = () => {
                 }
 
                 return (
-                  <div key={post._id} className="relative">
-                    <PostViewTracker postId={post._id}>
+                  <div key={item._id} className="relative">
+                    <PostViewTracker postId={item._id}>
                       <PostCard
-                        post={post}
+                        post={item}
                         onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
                       />
                     </PostViewTracker>
@@ -596,7 +596,7 @@ const Feed = () => {
                     {index === 0 && !tagFilter && <MentorSuggestionSwiper />}
                     {index === 2 && !tagFilter && <SpaceSuggestionSwiper />}
                     {ad && !tagFilter && (
-                      <div className="mt-8">
+                      <div className="mt-4 sm:mt-8">
                         <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
                       </div>
                     )}

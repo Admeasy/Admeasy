@@ -185,7 +185,15 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
           Create a New Account
         </h1>
 
-        <form className="flex flex-col w-full mx-auto" onSubmit={handleSubmit}>
+        <div
+          className="flex flex-col w-full mx-auto"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
+        >
           {error && (
             <div className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-center text-sm font-semibold mb-4">
               {error}
@@ -259,7 +267,8 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
             <LoadingButton text={"Creating Account..."} variant={'blue'} />
           ) : (
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={usernameStatus !== "available"}
               className={`w-full inline-flex items-center justify-center px-8 py-3.5 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 ${usernameStatus === "available"
                 ? "bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 hover:shadow-xl hover:-translate-y-0.5"
@@ -269,7 +278,7 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
               Create Account
             </button>
           )}
-        </form>
+        </div>
 
         {/* Divider */}
         <div className="mt-6 flex items-center justify-center">

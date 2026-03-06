@@ -490,14 +490,14 @@ const PostCard = ({ post, onPostUpdate }) => {
       {/* Content */}
       <div className="relative z-10">
         {/* Post Header */}
-        <div className="flex items-center gap-3 p-5 sm:p-6">
+        <div className="flex items-center gap-2.5 sm:gap-3 p-3.5 sm:p-6 pb-2 sm:pb-6">
           <motion.div
             whileHover={{ scale: 1.05, rotate: 3 }}
             className="relative">
             <img
               src={author?.image || fallbackProfilePic}
               alt={author?.name || 'User'}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-contain ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
+              className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (author?.username) {
@@ -512,7 +512,7 @@ const PostCard = ({ post, onPostUpdate }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3
-                className="font-bold text-gray-900 text-sm sm:text-base truncate cursor-pointer hover:text-[#9f3562] transition-colors"
+                className="font-bold text-gray-900 text-[13px] sm:text-base truncate cursor-pointer hover:text-[#9f3562] transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (author?.username) {
@@ -541,7 +541,7 @@ const PostCard = ({ post, onPostUpdate }) => {
               whileTap={{ scale: 0.95 }}
               onClick={handleFollow}
               disabled={isFollowingLoading}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 shadow-sm bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent`}
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all disabled:opacity-50 shadow-sm bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent`}
             >
               {isFollowingLoading ? (
                 <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -597,9 +597,9 @@ const PostCard = ({ post, onPostUpdate }) => {
         </div>
 
         {/* Post Content */}
-        <div className="px-5 sm:px-6 pb-4">
+        <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
           <div
-            className="text-gray-800 break-words leading-relaxed text-sm sm:text-[15px] post-content"
+            className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
             dangerouslySetInnerHTML={{ __html: isExpanded ? processedContent : (truncatedContent.hasMore ? truncatedContent.html : processedContent) }}
             onClick={(e) => {
               // Handle mention link clicks
@@ -647,7 +647,7 @@ const PostCard = ({ post, onPostUpdate }) => {
 
         {/* NEW: Clickable Hashtags Display */}
         {postState.hashtags && postState.hashtags.length > 0 && (
-          <div className="px-5 sm:px-6 pb-4 flex flex-wrap gap-2">
+          <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4 flex flex-wrap gap-1.5 sm:gap-2">
             {postState.hashtags.map((tag, idx) => (
               <span
                 key={idx}
@@ -665,13 +665,13 @@ const PostCard = ({ post, onPostUpdate }) => {
 
         {/* Post Image */}
         {post.image && (
-          <div className="relative w-full group/image overflow-hidden">
+          <div className="relative w-full group/image overflow-hidden bg-gray-50/50">
             <motion.img
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.4 }}
               src={post.image}
               alt="Post"
-              className="w-full h-auto max-h-[400px] sm:max-h-[500px] object-contain"
+              className="w-full h-auto max-h-[250px] sm:max-h-[500px] object-cover sm:object-contain"
               loading="lazy"
               onDoubleClick={handleImageDoubleClick}
             />
@@ -698,7 +698,7 @@ const PostCard = ({ post, onPostUpdate }) => {
           <motion.div
             whileHover={{ scale: 1.01 }}
             onClick={(e) => handleLinkClick(e, post.externalLink.url)}
-            className="mx-5 sm:mx-6 mb-4 sm:mb-5 mt-3 sm:mt-4 border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-[#9f3562]/30 hover:shadow-md transition-all cursor-pointer group/link"
+            className="mx-3.5 sm:mx-6 mb-2.5 sm:mb-5 mt-1 sm:mt-4 border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-[#9f3562]/30 hover:shadow-md transition-all cursor-pointer group/link"
           >
             <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-white group-hover/link:from-[#9f3562]/5 group-hover/link:to-pink-50/50 transition-all duration-300">
               {post.externalLink.preview?.platform === 'youtube' ? (
@@ -734,7 +734,7 @@ const PostCard = ({ post, onPostUpdate }) => {
               <img
                 src={post.externalLink.preview.image}
                 alt="Link preview"
-                className="w-full h-44 sm:h-52 object-contain"
+                className="w-full h-28 sm:h-52 object-cover sm:object-contain bg-gray-50/50"
                 loading="lazy"
               />
             )}
@@ -742,7 +742,7 @@ const PostCard = ({ post, onPostUpdate }) => {
         )}
 
         {/* Post Actions */}
-        <div className="flex items-center gap-5 sm:gap-7 px-5 sm:px-6 py-4 sm:py-5 border-t border-gray-100">
+        <div className="flex items-center gap-4 sm:gap-7 px-3.5 sm:px-6 py-2.5 sm:py-5 border-t border-gray-100">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}

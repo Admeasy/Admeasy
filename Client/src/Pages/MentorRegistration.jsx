@@ -222,7 +222,15 @@ const MentorRegistration = () => {
                         </motion.div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="w-full max-w-sm">
+                    <div
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                if (step === 1) handleNext(e);
+                                else handleSubmit(e);
+                            }
+                        }}
+                        className="w-full max-w-sm"
+                    >
                         <div className="relative overflow-hidden">
                             <AnimatePresence mode="wait">
                                 {step === 1 ? (
@@ -342,7 +350,8 @@ const MentorRegistration = () => {
 
                                         {/* Submit Button */}
                                         <button
-                                            type="submit"
+                                            type="button"
+                                            onClick={handleSubmit}
                                             disabled={isSubmitting}
                                             className="w-full bg-[#9f3562] text-white font-bold py-3 rounded-full shadow-md hover:bg-[#b24a78] transition disabled:opacity-50"
                                         >
@@ -352,7 +361,7 @@ const MentorRegistration = () => {
                                 )}
                             </AnimatePresence>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </motion.section>
         </div>

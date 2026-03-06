@@ -91,7 +91,7 @@ const sendEmailVerification = async (req, res) => {
             } catch (emailErr) {
                 lastError = emailErr;
                 console.error(`Email send attempt ${attempt}/${maxRetries} failed:`, emailErr.message);
-                
+
                 // If not the last attempt, wait before retrying
                 if (attempt < maxRetries) {
                     await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
@@ -106,9 +106,9 @@ const sendEmailVerification = async (req, res) => {
             user.emailVerifyExpiry = undefined;
             await user.save({ validateBeforeSave: false });
             console.error("Email send failed after all retries:", lastError);
-            return res.status(500).json({ 
-                success: false, 
-                message: "Failed to send verification email. Please try requesting a new verification email." 
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send verification email. Please try requesting a new verification email."
             });
         }
 
@@ -137,9 +137,36 @@ const verifyEmail = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid or expired verification token." });
         }
 
-        // If user is already verified, just return success
+        // If user is already verified, still generate tokens and log them in
         if (user.isVerified) {
-            return res.json({ success: true, message: "Email is already verified! You can proceed to your dashboard." });
+            // Generate tokens for auto-login
+            const accessToken = generateAccessToken(user);
+            const refreshToken = generateRefreshToken(user);
+            user.refreshToken = refreshToken;
+            await user.save();
+            setTokenCookies(res, accessToken, refreshToken);
+
+            const { checkOnboardingStatus } = require('../utils/onboardingValidation');
+            const onboardingStatus = checkOnboardingStatus(user);
+
+            return res.json({
+                success: true,
+                message: "Email is already verified! You can proceed to your dashboard.",
+                user: {
+                    _id: user._id,
+                    email: user.email,
+                    username: user.username,
+                    name: user.name,
+                    isVerified: user.isVerified,
+                    hasCompletedOnboarding: user.hasCompletedOnboarding || false
+                },
+                requiresOnboarding: onboardingStatus.requiresOnboarding,
+                onboardingStatus: {
+                    isComplete: onboardingStatus.isComplete,
+                    hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+                    missingFields: onboardingStatus.missingFields
+                }
+            });
         }
 
         // If token has expired

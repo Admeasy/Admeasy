@@ -259,39 +259,28 @@ router.post('/onboarding', async (req, res) => {
             }
         }
 
-        // If user doesn't exist, create new account
+        // If user doesn't exist from token, find them by email
         if (!user) {
-            const { email, password, username } = req.body;
-            if (!email || !password || !username) {
-                return res.status(400).json({ success: false, message: 'Email, password, and username are required for new accounts' });
+            const { email, password } = req.body;
+            if (!email) {
+                return res.status(400).json({ success: false, message: 'Email is required to complete onboarding' });
             }
 
-            const existing = await User.findOne({ email });
-            if (existing) {
-                return res.status(409).json({ success: false, message: 'Email already registered. Please log in first.' });
+            user = await User.findOne({ email });
+
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found. Please create an account first.' });
             }
 
-            // Check availability of username
-            const normalizedUsername = username.trim().toLowerCase();
-            const existingUsername = await User.findOne({
-                username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
-            });
-
-            if (existingUsername) {
-                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            // Verify password for security since we rely on an unauthenticated request matching an email
+            if (password && user.password) {
+                const isValidPassword = await bcrypt.compare(password, user.password);
+                if (!isValidPassword) {
+                    return res.status(401).json({ success: false, message: 'Invalid credentials. Please try logging in directly.' });
+                }
+            } else if (!password && user.password) {
+                return res.status(401).json({ success: false, message: 'Please provide your password to complete onboarding.' });
             }
-
-            const Mentor = require('../models/mentorSchema.js');
-            const existingMentorUsername = await Mentor.findOne({
-                username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
-            });
-
-            if (existingMentorUsername) {
-                return res.status(409).json({ success: false, message: 'Username is already taken' });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-            user = new User({ email, password: hashedPassword, username: normalizedUsername });
         }
 
         // Check if user has already completed onboarding
@@ -393,8 +382,9 @@ router.post('/onboarding', async (req, res) => {
         // Mark onboarding as completed only if validation passes
         user.hasCompletedOnboarding = true;
 
-        // Generate tokens if user is new
-        if (!user.refreshToken) {
+        // Generate tokens if user is not currently authenticated via cookies
+        // We verified them via password earlier, so we can log them in on this device
+        if (!req.cookies['accessToken']) {
             const accessToken = generateAccessToken(user);
             const refreshToken = generateRefreshToken(user);
             user.refreshToken = refreshToken;
