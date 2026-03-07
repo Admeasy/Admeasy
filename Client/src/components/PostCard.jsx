@@ -1,20 +1,35 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, ExternalLink, Youtube, Repeat2, UserPlus, UserCheck, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-toastify';
-import { useUser } from '../context/UserContext';
-import { useMentor } from '../context/MentorContext';
-import EditPostModal from './EditPostModal';
-import ConfirmModal from './ConfirmModal';
-import { processMentions } from '../utils/processMentions';
-import { truncateHtml } from '../utils/textUtils';
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  ExternalLink,
+  Youtube,
+  Repeat2,
+  UserPlus,
+  UserCheck,
+  MoreVertical,
+  Edit,
+  Trash2,
+} from "lucide-react";
+// import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
+import { toast } from "react-toastify";
+import { useUser } from "../context/UserContext";
+import { useMentor } from "../context/MentorContext";
+import EditPostModal from "./EditPostModal";
+import ConfirmModal from "./ConfirmModal";
+import { processMentions } from "../utils/processMentions";
+import { truncateHtml } from "../utils/textUtils";
+import SharePostModal from "./SharePostModal";
 
 const PostCard = ({ post, onPostUpdate }) => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { mentor } = useMentor();
   const isAuthed = Boolean(user || mentor);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Read More State
   const [isExpanded, setIsExpanded] = useState(false);
@@ -24,14 +39,14 @@ const PostCard = ({ post, onPostUpdate }) => {
 
   // Calculate processed and truncated content
   // Must depend on postState to reflect edits immediately
-  const processedContent = useMemo(() =>
-    processMentions(postState.content || post.content),
-    [postState.content, post.content]
+  const processedContent = useMemo(
+    () => processMentions(postState.content || post.content),
+    [postState.content, post.content],
   );
 
-  const truncatedContent = useMemo(() =>
-    truncateHtml(processedContent, 30),
-    [processedContent]
+  const truncatedContent = useMemo(
+    () => truncateHtml(processedContent, 30),
+    [processedContent],
   );
 
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
@@ -51,15 +66,18 @@ const PostCard = ({ post, onPostUpdate }) => {
   useEffect(() => {
     if (!isInteracting.current.like && !isInteracting.current.repost) {
       // Always sync isLiked, likesCount, and other state from props to ensure consistency
-      setPostState(prev => {
+      setPostState((prev) => {
         // Only update if there are actual changes to avoid unnecessary re-renders
-        if (prev._id !== post._id ||
+        if (
+          prev._id !== post._id ||
           prev.isLiked !== post.isLiked ||
           prev.likesCount !== post.likesCount ||
           prev.isReposted !== post.isReposted ||
           prev.repostCount !== post.repostCount ||
           prev.commentsCount !== post.commentsCount ||
-          JSON.stringify(prev.commentPreview) !== JSON.stringify(post.commentPreview)) {
+          JSON.stringify(prev.commentPreview) !==
+            JSON.stringify(post.commentPreview)
+        ) {
           return { ...post };
         }
         return prev;
@@ -70,18 +88,20 @@ const PostCard = ({ post, onPostUpdate }) => {
     }
   }, [post]);
 
-  const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+  const fallbackProfilePic =
+    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
   // Support both 'mentor' (backward compatibility) and 'author' (new format)
   const author = post.author || post.mentor;
   // A post is a mentor post if it has the 'mentor' key (backward compatibility) or if author has username (mentors typically have usernames)
   // For now, we'll show follow button only if post.mentor exists (backward compatibility) or if author has username
-  const isMentorPost = Boolean(post.mentor) || Boolean(author && author.username);
 
+  const isMentorPost =
+    Boolean(post.mentor) || Boolean(author && author.username);
   const handleLike = async (e) => {
     e.stopPropagation();
     if (!isAuthed) {
-      toast.info('Log in to like posts');
+      toast.info("Log in to like posts");
       return;
     }
 
@@ -97,7 +117,9 @@ const PostCard = ({ post, onPostUpdate }) => {
     const optimisticPost = {
       ...postState,
       isLiked: !wasLiked,
-      likesCount: wasLiked ? (postState.likesCount - 1) : (postState.likesCount + 1)
+      likesCount: wasLiked
+        ? postState.likesCount - 1
+        : postState.likesCount + 1,
     };
 
     // Apply locally immediately
@@ -112,8 +134,8 @@ const PostCard = ({ post, onPostUpdate }) => {
 
     try {
       const res = await fetch(`/api/posts/${post._id}/like`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
       const data = await res.json();
 
@@ -122,57 +144,68 @@ const PostCard = ({ post, onPostUpdate }) => {
         const syncedPost = {
           ...optimisticPost,
           isLiked: data.isLiked,
-          likesCount: data.likesCount
+          likesCount: data.likesCount,
         };
         // MERGE API response
         setPostState(syncedPost);
         if (onPostUpdate) onPostUpdate(syncedPost);
 
         // Broadcast global update for PostDetail
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId: post._id, ...data }
-        }));
+        window.dispatchEvent(
+          new CustomEvent("postInteraction", {
+            detail: { postId: post._id, ...data },
+          }),
+        );
       } else {
         throw new Error();
       }
-    } catch (error) {
+    } catch {
       // ROLLBACK to previous state
       setPostState(previousState);
       if (onPostUpdate) onPostUpdate(previousState);
-      toast.error('Failed to like post');
+      toast.error("Failed to like post");
     } finally {
       isInteracting.current.like = false;
     }
   };
 
-  const handleShare = async (e) => {
-    e.stopPropagation();
-    // Share works without login
-    const postUrl = `${window.location.origin}/posts/${post._id}`;
+  // const handleShare = async (e) => {
+  //   e.stopPropagation();
+  //   // Share works without login
+  //   const postUrl = `${window.location.origin}/posts/${post._id}`;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Post by ${author?.name || 'User'}`,
-          text: post.content.replace(/<[^>]*>/g, '').substring(0, 100), // Strip HTML for text
-          url: postUrl,
-        });
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          navigator.clipboard.writeText(postUrl);
-          toast.success('Link copied to clipboard!');
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(postUrl);
-      toast.success('Link copied to clipboard!');
+  //   if (navigator.share) {
+  //     try {
+  //       await navigator.share({
+  //         title: `Post by ${author?.name || 'User'}`,
+  //         text: post.content.replace(/<[^>]*>/g, '').substring(0, 100), // Strip HTML for text
+  //         url: postUrl,
+  //       });
+  //     } catch (error) {
+  //       if (error.name !== 'AbortError') {
+  //         navigator.clipboard.writeText(postUrl);
+  //         toast.success('Link copied to clipboard!');
+  //       }
+  //     }
+  //   } else {
+  //     navigator.clipboard.writeText(postUrl);
+  //     toast.success('Link copied to clipboard!');
+  //   }
+  // };
+
+  const handleShare = (e) => {
+    e.stopPropagation();
+    if (!isAuthed) {
+      toast.info("Log in to share posts");
+      return;
     }
+    setShowShareModal(true);
   };
 
   const handleRepost = async (e) => {
     e.stopPropagation();
     if (!isAuthed) {
-      toast.info('Log in to repost');
+      toast.info("Log in to repost");
       return;
     }
 
@@ -189,7 +222,9 @@ const PostCard = ({ post, onPostUpdate }) => {
     const optimisticPost = {
       ...postState,
       isReposted: !wasReposted,
-      repostCount: wasReposted ? (postState.repostCount - 1) : (postState.repostCount + 1)
+      repostCount: wasReposted
+        ? postState.repostCount - 1
+        : postState.repostCount + 1,
     };
 
     setPostState(optimisticPost);
@@ -197,8 +232,8 @@ const PostCard = ({ post, onPostUpdate }) => {
 
     try {
       const res = await fetch(`/api/posts/${post._id}/repost`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
       const data = await res.json();
 
@@ -206,21 +241,23 @@ const PostCard = ({ post, onPostUpdate }) => {
         const syncedPost = {
           ...postState,
           isReposted: data.isReposted,
-          repostCount: data.repostCount
+          repostCount: data.repostCount,
         };
         setPostState(syncedPost);
         if (onPostUpdate) onPostUpdate(syncedPost);
 
-        window.dispatchEvent(new CustomEvent('postInteraction', {
-          detail: { postId: post._id, ...data }
-        }));
+        window.dispatchEvent(
+          new CustomEvent("postInteraction", {
+            detail: { postId: post._id, ...data },
+          }),
+        );
       } else {
         throw new Error();
       }
     } catch (error) {
       setPostState(postState);
       if (onPostUpdate) onPostUpdate(postState);
-      toast.error('Failed to repost');
+      toast.error("Failed to repost");
     } finally {
       isInteracting.current.repost = false;
     }
@@ -229,7 +266,7 @@ const PostCard = ({ post, onPostUpdate }) => {
   const handleFollow = async (e) => {
     e.stopPropagation();
     if (!isAuthed) {
-      toast.info('Log in to follow users and mentors');
+      toast.info("Log in to follow users and mentors");
       // navigate('/login');
       return;
     }
@@ -243,27 +280,29 @@ const PostCard = ({ post, onPostUpdate }) => {
     // Make API call in background
     setIsFollowingLoading(true);
     fetch(`/api/users/${author._id}/follow`, {
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           setIsFollowing(data.isFollowing);
           // Broadcast follow status change globally
-          window.dispatchEvent(new CustomEvent('followStatusChanged', {
-            detail: {
-              targetId: author._id.toString(),
-              isFollowing: data.isFollowing
-            }
-          }));
+          window.dispatchEvent(
+            new CustomEvent("followStatusChanged", {
+              detail: {
+                targetId: author._id.toString(),
+                isFollowing: data.isFollowing,
+              },
+            }),
+          );
         } else {
           // Revert on error
           setIsFollowing(previousFollowing);
         }
       })
-      .catch(error => {
-        console.error('Error following:', error);
+      .catch((error) => {
+        console.error("Error following:", error);
         // Revert on error
         setIsFollowing(previousFollowing);
       })
@@ -274,37 +313,53 @@ const PostCard = ({ post, onPostUpdate }) => {
   };
 
   // Check if post is by current user/mentor
-  const isOwnPost = author && (
-    (user && user._id && author._id && user._id.toString() === author._id.toString()) ||
-    (mentor && mentor._id && author._id && mentor._id.toString() === author._id.toString())
-  );
+  const isOwnPost =
+    author &&
+    ((user &&
+      user._id &&
+      author._id &&
+      user._id.toString() === author._id.toString()) ||
+      (mentor &&
+        mentor._id &&
+        author._id &&
+        mentor._id.toString() === author._id.toString()));
 
   // Listen for global interaction events (from PostDetail or other cards)
   useEffect(() => {
     const handleGlobalUpdate = (event) => {
-      const { postId, isLiked, likesCount, isReposted, repostCount, commentsCount } = event.detail;
+      const {
+        postId,
+        isLiked,
+        likesCount,
+        isReposted,
+        repostCount,
+        commentsCount,
+      } = event.detail;
       if (postId === post._id) {
-        setPostState(prev => ({
+        setPostState((prev) => ({
           ...prev,
           ...(isLiked !== undefined && { isLiked }),
           ...(likesCount !== undefined && { likesCount }),
           ...(isReposted !== undefined && { isReposted }),
           ...(repostCount !== undefined && { repostCount }),
-          ...(commentsCount !== undefined && { commentsCount })
+          ...(commentsCount !== undefined && { commentsCount }),
         }));
       }
     };
 
-    window.addEventListener('postInteraction', handleGlobalUpdate);
-    return () => window.removeEventListener('postInteraction', handleGlobalUpdate);
+    window.addEventListener("postInteraction", handleGlobalUpdate);
+    return () =>
+      window.removeEventListener("postInteraction", handleGlobalUpdate);
   }, [post._id]);
 
   // Fetch follow status on mount
   useEffect(() => {
     if (isAuthed && author && author._id && !isOwnPost) {
-      fetch(`/api/users/${author._id}/follow-status`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
+      fetch(`/api/users/${author._id}/follow-status`, {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => {
           if (data.success) setIsFollowing(data.isFollowing);
         });
     }
@@ -316,15 +371,15 @@ const PostCard = ({ post, onPostUpdate }) => {
     let cleanUrl = url;
     if (cleanUrl) {
       // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
       // Remove any HTML tags (decoded)
-      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+      cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
       // Remove any remaining angle brackets
-      cleanUrl = cleanUrl.replace(/[<>]/g, '');
+      cleanUrl = cleanUrl.replace(/[<>]/g, "");
       // Trim whitespace
       cleanUrl = cleanUrl.trim();
     }
-    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+    window.open(cleanUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleImageDoubleClick = (e) => {
@@ -338,12 +393,14 @@ const PostCard = ({ post, onPostUpdate }) => {
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
 
-    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 60) return "just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800)
+      return `${Math.floor(diffInSeconds / 86400)}d ago`;
 
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   // Close menu when clicking outside
@@ -355,11 +412,11 @@ const PostCard = ({ post, onPostUpdate }) => {
     };
 
     if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showMenu]);
 
@@ -377,17 +434,17 @@ const PostCard = ({ post, onPostUpdate }) => {
     try {
       setIsDeleting(true);
       const res = await fetch(`/api/posts/${post._id}`, {
-        method: 'DELETE',
-        credentials: 'include',
+        method: "DELETE",
+        credentials: "include",
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to delete post');
+        throw new Error(data.message || "Failed to delete post");
       }
 
-      toast.success('Post deleted successfully');
+      toast.success("Post deleted successfully");
       // Signal deletion - parent component should handle removal
       if (onPostUpdate) {
         onPostUpdate({ ...postState, deleted: true });
@@ -396,18 +453,18 @@ const PostCard = ({ post, onPostUpdate }) => {
       setShowDeleteModal(false);
       // Small delay to allow toast to show, then navigate
       setTimeout(() => {
-        navigate('/');
+        navigate("/");
       }, 500);
     } catch (err) {
       console.error(err);
-      toast.error(err.message || 'Failed to delete post');
+      toast.error(err.message || "Failed to delete post");
     } finally {
       setIsDeleting(false);
     }
   };
 
   const handlePostUpdated = (updatedPost) => {
-    setPostState(prev => ({ ...prev, ...updatedPost }));
+    setPostState((prev) => ({ ...prev, ...updatedPost }));
     if (onPostUpdate) {
       onPostUpdate({ ...postState, ...updatedPost });
     }
@@ -420,7 +477,10 @@ const PostCard = ({ post, onPostUpdate }) => {
       transition={{ duration: 0.4, ease: "easeOut" }}
       onClick={() => {
         // Save current scroll position immediately before navigation
-        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        const currentScroll =
+          window.scrollY ||
+          window.pageYOffset ||
+          document.documentElement.scrollTop;
         const feedState = {
           page: 1, // Will be updated by Feed component
           posts: [],
@@ -429,19 +489,22 @@ const PostCard = ({ post, onPostUpdate }) => {
         };
         try {
           // Try to get existing state and update scroll position
-          const existing = sessionStorage.getItem('admeasy:feed:state');
+          const existing = sessionStorage.getItem("admeasy:feed:state");
           if (existing) {
             const existingState = JSON.parse(existing);
             feedState.page = existingState.page || 1;
             feedState.posts = existingState.posts || [];
           }
-          sessionStorage.setItem('admeasy:feed:state', JSON.stringify(feedState));
+          sessionStorage.setItem(
+            "admeasy:feed:state",
+            JSON.stringify(feedState),
+          );
         } catch (err) {
-          console.error('Failed to save scroll position:', err);
+          console.error("Failed to save scroll position:", err);
         }
 
         // Mark that we're navigating to post detail
-        sessionStorage.setItem('admeasy:fromPostDetail', 'true');
+        sessionStorage.setItem("admeasy:fromPostDetail", "true");
         navigate(`/posts/${post._id}`);
       }}
       className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
@@ -493,10 +556,11 @@ const PostCard = ({ post, onPostUpdate }) => {
         <div className="flex items-center gap-2.5 sm:gap-3 p-3.5 sm:p-6 pb-2 sm:pb-6">
           <motion.div
             whileHover={{ scale: 1.05, rotate: 3 }}
-            className="relative">
+            className="relative"
+          >
             <img
               src={author?.image || fallbackProfilePic}
-              alt={author?.name || 'User'}
+              alt={author?.name || "User"}
               className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-gray-100 shadow-md group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
@@ -520,7 +584,7 @@ const PostCard = ({ post, onPostUpdate }) => {
                   }
                 }}
               >
-                {author?.name || 'User'}
+                {author?.name || "User"}
               </h3>
             </div>
             {author?.username && (
@@ -600,14 +664,20 @@ const PostCard = ({ post, onPostUpdate }) => {
         <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
           <div
             className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
-            dangerouslySetInnerHTML={{ __html: isExpanded ? processedContent : (truncatedContent.hasMore ? truncatedContent.html : processedContent) }}
+            dangerouslySetInnerHTML={{
+              __html: isExpanded
+                ? processedContent
+                : truncatedContent.hasMore
+                  ? truncatedContent.html
+                  : processedContent,
+            }}
             onClick={(e) => {
               // Handle mention link clicks
-              const mentionLink = e.target.closest('a.mention-link');
+              const mentionLink = e.target.closest("a.mention-link");
               if (mentionLink) {
                 e.preventDefault();
                 e.stopPropagation();
-                const username = mentionLink.getAttribute('data-username');
+                const username = mentionLink.getAttribute("data-username");
                 if (username) {
                   navigate(`/${username}`);
                 }
@@ -615,20 +685,20 @@ const PostCard = ({ post, onPostUpdate }) => {
               }
 
               // Intercept clicks on other links within post content
-              const link = e.target.closest('a');
+              const link = e.target.closest("a");
               if (link && link.href) {
                 e.preventDefault();
                 e.stopPropagation();
                 let cleanUrl = link.href;
                 // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-                cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
                 // Remove any HTML tags (decoded)
-                cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
                 // Remove any remaining angle brackets
-                cleanUrl = cleanUrl.replace(/[<>]/g, '');
+                cleanUrl = cleanUrl.replace(/[<>]/g, "");
                 // Trim whitespace
                 cleanUrl = cleanUrl.trim();
-                window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+                window.open(cleanUrl, "_blank", "noopener,noreferrer");
               }
             }}
           />
@@ -640,7 +710,7 @@ const PostCard = ({ post, onPostUpdate }) => {
               }}
               className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
             >
-              {isExpanded ? 'Show less' : 'Read more'}
+              {isExpanded ? "Show less" : "Read more"}
             </button>
           )}
         </div>
@@ -701,7 +771,7 @@ const PostCard = ({ post, onPostUpdate }) => {
             className="mx-3.5 sm:mx-6 mb-2.5 sm:mb-5 mt-1 sm:mt-4 border-2 border-gray-100 rounded-2xl overflow-hidden hover:border-[#9f3562]/30 hover:shadow-md transition-all cursor-pointer group/link"
           >
             <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-white group-hover/link:from-[#9f3562]/5 group-hover/link:to-pink-50/50 transition-all duration-300">
-              {post.externalLink.preview?.platform === 'youtube' ? (
+              {post.externalLink.preview?.platform === "youtube" ? (
                 <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-md">
                   <Youtube className="w-7 h-7 text-white" />
                 </div>
@@ -710,7 +780,7 @@ const PostCard = ({ post, onPostUpdate }) => {
                   {post.externalLink.preview?.favicon ? (
                     <img
                       src={post.externalLink.preview.favicon}
-                      alt={post.externalLink.preview?.domain || 'Link'}
+                      alt={post.externalLink.preview?.domain || "Link"}
                       className="w-8 h-8 object-contain"
                     />
                   ) : (
@@ -720,7 +790,9 @@ const PostCard = ({ post, onPostUpdate }) => {
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm text-gray-900 truncate">
-                  {post.externalLink.preview?.title || post.externalLink.preview?.domain || 'External Link'}
+                  {post.externalLink.preview?.title ||
+                    post.externalLink.preview?.domain ||
+                    "External Link"}
                 </p>
                 {post.externalLink.preview?.domain && (
                   <p className="text-xs text-gray-500 truncate">
@@ -750,13 +822,19 @@ const PostCard = ({ post, onPostUpdate }) => {
             className="flex items-center gap-2 group/like"
           >
             <Heart
-              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${postState.isLiked
-                ? 'fill-red-500 text-red-500'
-                : 'text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110'
-                }`}
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
+                postState.isLiked
+                  ? "fill-red-500 text-red-500"
+                  : "text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110"
+              }`}
             />
-            <span className={`text-sm sm:text-base font-bold transition-colors ${postState.isLiked ? 'text-red-500' : 'text-gray-600 group-hover/like:text-red-500'
-              }`}>
+            <span
+              className={`text-sm sm:text-base font-bold transition-colors ${
+                postState.isLiked
+                  ? "text-red-500"
+                  : "text-gray-600 group-hover/like:text-red-500"
+              }`}
+            >
               {postState.likesCount}
             </span>
           </motion.button>
@@ -767,7 +845,10 @@ const PostCard = ({ post, onPostUpdate }) => {
             onClick={(e) => {
               e.stopPropagation();
               // Save current scroll position immediately before navigation
-              const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+              const currentScroll =
+                window.scrollY ||
+                window.pageYOffset ||
+                document.documentElement.scrollTop;
               const feedState = {
                 page: 1,
                 posts: [],
@@ -775,38 +856,48 @@ const PostCard = ({ post, onPostUpdate }) => {
                 timestamp: Date.now(),
               };
               try {
-                const existing = sessionStorage.getItem('admeasy:feed:state');
+                const existing = sessionStorage.getItem("admeasy:feed:state");
                 if (existing) {
                   const existingState = JSON.parse(existing);
                   feedState.page = existingState.page || 1;
                   feedState.posts = existingState.posts || [];
                 }
-                sessionStorage.setItem('admeasy:feed:state', JSON.stringify(feedState));
+                sessionStorage.setItem(
+                  "admeasy:feed:state",
+                  JSON.stringify(feedState),
+                );
               } catch (err) {
-                console.error('Failed to save scroll position:', err);
+                console.error("Failed to save scroll position:", err);
               }
 
-              sessionStorage.setItem('admeasy:fromPostDetail', 'true');
+              sessionStorage.setItem("admeasy:fromPostDetail", "true");
               navigate(`/posts/${post._id}`);
             }}
             className="flex items-center gap-2 text-gray-500 hover:text-[#9f3562] transition-colors group/comment"
           >
             <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 group-hover/comment:scale-110 transition-transform" />
-            <span className="text-sm sm:text-base font-bold">{postState.commentsCount}</span>
+            <span className="text-sm sm:text-base font-bold">
+              {postState.commentsCount}
+            </span>
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleRepost}
-            className={`flex items-center gap-2 transition-colors ${postState.isReposted
-              ? 'text-[#9f3562]'
-              : 'text-gray-500 hover:text-[#9f3562]'
-              }`}
+            className={`flex items-center gap-2 transition-colors ${
+              postState.isReposted
+                ? "text-[#9f3562]"
+                : "text-gray-500 hover:text-[#9f3562]"
+            }`}
           >
-            <Repeat2 className={`w-5 h-5 sm:w-6 sm:h-6 ${postState.isReposted ? 'fill-current' : ''}`} />
+            <Repeat2
+              className={`w-5 h-5 sm:w-6 sm:h-6 ${postState.isReposted ? "fill-current" : ""}`}
+            />
             {postState.repostCount > 0 && (
-              <span className={`text-sm sm:text-base font-bold ${postState.isReposted ? 'text-[#9f3562]' : 'text-gray-600'}`}>
+              <span
+                className={`text-sm sm:text-base font-bold ${postState.isReposted ? "text-[#9f3562]" : "text-gray-600"}`}
+              >
                 {postState.repostCount}
               </span>
             )}
@@ -832,8 +923,10 @@ const PostCard = ({ post, onPostUpdate }) => {
                 </span>
               )}
               <img
-                src={postState.commentPreview.author?.image || fallbackProfilePic}
-                alt={postState.commentPreview.author?.name || 'User'}
+                src={
+                  postState.commentPreview.author?.image || fallbackProfilePic
+                }
+                alt={postState.commentPreview.author?.name || "User"}
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border border-gray-200"
               />
               <div className="flex-1 min-w-0">
@@ -843,18 +936,22 @@ const PostCard = ({ post, onPostUpdate }) => {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (postState.commentPreview.author?.username) {
-                        navigate(`/${postState.commentPreview.author.username}`);
+                        navigate(
+                          `/${postState.commentPreview.author.username}`,
+                        );
                       }
                     }}
                   >
-                    {postState.commentPreview.author?.name || 'User'}
+                    {postState.commentPreview.author?.name || "User"}
                   </span>
                   {postState.commentPreview.author?.username && (
                     <span
                       className="text-xs text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/${postState.commentPreview.author.username}`);
+                        navigate(
+                          `/${postState.commentPreview.author.username}`,
+                        );
                       }}
                     >
                       @{postState.commentPreview.author.username}
@@ -864,11 +961,11 @@ const PostCard = ({ post, onPostUpdate }) => {
                 <div
                   className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-2"
                   style={{
-                    display: '-webkit-box',
+                    display: "-webkit-box",
                     WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
                   {postState.commentPreview.content}
@@ -879,7 +976,9 @@ const PostCard = ({ post, onPostUpdate }) => {
         )}
 
         <h6 className="text-xs font-medium text-gray-400 flex-shrink-0 mx-5 sm:mx-6 mb-1 sm:mb-2 text-right">
-          {postState.isEdited && <span className="text-gray-500">(Edited) </span>}
+          {postState.isEdited && (
+            <span className="text-gray-500">(Edited) </span>
+          )}
           {formatDate(postState.createdAt)}
         </h6>
       </div>
@@ -891,6 +990,18 @@ const PostCard = ({ post, onPostUpdate }) => {
         onPostUpdated={handlePostUpdated}
       />
 
+      {/* <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        isLoading={isDeleting}
+      /> */}
+
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -901,6 +1012,12 @@ const PostCard = ({ post, onPostUpdate }) => {
         cancelText="Cancel"
         confirmColor="danger"
         isLoading={isDeleting}
+      />
+
+      <SharePostModal
+        post={post}
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
       />
     </motion.div>
   );
