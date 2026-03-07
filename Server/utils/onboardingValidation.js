@@ -15,10 +15,7 @@ const validateOnboardingCompletion = (user) => {
         errors.push('Name is required');
     }
 
-    if (!user.gender || user.gender.trim() === '') {
-        missingFields.push('gender');
-        errors.push('Gender is required');
-    }
+
 
     if (!user.city || user.city.trim() === '') {
         missingFields.push('city');
@@ -42,10 +39,7 @@ const validateOnboardingCompletion = (user) => {
 
     // Education type specific requirements
     if (user.educationType === 'school') {
-        if (!user.schoolName || user.schoolName.trim() === '') {
-            missingFields.push('schoolName');
-            errors.push('School name is required');
-        }
+
         if (!user.class || user.class.trim() === '') {
             missingFields.push('class');
             errors.push('Class is required');
@@ -55,9 +49,9 @@ const validateOnboardingCompletion = (user) => {
             errors.push('Board is required');
         }
     } else if (user.educationType === 'college') {
-        if (!user.collegeName || user.collegeName.trim() === '') {
-            missingFields.push('collegeName');
-            errors.push('College name is required');
+        if (!user.universityName || user.universityName.trim() === '') {
+            missingFields.push('universityName');
+            errors.push('University name is required');
         }
         if (!user.courseDetails || user.courseDetails.trim() === '') {
             missingFields.push('courseDetails');

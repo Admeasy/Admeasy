@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 
-const buildFilter = ({ search, university, programme, course, hashtag }) => { // Added hashtag
+const buildFilter = ({ search, university, programme, course, hashtag, uploader }) => { // Added hashtag
   const filter = { status: 'published' };
 
   if (search) {
@@ -32,6 +32,9 @@ const buildFilter = ({ search, university, programme, course, hashtag }) => { //
   }
   if (course && course !== 'all') {
     filter.course = course.toLowerCase();
+  }
+  if (uploader) {
+    filter.uploader = uploader;
   }
 
   return filter;
@@ -106,24 +109,29 @@ exports.uploadNote = async (req, res) => {
   let tempFilePath = null;
   
   try {
-    // Validate mentor authentication
-    if (!req.mentor || !req.mentor._id) {
-      console.error('Upload note error: Mentor not authenticated');
+    // Check for either a Mentor or a User
+    const uploader = req.mentor || req.user;
+    const uploaderType = req.mentor ? 'Mentor' : 'User';
+
+    if (!uploader || !uploader._id) {
       return res.status(401).json({ 
         success: false, 
-        message: 'Authentication required. Please log in as a mentor.' 
+        message: 'Authentication required. Please log in.' 
       });
     }
 
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags } = req.body;
-    // Validate required fields
-    const missingFields = [];
+const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags } = req.body;    // Validate required fields
+const missingFields = [];
     if (!title || !title.trim()) missingFields.push('title');
     if (!description || !description.trim()) missingFields.push('description');
     if (!standard || !standard.trim()) missingFields.push('standard');
-    if (!university || !university.trim()) missingFields.push('university');
-    if (!programme || !programme.trim()) missingFields.push('programme');
     if (!course || !course.trim()) missingFields.push('course');
+
+    // ONLY require university and programme if it's a mentor
+    if (uploaderType === 'Mentor') {
+      if (!university || !university.trim()) missingFields.push('university');
+      if (!programme || !programme.trim()) missingFields.push('programme');
+    }
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -247,16 +255,17 @@ exports.uploadNote = async (req, res) => {
         pages: pages && pages.trim() ? parseInt(pages) : undefined,
         isFree: isFree === 'true' || isFree === true || isFree === 'true',
         price: price && price.trim() ? parseFloat(price) : undefined,
-        university: university.trim().toLowerCase(),
-        programme: programme.trim().toLowerCase(),
+        university: university ? university.trim().toLowerCase() : 'general',
+        programme: programme ? programme.trim().toLowerCase() : 'general',
         course: course.trim().toLowerCase(),
         tags: tags && tags.trim() ? tags.trim() : undefined,
         hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse the incoming stringified array
         fileUrl: cloudinaryResult.secure_url,
         fileSize: cloudinaryResult.bytes,
         cloudinaryPublicId: cloudinaryResult.public_id,
-        uploader: req.mentor._id,
-        uploaderName: req.mentor.name || 'Unknown',
+        uploader: uploader._id,              // CHANGED
+        uploaderModel: uploaderType,         // NEW
+        uploaderName: uploader.name || 'Unknown', // CHANGED
         status: 'pending'
       });
 

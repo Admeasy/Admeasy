@@ -11,10 +11,15 @@ import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import AdCard from '../components/AdCard';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 import { motion } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode, Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/free-mode';
+import 'swiper/css/navigation';
 
 const FEED_STORAGE_KEY = 'admeasy:feed:state';
 
@@ -380,24 +385,16 @@ const Feed = () => {
   }, [page, posts, saveFeedState, location.pathname]);
 
 
-  // Merge Posts and Notes Logic
+  // Prepare Posts Logic (Notes separated to Swiper)
   const feedItems = useMemo(() => {
     const formattedPosts = posts.map(p => ({ ...p, contentType: 'post' }));
 
-    const formattedNotes = notes.map(n => ({
-      ...n,
-      contentType: 'note',
-      createdAt: n.publishedAt || n.createdAt
-    }));
-
-    const combined = [...formattedPosts, ...formattedNotes];
-
-    return combined.sort((a, b) => {
+    return formattedPosts.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
       return dateB - dateA;
     });
-  }, [posts, notes]);
+  }, [posts]);
 
   // Random Heading logic 
   const [randomHeading, setRandomHeading] = useState({ title: '', subtitle: '' });
@@ -553,6 +550,43 @@ const Feed = () => {
             </motion.div>
           )}
 
+          {/* Notes Swiper Section */}
+          {notes.length > 0 && !tagFilter && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
+              <div className="flex justify-between items-center mb-4 px-2 sm:px-0">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Recommended Notes</h3>
+                <button
+                  onClick={() => navigate('/notes')}
+                  className="text-sm font-semibold text-[#9f3562] flex items-center gap-1 hover:underline transition-all hover:gap-2 px-3 py-1.5 rounded-full hover:bg-pink-50 cursor-pointer"
+                >
+                  View More <ChevronRight size={16} />
+                </button>
+              </div>
+              <Swiper
+                modules={[FreeMode, Navigation]}
+                spaceBetween={16}
+                slidesPerView={1.1}
+                freeMode={true}
+                navigation={false}
+                breakpoints={{
+                  640: { slidesPerView: 1.5, spaceBetween: 20 },
+                  1024: { slidesPerView: 2.1, spaceBetween: 24 }
+                }}
+                className="!pb-6 !px-2 sm:!px-0"
+              >
+                {notes.map(note => (
+                  <SwiperSlide key={note._id} className="h-auto">
+                    <NotesCard note={note} />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </motion.div>
+          )}
+
           {/* Feed Loop Updated */}
           {feedItems.length === 0 ? (
             <div className="bg-white rounded-3xl p-12 text-center shadow">
@@ -567,22 +601,6 @@ const Feed = () => {
                 const shouldShowAd = ads.length > 0 && index > 0 && index % 5 === 0;
                 const adIndex = Math.floor(index / 5) % ads.length;
                 const ad = shouldShowAd ? ads[adIndex] : null;
-
-                if (item.contentType === 'note') {
-                  return (
-                    <div key={item._id || index} className="relative">
-                      <NotesCard note={item} />
-
-                      {index === 0 && !tagFilter && <MentorSuggestionSwiper />}
-                      {index === 2 && !tagFilter && <SpaceSuggestionSwiper />}
-                      {ad && !tagFilter && (
-                        <div className="mt-4 sm:mt-8">
-                          <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
 
                 return (
                   <div key={item._id} className="relative">

@@ -351,16 +351,20 @@ router.post('/onboarding', async (req, res) => {
         if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
 
         // Set institute and course based on education type
-        if (educationType === 'school' && schoolName) {
-            user.institute = schoolName;
+        if (educationType === 'school') {
+            if (schoolName) user.institute = schoolName;
+            else if (board) user.institute = board;
+
             if (userClass) {
                 user.course = `Class ${userClass}`;
                 if (stream) {
                     user.course += ` (${stream})`;
                 }
             }
-        } else if (educationType === 'college' && collegeName) {
-            user.institute = collegeName;
+        } else if (educationType === 'college') {
+            if (universityName) user.institute = universityName;
+            else if (collegeName) user.institute = collegeName;
+
             if (courseDetails) {
                 user.course = courseDetails;
             }

@@ -102,7 +102,7 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
   };
 
   const handleAccountSwitch = async (account) => {
-    if (account._id === user?._id) {
+    if (account.id === user?._id) {
       setShowAccountsPopup(false);
       return;
     }
@@ -112,7 +112,7 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
       const res = await fetch("/api/users/switch-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ switchToken: account.switchToken }),
+        body: JSON.stringify({ switchToken: account.token }),
         credentials: "include", // CRITICAL FIX: Allows new cookies to be saved in the browser!
       });
 
@@ -135,7 +135,7 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
           isLoading: false,
           autoClose: 3000,
         });
-        removeSavedAccount(account._id); // Remove from list if switch token expired
+        removeSavedAccount(account.id); // Remove from list if switch token expired
         navigate("/login");
       }
     } catch (err) {
@@ -267,16 +267,16 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                   <div className="max-h-[200px] overflow-y-auto scrollbar-thin">
                     {savedAccounts?.map((acc) => (
                       <button
-                        key={acc._id}
+                        key={acc.id}
                         onClick={() => handleAccountSwitch(acc)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${user?._id === acc._id ? 'bg-[#9f3562]/5' : ''}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${user?._id === acc.id ? 'bg-[#9f3562]/5' : ''}`}
                       >
-                        <img src={acc.imageUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'} alt={acc.name} className="w-8 h-8 rounded-full object-cover" />
+                        <img src={acc.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'} alt={acc.name} className="w-8 h-8 rounded-full object-cover" />
                         <div className="flex flex-col text-left overflow-hidden">
                           <span className="text-sm font-semibold text-gray-900 truncate">{acc.name}</span>
                           <span className="text-xs text-gray-500 truncate">{acc.email}</span>
                         </div>
-                        {user?._id === acc._id && <div className="ml-auto w-2 h-2 rounded-full bg-[#9f3562]"></div>}
+                        {user?._id === acc.id && <div className="ml-auto w-2 h-2 rounded-full bg-[#9f3562]"></div>}
                       </button>
                     ))}
                   </div>

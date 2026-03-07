@@ -7,7 +7,8 @@ const UserContext = createContext();
 const USER_STORAGE_KEY = 'admeasy:user';
 const MENTOR_STORAGE_KEY = 'admeasy:mentor';
 const AUTH_ROLE_STORAGE_KEY = 'admeasy:authRole';
-const SAVED_ACCOUNTS_KEY = 'admeasy:saved_accounts';
+const SAVED_ACCOUNTS_KEY = 'accounts';
+const ACTIVE_ACCOUNT_ID_KEY = 'activeAccountId';
 
 export function useUser() {
   return useContext(UserContext);
@@ -19,7 +20,11 @@ function getInitialUser() {
   if (role !== 'user') return null;
   try {
     const stored = localStorage.getItem(USER_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    const parsed = stored ? JSON.parse(stored) : null;
+    if (parsed && parsed._id) {
+      localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, parsed._id);
+    }
+    return parsed;
   } catch (err) {
     return null;
   }
@@ -43,22 +48,27 @@ export function UserProvider({ children }) {
   const navigate = useNavigate();
 
   const addSavedAccount = (userData, switchToken) => {
-    const existingAccounts = savedAccounts.filter(acc => acc._id !== userData._id);
-    const updatedAccounts = [...existingAccounts, {
-      _id: userData._id,
-      name: userData.name,
-      email: userData.email,
-      imageUrl: userData.imageUrl,
-      switchToken
-    }];
-    setSavedAccounts(updatedAccounts);
-    localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
+    setSavedAccounts(prevAccounts => {
+      const existingAccounts = prevAccounts.filter(acc => acc.id !== userData._id);
+      const updatedAccounts = [...existingAccounts, {
+        id: userData._id,
+        name: userData.name,
+        email: userData.email,
+        avatar: userData.imageUrl || userData.image,
+        token: switchToken
+      }];
+      localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
+      localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userData._id);
+      return updatedAccounts;
+    });
   };
 
   const removeSavedAccount = (accountId) => {
-    const updated = savedAccounts.filter(acc => acc._id !== accountId);
-    setSavedAccounts(updated);
-    localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
+    setSavedAccounts(prevAccounts => {
+      const updated = prevAccounts.filter(acc => acc.id !== accountId);
+      localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const logoutAllAccounts = async () => {
@@ -98,10 +108,11 @@ export function UserProvider({ children }) {
             }
 
             setUser(userObj);
+            localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userObj._id);
 
             // Auto update saved account details if changed
             setSavedAccounts(prev => {
-              const updated = prev.map(acc => acc._id === userObj._id ? { ...acc, name: userObj.name, imageUrl: userObj.imageUrl } : acc);
+              const updated = prev.map(acc => acc.id === userObj._id ? { ...acc, name: userObj.name, avatar: userObj.imageUrl || userObj.image } : acc);
               localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
               return updated;
             });
@@ -110,6 +121,7 @@ export function UserProvider({ children }) {
               setUser(null);
               localStorage.removeItem(USER_STORAGE_KEY);
               localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+              localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
             }
           }
         } catch (err) {
@@ -117,6 +129,7 @@ export function UserProvider({ children }) {
             setUser(null);
             localStorage.removeItem(USER_STORAGE_KEY);
             localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+            localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
           }
         }
       }
@@ -129,8 +142,10 @@ export function UserProvider({ children }) {
     if (user) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
       localStorage.setItem(AUTH_ROLE_STORAGE_KEY, 'user');
+      localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, user._id);
     } else {
       localStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
       if (localStorage.getItem(AUTH_ROLE_STORAGE_KEY) === 'user') {
         localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
       }
