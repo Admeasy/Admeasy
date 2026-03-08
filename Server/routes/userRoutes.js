@@ -337,18 +337,19 @@ router.post('/onboarding', async (req, res) => {
             user.username = normalizedUsername;
         }
 
-        if (educationType) user.educationType = educationType;
-        if (board) user.board = board;
-        if (universityName) user.universityName = universityName;
-        if (userClass) user.class = userClass;
-        if (stream) user.stream = stream;
-        if (schoolName) user.schoolName = schoolName;
-        if (courseLevel) user.courseLevel = courseLevel;
-        if (courseDetails) user.courseDetails = courseDetails;
-        if (collegeName) user.collegeName = collegeName;
+        user.educationType = educationType || user.educationType;
+        user.board = board || null;
+        user.universityName = universityName || null;
+        user.class = userClass || null;
+        user.stream = stream || null;
+        user.schoolName = schoolName || null;
+        user.courseLevel = courseLevel || null;
+        user.courseDetails = courseDetails || null;
+        user.collegeName = collegeName || null;
+
         if (examsPreparingFor && Array.isArray(examsPreparingFor)) user.examsPreparingFor = examsPreparingFor;
-        if (reasonForAdmeasy) user.reasonForAdmeasy = reasonForAdmeasy;
-        if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
+        user.reasonForAdmeasy = reasonForAdmeasy || null;
+        user.reasonForAdmeasyInput = reasonForAdmeasyInput || null;
 
         // Set institute and course based on education type
         if (educationType === 'school') {
@@ -377,7 +378,8 @@ router.post('/onboarding', async (req, res) => {
         if (!validation.isComplete) {
             return res.status(400).json({
                 success: false,
-                message: 'Please complete all required fields',
+                message: `Missing required field: ${validation.missingFields[0]}`,
+                field: validation.missingFields[0],
                 missingFields: validation.missingFields,
                 errors: validation.errors
             });

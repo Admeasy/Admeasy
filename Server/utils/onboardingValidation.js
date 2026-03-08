@@ -40,19 +40,14 @@ const validateOnboardingCompletion = (user) => {
 
     // Education type specific requirements
     if (user.educationType === 'school') {
-
         if (!user.class || user.class.trim() === '') {
             missingFields.push('class');
             errors.push('Class is required');
         }
-        if (!user.board || user.board.trim() === '') {
-            missingFields.push('board');
-            errors.push('Board is required');
-        }
     } else if (user.educationType === 'college') {
-        if (!user.universityName || user.universityName.trim() === '') {
-            missingFields.push('universityName');
-            errors.push('University name is required');
+        if (!user.courseLevel || user.courseLevel.trim() === '') {
+            missingFields.push('courseLevel');
+            errors.push('Course level is required');
         }
         if (!user.courseDetails || user.courseDetails.trim() === '') {
             missingFields.push('courseDetails');

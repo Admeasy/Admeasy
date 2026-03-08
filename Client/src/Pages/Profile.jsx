@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useMentor } from '../context/MentorContext';
 import { useUser } from '../context/UserContext';
-import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat, FileText } from 'lucide-react';
+import { Edit, MapPin, GraduationCap, Award, MessagesSquare, BookOpen, Trophy, CreditCard, UserPlus, UserCheck, MoreVertical, LogOut, Repeat, FileText, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';

@@ -66,35 +66,6 @@ const step3Schema = z
     universityName: z.string().optional(),
     isNotAffiliated: z.boolean().optional(),
     manualInstituteName: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.isNotAffiliated) {
-      if (
-        !data.manualInstituteName ||
-        data.manualInstituteName.trim().length < 2
-      ) {
-        ctx.addIssue({
-          path: ["manualInstituteName"],
-          message: "Please enter your institute name manually",
-        });
-      }
-    } else {
-      if (data.educationType === "school" && !data.board?.trim()) {
-        ctx.addIssue({
-          path: ["board"],
-          message: "Please select your board",
-        });
-      }
-      if (
-        data.educationType === "college" &&
-        (!data.universityName || data.universityName.trim().length < 2)
-      ) {
-        ctx.addIssue({
-          path: ["universityName"],
-          message: "Please enter your university name",
-        });
-      }
-    }
   });
 
 // Step 4: Academic Details (School)
@@ -241,9 +212,29 @@ export default function Onboarding() {
           email: user?.email || updatedData.email,
           password: user ? undefined : updatedData.password,
           universityName: updatedData.isNotAffiliated
-            ? updatedData.manualInstituteName
-            : updatedData.universityName,
+            ? updatedData.manualInstituteName || null
+            : updatedData.universityName || null,
+          board: updatedData.board || null,
+          class: updatedData.class || null,
+          stream: updatedData.stream || null,
         };
+
+        console.log("Onboarding Payload:", onboardingData);
+
+        // Debug logging for missing required fields based on educationType
+        const requiredCore = ["name", "email", "city", "phone", "username", "educationType"];
+        requiredCore.forEach(field => {
+          if (!onboardingData[field]) console.warn("Missing core field:", field);
+        });
+
+        if (onboardingData.educationType === "college") {
+          const requiredCollege = ["courseLevel", "courseDetails"];
+          requiredCollege.forEach(field => {
+            if (!onboardingData[field]) console.warn("Missing college field:", field);
+          });
+        } else if (onboardingData.educationType === "school") {
+          if (!onboardingData.class) console.warn("Missing school field: class");
+        }
 
         const res = await fetch("/api/users/onboarding", {
           method: "POST",
