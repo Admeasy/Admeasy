@@ -25,6 +25,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import PostCard from '../components/PostCard';
 import PostViewTracker from '../components/PostViewTracker';
 import EditPostModal from '../components/EditPostModal';
+import SharePostModal from '../components/SharePostModal';
 import { processMentions } from '../utils/processMentions';
 
 const PostDetail = () => {
@@ -67,6 +68,7 @@ const PostDetail = () => {
   });
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showDeletePostModal, setShowDeletePostModal] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const postMenuRef = useRef(null);
@@ -380,26 +382,11 @@ const PostDetail = () => {
   };
 
   const handleShare = async () => {
-    const postUrl = `${window.location.origin}/posts/${postId}`;
-    const authorName = (postState?.mentor || postState?.author)?.name || 'User';
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Post by ${authorName}`,
-          text: postState.content.replace(/<[^>]*>/g, '').substring(0, 100),
-          url: postUrl,
-        });
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          navigator.clipboard.writeText(postUrl);
-          toast.success('Link copied to clipboard!');
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(postUrl);
-      toast.success('Link copied to clipboard!');
+    if (!viewer) {
+      toast.info('Log in to share posts');
+      return;
     }
+    setShowShareModal(true);
   };
 
   const handleFollow = async () => {
@@ -1092,7 +1079,7 @@ const PostDetail = () => {
   if (!postState) return null;
 
   const author = postState.mentor || postState.author;
-  
+
   // Check if the current viewer owns this post
   const authorId = postState?.mentor?._id || postState?.author?._id;
   const isOwnPost = viewer && authorId && viewer._id && viewer._id.toString() === authorId.toString();
@@ -1377,8 +1364,8 @@ const PostDetail = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLike}
                 className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isLiked
-                    ? 'text-red-500'
-                    : 'text-gray-600 hover:text-red-500'
+                  ? 'text-red-500'
+                  : 'text-gray-600 hover:text-red-500'
                   }`}
               >
                 <Heart
@@ -1402,8 +1389,8 @@ const PostDetail = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleRepost}
                 className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isReposted
-                    ? 'text-[#9f3562]'
-                    : 'text-gray-600 hover:text-[#9f3562]'
+                  ? 'text-[#9f3562]'
+                  : 'text-gray-600 hover:text-[#9f3562]'
                   }`}
               >
                 <Repeat2
@@ -1515,8 +1502,8 @@ const PostDetail = () => {
                             }
                             disabled={likingCommentId === comment._id}
                             className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${comment.isLiked
-                                ? 'text-red-500'
-                                : 'text-gray-500 hover:text-red-500'
+                              ? 'text-red-500'
+                              : 'text-gray-500 hover:text-red-500'
                               }`}
                           >
                             <Heart
@@ -1624,8 +1611,8 @@ const PostDetail = () => {
                                       }
                                       disabled={likingCommentId === reply._id}
                                       className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${reply.isLiked
-                                          ? 'text-red-500'
-                                          : 'text-gray-500 hover:text-red-500'
+                                        ? 'text-red-500'
+                                        : 'text-gray-500 hover:text-red-500'
                                         }`}
                                     >
                                       <Heart
@@ -1788,7 +1775,7 @@ const PostDetail = () => {
 
                 {/* Infinite scroll trigger */}
                 {hasMorePosts && (
-                  <div 
+                  <div
                     ref={morePostsObserverTargetRef}
                     className="flex justify-center pt-8 pb-12 min-h-[100px]"
                   >
@@ -1867,6 +1854,13 @@ const PostDetail = () => {
         cancelText="Cancel"
         confirmColor="danger"
         isLoading={isDeletingPost}
+      />
+
+      <SharePostModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        postId={postState?._id}
+        postData={postState}
       />
     </div>
   );

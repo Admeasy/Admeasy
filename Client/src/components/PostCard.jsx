@@ -76,7 +76,7 @@ const PostCard = ({ post, onPostUpdate }) => {
           prev.repostCount !== post.repostCount ||
           prev.commentsCount !== post.commentsCount ||
           JSON.stringify(prev.commentPreview) !==
-            JSON.stringify(post.commentPreview)
+          JSON.stringify(post.commentPreview)
         ) {
           return { ...post };
         }
@@ -822,18 +822,16 @@ const PostCard = ({ post, onPostUpdate }) => {
             className="flex items-center gap-2 group/like"
           >
             <Heart
-              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
-                postState.isLiked
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${postState.isLiked
                   ? "fill-red-500 text-red-500"
                   : "text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110"
-              }`}
+                }`}
             />
             <span
-              className={`text-sm sm:text-base font-bold transition-colors ${
-                postState.isLiked
+              className={`text-sm sm:text-base font-bold transition-colors ${postState.isLiked
                   ? "text-red-500"
                   : "text-gray-600 group-hover/like:text-red-500"
-              }`}
+                }`}
             >
               {postState.likesCount}
             </span>
@@ -885,11 +883,10 @@ const PostCard = ({ post, onPostUpdate }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleRepost}
-            className={`flex items-center gap-2 transition-colors ${
-              postState.isReposted
+            className={`flex items-center gap-2 transition-colors ${postState.isReposted
                 ? "text-[#9f3562]"
                 : "text-gray-500 hover:text-[#9f3562]"
-            }`}
+              }`}
           >
             <Repeat2
               className={`w-5 h-5 sm:w-6 sm:h-6 ${postState.isReposted ? "fill-current" : ""}`}
@@ -1013,9 +1010,9 @@ const PostCard = ({ post, onPostUpdate }) => {
         confirmColor="danger"
         isLoading={isDeleting}
       />
-
       <SharePostModal
-        post={post}
+        postId={post._id}
+        postData={post}
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
       />

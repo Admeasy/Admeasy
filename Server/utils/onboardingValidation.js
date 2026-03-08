@@ -7,6 +7,7 @@ const User = require('../models/userSchema');
  */
 const validateOnboardingCompletion = (user) => {
     const missingFields = [];
+
     const errors = [];
 
     // Core required fields (always required)

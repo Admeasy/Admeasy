@@ -279,11 +279,11 @@ const Explore = () => {
         {/* ================= RESULTS SECTION ================= */}
         {!query && activeTab === "all" ? (
           <div className="-mt-4">
-            <MentorSuggestionSwiper />
-            <SpaceSuggestionSwiper />
-            <CollegeSuggestionSwiper />
-            <NoteSuggestionSwiper />
-            <BlogSuggestionSwiper />
+            {typeof MentorSuggestionSwiper !== "undefined" ? <MentorSuggestionSwiper /> : null}
+            {typeof SpaceSuggestionSwiper !== "undefined" ? <SpaceSuggestionSwiper /> : null}
+            {typeof CollegeSuggestionSwiper !== "undefined" ? <CollegeSuggestionSwiper /> : null}
+            {typeof NoteSuggestionSwiper !== "undefined" ? <NoteSuggestionSwiper /> : null}
+            {typeof BlogSuggestionSwiper !== "undefined" ? <BlogSuggestionSwiper /> : null}
             <div className="text-center pb-10">
               <p className="text-sm text-gray-400">Search above to explore specific categories</p>
             </div>
