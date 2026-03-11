@@ -18,7 +18,7 @@ const { Users } = require('../db.js');
 const NotificationService = require('../services/notificationService.js');
 const { verifyAdminToken } = require('../middleware/adminAuth.js');
 const passport = require('../middleware/passport.js');
-const { authenticateRequired, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
+const { authenticateRequired, authenticateUserOrAdmin, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -266,20 +266,27 @@ router.post('/onboarding', async (req, res) => {
                 return res.status(400).json({ success: false, message: 'Email is required to complete onboarding' });
             }
 
-            user = await User.findOne({ email });
+            user = await User.findOne({ email }).select('+password');
 
             if (!user) {
                 return res.status(404).json({ success: false, message: 'User not found. Please create an account first.' });
             }
 
-            // Verify password for security since we rely on an unauthenticated request matching an email
-            if (password && user.password) {
-                const isValidPassword = await bcrypt.compare(password, user.password);
-                if (!isValidPassword) {
-                    return res.status(401).json({ success: false, message: 'Invalid credentials. Please try logging in directly.' });
+            // OAuth users (Google): password is not required. Only require password for email/password users.
+            if (user.googleId) {
+                // OAuth user must be authenticated via cookie to complete onboarding (no password to verify)
+                if (!req.cookies['accessToken']) {
+                    return res.status(401).json({ success: false, message: 'Please log in with Google to complete onboarding.' });
                 }
-            } else if (!password && user.password) {
-                return res.status(401).json({ success: false, message: 'Please provide your password to complete onboarding.' });
+            } else if (user.password) {
+                if (password) {
+                    const isValidPassword = await bcrypt.compare(password, user.password);
+                    if (!isValidPassword) {
+                        return res.status(401).json({ success: false, message: 'Invalid credentials. Please try logging in directly.' });
+                    }
+                } else {
+                    return res.status(401).json({ success: false, message: 'Please provide your password to complete onboarding.' });
+                }
             }
         }
 
@@ -289,6 +296,7 @@ router.post('/onboarding', async (req, res) => {
         }
 
         // Extract onboarding data from request body
+        console.log("Received onboarding payload:", req.body);
         const {
             name,
             gender,
@@ -373,13 +381,19 @@ router.post('/onboarding', async (req, res) => {
 
         // Validate onboarding completion before marking as complete
         const { validateOnboardingCompletion } = require('../utils/onboardingValidation');
-        const validation = validateOnboardingCompletion(user);
+
+        const userData = {
+            ...user.toObject(),
+            ...req.body
+        };
+        const validation = validateOnboardingCompletion(userData);
+
+        console.log("Validation result:", validation);
 
         if (!validation.isComplete) {
             return res.status(400).json({
                 success: false,
-                message: `Missing required field: ${validation.missingFields[0]}`,
-                field: validation.missingFields[0],
+                message: 'Please complete all required fields',
                 missingFields: validation.missingFields,
                 errors: validation.errors
             });
@@ -1069,7 +1083,7 @@ router.get('/:userId/image', verifyAdminToken, async (req, res) => {
 
 router.delete(
     '/:userId',
-    authenticateRequired,
+    authenticateUserOrAdmin,
     requireSelfOrAdmin,
     async (req, res) => {
         try {

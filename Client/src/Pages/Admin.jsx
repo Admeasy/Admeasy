@@ -40,7 +40,7 @@ const Admin = () => {
     };
 
     verifyAdmin();
-  });
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
