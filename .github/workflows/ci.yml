@@ -44,7 +44,8 @@ jobs:
       - name: Install Client dependencies
         working-directory: Client
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          rm -rf node_modules package-lock.json
+          npm install
 
       - name: Build Client
         working-directory: Client
