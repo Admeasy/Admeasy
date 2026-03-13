@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FileText, Users, GraduationCap, BookOpen, Eye, Heart, MapPin,
-  Briefcase, Clock, Award, Search, Newspaper, Upload, ChevronRight, X, MessageSquare, Hash
+  Briefcase, Clock, Award, Search, Newspaper, Upload, ChevronRight, X, MessageSquare, Hash, MessageCircle
 } from "lucide-react";
 import { HiOutlineUserGroup } from "react-icons/hi";
 import { useUser } from "../context/UserContext";
@@ -46,6 +46,13 @@ const setCachedResults = (query, tab, data) => {
   try {
     sessionStorage.setItem(getCacheKey(query, tab), JSON.stringify(data));
   } catch { }
+};
+
+// Helper: detect IIT/JEE mentor from college or competitive exams
+const isIITMentor = (mentor) => {
+  const collegeStr = (mentor.college?.name || mentor.college || '').toString().toLowerCase();
+  const exams = (mentor.competitiveExamsCleared || []).map(e => (e?.name || e || '').toString().toLowerCase()).join(' ');
+  return collegeStr.includes('iit') || collegeStr.includes('jee') || exams.includes('iit') || exams.includes('jee');
 };
 
 /* ================= COMPONENT ================= */
@@ -277,18 +284,7 @@ const Explore = () => {
         </div>
 
         {/* ================= RESULTS SECTION ================= */}
-        {!query && activeTab === "all" ? (
-          <div className="-mt-4">
-            {typeof MentorSuggestionSwiper !== "undefined" ? <MentorSuggestionSwiper /> : null}
-            {typeof SpaceSuggestionSwiper !== "undefined" ? <SpaceSuggestionSwiper /> : null}
-            {typeof CollegeSuggestionSwiper !== "undefined" ? <CollegeSuggestionSwiper /> : null}
-            {typeof NoteSuggestionSwiper !== "undefined" ? <NoteSuggestionSwiper /> : null}
-            {typeof BlogSuggestionSwiper !== "undefined" ? <BlogSuggestionSwiper /> : null}
-            <div className="text-center pb-10">
-              <p className="text-sm text-gray-400">Search above to explore specific categories</p>
-            </div>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-16 h-16 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin mb-4" />
             <p className="text-gray-500 font-medium">Searching...</p>
@@ -308,6 +304,54 @@ const Explore = () => {
           </div>
         ) : (
           <div className="space-y-8">
+
+            {/* ================= MENTORS SECTION (First - with IIT badge) ================= */}
+            {filteredResults.mentors && filteredResults.mentors.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-4">
+                  <Users className="w-6 h-6 text-[#9f3562]" />
+                  <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
+                  <span onClick={() => navigate(`/mentors`)} className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold hover:bg-[#9f3562]/20 transition-colors">View More</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredResults.mentors.map((mentorItem) => {
+                    const mentorName = renderText(mentorItem.name) || "Anonymous";
+                    const mentorIsIIT = isIITMentor(mentorItem);
+                    return (
+                      <div key={mentorItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+                        <div className="p-6">
+                          {mentorIsIIT && (
+                            <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl">
+                              <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
+                                <Award className="w-4 h-4 text-amber-600" />
+                                This mentor cleared IIT, Chat Now!
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex items-start gap-4 mb-4">
+                            <img src={mentorItem.image || mentorItem.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`} alt={mentorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20" />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-gray-900 text-lg mb-1">{mentorName}</h3>
+                              {mentorItem.college && <p className="text-sm text-gray-500 truncate">{renderText(mentorItem.college?.name || mentorItem.college)}</p>}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm">
+                              <Eye className="w-4 h-4" /> View Profile
+                            </button>
+                            {mentorIsIIT && (
+                              <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-sm">
+                                <MessageCircle className="w-4 h-4" /> Chat
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* ================= POSTS SECTION ================= */}
             {filteredResults.posts && filteredResults.posts.length > 0 && (
@@ -407,36 +451,6 @@ const Explore = () => {
                 </section>
               )}
 
-            {/* ================= MENTORS SECTION ================= */}
-            {filteredResults.mentors && filteredResults.mentors.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
-                  <span onClick={() => navigate(`/mentors`)} className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">View More</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.mentors.map((mentorItem) => {
-                    const mentorName = renderText(mentorItem.name) || "Anonymous";
-                    return (
-                      <div key={mentorItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all">
-                        <div className="p-6">
-                          <div className="flex items-start gap-4 mb-4">
-                            <img src={mentorItem.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`} alt={mentorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20" />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-gray-900 text-lg mb-1">{mentorName}</h3>
-                              {mentorItem.college && <p className="text-sm text-gray-500 truncate">{renderText(mentorItem.college)}</p>}
-                            </div>
-                          </div>
-                          <button onClick={() => navigate(`/${mentorItem.username}`)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"><Eye className="w-4 h-4" /> View Profile</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
             {/* ================= COLLEGES SECTION ================= */}
             {filteredResults.colleges && filteredResults.colleges.length > 0 && (
               <section>
@@ -482,7 +496,7 @@ const Explore = () => {
                           {blog.Author && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{renderText(blog.Author)}</span>}
                           {blog.readingTime && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{blog.readingTime} Mins Read</span>}
                         </div>
-                        <button onClick={() => navigate(`/blog/${blog._id}`)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"><Eye className="w-4 h-4" /> Read More</button>
+                        <button onClick={() => navigate(`/blogs/${blog._id}`)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"><Eye className="w-4 h-4" /> Read More</button>
                       </div>
                     </div>
                   ))}

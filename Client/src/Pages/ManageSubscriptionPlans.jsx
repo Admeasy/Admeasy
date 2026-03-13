@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import AddPlanModal from '../components/AddPlanModal'
+import { getAdminAuthHeaders } from '../utils/adminAuth'
 
 const ManageSubscriptionPlans = () => {
     const navigate = useNavigate()
@@ -25,7 +26,8 @@ const ManageSubscriptionPlans = () => {
     const verifyAuth = async () => {
         try {
             const response = await fetch('/api/admin/verify', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             })
 
             if (!response.ok) {
@@ -42,7 +44,8 @@ const ManageSubscriptionPlans = () => {
     const fetchPlans = async () => {
         try {
             const response = await fetch('/api/subscription-plans/admin', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             })
             if (!response.ok) {
                 throw new Error('Failed to fetch subscription plans')
@@ -67,7 +70,8 @@ const ManageSubscriptionPlans = () => {
             try {
                 const response = await fetch(`/api/subscription-plans/${planId}`, {
                     method: 'DELETE',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAdminAuthHeaders()
                 })
 
                 if (!response.ok) {
@@ -98,9 +102,7 @@ const ManageSubscriptionPlans = () => {
 
             const response = await fetch(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify(planData)
             })

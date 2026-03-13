@@ -49,10 +49,13 @@ const validateOnboardingCompletion = (user) => {
             missingFields.push('class');
             errors.push('Class is required');
         }
-        if (isEmpty(user.stream)) {
+        // Stream required only for Class 11th and 12th
+        const needsStream = user.class === '11th' || user.class === '12th';
+        if (needsStream && isEmpty(user.stream)) {
             missingFields.push('stream');
-            errors.push('Stream is required for school');
+            errors.push('Stream is required for Class 11th and 12th');
         }
+        // universityName is NOT required for school; allow null
     } else if (user.educationType === 'college') {
         if (isEmpty(user.universityName)) {
             missingFields.push('universityName');

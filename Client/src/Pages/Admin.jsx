@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FaUserAlt, FaLock, FaSignOutAlt } from 'react-icons/fa';
 import logo from '../assets/Admeasy/LOGO.webp';
 import SEO from '../components/SEO';
+import { getAdminAuthHeaders, setAdminToken, clearAdminToken } from '../utils/adminAuth';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -22,13 +23,12 @@ const Admin = () => {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   useEffect(() => {
-    // Verify admin token on component mount
     const verifyAdmin = async () => {
       try {
         const response = await fetch('/api/admin/verify', {
-          credentials: 'include'
+          credentials: 'include',
+          headers: getAdminAuthHeaders()
         });
-
         if (response.ok) {
           setIsAuthenticated(true);
         }
@@ -38,7 +38,6 @@ const Admin = () => {
         setIsLoading(false);
       }
     };
-
     verifyAdmin();
   }, []);
 
@@ -69,6 +68,7 @@ const Admin = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        if (data.token) setAdminToken(data.token);
         setIsAuthenticated(true);
       } else {
         throw new Error(data.message || 'Invalid credentials');
@@ -85,12 +85,16 @@ const Admin = () => {
     try {
       await fetch('/api/admin/logout', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
+      clearAdminToken();
       setIsAuthenticated(false);
       setCredentials({ username: '', password: '' });
     } catch (error) {
       console.error('Logout failed:', error);
+      clearAdminToken();
+      setIsAuthenticated(false);
     }
   };
 

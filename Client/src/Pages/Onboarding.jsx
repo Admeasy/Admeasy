@@ -57,15 +57,30 @@ const step2Schema = (requirePassword = false, requireUsername = false) =>
   });
 
 // Step 3: Education Type & Institute Selection
+// universityName required only for college; school can have null
 const step3Schema = z
   .object({
     educationType: z.enum(["school", "college"], {
       errorMap: () => ({ message: "Please select school or college" }),
     }),
     board: z.string().optional(),
-    universityName: z.string().optional(),
+    universityName: z.string().optional().nullable(),
     isNotAffiliated: z.boolean().optional(),
     manualInstituteName: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.educationType === "college") {
+      const hasUniversity = data.isNotAffiliated
+        ? data.manualInstituteName && data.manualInstituteName.trim().length > 0
+        : data.universityName && data.universityName.trim().length > 0;
+      if (!hasUniversity) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "University or institute name is required for college",
+          path: ["universityName"],
+        });
+      }
+    }
   });
 
 // Step 4: Academic Details (School)
@@ -204,38 +219,51 @@ export default function Onboarding() {
       setEducationType(data.educationType);
       setStep(4);
     } else if (step === 4) {
+      const educationType = updatedData.educationType;
+
+      // --- Conditional validation before API call ---
+      if (educationType === "college") {
+        const universityValue = updatedData.isNotAffiliated
+          ? (updatedData.manualInstituteName || "").trim()
+          : (updatedData.universityName || "").trim();
+        if (!universityValue) {
+          toast.error("University or institute name is required for college students.");
+          return;
+        }
+      }
+
+      // Build payload: no undefined fields; Google users never send password
+      const isGoogleUser = !!user;
+      const universityName =
+        educationType === "school"
+          ? null
+          : updatedData.isNotAffiliated
+            ? (updatedData.manualInstituteName || "").trim() || null
+            : (updatedData.universityName || "").trim() || null;
+
+      const onboardingData = {
+        name: updatedData.name || "",
+        email: user?.email || updatedData.email || "",
+        phone: String(updatedData.phone ?? ""),
+        city: updatedData.city || "",
+        username: updatedData.username || "",
+        educationType: educationType || "",
+        board: updatedData.board || null,
+        universityName,
+        class: updatedData.class || null,
+        stream: updatedData.stream || null,
+        courseLevel: updatedData.courseLevel || null,
+        courseDetails: updatedData.courseDetails || null,
+        isNotAffiliated: updatedData.isNotAffiliated || false,
+        manualInstituteName: updatedData.manualInstituteName || null,
+      };
+
+      if (!isGoogleUser && updatedData.password) {
+        onboardingData.password = updatedData.password;
+      }
+
       setIsSubmitting(true);
       try {
-        const onboardingData = {
-          ...updatedData,
-          phone: String(updatedData.phone || ""),
-          email: user?.email || updatedData.email,
-          password: user ? undefined : updatedData.password,
-          universityName: updatedData.isNotAffiliated
-            ? updatedData.manualInstituteName || null
-            : updatedData.universityName || null,
-          board: updatedData.board || null,
-          class: updatedData.class || null,
-          stream: updatedData.stream || null,
-        };
-
-        console.log("Onboarding payload:", onboardingData);
-
-        // Debug logging for missing required fields based on educationType
-        const requiredCore = ["name", "email", "city", "phone", "username", "educationType"];
-        requiredCore.forEach(field => {
-          if (!onboardingData[field]) console.warn("Missing required field:", field);
-        });
-
-        if (onboardingData.educationType === "college") {
-          const requiredCollege = ["courseLevel", "courseDetails"];
-          requiredCollege.forEach(field => {
-            if (!onboardingData[field]) console.warn("Missing required field:", field);
-          });
-        } else if (onboardingData.educationType === "school") {
-          if (!onboardingData.class) console.warn("Missing required field:", "class");
-        }
-
         const res = await fetch("/api/users/onboarding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -249,7 +277,10 @@ export default function Onboarding() {
           await fetchUser();
           navigate("/");
         } else {
-          toast.error(result.message || "Failed to complete onboarding");
+          const message = result.errors?.length
+            ? result.errors.join(". ")
+            : result.message || "Failed to complete onboarding";
+          toast.error(message);
         }
       } catch (err) {
         console.error("Onboarding error:", err);

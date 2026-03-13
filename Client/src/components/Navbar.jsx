@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell } from "lucide-react";
+import AnimatedSearchPlaceholder from "./AnimatedSearchPlaceholder";
 import logo from "../assets/Admeasy/favicon.ico";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
@@ -83,8 +84,8 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
           onClick={() => navigate("/explore")}
           className="flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors text-sm flex-1 mx-3 min-w-0"
         >
-          <Search className="w-4 h-4 shrink-0" />
-          <span className="text-gray-400 truncate text-xs">Search notes, posts...</span>
+          <Search className="w-4 h-4 shrink-0 text-gray-400" />
+          <AnimatedSearchPlaceholder className="text-xs" />
         </button>
 
         {/* ===== RIGHT: BELL ===== */}

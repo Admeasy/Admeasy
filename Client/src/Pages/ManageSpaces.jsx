@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSearch, FaTrash, FaUsers, FaComments } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { getAdminAuthHeaders } from '../utils/adminAuth';
 
 const ManageSpaces = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const ManageSpaces = () => {
     try {
       const res = await fetch('/api/admin/verify', {
         credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
       if (!res.ok) {
         throw new Error('Not authenticated');
@@ -35,6 +37,7 @@ const ManageSpaces = () => {
       setIsLoading(true);
       const res = await fetch('/api/spaces/admin', {
         credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -58,6 +61,7 @@ const ManageSpaces = () => {
       const res = await fetch(`/api/spaces/admin/${spaceId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

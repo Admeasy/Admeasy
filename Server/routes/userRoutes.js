@@ -1,7 +1,7 @@
 const express = require('express');
 const { resetPassword, forgotPassword, switchAccount } = require('../controllers/userController.js')
 const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
-const { generateAccessToken, generateRefreshToken, generateSwitchToken, setTokenCookies } = require('../utils/auth.js');
+const { generateAccessToken, generateRefreshToken, generateSwitchToken, setTokenCookies, clearTokenCookies } = require('../utils/auth.js');
 const router = express.Router();
 const User = require('../models/userSchema.js');
 const crypto = require('crypto')
@@ -636,13 +636,11 @@ router.post('/logout', async (req, res) => {
 });
 
 // REFRESH TOKEN
-// REFRESH TOKEN
 router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
         if (!refreshToken) {
-            // No refresh token - user is not logged in, return success but indicate no refresh happened
-            return res.json({ success: true, refreshed: false, message: 'No refresh token available' });
+            return res.status(401).json({ success: false, refreshed: false, message: 'No refresh token' });
         }
 
         // ROLE CHECK: Verify if this is a User token before checking DB to avoid clearing Mentor cookies
@@ -660,7 +658,7 @@ router.post('/refresh', async (req, res) => {
 
             // It was a user token (or unknown), so safe to clear
             clearTokenCookies(res);
-            return res.json({ success: true, refreshed: false, message: 'Invalid or expired refresh token' });
+            return res.status(401).json({ success: false, refreshed: false, message: 'Invalid or expired refresh token' });
         }
 
         // Verify succeeded
@@ -672,9 +670,8 @@ router.post('/refresh', async (req, res) => {
         // Check if user exists and has this refresh token (not logged out)
         const user = await User.findOne({ refreshToken });
         if (!user) {
-            // User has logged out or token is invalid/revoked, clear cookies
             clearTokenCookies(res);
-            return res.json({ success: true, refreshed: false, message: 'User has logged out' });
+            return res.status(401).json({ success: false, refreshed: false, message: 'User has logged out' });
         }
 
         // Issue new access token

@@ -31,10 +31,18 @@ exports.globalSearch = async (req, res) => {
       /* ===================== MENTORS ===================== */
       if (!type || type === "mentors") {
         const allMentors = await Mentor.find({})
-          .select(`name image imageUrl college course expertise notesUploaded username`)
+          .select(`name image imageUrl college course expertise notesUploaded username competitiveExamsCleared`)
           .limit(50)
           .lean();
-        results.mentors = shuffleArray(allMentors).slice(0, 15);
+        // Put IIT/JEE mentors first, then shuffle the rest
+        const isIITMentor = (m) => {
+          const collegeStr = (m.college?.name || m.college || '').toLowerCase();
+          const exams = (m.competitiveExamsCleared || []).map(e => (e?.name || e || '').toLowerCase()).join(' ');
+          return collegeStr.includes('iit') || collegeStr.includes('jee') || exams.includes('iit') || exams.includes('jee');
+        };
+        const iitMentors = allMentors.filter(isIITMentor);
+        const otherMentors = allMentors.filter(m => !isIITMentor(m));
+        results.mentors = [...shuffleArray(iitMentors), ...shuffleArray(otherMentors)].slice(0, 15);
       }
 
       /* ===================== COLLEGES ===================== */

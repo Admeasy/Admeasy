@@ -1,86 +1,111 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+const TOKEN_EXPIRY = '12h';
+const COOKIE_MAX_AGE = 12 * 60 * 60 * 1000; // 12 hours
+
+/**
+ * Get admin JWT from request: Authorization Bearer header (production-friendly) or cookie.
+ */
+function getAdminToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+  return req.cookies?.adminToken || null;
+}
+
 const adminAuth = async (req, res, next) => {
   try {
     const { username, password } = req.body;
 
-    // Check if environment variables are set
     if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_ADMIN_SECRET) {
-      console.error('Missing environment variables:');
-      console.error('- ADMIN_USERNAME:', !!process.env.ADMIN_USERNAME);
-      console.error('- ADMIN_PASSWORD:', !!process.env.ADMIN_PASSWORD);
-      console.error('- JWT_ADMIN_SECRET:', !!process.env.JWT_ADMIN_SECRET);
-
+      console.error('[AdminAuth] Missing env: ADMIN_USERNAME, ADMIN_PASSWORD, or JWT_ADMIN_SECRET');
       return res.status(500).json({
         success: false,
         message: 'Server configuration error - Missing environment variables'
       });
     }
 
-    // Check if credentials match environment variables
     const isUsernameMatch = username === process.env.ADMIN_USERNAME;
     const isPasswordMatch = password === process.env.ADMIN_PASSWORD;
 
-    // Validate credentials
     if (isUsernameMatch && isPasswordMatch) {
-      // Create JWT token with admin ID
       const token = jwt.sign(
-        { 
-          _id: 'admin-' + Date.now(), // Generate a unique ID for this admin session
-          username, 
-          role: 'admin' 
+        {
+          _id: 'admin-' + Date.now(),
+          username,
+          role: 'admin'
         },
         process.env.JWT_ADMIN_SECRET,
-        { expiresIn: '12h' } // Extended to 12 hours
+        { expiresIn: TOKEN_EXPIRY }
       );
 
-      // Set HTTP-only cookie
       res.cookie('adminToken', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 12 * 60 * 60 * 1000 // 12 hours
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+        maxAge: COOKIE_MAX_AGE
       });
 
-      // Authentication successful
       return res.json({
         success: true,
-        message: 'Authentication successful'
+        message: 'Authentication successful',
+        token // Frontend can send this as Authorization: Bearer <token> in production
       });
     }
 
-    // Authentication failed
     return res.status(401).json({
       success: false,
       message: 'Invalid credentials'
     });
-
   } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(500).json({
+    console.error('[AdminAuth] Login error:', error.message);
+    return res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error.message
+      message: 'Internal server error'
     });
   }
 };
 
-// Middleware to verify admin token for protected routes
+/**
+ * Verify admin token for protected routes.
+ * Accepts token from: Authorization: Bearer <token> OR cookie adminToken.
+ */
 const verifyAdminToken = (req, res, next) => {
   try {
-    const token = req.cookies.adminToken;
+    const token = getAdminToken(req);
 
     if (!token) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('[AdminAuth] 401: No token (header or cookie)');
+      }
       return res.status(401).json({
         success: false,
-        message: 'No token provided - Please login again'
+        message: 'Unauthorized - Invalid or missing token. Please log in again.'
+      });
+    }
+
+    if (!process.env.JWT_ADMIN_SECRET) {
+      console.error('[AdminAuth] JWT_ADMIN_SECRET not set');
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error'
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
-    
-    // Set admin info on request
+
+    if (decoded.role !== 'admin') {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('[AdminAuth] 403: Invalid role', decoded.role);
+      }
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+
     req.admin = {
       _id: decoded._id,
       username: decoded.username,
@@ -88,12 +113,20 @@ const verifyAdminToken = (req, res, next) => {
     };
     next();
   } catch (error) {
-    console.error('Token verification error:', error.message);
+    const isExpired = error.name === 'TokenExpiredError';
+    const isInvalid = error.name === 'JsonWebTokenError';
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[AdminAuth] Token error:', error.message);
+    }
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token - Please login again'
+      message: isExpired
+        ? 'Session expired - Please log in again.'
+        : isInvalid
+          ? 'Unauthorized - Invalid or missing token. Please log in again.'
+          : 'Unauthorized - Please log in again.'
     });
   }
 };
 
-module.exports = { adminAuth, verifyAdminToken };
+module.exports = { adminAuth, verifyAdminToken, getAdminToken };

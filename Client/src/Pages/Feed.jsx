@@ -446,7 +446,7 @@ const Feed = () => {
       setRandomHeading(random);
     } else {
       setRandomHeading({
-        title: "Introducing Admeasy Feed",
+        title: 'Notes So Good You\'ll Stop Asking "Bhai PDF Hai?"',
         subtitle: "Your study-first community feed"
       });
     }
@@ -502,9 +502,12 @@ const Feed = () => {
                     </>
                   ) : (
                     <>
-                      Introducing Admeasy{' '}
+                      Notes So Good
+                      <br />
+                      You&apos;ll Stop Asking
+                      <br />
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] to-[#701a3c]">
-                        Feed
+                        &quot;Bhai PDF Hai?&quot;
                       </span>
                     </>
                   )}

@@ -8,8 +8,11 @@ const Mentor = require('../models/mentorSchema');
  * Sets req.user or req.mentor for regular auth; sets req.admin and req.user (synthetic) for admin auth.
  */
 const authenticateUserOrAdmin = async (req, res, next) => {
-  // 1. Try admin token first
-  const adminToken = req.cookies?.adminToken;
+  // 1. Try admin token (cookie or Authorization Bearer)
+  let adminToken = req.cookies?.adminToken;
+  if (!adminToken && req.headers.authorization?.startsWith('Bearer ')) {
+    adminToken = req.headers.authorization.split(' ')[1];
+  }
   if (adminToken && process.env.JWT_ADMIN_SECRET) {
     try {
       const decoded = jwt.verify(adminToken, process.env.JWT_ADMIN_SECRET);
