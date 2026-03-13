@@ -41,11 +41,15 @@ jobs:
           restore-keys: |
             client-${{ runner.os }}-node-
 
+      - name: Configure npm for optional dependencies
+        working-directory: Client
+        run: npm config set optional true
+
       - name: Install Client dependencies
         working-directory: Client
         run: |
-          rm -rf node_modules package-lock.json
-          npm install
+          rm -rf node_modules
+          npm install --legacy-peer-deps
 
       - name: Build Client
         working-directory: Client
