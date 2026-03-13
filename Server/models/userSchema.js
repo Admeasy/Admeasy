@@ -68,7 +68,10 @@ const userSchema = new mongoose.Schema({
     },
     universityName: {
         type: String,
-        trim: true
+        trim: true,
+        required: function () {
+            return this.educationType === 'college';
+        }
     },
     class: {
         type: String,
@@ -139,7 +142,10 @@ const userSchema = new mongoose.Schema({
         default: false
     },
     emailVerifyToken: String,
-    emailVerifyExpiry: Date
+    emailVerifyExpiry: Date,
+    dateOfBirth: {
+        type: Date
+    }
 })
 
 module.exports = Users.model('Users', userSchema);

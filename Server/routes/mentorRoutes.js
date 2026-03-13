@@ -10,6 +10,7 @@ const fetch = require('node-fetch');
 const upload = require('../middleware/multer');
 const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary');
 const { mentorForgotPassword, mentorResetPassword } = require('../controllers/mentorController');
+const { clearTokenCookies, setTokenCookies } = require('../utils/auth');
 
 const verifyAdminFromCookie = (req) => {
     const token = req.cookies?.adminToken;
@@ -266,7 +267,7 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         console.log("Body:", req.body);
         console.log("File:", req.file);
 
-        const { name, username, phone, tagline, bio } = req.body;
+        const { name, username, phone, tagline, bio, dateOfBirth } = req.body;
         let competitiveExamsCleared = [];
         let shouldUpdateExams = false;
         if (req.body.competitiveExamsCleared) {
@@ -338,6 +339,22 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
         }
 
         const updateData = { name, username, phone, tagline, bio };
+        if (dateOfBirth) {
+            const dobDate = new Date(dateOfBirth);
+            const today = new Date();
+            const minDate = new Date();
+            minDate.setFullYear(today.getFullYear() - 100);
+
+            if (dobDate > today) {
+                return res.status(400).json({ success: false, message: 'Date of Birth cannot be in the future' });
+            }
+            if (dobDate < minDate) {
+                return res.status(400).json({ success: false, message: 'Date of Birth is invalid (too old)' });
+            }
+            updateData.dateOfBirth = dateOfBirth;
+        } else if (dateOfBirth === '') {
+            updateData.dateOfBirth = null;
+        }
         if (college) {
             updateData.college = college;
         }
@@ -372,53 +389,57 @@ router.put('/me/:id', authenticateMentorJWT, upload.single('image'), async (req,
 })
 
 // REFRESH TOKEN
+// REFRESH TOKEN
 router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
         if (!refreshToken) return res.status(401).json({ success: false, message: 'No refresh token' });
 
+        // ROLE CHECK: Verify if this is a Mentor token before checking DB to avoid clearing User cookies
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        } catch (err) {
+            // Verify failed (expired or invalid)
+            // SAFELY check if it was a User token before clearing cookies
+            const unsafeDecoded = jwt.decode(refreshToken);
+            const role = unsafeDecoded?.role;
+
+            // If it has a role and it's NOT mentor (e.g. 'user'), PRESERVE COOKIES
+            if (role && role !== 'mentor') {
+                return res.status(403).json({ success: false, message: 'Role mismatch' });
+            }
+
+            // It was a mentor token (or unknown), so safe to clear
+            clearTokenCookies(res);
+            return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+        }
+
+        // Verify succeeded
+        if (decoded.role !== 'mentor') {
+            return res.status(403).json({ success: false, message: 'Role mismatch' });
+        }
+
         // Check if user exists and has this refresh token (not logged out)
         const mentor = await Mentor.findOne({ refreshToken });
         if (!mentor) {
             // User has logged out or token is invalid, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            });
+            clearTokenCookies(res);
             return res.status(403).json({ success: false, message: 'User has logged out' });
         }
 
-        try {
-            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-            const newAccessToken = generateAccessToken(mentor);
+        const newAccessToken = generateAccessToken(mentor);
 
-            res.cookie('accessToken', newAccessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
-            res.json({ success: true });
-        } catch (err) {
-            // Refresh token is invalid or expired, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
-            });
-            return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
-        }
+        res.cookie('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            domain: process.env.NODE_ENV === 'production' ? '.admeasy.in' : undefined,
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/'
+        });
+        res.json({ success: true });
+
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -431,16 +452,7 @@ router.post('/logout', authenticateMentorJWT, async (req, res) => {
         await Mentor.findByIdAndUpdate(req.mentor.id, { refreshToken: null });
 
         // Clear cookies
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax'
-        });
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax'
-        });
+        clearTokenCookies(res);
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
         console.log(err);

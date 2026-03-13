@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from 'framer-motion';
+import { getAdminAuthHeaders } from '../utils/adminAuth';
 
 const CheckPayments = () => {
     const navigate = useNavigate();
@@ -24,7 +25,8 @@ const CheckPayments = () => {
     const verifyAuth = async () => {
         try {
             const response = await fetch('/api/admin/verify', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             });
 
             if (!response.ok) {
@@ -42,7 +44,8 @@ const CheckPayments = () => {
         try {
             setIsLoading(true);
             const response = await fetch('/api/payments/all', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch payments');

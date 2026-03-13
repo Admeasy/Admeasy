@@ -1,7 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, Plus, FileText, Filter, TrendingUp, BookOpen, Sparkles } from "lucide-react";
+import {
+  Search,
+  Plus,
+  FileText,
+  Filter,
+  TrendingUp,
+  BookOpen,
+  Sparkles,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMentor } from "../context/MentorContext";
+import { useUser } from "../context/UserContext";
 import CourseSearchDropdown from "../components/CourseSearchDropdown";
 import FilterSection from "../components/FilterSection";
 import NotesCard from "../components/NotesCard";
@@ -10,6 +19,7 @@ import SEO from "../components/SEO";
 const Notes = () => {
   const navigate = useNavigate();
   const { mentor, isLoading: mentorLoading } = useMentor();
+  const { user, isLoading: userLoading } = useUser();
 
   // Filter states
   const [selectedUniversity, setSelectedUniversity] = useState("all");
@@ -136,9 +146,18 @@ const Notes = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 px-4 py-8 relative overflow-x-hidden selection:bg-[#9f3562]/20 selection:text-[#9f3562]">
       {/* Enhanced Ambient Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div
+          className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "8s" }}
+        />
+        <div
+          className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "10s" }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-[#b14270]/6 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "6s" }}
+        />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
       <SEO
@@ -160,7 +179,8 @@ const Notes = () => {
             </h1>
           </div>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Access premium study notes from verified mentors and excel in your exams
+            Access premium study notes from verified mentors and excel in your
+            exams
           </p>
         </div>
 
@@ -186,8 +206,8 @@ const Notes = () => {
               </button>
             </div>
 
-            {/* Add Note (Mentor Only) */}
-            {!mentorLoading && mentor && (
+            {/* Add Note */}
+            {!mentorLoading && !userLoading && (mentor || user) && (
               <button
                 onClick={() => navigate("/add-note")}
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#9f3562] to-[#b8447a] text-white px-6 py-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
@@ -208,12 +228,14 @@ const Notes = () => {
 
           {/* University Filter - Horizontal Scroll */}
           <div className="mb-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Select Your University</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Select Your University
+            </h3>
             <div className="relative">
               {/* Scroll gradient indicators */}
               <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10"></div>
               <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
-              
+
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
                 {universities.map((option) => (
                   <button
@@ -237,7 +259,9 @@ const Notes = () => {
 
           {/* Programme Filter - Horizontal Scroll */}
           <div className="mb-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Select Programme</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Select Programme
+            </h3>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {programmes.map((option) => (
                 <button
@@ -260,7 +284,9 @@ const Notes = () => {
 
           {/* Course Search */}
           <div className="mb-0">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Search Course</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Search Course
+            </h3>
             <CourseSearchDropdown
               value={selectedCourse}
               onChange={setSelectedCourse}
@@ -275,7 +301,9 @@ const Notes = () => {
             <div className="flex items-center gap-3 mb-5">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-[#9f3562]" />
-                <h2 className="text-2xl font-bold text-gray-900">Most Popular</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Most Popular
+                </h2>
               </div>
               <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent"></div>
               <Sparkles className="w-5 h-5 text-amber-400" />
@@ -284,10 +312,13 @@ const Notes = () => {
               {/* Gradient overlays for scroll indication */}
               <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white via-white to-transparent pointer-events-none z-10 hidden sm:block"></div>
               <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white via-white to-transparent pointer-events-none z-10 hidden sm:block"></div>
-              
+
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-1 scroll-smooth">
                 {popularNotes.map((note) => (
-                  <div key={note._id} className="snap-start flex-shrink-0 w-[320px] sm:w-[360px]">
+                  <div
+                    key={note._id}
+                    className="snap-start flex-shrink-0 w-[320px] sm:w-[360px]"
+                  >
                     <NotesCard note={note} compact />
                   </div>
                 ))}
@@ -321,9 +352,7 @@ const Notes = () => {
               <p className="font-semibold text-red-900 text-base sm:text-lg mb-1">
                 We couldn&apos;t load the notes
               </p>
-              <p className="text-red-700 text-sm mb-5">
-                {error}
-              </p>
+              <p className="text-red-700 text-sm mb-5">{error}</p>
 
               <button
                 onClick={() => setReloadToken((p) => p + 1)}
@@ -376,7 +405,6 @@ const Notes = () => {
             </div>
           )}
         </div>
-
       </div>
 
       {/* Hide scrollbars */}

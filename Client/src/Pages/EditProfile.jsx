@@ -286,8 +286,8 @@ const EditProfile = () => {
       });
 
       // Initialize exams array from user data
-      setExams(user.examsPreparingFor && Array.isArray(user.examsPreparingFor) 
-        ? [...user.examsPreparingFor] 
+      setExams(user.examsPreparingFor && Array.isArray(user.examsPreparingFor)
+        ? [...user.examsPreparingFor]
         : []);
 
       setPreview(user.imageUrl || user.image || fallbackProfilePic);
@@ -543,7 +543,6 @@ const EditProfile = () => {
       formData.append('image', profilePic);
     }
 
-    setLoading(true);
     setIsSubmitting(true);
 
     try {
@@ -593,8 +592,8 @@ const EditProfile = () => {
         });
 
         // Sync exams state with updated user data
-        setExams(updatedUser.examsPreparingFor && Array.isArray(updatedUser.examsPreparingFor) 
-          ? [...updatedUser.examsPreparingFor] 
+        setExams(updatedUser.examsPreparingFor && Array.isArray(updatedUser.examsPreparingFor)
+          ? [...updatedUser.examsPreparingFor]
           : []);
 
         setPreview(updatedUser.image || fallbackProfilePic);
@@ -671,8 +670,34 @@ const EditProfile = () => {
 
   if (loading) {
     return (
-      <main className="relative max-w-md mx-auto my-8 p-8 shadow-3d rounded-xl bg-primary">
-        <div className="text-center">Loading...</div>
+      <main className="
+        relative max-w-md mx-auto my-10 p-8 
+        bg-primary rounded-2xl shadow-3d 
+        border border-white/20
+      ">
+        {/* Title Skeleton */}
+        <div className="flex justify-center mb-8">
+          <div className="h-10 w-48 bg-gray-300/50 rounded-lg animate-pulse" />
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {/* Profile Image Skeleton */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-24 h-24 rounded-full bg-gray-300/50 animate-pulse border-2 border-white/20" />
+            <div className="h-8 w-32 bg-gray-300/50 rounded-lg animate-pulse" />
+          </div>
+
+          {/* Form Fields Skeletons */}
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <div className="h-4 w-24 bg-gray-300/50 rounded animate-pulse" />
+              <div className="h-12 w-full bg-gray-300/50 rounded-lg animate-pulse shadow-sm" />
+            </div>
+          ))}
+
+          {/* Button Skeleton */}
+          <div className="mt-4 h-12 w-full bg-[#9f3562]/30 rounded-xl animate-pulse" />
+        </div>
       </main>
     );
   }

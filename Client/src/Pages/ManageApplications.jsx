@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { FaArrowLeft, FaSearch } from 'react-icons/fa'
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { getAdminAuthHeaders } from '../utils/adminAuth'
 
 const ManageApplications = () => {
     const navigate = useNavigate()
@@ -19,7 +20,8 @@ const ManageApplications = () => {
     const verifyAuth = async () => {
         try {
             const response = await fetch('/api/admin/verify', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             })
             if (!response.ok) throw new Error('Not authenticated')
             fetchCollections()
@@ -32,7 +34,8 @@ const ManageApplications = () => {
     const fetchCollections = async () => {
         try {
             const response = await fetch('/api/apply', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             })
             if (!response.ok) throw new Error('Failed to fetch collections')
             const data = await response.json()

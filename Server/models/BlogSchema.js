@@ -25,6 +25,10 @@ const blogSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    hashtags: [{          // NEW: Array of strings for hashtags
+      type: String,
+      trim: true
+    }],
     readingTime: {
       type: Number,
       required: true,
@@ -43,4 +47,5 @@ const blogSchema = new mongoose.Schema(
   }
 );
 
+blogSchema.index({ hashtags: 1 }); // NEW: Index for fast hashtag filtering
 module.exports = Applications.models.Blogs || Applications.model("Blogs", blogSchema);

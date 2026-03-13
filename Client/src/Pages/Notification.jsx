@@ -77,7 +77,7 @@ const Notification = () => {
     // Navigate to originPath
     if (notification.originPath) {
       let path = notification.originPath;
-      
+
       // Handle comment anchor links - scroll to comment after navigation
       if (path.includes('#comment-')) {
         const [basePath, anchor] = path.split('#');
@@ -85,8 +85,8 @@ const Notification = () => {
         // Scroll to comment after a short delay to allow page to load
         setTimeout(() => {
           const commentId = anchor.replace('comment-', '');
-          const commentElement = document.getElementById(commentId) || 
-                                 document.querySelector(`[data-comment-id="${commentId}"]`);
+          const commentElement = document.getElementById(commentId) ||
+            document.querySelector(`[data-comment-id="${commentId}"]`);
           if (commentElement) {
             commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             // Highlight the comment briefly
@@ -105,24 +105,24 @@ const Notification = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'MENTION':
-        return <AtSign className="w-5 h-5 text-[#9f3562] fill-[#9f3562]" />;
+        return <AtSign className="w-3 h-3 sm:w-5 sm:h-5 text-[#9f3562] fill-[#9f3562]" />;
       case 'POST_LIKE':
-        return <Heart className="w-5 h-5 text-red-500 fill-red-500" />;
+        return <Heart className="w-3 h-3 sm:w-5 sm:h-5 text-red-500 fill-red-500" />;
       case 'COMMENT_LIKE':
-        return <ThumbsUp className="w-5 h-5 text-blue-500 fill-blue-500" />;
+        return <ThumbsUp className="w-3 h-3 sm:w-5 sm:h-5 text-blue-500 fill-blue-500" />;
       case 'COMMENT':
-        return <MessageCircle className="w-5 h-5 text-blue-500 fill-blue-500" />;
+        return <MessageCircle className="w-3 h-3 sm:w-5 sm:h-5 text-blue-500 fill-blue-500" />;
       case 'FOLLOW':
       case 'FOLLOW_BACK':
-        return <UserPlus className="w-5 h-5 text-green-500 fill-green-500" />;
+        return <UserPlus className="w-3 h-3 sm:w-5 sm:h-5 text-green-500 fill-green-500" />;
       case 'REPOST':
-        return <Repeat2 className="w-5 h-5 text-purple-500" />;
+        return <Repeat2 className="w-3 h-3 sm:w-5 sm:h-5 text-purple-500" />;
       case 'FOLLOWING_POST':
-        return <ImageIcon className="w-5 h-5 text-purple-500 fill-purple-500" />;
+        return <ImageIcon className="w-3 h-3 sm:w-5 sm:h-5 text-purple-500 fill-purple-500" />;
       case 'MESSAGE':
-        return <MessageCircle className="w-5 h-5 text-purple-500 fill-purple-500" />;
+        return <MessageCircle className="w-3 h-3 sm:w-5 sm:h-5 text-purple-500 fill-purple-500" />;
       default:
-        return <Heart className="w-5 h-5 text-gray-500" />;
+        return <Heart className="w-3 h-3 sm:w-5 sm:h-5 text-gray-500" />;
     }
   };
 
@@ -216,14 +216,14 @@ const Notification = () => {
   const handleEnableNotifications = async () => {
     const loggedInAccount = user || mentor;
     if (!loggedInAccount) return;
-    
+
     const role = mentor ? 'mentor' : 'user';
     // Force re-request permission even if previously denied
     await enableNotifications(loggedInAccount._id, role, true);
   };
 
-  const isNotificationPermissionGranted = typeof window !== 'undefined' && 
-    'Notification' in window && 
+  const isNotificationPermissionGranted = typeof window !== 'undefined' &&
+    'Notification' in window &&
     Notification.permission === 'granted';
 
   if (loading) {
@@ -241,38 +241,38 @@ const Notification = () => {
         description="View your notifications"
         url="https://admeasy.in/notification"
       />
-      
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-2xl mx-auto px-2 py-2 sm:px-4 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-4 h-4 sm:w-6 sm:h-6" />
             </button>
-            <div className="flex items-center gap-2">
-              <AtSign className="w-5 h-5 text-[#9f3562]" />
-              <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <AtSign className="w-4 h-4 sm:w-5 sm:h-5 text-[#9f3562]" />
+              <h1 className="text-sm sm:text-xl font-bold text-gray-900">Notifications</h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {notifications.length > 0 && notifications.some(n => !n.isRead) && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b14270] transition-colors text-sm font-medium"
+                className="flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b14270] transition-colors text-[10px] sm:text-sm font-medium"
               >
-                <CheckCheck className="w-4 h-4" />
+                <CheckCheck className="w-3 h-3 sm:w-4 sm:h-4" />
                 Mark all as read
               </button>
             )}
             {!isNotificationPermissionGranted && (
               <button
                 onClick={handleEnableNotifications}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                className="flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-[10px] sm:text-sm font-medium"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
                 Enable Notifications
               </button>
             )}
@@ -299,7 +299,7 @@ const Notification = () => {
               // Use username if available, otherwise fallback to name, but never "Unknown" or "Someone"
               const actorDisplayName = actor.username || actor.name || null;
               const actorImage = actor.image || null;
-              
+
               // Clean up the message - remove "Someone", "Unknown", and actor name if duplicated
               let displayMessage = notification.message || '';
               // Remove "Someone" and "Unknown" from the beginning of the message
@@ -311,17 +311,16 @@ const Notification = () => {
               if (actor.username) {
                 displayMessage = displayMessage.replace(new RegExp(`^${actor.username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+`, 'i'), '');
               }
-              
+
               // If we don't have actor info, just show the message without a name prefix
               const showActorName = actorDisplayName && actorDisplayName !== 'Unknown' && actorDisplayName !== 'Someone';
-              
+
               return (
                 <div
                   key={notification._id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !notification.isRead ? 'bg-blue-50/30' : ''
-                  }`}
+                  className={`px-2 py-2 sm:px-4 sm:py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-blue-50/30' : ''
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     {/* Actor Profile Picture */}
@@ -332,7 +331,7 @@ const Notification = () => {
                             e.stopPropagation();
                             navigate(`/${actor.username}`);
                           }}
-                          className="w-11 h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative hover:opacity-80 transition-opacity cursor-pointer"
+                          className="w-8 h-8 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative hover:opacity-80 transition-opacity cursor-pointer"
                         >
                           {actorImage ? (
                             <img
@@ -358,11 +357,10 @@ const Notification = () => {
                           ) : null}
                           <div
                             data-fallback={notification._id}
-                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${
-                              actorImage ? 'hidden' : 'flex'
-                            }`}
+                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${actorImage ? 'hidden' : 'flex'
+                              }`}
                             style={{
-                              backgroundColor: showActorName && actorDisplayName 
+                              backgroundColor: showActorName && actorDisplayName
                                 ? `hsl(${(actorDisplayName.charCodeAt(0) || 0) * 137.508 % 360}, 70%, 50%)`
                                 : 'hsl(0, 0%, 60%)',
                             }}
@@ -371,7 +369,7 @@ const Notification = () => {
                           </div>
                         </button>
                       ) : (
-                        <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative">
+                        <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center relative">
                           {actorImage ? (
                             <img
                               src={actorImage}
@@ -396,11 +394,10 @@ const Notification = () => {
                           ) : null}
                           <div
                             data-fallback={notification._id}
-                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${
-                              actorImage ? 'hidden' : 'flex'
-                            }`}
+                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-sm ${actorImage ? 'hidden' : 'flex'
+                              }`}
                             style={{
-                              backgroundColor: showActorName && actorDisplayName 
+                              backgroundColor: showActorName && actorDisplayName
                                 ? `hsl(${(actorDisplayName.charCodeAt(0) || 0) * 137.508 % 360}, 70%, 50%)`
                                 : 'hsl(0, 0%, 60%)',
                             }}
@@ -413,7 +410,7 @@ const Notification = () => {
 
                     {/* Notification Content */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-900 text-sm leading-relaxed">
+                      <p className="text-gray-900 text-xs sm:text-sm leading-relaxed">
                         {showActorName && (
                           <>
                             {actor.username ? (
@@ -434,7 +431,7 @@ const Notification = () => {
                         )}
                         <span className="text-gray-600">{displayMessage}</span>
                       </p>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <p className="text-gray-400 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
                         {formatTime(notification.createdAt)}
                       </p>
                     </div>
@@ -442,7 +439,7 @@ const Notification = () => {
                     {/* Icon/Thumbnail and Menu on the right */}
                     <div className="flex items-center gap-2">
                       {getNotificationIcon(notification.type)}
-                      
+
                       {/* Unread indicator */}
                       {!notification.isRead && (
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -455,9 +452,9 @@ const Notification = () => {
                             e.stopPropagation();
                             setShowMenuForId(showMenuForId === notification._id ? null : notification._id);
                           }}
-                          className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                          className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-full transition-colors"
                         >
-                          <MoreVertical className="w-4 h-4 text-gray-500" />
+                          <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                         </button>
                         <AnimatePresence>
                           {showMenuForId === notification._id && (

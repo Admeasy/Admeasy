@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import AddBlogForm from "../components/AddBlogForm";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getAdminAuthHeaders } from "../utils/adminAuth";
 
 const ManageBlogs = () => {
   const navigate = useNavigate();
@@ -31,7 +32,8 @@ const ManageBlogs = () => {
   const verifyAuth = async () => {
     try {
       const response = await fetch("/api/admin/verify", { 
-        credentials: "include" 
+        credentials: "include",
+        headers: getAdminAuthHeaders()
       });
       if (!response.ok) throw new Error("Not authenticated");
       fetchBlogs();

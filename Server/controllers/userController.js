@@ -2,6 +2,8 @@ const User = require("../models/userSchema")
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
+const jwt = require("jsonwebtoken");
+const { generateAccessToken, generateRefreshToken, setTokenCookies } = require("../utils/auth.js");
 
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -86,4 +88,35 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { forgotPassword, resetPassword }
+const switchAccount = async (req, res) => {
+  const { switchToken } = req.body;
+
+  if (!switchToken) return res.status(400).json({ message: "Switch token is required" });
+
+  try {
+    const decoded = jwt.verify(switchToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Generate new session cookies
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    
+    // CRITICAL FIX: Save the new refresh token to the database so frontend fetches work!
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    setTokenCookies(res, accessToken, refreshToken);
+
+    const userObj = user.toObject();
+    delete userObj.password;
+    delete userObj.refreshToken;
+
+    res.json({ user: userObj, message: "Account switched successfully" });
+  } catch (error) {
+    res.status(401).json({ message: "Invalid or expired switch token" });
+  }
+};
+
+module.exports = { forgotPassword, resetPassword, switchAccount }

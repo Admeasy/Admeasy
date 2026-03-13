@@ -4,8 +4,24 @@ import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import { Document, Page, pdfjs } from 'react-pdf';
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// ✅ CSS imports to fix Blank/White Screen
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// ✅ Worker URL to prevent Vite ES module error
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+// ✅ Options aur Headers ko component ke bahar rakha hai
+// (Isse "sendWithPromise" aur worker crash hamesha ke liye theek ho jayega)
+const pdfOptions = {
+  cMapUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+  cMapPacked: true,
+  standardFontDataUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/standard_fonts/`,
+};
+
+const pdfHeaders = {
+  'Accept': 'application/pdf',
+};
 
 const NotesPage = () => {
   const { id } = useParams();
@@ -369,7 +385,7 @@ const NotesPage = () => {
                 {note.fileUrl ? (
                   <div className="relative">
                     {!pdfError ? (
-                      <div className="flex flex-col h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
+                      <div className="flex flex-col h-auto lg:h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
                         {/* PDF Controls */}
                         <div className="bg-gray-100 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
                           <div className="flex items-center gap-2">
@@ -405,7 +421,7 @@ const NotesPage = () => {
                               {Math.round(scale * 100)}%
                             </span>
                             <button
-                              onClick={() => setScale(prev => Math.min(2.0, prev + 0.25))}
+                              onClick={() => setScale(prev => Math.min(2.5, prev + 0.25))}
                               className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
                               title="Zoom in"
                             >
@@ -425,16 +441,11 @@ const NotesPage = () => {
                             </div>
                           )}
                           <Document
-                            file={`/api/notes/${id}/pdf`}
-                            httpHeaders={{
-                              'Accept': 'application/pdf',
-                            }}
+                            // ✅ FINAL FIX: Direct original Cloudinary link passed. No more 400 errors!
+                            file={note.fileUrl}
+                            httpHeaders={pdfHeaders}  
                             withCredentials={false}
-                            options={{
-                              cMapUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
-                              cMapPacked: true,
-                              standardFontDataUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/standard_fonts/`,
-                            }}
+                            options={pdfOptions}      
                             onLoadSuccess={({ numPages }) => {
                               setNumPages(numPages);
                               setPdfLoading(false);
@@ -475,7 +486,6 @@ const NotesPage = () => {
                                 }
                                 onRenderError={(error) => {
                                   console.error('Page render error:', error);
-                                  // Don't set pdfError here, let Document handle it
                                 }}
                               />
                             </div>

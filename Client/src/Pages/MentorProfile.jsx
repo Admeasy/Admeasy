@@ -49,31 +49,7 @@ export default function MentorProfile() {
         let mentorData;
         const isOwnProfileCheck = !username || (currentMentor && currentMentor.username === username);
 
-        if (isOwnProfileCheck && currentMentor) {
-          mentorData = currentMentor;
-          if (mentorData.imageUrl) {
-            setProfileImageUrl(mentorData.imageUrl);
-          } else if (mentorData.image) {
-            try {
-              const imageRes = await fetch('/api/mentors/me/pic', { credentials: 'include' });
-              if (imageRes.ok) {
-                const imageUrl = await imageRes.json();
-                if (imageUrl) {
-                  setProfileImageUrl(imageUrl);
-                } else {
-                  setProfileImageUrl(fallbackProfilePic);
-                }
-              } else {
-                setProfileImageUrl(fallbackProfilePic);
-              }
-            } catch (err) {
-              console.error('Error fetching profile image:', err);
-              setProfileImageUrl(fallbackProfilePic);
-            }
-          } else {
-            setProfileImageUrl(fallbackProfilePic);
-          }
-        } else if (username) {
+        if (username) {
           const res = await fetch(`/api/mentors/${username}`);
           if (!res.ok) {
             throw new Error('Mentor not found');
@@ -98,6 +74,15 @@ export default function MentorProfile() {
               setProfileImageUrl(fallbackProfilePic);
             }
           } else {
+            setProfileImageUrl(fallbackProfilePic);
+          }
+        } else if (currentMentor) {
+          mentorData = currentMentor;
+          // Logic for own profile without username param (e.g. /me)
+          if (mentorData.imageUrl) {
+            setProfileImageUrl(mentorData.imageUrl);
+          } else {
+            // ... fetch pic logic
             setProfileImageUrl(fallbackProfilePic);
           }
         } else {
@@ -488,9 +473,29 @@ export default function MentorProfile() {
                 </button>
               </div>
 
-              {/* Bio/Tagline */}
+              {/* Tagline */}
               {mentor.tagline && (
-                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{mentor.tagline}</p>
+                <p className="text-sm sm:text-base font-medium text-gray-900 leading-relaxed mb-2">{mentor.tagline}</p>
+              )}
+
+              {/* Bio */}
+              {mentor.bio && (
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap mb-2">{mentor.bio}</p>
+              )}
+
+              {mentor.dateOfBirth && (
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+                  Age: {(() => {
+                    const dob = new Date(mentor.dateOfBirth);
+                    const today = new Date();
+                    let age = today.getFullYear() - dob.getFullYear();
+                    const m = today.getMonth() - dob.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+                      age--;
+                    }
+                    return age;
+                  })()}
+                </p>
               )}
 
               {/* Education Info */}

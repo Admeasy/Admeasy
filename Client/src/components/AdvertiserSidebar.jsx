@@ -18,7 +18,7 @@ const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setSho
 
       if (res.ok) {
         toast.success('Logged out successfully');
-        navigate('/advertiser/login');
+        window.location.href = '/advertiser/login';
       } else {
         toast.error('Failed to logout');
       }
@@ -74,7 +74,7 @@ const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setSho
                     <X className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
-                
+
                 <nav className="space-y-1.5 sm:space-y-2 flex-1">
                   {navItems.map((item) => {
                     const Icon = item.icon;
@@ -84,10 +84,9 @@ const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setSho
                         to={item.path}
                         onClick={() => setShowMobileMenu(false)}
                         className={({ isActive }) =>
-                          `flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all text-sm sm:text-base ${
-                            isActive
-                              ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
+                          `flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all text-sm sm:text-base ${isActive
+                            ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
+                            : 'text-gray-700 hover:bg-gray-100'
                           }`
                         }
                       >
@@ -103,10 +102,9 @@ const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setSho
                     to="/advertiser/profile"
                     onClick={() => setShowMobileMenu(false)}
                     className={({ isActive }) =>
-                      `flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all text-sm sm:text-base ${
-                        isActive
-                          ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
+                      `flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all text-sm sm:text-base ${isActive
+                        ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
                       }`
                     }
                   >
@@ -159,10 +157,9 @@ const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setSho
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                    ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
                   }`
                 }
               >
@@ -188,10 +185,9 @@ const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setSho
           <NavLink
             to="/advertiser/profile"
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                isActive
-                  ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white'
+                : 'text-gray-700 hover:bg-gray-100'
               }`
             }
           >

@@ -1,7 +1,7 @@
 const express = require('express');
-const { resetPassword, forgotPassword } = require('../controllers/userController.js')
+const { resetPassword, forgotPassword, switchAccount } = require('../controllers/userController.js')
 const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
-const { generateAccessToken, generateRefreshToken, setTokenCookies } = require('../utils/auth.js');
+const { generateAccessToken, generateRefreshToken, generateSwitchToken, setTokenCookies, clearTokenCookies } = require('../utils/auth.js');
 const router = express.Router();
 const User = require('../models/userSchema.js');
 const crypto = require('crypto')
@@ -18,19 +18,23 @@ const { Users } = require('../db.js');
 const NotificationService = require('../services/notificationService.js');
 const { verifyAdminToken } = require('../middleware/adminAuth.js');
 const passport = require('../middleware/passport.js');
-const { authenticateRequired, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
+const { authenticateRequired, authenticateUserOrAdmin, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 
 // Helper: Get frontend URL for redirects (works for both dev and production)
+// Helper: Get frontend URL for redirects (works for both dev and production)
 function getFrontendUrl() {
     if (process.env.FRONTEND_URL) {
         return process.env.FRONTEND_URL;
     }
-    // Default based on environment
-    return process.env.NODE_ENV === 'production' ? 'https://admeasy.in' : 'http://localhost:5173';
+    // Default to production URL in production, or localhost in dev
+    if (process.env.NODE_ENV === "production") {
+        return "https://admeasy.in";
+    }
+    return "http://localhost:5173";
 }
 
 // Helper: Extract public_id from Cloudinary URL
@@ -141,6 +145,7 @@ router.post('/signup', async (req, res) => {
             user.emailVerifyToken = tokenHash;
             user.emailVerifyExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
             await user.save({ validateBeforeSave: false });
+
 
             // VERIFY URL
             const getFrontendUrl = () => {
@@ -254,39 +259,35 @@ router.post('/onboarding', async (req, res) => {
             }
         }
 
-        // If user doesn't exist, create new account
+        // If user doesn't exist from token, find them by email
         if (!user) {
-            const { email, password, username } = req.body;
-            if (!email || !password || !username) {
-                return res.status(400).json({ success: false, message: 'Email, password, and username are required for new accounts' });
+            const { email, password } = req.body;
+            if (!email) {
+                return res.status(400).json({ success: false, message: 'Email is required to complete onboarding' });
             }
 
-            const existing = await User.findOne({ email });
-            if (existing) {
-                return res.status(409).json({ success: false, message: 'Email already registered. Please log in first.' });
+            user = await User.findOne({ email }).select('+password');
+
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found. Please create an account first.' });
             }
 
-            // Check availability of username
-            const normalizedUsername = username.trim().toLowerCase();
-            const existingUsername = await User.findOne({
-                username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
-            });
-
-            if (existingUsername) {
-                return res.status(409).json({ success: false, message: 'Username is already taken' });
+            // OAuth users (Google): password is not required. Only require password for email/password users.
+            if (user.googleId) {
+                // OAuth user must be authenticated via cookie to complete onboarding (no password to verify)
+                if (!req.cookies['accessToken']) {
+                    return res.status(401).json({ success: false, message: 'Please log in with Google to complete onboarding.' });
+                }
+            } else if (user.password) {
+                if (password) {
+                    const isValidPassword = await bcrypt.compare(password, user.password);
+                    if (!isValidPassword) {
+                        return res.status(401).json({ success: false, message: 'Invalid credentials. Please try logging in directly.' });
+                    }
+                } else {
+                    return res.status(401).json({ success: false, message: 'Please provide your password to complete onboarding.' });
+                }
             }
-
-            const Mentor = require('../models/mentorSchema.js');
-            const existingMentorUsername = await Mentor.findOne({
-                username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
-            });
-
-            if (existingMentorUsername) {
-                return res.status(409).json({ success: false, message: 'Username is already taken' });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-            user = new User({ email, password: hashedPassword, username: normalizedUsername });
         }
 
         // Check if user has already completed onboarding
@@ -295,6 +296,7 @@ router.post('/onboarding', async (req, res) => {
         }
 
         // Extract onboarding data from request body
+        console.log("Received onboarding payload:", req.body);
         const {
             name,
             gender,
@@ -343,30 +345,35 @@ router.post('/onboarding', async (req, res) => {
             user.username = normalizedUsername;
         }
 
-        if (educationType) user.educationType = educationType;
-        if (board) user.board = board;
-        if (universityName) user.universityName = universityName;
-        if (userClass) user.class = userClass;
-        if (stream) user.stream = stream;
-        if (schoolName) user.schoolName = schoolName;
-        if (courseLevel) user.courseLevel = courseLevel;
-        if (courseDetails) user.courseDetails = courseDetails;
-        if (collegeName) user.collegeName = collegeName;
+        user.educationType = educationType || user.educationType;
+        user.board = board || null;
+        user.universityName = universityName || null;
+        user.class = userClass || null;
+        user.stream = stream || null;
+        user.schoolName = schoolName || null;
+        user.courseLevel = courseLevel || null;
+        user.courseDetails = courseDetails || null;
+        user.collegeName = collegeName || null;
+
         if (examsPreparingFor && Array.isArray(examsPreparingFor)) user.examsPreparingFor = examsPreparingFor;
-        if (reasonForAdmeasy) user.reasonForAdmeasy = reasonForAdmeasy;
-        if (reasonForAdmeasyInput) user.reasonForAdmeasyInput = reasonForAdmeasyInput;
+        user.reasonForAdmeasy = reasonForAdmeasy || null;
+        user.reasonForAdmeasyInput = reasonForAdmeasyInput || null;
 
         // Set institute and course based on education type
-        if (educationType === 'school' && schoolName) {
-            user.institute = schoolName;
+        if (educationType === 'school') {
+            if (schoolName) user.institute = schoolName;
+            else if (board) user.institute = board;
+
             if (userClass) {
                 user.course = `Class ${userClass}`;
                 if (stream) {
                     user.course += ` (${stream})`;
                 }
             }
-        } else if (educationType === 'college' && collegeName) {
-            user.institute = collegeName;
+        } else if (educationType === 'college') {
+            if (universityName) user.institute = universityName;
+            else if (collegeName) user.institute = collegeName;
+
             if (courseDetails) {
                 user.course = courseDetails;
             }
@@ -374,7 +381,14 @@ router.post('/onboarding', async (req, res) => {
 
         // Validate onboarding completion before marking as complete
         const { validateOnboardingCompletion } = require('../utils/onboardingValidation');
-        const validation = validateOnboardingCompletion(user);
+
+        const userData = {
+            ...user.toObject(),
+            ...req.body
+        };
+        const validation = validateOnboardingCompletion(userData);
+
+        console.log("Validation result:", validation);
 
         if (!validation.isComplete) {
             return res.status(400).json({
@@ -388,8 +402,9 @@ router.post('/onboarding', async (req, res) => {
         // Mark onboarding as completed only if validation passes
         user.hasCompletedOnboarding = true;
 
-        // Generate tokens if user is new
-        if (!user.refreshToken) {
+        // Generate tokens if user is not currently authenticated via cookies
+        // We verified them via password earlier, so we can log them in on this device
+        if (!req.cookies['accessToken']) {
             const accessToken = generateAccessToken(user);
             const refreshToken = generateRefreshToken(user);
             user.refreshToken = refreshToken;
@@ -495,6 +510,7 @@ router.post('/login', async (req, res) => {
 
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
+        const switchToken = generateSwitchToken(user);
         user.refreshToken = refreshToken;
         await user.save();
 
@@ -502,6 +518,7 @@ router.post('/login', async (req, res) => {
         res.json({
             success: true,
             message: 'Logged in successfully',
+            switchToken,
             requiresOnboarding: onboardingStatus.requiresOnboarding,
             hasCompletedOnboarding: user.hasCompletedOnboarding || false,
             onboardingStatus: {
@@ -513,6 +530,10 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// SWITCH ACCOUNT
+router.post('/switch-account', switchAccount);
+
 
 // GOOGLE OAUTH ROUTES
 // Initiate Google OAuth
@@ -561,6 +582,9 @@ router.get('/auth/google/callback',
             // Set cookies
             setTokenCookies(res, accessToken, refreshToken);
 
+            console.log("JWT issued:", accessToken);
+            console.log("Cookie sent to browser");
+
             // Redirect to frontend
             const frontendUrl = getFrontendUrl();
 
@@ -570,9 +594,9 @@ router.get('/auth/google/callback',
 
             // Always redirect to onboarding if incomplete, regardless of flag
             if (onboardingStatus.requiresOnboarding) {
-                res.redirect(`${frontendUrl}/onboarding?oauth_success=true`);
+                res.redirect(`${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}`);
             } else {
-                res.redirect(`${frontendUrl}/?oauth_success=true`);
+                res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
@@ -602,18 +626,7 @@ router.post('/logout', async (req, res) => {
         }
 
         // Clear cookies
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/'
-        });
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/'
-        });
+        clearTokenCookies(res);
 
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
@@ -627,56 +640,52 @@ router.post('/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies['refreshToken'];
         if (!refreshToken) {
-            // No refresh token - user is not logged in, return success but indicate no refresh happened
-            return res.json({ success: true, refreshed: false, message: 'No refresh token available' });
+            return res.status(401).json({ success: false, refreshed: false, message: 'No refresh token' });
+        }
+
+        // ROLE CHECK: Verify if this is a User token before checking DB to avoid clearing Mentor cookies
+        const jwt = require('jsonwebtoken'); // Ensure jwt is available
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        } catch (err) {
+            // Verify failed (expired or invalid)
+            // SAFELY check if it was a Mentor token before clearing cookies
+            const unsafeDecoded = jwt.decode(refreshToken);
+            if (unsafeDecoded && unsafeDecoded.role && unsafeDecoded.role !== 'user') {
+                return res.status(403).json({ success: false, message: 'Role mismatch' });
+            }
+
+            // It was a user token (or unknown), so safe to clear
+            clearTokenCookies(res);
+            return res.status(401).json({ success: false, refreshed: false, message: 'Invalid or expired refresh token' });
+        }
+
+        // Verify succeeded
+        if (decoded.role && decoded.role !== 'user') {
+            // Valid token but not for User
+            return res.status(403).json({ success: false, message: 'Role mismatch' });
         }
 
         // Check if user exists and has this refresh token (not logged out)
         const user = await User.findOne({ refreshToken });
         if (!user) {
-            // User has logged out or token is invalid, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            return res.json({ success: true, refreshed: false, message: 'User has logged out' });
+            clearTokenCookies(res);
+            return res.status(401).json({ success: false, refreshed: false, message: 'User has logged out' });
         }
 
-        try {
-            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-            const newAccessToken = generateAccessToken(user);
-            res.cookie('accessToken', newAccessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-                path: '/'
-            });
-            res.json({ success: true, refreshed: true });
-        } catch (err) {
-            // Refresh token is invalid or expired, clear cookies
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            res.clearCookie('refreshToken', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                path: '/'
-            });
-            return res.json({ success: true, refreshed: false, message: 'Invalid or expired refresh token' });
-        }
+        // Issue new access token
+        const newAccessToken = generateAccessToken(user);
+        res.cookie('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            domain: process.env.NODE_ENV === 'production' ? '.admeasy.in' : undefined,
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/'
+        });
+        res.json({ success: true, refreshed: true });
+
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -697,11 +706,7 @@ router.get('/me', async (req, res) => {
                 user = await User.findById(decoded.id).select('-password -refreshToken');
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         } else if (req.cookies['accessToken']) {
@@ -712,15 +717,18 @@ router.get('/me', async (req, res) => {
                 user = await User.findById(decoded.id).select('-password -refreshToken');
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }
-        if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
+        if (!user) {
+            console.log('GET /me failed: User not found or not authenticated', {
+                hasUser: !!req.user,
+                authHeader: req.headers.authorization ? 'Present' : 'Missing',
+                cookie: req.cookies['accessToken'] ? 'Present' : 'Missing'
+            });
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
 
         // Process the user's image (handle Google URLs vs Backblaze files)
         const processedUser = await processUserImage(user);
@@ -781,11 +789,7 @@ router.put('/me', upload.single('image'), async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         } else if (req.cookies['accessToken']) {
@@ -796,18 +800,14 @@ router.put('/me', upload.single('image'), async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }
         if (!user) return res.status(401).json({ success: false, message: 'Not authenticated' });
 
         const {
-            name, institute, course, phone, gender,
+            name, institute, course, phone, gender, dateOfBirth,
             languages, city, educationType, board, universityName,
             class: userClass, stream, schoolName, courseLevel, courseDetails,
             collegeName, examsPreparingFor, reasonForAdmeasy, reasonForAdmeasyInput
@@ -843,7 +843,16 @@ router.put('/me', upload.single('image'), async (req, res) => {
         if (institute) user.institute = institute;
         if (course) user.course = course;
         if (phone) user.phone = typeof phone === 'string' ? parseInt(phone) : phone;
+
         if (gender) user.gender = gender;
+        if (dateOfBirth) {
+            const dobDate = new Date(dateOfBirth);
+            const today = new Date();
+            if (dobDate > today) {
+                return res.status(400).json({ success: false, message: 'Date of Birth cannot be in the future' });
+            }
+            user.dateOfBirth = dobDate;
+        }
 
         // Onboarding fields - handle JSON strings from FormData
         if (languages !== undefined) {
@@ -934,11 +943,7 @@ router.get('/me/pic', async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         } else if (req.cookies['accessToken']) {
@@ -949,11 +954,7 @@ router.get('/me/pic', async (req, res) => {
                 user = await User.findById(decoded.id);
             } catch (jwtErr) {
                 // Token is invalid or expired, clear it
-                res.clearCookie('accessToken', {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax'
-                });
+                clearTokenCookies(res);
                 return res.status(401).json({ success: false, message: 'Invalid or expired token' });
             }
         }
@@ -1079,7 +1080,7 @@ router.get('/:userId/image', verifyAdminToken, async (req, res) => {
 
 router.delete(
     '/:userId',
-    authenticateRequired,
+    authenticateUserOrAdmin,
     requireSelfOrAdmin,
     async (req, res) => {
         try {
@@ -1424,7 +1425,7 @@ router.get('/:targetId/follow-status', async (req, res) => {
  * GET /api/users/:targetId/followers
  * Get list of followers for a user or mentor
  */
-router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
+router.get('/:targetId/followers', async (req, res) => {
     try {
         const targetId = req.params.targetId;
         const Mentor = require('../models/mentorSchema.js');
@@ -1483,7 +1484,7 @@ router.get('/:targetId/followers', authenticateRequired, async (req, res) => {
  * GET /api/users/:targetId/following
  * Get list of users/mentors that the target is following
  */
-router.get('/:targetId/following', authenticateRequired, async (req, res) => {
+router.get('/:targetId/following', async (req, res) => {
     try {
         const targetId = req.params.targetId;
         const Mentor = require('../models/mentorSchema.js');

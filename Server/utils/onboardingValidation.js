@@ -7,20 +7,19 @@ const User = require('../models/userSchema');
  */
 const validateOnboardingCompletion = (user) => {
     const missingFields = [];
+
     const errors = [];
 
+    // Helper function to check if a string is empty
+    const isEmpty = (val) => !val || (typeof val === 'string' && val.trim() === '');
+
     // Core required fields (always required)
-    if (!user.name || user.name.trim() === '') {
+    if (isEmpty(user.name)) {
         missingFields.push('name');
         errors.push('Name is required');
     }
 
-    if (!user.gender || user.gender.trim() === '') {
-        missingFields.push('gender');
-        errors.push('Gender is required');
-    }
-
-    if (!user.city || user.city.trim() === '') {
+    if (isEmpty(user.city)) {
         missingFields.push('city');
         errors.push('City is required');
     }
@@ -30,39 +29,39 @@ const validateOnboardingCompletion = (user) => {
         errors.push('Phone number is required');
     }
 
-    if (!user.username || user.username.trim() === '') {
+    if (isEmpty(user.username)) {
         missingFields.push('username');
         errors.push('Username is required');
     }
 
-    if (!user.educationType || !['school', 'college'].includes(user.educationType)) {
+    if (isEmpty(user.educationType) || !['school', 'college'].includes(user.educationType)) {
         missingFields.push('educationType');
         errors.push('Education type (school or college) is required');
     }
 
     // Education type specific requirements
     if (user.educationType === 'school') {
-        if (!user.schoolName || user.schoolName.trim() === '') {
-            missingFields.push('schoolName');
-            errors.push('School name is required');
+        if (isEmpty(user.board)) {
+            missingFields.push('board');
+            errors.push('Board is required for school');
         }
-        if (!user.class || user.class.trim() === '') {
+        if (isEmpty(user.class)) {
             missingFields.push('class');
             errors.push('Class is required');
         }
-        if (!user.board || user.board.trim() === '') {
-            missingFields.push('board');
-            errors.push('Board is required');
+        // Stream required only for Class 11th and 12th
+        const needsStream = user.class === '11th' || user.class === '12th';
+        if (needsStream && isEmpty(user.stream)) {
+            missingFields.push('stream');
+            errors.push('Stream is required for Class 11th and 12th');
         }
+        // universityName is NOT required for school; allow null
     } else if (user.educationType === 'college') {
-        if (!user.collegeName || user.collegeName.trim() === '') {
-            missingFields.push('collegeName');
-            errors.push('College name is required');
+        if (isEmpty(user.universityName)) {
+            missingFields.push('universityName');
+            errors.push('University name is required for college students');
         }
-        if (!user.courseDetails || user.courseDetails.trim() === '') {
-            missingFields.push('courseDetails');
-            errors.push('Course details are required');
-        }
+        // courseLevel and courseDetails are optional for simplified onboarding
     }
 
     // Optional but recommended fields
@@ -70,7 +69,7 @@ const validateOnboardingCompletion = (user) => {
     if (!user.examsPreparingFor || user.examsPreparingFor.length === 0) {
         recommendedFields.push('examsPreparingFor');
     }
-    if (!user.reasonForAdmeasy || user.reasonForAdmeasy.trim() === '') {
+    if (isEmpty(user.reasonForAdmeasy)) {
         recommendedFields.push('reasonForAdmeasy');
     }
 

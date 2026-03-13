@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, User, CirclePlus, MessagesSquare, Users } from 'lucide-react';
+import { Home, User, CirclePlus, MessagesSquare, Users } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
@@ -20,10 +20,41 @@ const BottomNavBar = () => {
   const { unreadCount: unreadMessagesCount } = useUnreadMessages();
   const { unreadCount: unreadSpaceMessagesCount } = useUnreadSpaceMessages();
 
+  // Scroll hide/show state
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
   // Reset image error when user or mentor changes
   useEffect(() => {
     setImageError(false);
   }, [user, mentor]);
+
+  // Scroll hide/show logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+
+          if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+            // Scrolling down — hide
+            setIsVisible(false);
+          } else {
+            // Scrolling up — show
+            setIsVisible(true);
+          }
+
+          lastScrollY.current = currentScrollY;
+          ticking.current = false;
+        });
+        ticking.current = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Get profile image URL
   const profileImageUrl = loggedInAccount
@@ -83,17 +114,10 @@ const BottomNavBar = () => {
       requiresAuth: false
     },
     {
-      id: 'explore',
-      icon: Search,
-      path: '/explore',
-      onClick: () => navigate('/explore'),
-      requiresAuth: false
-    },
-    {
       id: 'upload',
       icon: CirclePlus,
       path: '/posts/create',
-      onClick: () => handleProtectedRoute('/posts/create'),
+      onClick: () => handleProtectedRoute('/posts/create', 'create a post'),
       requiresAuth: true
     },
     {
@@ -119,7 +143,6 @@ const BottomNavBar = () => {
       path: '/me',
       onClick: () => {
         if (loggedInAccount) {
-          // Use replace if already on /me to prevent double history entries
           if (location.pathname === '/me') {
             navigate('/me', { replace: true });
           } else {
@@ -135,85 +158,83 @@ const BottomNavBar = () => {
   ];
 
   return (
-    <>
-      {/* Spacer div to prevent content from hiding behind bottom nav */}
+    <div
+      className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe pt-2 px-4 sm:px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 h-16 flex items-center justify-between transition-transform duration-300 ${
+        isVisible ? 'translate-y-0' : 'translate-y-full'
+      }`}
+    >
+      {navItems.map((item) => {
+        const Icon = item.icon;
 
-
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe pt-2 px-4 sm:px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 h-16 flex items-center justify-between">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-
-          // Determine if active
-          let isActive;
-          if (item.matchPaths) {
-            // For Profile item, only match exact paths
-            isActive = item.matchPaths.some(path =>
-              location.pathname === path || location.pathname.startsWith(path + '/')
-            );
-          } else {
-            isActive = location.pathname === item.path ||
-              location.pathname.startsWith(item.path + '/');
-          }
-
-          // For profile item, show profile image if available
-          const isProfileItem = item.id === 'profile';
-          const showProfileImage = isProfileItem && hasProfileImage;
-
-          return (
-            <motion.button
-              key={item.id}
-              onClick={item.onClick}
-              whileTap={{ scale: 0.9 }}
-              className={`relative flex flex-col items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-colors duration-200
-                ${isActive ? 'text-[#9f3562]' : 'text-gray-400 hover:text-gray-600'}
-              `}
-            >
-              {/* Active Indicator Dot */}
-              {isActive && (
-                <motion.span
-                  layoutId="bottomBarIndicator"
-                  className="absolute -top-2 w-6 sm:w-8 h-1 bg-[#9f3562] rounded-b-full"
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
-
-              {/* Profile Image or Icon */}
-              {showProfileImage ? (
-                <img
-                  src={profileImageUrl}
-                  alt={loggedInAccount?.name || 'Profile'}
-                  className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 transition-all ${isActive ? 'ring-[#9f3562]' : 'ring-gray-200'
-                    }`}
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <div className="relative">
-                  <Icon
-                    className="w-5.5 h-5.5 sm:w-6 sm:h-6"
-                    strokeWidth={isActive ? 3 : 2}
-                  />
-                  {/* Unread message notification badge for Chats */}
-                  {item.id === 'chat' && unreadMessagesCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
-                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-                    </span>
-                  )}
-                  {/* Unread space message notification badge */}
-                  {item.id === 'spaces' && unreadSpaceMessagesCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
-                      {unreadSpaceMessagesCount > 99 ? '99+' : unreadSpaceMessagesCount}
-                    </span>
-                  )}
-                </div>
-              )}
-              {isProfileItem && loggedInAccount && !loggedInAccount.username && (
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-              )}
-            </motion.button>
+        // Determine if active
+        let isActive;
+        if (item.matchPaths) {
+          isActive = item.matchPaths.some(path =>
+            location.pathname === path || location.pathname.startsWith(path + '/')
           );
-        })}
-      </div>
-    </>
+        } else {
+          isActive = location.pathname === item.path ||
+            location.pathname.startsWith(item.path + '/');
+        }
+
+        // For profile item, show profile image if available
+        const isProfileItem = item.id === 'profile';
+        const showProfileImage = isProfileItem && hasProfileImage;
+
+        return (
+          <motion.button
+            key={item.id}
+            onClick={item.onClick}
+            whileTap={{ scale: 0.9 }}
+            className={`relative flex flex-col items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-colors duration-200
+              ${isActive ? 'text-[#9f3562]' : 'text-gray-400 hover:text-gray-600'}
+            `}
+          >
+            {/* Active Indicator Dot */}
+            {isActive && (
+              <motion.span
+                layoutId="bottomBarIndicator"
+                className="absolute -top-2 w-6 sm:w-8 h-1 bg-[#9f3562] rounded-b-full"
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            )}
+
+            {/* Profile Image or Icon */}
+            {showProfileImage ? (
+              <img
+                src={profileImageUrl}
+                alt={loggedInAccount?.name || 'Profile'}
+                className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 transition-all ${isActive ? 'ring-[#9f3562]' : 'ring-gray-200'
+                  }`}
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="relative">
+                <Icon
+                  className="w-5.5 h-5.5 sm:w-6 sm:h-6"
+                  strokeWidth={isActive ? 3 : 2}
+                />
+                {/* Unread message notification badge for Chats */}
+                {item.id === 'chat' && unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
+                    {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                  </span>
+                )}
+                {/* Unread space message notification badge */}
+                {item.id === 'spaces' && unreadSpaceMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
+                    {unreadSpaceMessagesCount > 99 ? '99+' : unreadSpaceMessagesCount}
+                  </span>
+                )}
+              </div>
+            )}
+            {isProfileItem && loggedInAccount && !loggedInAccount.username && (
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
   );
 };
 

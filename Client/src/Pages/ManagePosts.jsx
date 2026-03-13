@@ -4,6 +4,7 @@ import { FaArrowLeft, FaSearch, FaTrash, FaUser } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { processMentions } from "../utils/processMentions";
+import { getAdminAuthHeaders } from "../utils/adminAuth";
 
 const ManagePosts = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const ManagePosts = () => {
     try {
       const res = await fetch("/api/admin/verify", {
         credentials: "include",
+        headers: getAdminAuthHeaders()
       });
       if (!res.ok) {
         throw new Error("Not authenticated");
@@ -39,6 +41,7 @@ const ManagePosts = () => {
       setIsLoading(true);
       const res = await fetch("/api/posts/admin", {
         credentials: "include",
+        headers: getAdminAuthHeaders()
       });
       if (!res.ok) throw new Error("Failed to fetch posts");
       const data = await res.json();
@@ -62,6 +65,7 @@ const ManagePosts = () => {
       const res = await fetch(`/api/posts/admin/${postId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: getAdminAuthHeaders()
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

@@ -1,7 +1,7 @@
 import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { useNavigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, Route, Routes, useLocation, useParams, Link } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';
@@ -12,6 +12,7 @@ import EditProfile from './Pages/EditProfile';
 import EditMentorProfile from './Pages/EditMentorProfile';
 import MentorProfile from './Pages/MentorProfile';
 import LoginModal from './components/LoginModal';
+import LoginEncouragementModal from './components/LoginEncouragementModal';
 import Contact from './Pages/Contact'
 import About from './Pages/About'
 import Mentors from './Pages/Mentors'
@@ -143,7 +144,7 @@ function App() {
     const loggedInAccount = user || mentor;
     const role = mentor ? 'mentor' : 'user';
 
-    if (loggedInAccount && Notification.permission !== 'granted') {
+    if (loggedInAccount && typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission !== 'granted') {
       // Small delay to not interfere with initial page load
       const timer = setTimeout(() => {
         enableNotifications(loggedInAccount._id, role);
@@ -265,6 +266,7 @@ function App() {
 
 
       {!isAuthPage && <OnboardingReminderBanner />}
+      {!isAuthPage && <LoginEncouragementModal />}
 
       <ToastContainer
         position="top-right"

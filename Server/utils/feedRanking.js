@@ -150,7 +150,7 @@ async function calculateKeywordAffinityScore(post, userId) {
 
     // Sum up weights (higher weight = stronger affinity)
     const totalWeight = affinities.reduce((sum, aff) => sum + (aff.weight || 1), 0);
-    
+
     // Normalize to 0-50 range (assuming max weight per keyword is around 10)
     return Math.min(totalWeight * 5, 50);
   } catch (error) {
@@ -179,7 +179,7 @@ function calculateAcademicContextScore(post, user) {
       user.class.toLowerCase(),
       user.class.replace(/\D/g, '') + 'th'
     ];
-    
+
     classKeywords.forEach(classKw => {
       if (postContent.includes(classKw) || postKeywords.some(k => k.includes(classKw))) {
         score += 10;
@@ -278,7 +278,7 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
 
     if (user) {
       const postViews = await PostView.find({ userId: user._id }).lean();
-      
+
       postViews.forEach(view => {
         const postIdStr = view.postId.toString();
         if (view.state === 'UNSEEN') {
@@ -296,7 +296,7 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
     const targetCount = limit * 3; // Fetch more to rank, then take top N
 
     // Collect all post IDs that user has interacted with (for exclusion)
-    const allViewedPostIds = user 
+    const allViewedPostIds = user
       ? [...unseenPostIds, ...seenPostIds, ...engagedPostIds]
       : [];
 
@@ -347,10 +347,10 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
 
     // For non-authenticated users or if still need more posts, fetch recent posts
     if (posts.length < targetCount) {
-      const query = user && allViewedPostIds.length > 0 
+      const query = user && allViewedPostIds.length > 0
         ? { _id: { $nin: allViewedPostIds } }
         : {};
-      
+
       const morePosts = await Post.find(query)
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .sort({ createdAt: -1 })
@@ -359,9 +359,18 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
       posts.push(...morePosts);
     }
 
+    // Deduplicate posts based on _id before scoring
+    const uniquePostsMap = new Map();
+    posts.forEach(post => {
+      if (post && post._id) {
+        uniquePostsMap.set(post._id.toString(), post);
+      }
+    });
+    const uniquePosts = Array.from(uniquePostsMap.values());
+
     // Step 3: Calculate relevance scores for all posts
     const postsWithScores = await Promise.all(
-      posts.map(async (post) => {
+      uniquePosts.map(async (post) => {
         const mentor = post.mentorId || null;
         const score = await calculatePostRelevanceScore(post, user, mentor);
         return { post, score };

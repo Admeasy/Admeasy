@@ -64,25 +64,27 @@ const LogInComp = ({ setAuthMode, onNotVerified }) => {
         setEmail('');
         setPassword('');
         setMentor(null);
-        const loggedInUser = await fetchUser();
+
+        // Pass the switchToken from backend to fetchUser so it saves the account
+        const loggedInUser = await fetchUser(data.switchToken);
+
         if (loggedInUser) {
           enableNotifications(loggedInUser._id, "user", true);
         }
 
-        // Check if onboarding is required
-        const requiresOnboarding = data.requiresOnboarding || 
-                                  !data.hasCompletedOnboarding ||
-                                  (data.onboardingStatus && !data.onboardingStatus.isComplete);
+        const requiresOnboarding = data.requiresOnboarding ||
+          !data.hasCompletedOnboarding ||
+          (data.onboardingStatus && !data.onboardingStatus.isComplete);
 
         if (requiresOnboarding && loggedInUser) {
-          const userId = loggedInUser._id || loggedInUser.id;
           toast.info("Please complete your profile to continue");
-          navigate(`/onboarding/${userId}`, { replace: true });
+          navigate(`/onboarding/${loggedInUser._id}`, { replace: true });
         } else {
           toast.success("You're all set!");
           navigate('/');
         }
-      } else {
+      }
+      else {
 
         if (data.isNotVerified) {
           onNotVerified(email);
@@ -111,7 +113,15 @@ const LogInComp = ({ setAuthMode, onNotVerified }) => {
         Log In to your Account
       </h1>
 
-      <form className="flex flex-col w-full mx-auto" onSubmit={handleSubmit}>
+      <div
+        className="flex flex-col w-full mx-auto"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSubmit(e);
+          }
+        }}
+      >
         {error && (
           <div className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-center text-sm font-semibold mb-4">
             {error}
@@ -172,14 +182,15 @@ const LogInComp = ({ setAuthMode, onNotVerified }) => {
         {/* Submit Button */}
         {isSubmitting ? <LoadingButton text={"Logging In..."} variant={'blue'} />
           : <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
             disabled={isSubmitting}
           >
             Log In
           </button>
         }
-      </form>
+      </div>
 
       {/* Divider */}
       <div className="mt-6 flex items-center justify-center">

@@ -1,236 +1,269 @@
-require('dotenv').config();
-const axios = require('axios');
-const fs = require('fs');
-const qs = require('querystring');
-const crypto = require('crypto');
-const B2 = require('backblaze-b2');
-const path = require('path');
-
+require("dotenv").config();
+const axios = require("axios");
+const fs = require("fs");
+const qs = require("querystring");
+const crypto = require("crypto");
+const B2 = require("backblaze-b2");
+const path = require("path");
 
 class BackblazeB2Client {
-    constructor() {
-        const requiredEnvVars = ['B2_KEY_ID', 'B2_APP_KEY', 'B2_BUCKET_ID', 'B2_BUCKET_NAME', 'B2_BUCKET_URL'];
-        const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+  constructor() {
+    const requiredEnvVars = [
+      "B2_KEY_ID",
+      "B2_APP_KEY",
+      "B2_BUCKET_ID",
+      "B2_BUCKET_NAME",
+      "B2_BUCKET_URL",
+    ];
+    const missingVars = requiredEnvVars.filter(
+      (varName) => !process.env[varName],
+    );
 
-        if (missingVars.length > 0) {
-            throw new Error(`Missing required B2 environment variables: ${missingVars.join(', ')}`);
-        }
-
-        try {
-            const url = new URL(process.env.B2_BUCKET_URL.replace('@', ''));
-            if (!url.protocol.startsWith('http')) {
-                throw new Error('Invalid URL protocol');
-            }
-        } catch (e) {
-            throw new Error(`Invalid B2_BUCKET_URL format: ${e.message}`);
-        }
-
-        this.b2 = new B2({
-            applicationKeyId: process.env.B2_KEY_ID,
-            applicationKey: process.env.B2_APP_KEY
-        });
-        this.bucketId = process.env.B2_BUCKET_ID;
-        this.bucketName = process.env.B2_BUCKET_NAME;
-        this.authorized = false;
+    /**
+     * changes don from line 18 to line 27 for starting the server without B2 credentials in development, but enforcing them in production.
+     */
+    // ✅ Only enforce in production
+    if (process.env.NODE_ENV === "production" && missingVars.length > 0) {
+      throw new Error(
+        `Missing required B2 environment variables: ${missingVars.join(", ")}`,
+      );
     }
 
-    async ensureAuthorized() {
-        if (!this.authorized) {
-            try {
-                const authResponse = await this.b2.authorize();
-                this.authorized = true;
-                this.downloadUrl = authResponse.data.downloadUrl;
-                this.authToken = authResponse.data.authorizationToken;
-            } catch (error) {
-                throw new Error(`B2 authorization failed: ${error.message}`);
-            }
-        }
-        return {
-            downloadUrl: this.downloadUrl,
-            authToken: this.authToken
-        };
+    // ✅ If in development and missing, skip full setup
+    if (missingVars.length > 0) {
+      console.warn(
+        "B2 env vars missing. Skipping B2 initialization in development mode.",
+      );
+      return;
+    }
+    // orignal code:
+    // if (missingVars.length > 0) {
+    //     throw new Error(`Missing required B2 environment variables: ${missingVars.join(', ')}`);
+    // }
+
+    try {
+      const url = new URL(process.env.B2_BUCKET_URL.replace("@", ""));
+      if (!url.protocol.startsWith("http")) {
+        throw new Error("Invalid URL protocol");
+      }
+    } catch (e) {
+      throw new Error(`Invalid B2_BUCKET_URL format: ${e.message}`);
     }
 
-    async getUploadUrl() {
-        await this.ensureAuthorized();
-        try {
-            const response = await this.b2.getUploadUrl({ bucketId: this.bucketId });
-            return response.data;
-        } catch (error) {
-            throw new Error(`Error getting upload URL: ${error.message}`);
-        }
+    this.b2 = new B2({
+      applicationKeyId: process.env.B2_KEY_ID,
+      applicationKey: process.env.B2_APP_KEY,
+    });
+    this.bucketId = process.env.B2_BUCKET_ID;
+    this.bucketName = process.env.B2_BUCKET_NAME;
+    this.authorized = false;
+  }
+
+  async ensureAuthorized() {
+    if (!this.authorized) {
+      try {
+        const authResponse = await this.b2.authorize();
+        this.authorized = true;
+        this.downloadUrl = authResponse.data.downloadUrl;
+        this.authToken = authResponse.data.authorizationToken;
+      } catch (error) {
+        throw new Error(`B2 authorization failed: ${error.message}`);
+      }
+    }
+    return {
+      downloadUrl: this.downloadUrl,
+      authToken: this.authToken,
+    };
+  }
+
+  async getUploadUrl() {
+    await this.ensureAuthorized();
+    try {
+      const response = await this.b2.getUploadUrl({ bucketId: this.bucketId });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Error getting upload URL: ${error.message}`);
+    }
+  }
+
+  calculateSHA1(filePath) {
+    const fileBuffer = fs.readFileSync(filePath);
+    const hash = crypto.createHash("sha1");
+    hash.update(fileBuffer);
+    return hash.digest("hex");
+  }
+
+  async uploadFile(filePath, fileName) {
+    const uploadUrlResponse = await this.getUploadUrl();
+    const fileData = fs.readFileSync(filePath);
+
+    try {
+      await this.b2.uploadFile({
+        uploadUrl: uploadUrlResponse.uploadUrl,
+        uploadAuthToken: uploadUrlResponse.authorizationToken,
+        fileName: fileName,
+        data: fileData,
+      });
+    } catch (error) {
+      throw new Error(`Error uploading file '${fileName}': ${error.message}`);
+    }
+  }
+
+  async uploadBuffer(buffer, fileName) {
+    console.log(`Starting upload for file: ${fileName}`);
+    console.log(`Buffer size: ${buffer.length} bytes`);
+
+    const uploadUrlResponse = await this.getUploadUrl();
+    console.log(`Got upload URL: ${uploadUrlResponse.uploadUrl}`);
+
+    // Detect MIME type based on file extension
+    const ext = path.extname(fileName).toLowerCase();
+    let mimeType = "application/octet-stream";
+
+    if (ext === ".jpg" || ext === ".jpeg") {
+      mimeType = "image/jpeg";
+    } else if (ext === ".png") {
+      mimeType = "image/png";
+    } else if (ext === ".gif") {
+      mimeType = "image/gif";
+    } else if (ext === ".webp") {
+      mimeType = "image/webp";
+    } else if (ext === ".svg") {
+      mimeType = "image/svg+xml";
     }
 
-    calculateSHA1(filePath) {
-        const fileBuffer = fs.readFileSync(filePath);
-        const hash = crypto.createHash('sha1');
-        hash.update(fileBuffer);
-        return hash.digest('hex');
+    console.log(`Detected MIME type: ${mimeType}`);
+
+    try {
+      const result = await this.b2.uploadFile({
+        uploadUrl: uploadUrlResponse.uploadUrl,
+        uploadAuthToken: uploadUrlResponse.authorizationToken,
+        fileName: fileName,
+        data: buffer,
+        contentLength: buffer.length,
+        mime: mimeType,
+      });
+      console.log(`Upload successful for ${fileName}:`, result.data);
+      return result;
+    } catch (error) {
+      console.error(`Upload failed for ${fileName}:`, error);
+      console.error(`Error details:`, error.response?.data || error.message);
+      throw new Error(
+        `Error uploading buffer as file '${fileName}': ${error.message}`,
+      );
     }
+  }
 
-    async uploadFile(filePath, fileName) {
-        const uploadUrlResponse = await this.getUploadUrl();
-        const fileData = fs.readFileSync(filePath);
+  async downloadFile(fileName, destinationPath) {
+    await this.ensureAuthorized();
+    const downloadUrl = `${this.downloadUrl}/file/${this.bucketName}/${fileName}`;
 
-        try {
-            await this.b2.uploadFile({
-                uploadUrl: uploadUrlResponse.uploadUrl,
-                uploadAuthToken: uploadUrlResponse.authorizationToken,
-                fileName: fileName,
-                data: fileData
-            });
-        } catch (error) {
-            throw new Error(`Error uploading file '${fileName}': ${error.message}`);
-        }
+    try {
+      const response = await axios({
+        method: "get",
+        url: downloadUrl,
+        headers: { Authorization: this.authToken },
+        responseType: "stream",
+      });
+
+      const writer = fs.createWriteStream(destinationPath);
+      response.data.pipe(writer);
+
+      return new Promise((resolve, reject) => {
+        writer.on("finish", resolve);
+        writer.on("error", reject);
+      });
+    } catch (error) {
+      throw new Error(
+        `Download failed for file '${fileName}': ${error.message}`,
+      );
     }
+  }
 
-    async uploadBuffer(buffer, fileName) {
-        console.log(`Starting upload for file: ${fileName}`);
-        console.log(`Buffer size: ${buffer.length} bytes`);
-        
-        const uploadUrlResponse = await this.getUploadUrl();
-        console.log(`Got upload URL: ${uploadUrlResponse.uploadUrl}`);
-
-        // Detect MIME type based on file extension
-        const ext = path.extname(fileName).toLowerCase();
-        let mimeType = 'application/octet-stream';
-        
-        if (ext === '.jpg' || ext === '.jpeg') {
-            mimeType = 'image/jpeg';
-        } else if (ext === '.png') {
-            mimeType = 'image/png';
-        } else if (ext === '.gif') {
-            mimeType = 'image/gif';
-        } else if (ext === '.webp') {
-            mimeType = 'image/webp';
-        } else if (ext === '.svg') {
-            mimeType = 'image/svg+xml';
-        }
-        
-        console.log(`Detected MIME type: ${mimeType}`);
-
-        try {
-            const result = await this.b2.uploadFile({
-                uploadUrl: uploadUrlResponse.uploadUrl,
-                uploadAuthToken: uploadUrlResponse.authorizationToken,
-                fileName: fileName,
-                data: buffer,
-                contentLength: buffer.length,
-                mime: mimeType
-            });
-            console.log(`Upload successful for ${fileName}:`, result.data);
-            return result;
-        } catch (error) {
-            console.error(`Upload failed for ${fileName}:`, error);
-            console.error(`Error details:`, error.response?.data || error.message);
-            throw new Error(`Error uploading buffer as file '${fileName}': ${error.message}`);
-        }
+  async listFiles(prefix) {
+    await this.ensureAuthorized();
+    try {
+      const response = await this.b2.listFileNames({
+        bucketId: this.bucketId,
+        prefix: prefix,
+        maxFileCount: 1000,
+      });
+      return response.data.files;
+    } catch (error) {
+      throw new Error(
+        `Error listing files with prefix '${prefix}': ${error.message}`,
+      );
     }
+  }
 
-    async downloadFile(fileName, destinationPath) {
-        await this.ensureAuthorized();
-        const downloadUrl = `${this.downloadUrl}/file/${this.bucketName}/${fileName}`;
+  async deleteFile(fileName) {
+    await this.ensureAuthorized();
+    try {
+      // List files with the exact fileName as prefix
+      const files = await this.listFiles(fileName);
 
-        try {
-            const response = await axios({
-                method: 'get',
-                url: downloadUrl,
-                headers: { Authorization: this.authToken },
-                responseType: 'stream'
-            });
+      // Find the exact match (in case there are multiple versions)
+      const exactMatch = files.find((file) => file.fileName === fileName);
 
-            const writer = fs.createWriteStream(destinationPath);
-            response.data.pipe(writer);
+      if (!exactMatch) {
+        console.log(`File '${fileName}' not found in B2`);
+        return false;
+      }
 
-            return new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-        } catch (error) {
-            throw new Error(`Download failed for file '${fileName}': ${error.message}`);
-        }
+      // Delete the file
+      await this.b2.deleteFileVersion({
+        fileId: exactMatch.fileId,
+        fileName: exactMatch.fileName,
+      });
+
+      console.log(`Successfully deleted file '${fileName}' from B2`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting file '${fileName}':`, error);
+      throw new Error(`Error deleting file '${fileName}': ${error.message}`);
     }
+  }
 
-    async listFiles(prefix) {
-        await this.ensureAuthorized();
-        try {
-            const response = await this.b2.listFileNames({
-                bucketId: this.bucketId,
-                prefix: prefix,
-                maxFileCount: 1000
-            });
-            return response.data.files;
-        } catch (error) {
-            throw new Error(`Error listing files with prefix '${prefix}': ${error.message}`);
-        }
+  async deleteFiles(prefix) {
+    await this.ensureAuthorized();
+    try {
+      // First, list all files with the given prefix
+      const files = await this.listFiles(prefix);
+
+      // Delete each file
+      const deletePromises = files.map((file) =>
+        this.b2.deleteFileVersion({
+          fileId: file.fileId,
+          fileName: file.fileName,
+        }),
+      );
+
+      await Promise.all(deletePromises);
+      return true;
+    } catch (error) {
+      throw new Error(
+        `Error deleting files with prefix '${prefix}': ${error.message}`,
+      );
     }
+  }
 
-    async deleteFile(fileName) {
-        await this.ensureAuthorized();
-        try {
-            // List files with the exact fileName as prefix
-            const files = await this.listFiles(fileName);
-            
-            // Find the exact match (in case there are multiple versions)
-            const exactMatch = files.find(file => file.fileName === fileName);
-            
-            if (!exactMatch) {
-                console.log(`File '${fileName}' not found in B2`);
-                return false;
-            }
-            
-            // Delete the file
-            await this.b2.deleteFileVersion({
-                fileId: exactMatch.fileId,
-                fileName: exactMatch.fileName
-            });
-            
-            console.log(`Successfully deleted file '${fileName}' from B2`);
-            return true;
-        } catch (error) {
-            console.error(`Error deleting file '${fileName}':`, error);
-            throw new Error(`Error deleting file '${fileName}': ${error.message}`);
-        }
-    }
+  async getDownloadAuthorization(fileName) {
+    await this.ensureAuthorized();
 
-    async deleteFiles(prefix) {
-        await this.ensureAuthorized();
-        try {
-            // First, list all files with the given prefix
-            const files = await this.listFiles(prefix);
-            
-            // Delete each file
-            const deletePromises = files.map(file => 
-                this.b2.deleteFileVersion({
-                    fileId: file.fileId,
-                    fileName: file.fileName
-                })
-            );
+    const resp = await this.b2.getDownloadAuthorization({
+      bucketId: this.bucketId,
+      fileNamePrefix: fileName,
+      validDurationInSeconds: 3 * 60 * 60, // 3 hours
+    });
 
-            await Promise.all(deletePromises);
-            return true;
-        } catch (error) {
-            throw new Error(`Error deleting files with prefix '${prefix}': ${error.message}`);
-        }
-    }
+    const authToken = resp.data.authorizationToken;
+    const downloadUrl = `${this.downloadUrl}/file/${this.bucketName}/${fileName}`;
 
-    async getDownloadAuthorization(fileName) {
-        await this.ensureAuthorized();
-      
-        const resp = await this.b2.getDownloadAuthorization({
-            bucketId: this.bucketId,
-            fileNamePrefix: fileName,
-            validDurationInSeconds: 3 * 60 * 60 // 3 hours
-        });
-      
-        const authToken = resp.data.authorizationToken;
-        const downloadUrl = `${this.downloadUrl}/file/${this.bucketName}/${fileName}`;
-        
-        // Return the complete authorized URL
-        return {
-            url: `${downloadUrl}?Authorization=${encodeURIComponent(authToken)}`
-        };
-    }
+    // Return the complete authorized URL
+    return {
+      url: `${downloadUrl}?Authorization=${encodeURIComponent(authToken)}`,
+    };
+  }
 }
 
 module.exports = BackblazeB2Client;
