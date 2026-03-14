@@ -23,6 +23,14 @@ import 'swiper/css/navigation';
 
 const FEED_STORAGE_KEY = 'admeasy:feed:state';
 
+const LOGGED_OUT_HERO_MESSAGES = [
+  { title: "Bro Found the Notes Before the Exam", subtitle: "Your study-first community feed" },
+  { title: "POV: You Finally Found Good Notes", subtitle: "Your study-first community feed" },
+  { title: "Notes So Good You'll Stop Asking 'Bhai PDF Hai?'", subtitle: "Your study-first community feed" },
+  { title: "Topper Energy Only", subtitle: "Notes, discussions, and student insights." },
+  { title: "Your Daily Dose of Academic Aura", subtitle: "Explore notes, ideas, and student insights." },
+];
+
 const Feed = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
@@ -445,10 +453,8 @@ const Feed = () => {
       const random = mentorHeadings[Math.floor(Math.random() * mentorHeadings.length)];
       setRandomHeading(random);
     } else {
-      setRandomHeading({
-        title: 'Notes So Good You\'ll Stop Asking "Bhai PDF Hai?"',
-        subtitle: "Your study-first community feed"
-      });
+      const random = LOGGED_OUT_HERO_MESSAGES[Math.floor(Math.random() * LOGGED_OUT_HERO_MESSAGES.length)];
+      setRandomHeading(random);
     }
   }, [user, mentor]);
 
@@ -501,15 +507,7 @@ const Feed = () => {
                       )}
                     </>
                   ) : (
-                    <>
-                      Notes So Good
-                      <br />
-                      You&apos;ll Stop Asking
-                      <br />
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] to-[#701a3c]">
-                        &quot;Bhai PDF Hai?&quot;
-                      </span>
-                    </>
+                    randomHeading.title
                   )}
                 </h1>
                 <p className="text-gray-600 mt-2 text-xs sm:text-base md:text-lg">

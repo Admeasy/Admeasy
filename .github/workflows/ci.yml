@@ -32,21 +32,14 @@ jobs:
             Server/package-lock.json
 
       # --- Client ---
-      - name: Cache Client node_modules
-        uses: actions/cache@v4
-        id: client-cache
-        with:
-          path: Client/node_modules
-          key: client-${{ runner.os }}-node-${{ hashFiles('Client/package-lock.json') }}
-          restore-keys: |
-            client-${{ runner.os }}-node-
+      # NOTE: We intentionally do NOT cache Client/node_modules.
+      # Caching node_modules breaks platform-specific optional dependencies
+      # like @rollup/rollup-linux-x64-gnu and @tailwindcss/oxide across runs.
+      # The npm package cache (~/.npm) handled by setup-node is sufficient.
 
       - name: Install Client dependencies
         working-directory: ./Client
         run: npm ci --legacy-peer-deps
-        # Removed: rm -rf node_modules  → was destroying the restored cache
-        # Removed: npm cache clean --force → was causing native binary fetch issues
-        # Removed: --include=optional → npm ci already includes optional deps by default
 
       - name: Build Client
         working-directory: Client
@@ -145,3 +138,4 @@ jobs:
             export NODE_ENV=production
             npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund
             pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME"
+            # 
