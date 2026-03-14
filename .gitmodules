@@ -1,0 +1,3 @@
+[submodule "gsd-template"]
+	path = gsd-template
+	url = https://github.com/toonight/get-shit-done-for-antigravity.git
