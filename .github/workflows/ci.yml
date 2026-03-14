@@ -26,22 +26,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # No npm cache here — the ~/.npm cache can persist broken native
-          # optional binaries (@rollup/rollup-linux-x64-gnu, @tailwindcss/oxide)
-          # across runs due to a known npm bug:
-          # https://github.com/npm/cli/issues/4828
+          # No npm cache — it persists broken native optional binaries across
+          # runs due to a known npm bug: https://github.com/npm/cli/issues/4828
 
       # --- Client ---
-      # We do NOT cache Client/node_modules for the same reason above.
-      # A full clean install is the only reliable fix for native optional deps.
+      # No node_modules cache either — same reason as above.
+      # Native optional deps (rollup, lightningcss, tailwindcss/oxide) must be
+      # installed fresh every run and then explicitly forced for linux-x64-gnu.
 
       - name: Install Client dependencies
         working-directory: ./Client
         run: |
           npm ci --legacy-peer-deps
-          # Explicitly install the rollup Linux native binary.
-          # npm silently skips optional platform deps when restoring from cache.
-          npm install --no-save @rollup/rollup-linux-x64-gnu --legacy-peer-deps
+          # Force-install all known linux-x64-gnu native binaries.
+          # npm silently skips these when package-lock.json was generated on
+          # a different OS (e.g. Windows/macOS dev machine).
+          npm install --no-save \
+            @rollup/rollup-linux-x64-gnu \
+            lightningcss-linux-x64-gnu \
+            --legacy-peer-deps
 
       - name: Build Client
         working-directory: Client
@@ -141,3 +144,4 @@ jobs:
             npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund
             pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME
           "
+          
