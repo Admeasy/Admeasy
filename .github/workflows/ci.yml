@@ -26,20 +26,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: |
-            Client/package-lock.json
-            Server/package-lock.json
+          # No npm cache here — the ~/.npm cache can persist broken native
+          # optional binaries (@rollup/rollup-linux-x64-gnu, @tailwindcss/oxide)
+          # across runs due to a known npm bug:
+          # https://github.com/npm/cli/issues/4828
 
       # --- Client ---
-      # NOTE: We intentionally do NOT cache Client/node_modules.
-      # Caching node_modules breaks platform-specific optional dependencies
-      # like @rollup/rollup-linux-x64-gnu and @tailwindcss/oxide across runs.
-      # The npm package cache (~/.npm) handled by setup-node is sufficient.
+      # We do NOT cache Client/node_modules for the same reason above.
+      # A full clean install is the only reliable fix for native optional deps.
 
       - name: Install Client dependencies
         working-directory: ./Client
-        run: npm ci --legacy-peer-deps
+        run: |
+          npm ci --legacy-peer-deps
+          # Explicitly install the rollup Linux native binary.
+          # npm silently skips optional platform deps when restoring from cache.
+          npm install --no-save @rollup/rollup-linux-x64-gnu --legacy-peer-deps
 
       - name: Build Client
         working-directory: Client
@@ -53,6 +55,14 @@ jobs:
           name: client-dist
           path: Client/dist
           retention-days: 1
+
+      - name: Validate Client build output
+        run: |
+          if [ ! -d Client/dist ]; then
+            echo "::error::Client/dist not found. React build did not produce output."
+            exit 1
+          fi
+          echo "Client/dist exists ($(find Client/dist -type f | wc -l) files)"
 
       # --- Server ---
       - name: Cache Server node_modules
@@ -73,14 +83,6 @@ jobs:
         run: |
           node -c index.js
           npm ls --omit=dev --no-audit --no-fund
-
-      - name: Validate Client build output
-        run: |
-          if [ ! -d Client/dist ]; then
-            echo "::error::Client/dist not found. React build did not produce output."
-            exit 1
-          fi
-          echo "Client/dist exists ($(find Client/dist -type f | wc -l) files)"
 
   deploy:
     name: Deploy to VPS
@@ -137,5 +139,5 @@ jobs:
             cd ${DEPLOY_PATH}/Server
             export NODE_ENV=production
             npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund
-            pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME"
-            # 
+            pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME
+          "
