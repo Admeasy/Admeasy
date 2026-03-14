@@ -43,12 +43,15 @@ jobs:
 
       - name: Install Client dependencies
         working-directory: ./Client
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
+        # Removed: rm -rf node_modules  → was destroying the restored cache
+        # Removed: npm cache clean --force → was causing native binary fetch issues
+        # Removed: --include=optional → npm ci already includes optional deps by default
 
       - name: Build Client
         working-directory: Client
+        env:
+          NODE_ENV: production
         run: npm run build
 
       - name: Upload Client build
@@ -80,7 +83,10 @@ jobs:
 
       - name: Validate Client build output
         run: |
-          if [ ! -d Client/dist ]; then echo "::error::Client/dist not found. React build did not produce output."; exit 1; fi
+          if [ ! -d Client/dist ]; then
+            echo "::error::Client/dist not found. React build did not produce output."
+            exit 1
+          fi
           echo "Client/dist exists ($(find Client/dist -type f | wc -l) files)"
 
   deploy:
@@ -101,6 +107,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: client-dist
+          path: client-dist
 
       - name: Setup SSH key
         run: |
@@ -115,6 +122,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+
           # Sync server source (exclude node_modules and dist; we upload dist separately)
           rsync -avz --delete \
             --exclude 'node_modules' \
@@ -131,4 +139,9 @@ jobs:
             client-dist/ "$VPS_USER@$VPS_HOST:${DEPLOY_PATH}/Server/dist/"
 
           # On VPS: install production deps and restart PM2
-          ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "set -e; cd ${DEPLOY_PATH}/Server && export NODE_ENV=production && (npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund) && (pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME)"
+          ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "
+            set -e
+            cd ${DEPLOY_PATH}/Server
+            export NODE_ENV=production
+            npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund
+            pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME"
