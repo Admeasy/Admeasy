@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import Logo from "../assets/Admeasy/LOGO.webp";
+const Logo = '/LOGO.webp';
 import { MdAlternateEmail } from "react-icons/md";
 import { toast } from "react-toastify";
 

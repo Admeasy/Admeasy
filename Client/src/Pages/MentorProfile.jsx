@@ -304,7 +304,7 @@ export default function MentorProfile() {
     ...(examList.map(exam => exam.name))
   ].filter(Boolean).join(', ');
 
-  const mentorImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';
+  const mentorImage = profileImageUrl || 'https://admeasy.in/LOGO.webp';
   const mentorUrl = `https://admeasy.in/mentors/${mentor.username || mentor._id}`;
 
   const isOwnProfile = currentMentor && (currentMentor._id === mentor._id || currentMentor.username === mentor.username);

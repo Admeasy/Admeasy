@@ -17,7 +17,7 @@ import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import { useUnreadMessages } from "../hooks/useUnreadMessages";
 import { useUnreadSpaceMessages } from "../hooks/useUnreadSpaceMessages";
-import logo from "../assets/Admeasy/favicon.ico";
+const logo = '/favicon.ico';
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 

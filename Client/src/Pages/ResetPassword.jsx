@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import Logo from "../assets/Admeasy/LOGO.webp";
+const Logo = '/LOGO.webp';
 import { MdLockOutline } from "react-icons/md";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "react-toastify";

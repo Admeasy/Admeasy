@@ -646,7 +646,7 @@ export default function Profile() {
     );
   }
 
-  const profileImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';
+  const profileImage = profileImageUrl || 'https://admeasy.in/LOGO.webp';
   const profileUrl = `https://admeasy.in/profile/${profile.username || profile._id}`;
 
   return (

@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Plus, FileText, User, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
-import logo from '../assets/Admeasy/favicon.ico';
+const logo = '/favicon.ico';
 
 const AdvertiserSidebar = ({ isCollapsed, setIsCollapsed, showMobileMenu, setShowMobileMenu }) => {
   const navigate = useNavigate();

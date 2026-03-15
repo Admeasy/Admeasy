@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell } from "lucide-react";
 import AnimatedSearchPlaceholder from "./AnimatedSearchPlaceholder";
-import logo from "../assets/Admeasy/favicon.ico";
+const logo = '/favicon.ico';
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import LoginButton from "./LoginButton";
