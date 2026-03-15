@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import AddCollegeForm from '../components/AddCollegeForm'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { getAdminAuthHeaders } from '../utils/adminAuth'
 
 const Colleges = () => {
     const navigate = useNavigate()
@@ -25,7 +26,8 @@ const Colleges = () => {
     const verifyAuth = async () => {
         try {
             const response = await fetch('/api/admin/verify', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             });
 
             if (!response.ok) {
@@ -43,7 +45,7 @@ const Colleges = () => {
 
     const fetchColleges = async () => {
         try {
-            const response = await fetch('/api/colleges?page=1&limit=9999')
+            const response = await fetch('/api/colleges?page=1&limit=9999', { credentials: 'include', headers: getAdminAuthHeaders() })
             if (!response.ok) {
                 throw new Error('Failed to fetch colleges')
             }
@@ -60,7 +62,8 @@ const Colleges = () => {
     const handleEdit = async (collegeId) => {
         try {
             const response = await fetch(`/api/colleges/${collegeId}`, {
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch college details');
@@ -79,7 +82,8 @@ const Colleges = () => {
             try {
                 const response = await fetch(`/api/colleges/${collegeId}`, {
                     method: 'DELETE',
-                    credentials: 'include'
+                    credentials: 'include',
+                    headers: getAdminAuthHeaders()
                 });
 
                 if (!response.ok) {
@@ -111,7 +115,8 @@ const Colleges = () => {
             const response = await fetch(url, {
                 method: method,
                 credentials: 'include',
-                body: formData // FormData object will set the correct Content-Type
+                headers: getAdminAuthHeaders(),
+                body: formData
             });
 
             if (!response.ok) {

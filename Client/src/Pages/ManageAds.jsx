@@ -6,6 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { processMentions } from '../utils/processMentions';
 import SEO from '../components/SEO';
+import { getAdminAuthHeaders } from '../utils/adminAuth';
 
 const ManageAds = () => {
   const navigate = useNavigate();
@@ -33,7 +34,8 @@ const ManageAds = () => {
   const verifyAuth = async () => {
     try {
       const res = await fetch('/api/admin/verify', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
       if (!res.ok) {
         throw new Error('Not authenticated');
@@ -48,7 +50,8 @@ const ManageAds = () => {
     try {
       setLoading(true);
       const res = await fetch('/api/ads/admin/live', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       const data = await res.json();
@@ -69,7 +72,8 @@ const ManageAds = () => {
     try {
       setLoading(true);
       const res = await fetch('/api/ads/admin/requests', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       const data = await res.json();
@@ -95,7 +99,8 @@ const ManageAds = () => {
     try {
       const res = await fetch(`/api/ads/admin/${adId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       const data = await res.json();
@@ -117,7 +122,8 @@ const ManageAds = () => {
     try {
       const res = await fetch(`/api/ads/admin/requests/${requestId}/approve`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       const data = await res.json();
@@ -138,7 +144,7 @@ const ManageAds = () => {
     try {
       const res = await fetch(`/api/ads/admin/requests/${requestId}/reject`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ reason }),
         credentials: 'include'
       });

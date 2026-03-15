@@ -1,7 +1,7 @@
 import './App.css'
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { useNavigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, Route, Routes, useLocation, useParams, Link } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './Pages/Home'
 import ScrollUpButton from './components/ScrollUpButton';

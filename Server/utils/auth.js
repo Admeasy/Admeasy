@@ -83,5 +83,6 @@ module.exports = {
     generateAccessToken,
     generateRefreshToken,
     generateSwitchToken,
-    setTokenCookies
+    setTokenCookies,
+    clearTokenCookies
 };

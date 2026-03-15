@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaEye, FaCheck, FaTimes, FaDownload, FaStar, FaTrash, FaArrowLeft } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { getAdminAuthHeaders } from '../utils/adminAuth';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -31,7 +32,8 @@ const ManageNotes = () => {
       if (statusFilter !== 'all') params.append('status', statusFilter);
 
       const response = await fetch(`/api/notes/admin/all?${params}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       if (response.ok) {
@@ -53,9 +55,7 @@ const ManageNotes = () => {
     try {
       const response = await fetch(`/api/notes/admin/${noteId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
         credentials: 'include',
         body: JSON.stringify({ status, rejectionReason })
       });
@@ -85,7 +85,8 @@ const ManageNotes = () => {
     try {
       const response = await fetch(`/api/notes/admin/${noteId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       if (response.ok) {
@@ -106,9 +107,7 @@ const ManageNotes = () => {
     try {
       const response = await fetch(`/api/notes/admin/${noteId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAdminAuthHeaders({ 'Content-Type': 'application/json' }),
         credentials: 'include',
         body: JSON.stringify({ isFeatured: !isFeatured })
       });

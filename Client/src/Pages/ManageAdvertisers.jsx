@@ -4,6 +4,7 @@ import { FaArrowLeft, FaSearch, FaTrash, FaUser, FaEnvelope, FaGlobe, FaLock } f
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from 'framer-motion';
+import { getAdminAuthHeaders } from '../utils/adminAuth';
 
 const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -31,7 +32,8 @@ const ManageAdvertisers = () => {
     try {
       setIsLoading(true);
       const res = await fetch('/api/advertisers/admin/all', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       const data = await res.json();
@@ -55,7 +57,8 @@ const ManageAdvertisers = () => {
     for (const advertiser of advertisersList) {
       try {
         const res = await fetch(`/api/advertisers/${advertiser.username || advertiser._id}/ads`, {
-          credentials: 'include'
+          credentials: 'include',
+          headers: getAdminAuthHeaders()
         });
         const data = await res.json();
         if (data.success) {
@@ -104,7 +107,8 @@ const ManageAdvertisers = () => {
     try {
       const res = await fetch(`/api/advertisers/admin/${advertiserId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: getAdminAuthHeaders()
       });
 
       const data = await res.json();

@@ -57,15 +57,30 @@ const step2Schema = (requirePassword = false, requireUsername = false) =>
   });
 
 // Step 3: Education Type & Institute Selection
+// universityName required only for college; school can have null
 const step3Schema = z
   .object({
     educationType: z.enum(["school", "college"], {
       errorMap: () => ({ message: "Please select school or college" }),
     }),
     board: z.string().optional(),
-    universityName: z.string().optional(),
+    universityName: z.string().optional().nullable(),
     isNotAffiliated: z.boolean().optional(),
     manualInstituteName: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.educationType === "college") {
+      const hasUniversity = data.isNotAffiliated
+        ? data.manualInstituteName && data.manualInstituteName.trim().length > 0
+        : data.universityName && data.universityName.trim().length > 0;
+      if (!hasUniversity) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "University or institute name is required for college",
+          path: ["universityName"],
+        });
+      }
+    }
   });
 
 // Step 4: Academic Details (School)
@@ -204,38 +219,51 @@ export default function Onboarding() {
       setEducationType(data.educationType);
       setStep(4);
     } else if (step === 4) {
+      const educationType = updatedData.educationType;
+
+      // --- Conditional validation before API call ---
+      if (educationType === "college") {
+        const universityValue = updatedData.isNotAffiliated
+          ? (updatedData.manualInstituteName || "").trim()
+          : (updatedData.universityName || "").trim();
+        if (!universityValue) {
+          toast.error("University or institute name is required for college students.");
+          return;
+        }
+      }
+
+      // Build payload: no undefined fields; Google users never send password
+      const isGoogleUser = !!user;
+      const universityName =
+        educationType === "school"
+          ? null
+          : updatedData.isNotAffiliated
+            ? (updatedData.manualInstituteName || "").trim() || null
+            : (updatedData.universityName || "").trim() || null;
+
+      const onboardingData = {
+        name: updatedData.name || "",
+        email: user?.email || updatedData.email || "",
+        phone: String(updatedData.phone ?? ""),
+        city: updatedData.city || "",
+        username: updatedData.username || "",
+        educationType: educationType || "",
+        board: updatedData.board || null,
+        universityName,
+        class: updatedData.class || null,
+        stream: updatedData.stream || null,
+        courseLevel: updatedData.courseLevel || null,
+        courseDetails: updatedData.courseDetails || null,
+        isNotAffiliated: updatedData.isNotAffiliated || false,
+        manualInstituteName: updatedData.manualInstituteName || null,
+      };
+
+      if (!isGoogleUser && updatedData.password) {
+        onboardingData.password = updatedData.password;
+      }
+
       setIsSubmitting(true);
       try {
-        const onboardingData = {
-          ...updatedData,
-          phone: String(updatedData.phone || ""),
-          email: user?.email || updatedData.email,
-          password: user ? undefined : updatedData.password,
-          universityName: updatedData.isNotAffiliated
-            ? updatedData.manualInstituteName || null
-            : updatedData.universityName || null,
-          board: updatedData.board || null,
-          class: updatedData.class || null,
-          stream: updatedData.stream || null,
-        };
-
-        console.log("Onboarding Payload:", onboardingData);
-
-        // Debug logging for missing required fields based on educationType
-        const requiredCore = ["name", "email", "city", "phone", "username", "educationType"];
-        requiredCore.forEach(field => {
-          if (!onboardingData[field]) console.warn("Missing core field:", field);
-        });
-
-        if (onboardingData.educationType === "college") {
-          const requiredCollege = ["courseLevel", "courseDetails"];
-          requiredCollege.forEach(field => {
-            if (!onboardingData[field]) console.warn("Missing college field:", field);
-          });
-        } else if (onboardingData.educationType === "school") {
-          if (!onboardingData.class) console.warn("Missing school field: class");
-        }
-
         const res = await fetch("/api/users/onboarding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -249,7 +277,10 @@ export default function Onboarding() {
           await fetchUser();
           navigate("/");
         } else {
-          toast.error(result.message || "Failed to complete onboarding");
+          const message = result.errors?.length
+            ? result.errors.join(". ")
+            : result.message || "Failed to complete onboarding";
+          toast.error(message);
         }
       } catch (err) {
         console.error("Onboarding error:", err);
@@ -314,7 +345,7 @@ export default function Onboarding() {
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
           >
-            <form>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
               <div className="space-y-6">
                 {step === 1 && <Step1 form={form} />}
                 {step === 2 && (
@@ -346,8 +377,7 @@ export default function Onboarding() {
                   )}
 
                   <button
-                    type="button"
-                    onClick={form.handleSubmit(onSubmit)}
+                    type="submit"
                     disabled={isSubmitting}
                     className="ml-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -660,12 +690,14 @@ function LocationDeniedModal({ isOpen, onClose, onAllow }) {
 
           <div className="grid grid-cols-1 gap-3 pt-2">
             <button
+              type="button"
               onClick={onAllow}
               className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               Allow Location Access
             </button>
             <button
+              type="button"
               onClick={onClose}
               className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded-lg transition-colors"
             >

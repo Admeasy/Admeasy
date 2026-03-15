@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import GoogleIcon from '../assets/Icons/google.svg'
 import { useUser } from '../context/UserContext'
+import { getAdminAuthHeaders } from '../utils/adminAuth'
 
 const ManageUsers = () => {
     const navigate = useNavigate()
@@ -32,7 +33,7 @@ const ManageUsers = () => {
     const fetchAllSubscriptions = async () => {
         setLoadingSubscriptions(true)
         try {
-            const response = await fetch('/api/subscriptions/all', { credentials: 'include' })
+            const response = await fetch('/api/subscriptions/all', { credentials: 'include', headers: getAdminAuthHeaders() })
             if (!response.ok) {
                 throw new Error('Failed to fetch subscriptions')
             }
@@ -58,7 +59,7 @@ const ManageUsers = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch('/api/users', { credentials: 'include' })
+            const response = await fetch('/api/users', { credentials: 'include', headers: getAdminAuthHeaders() })
             if (!response.ok) {
                 throw new Error('Failed to fetch users')
             }
@@ -87,7 +88,8 @@ const ManageUsers = () => {
         setUnlockingImage(userId);
         try {
             const response = await fetch(`/api/users/${userId}/image`, { 
-                credentials: 'include' 
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             });
             if (!response.ok) {
                 throw new Error('Failed to unlock image');
@@ -112,7 +114,8 @@ const ManageUsers = () => {
         try {
             const response = await fetch(`/api/users/${userId}`, {
                 method: 'DELETE',
-                credentials: 'include'
+                credentials: 'include',
+                headers: getAdminAuthHeaders()
             })
             if (!response.ok) {
                 const errorData = await response.json();

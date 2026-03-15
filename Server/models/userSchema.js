@@ -68,7 +68,10 @@ const userSchema = new mongoose.Schema({
     },
     universityName: {
         type: String,
-        trim: true
+        trim: true,
+        required: function () {
+            return this.educationType === 'college';
+        }
     },
     class: {
         type: String,

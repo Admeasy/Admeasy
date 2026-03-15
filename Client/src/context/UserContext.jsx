@@ -72,14 +72,17 @@ export function UserProvider({ children }) {
   };
 
   const logoutAllAccounts = async () => {
+    setUser(null);
+    setSavedAccounts([]);
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+    localStorage.removeItem(SAVED_ACCOUNTS_KEY);
+    navigate('/');
     try {
       await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
-      setUser(null);
-      setSavedAccounts([]);
-      localStorage.clear(); // Clears everything
-      navigate('/');
     } catch (err) {
-      console.error("Logout all failed", err);
+      console.error("Logout API call failed (session ended locally):", err);
     }
   };
 
@@ -91,7 +94,15 @@ export function UserProvider({ children }) {
 
       if (storedRole !== 'mentor') {
         try {
-          await fetch("/api/users/refresh", { method: "POST", credentials: "include" });
+          const refreshRes = await fetch("/api/users/refresh", { method: "POST", credentials: "include" });
+          if (refreshRes.status === 401) {
+            setUser(null);
+            localStorage.removeItem(USER_STORAGE_KEY);
+            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+            localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+            setIsLoading(false);
+            return;
+          }
           const res = await fetch("/api/users/me", { credentials: "include" });
           if (res.ok) {
             const data = await res.json();

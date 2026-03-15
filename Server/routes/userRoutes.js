@@ -341,16 +341,20 @@ router.post("/onboarding", async (req, res) => {
       if (password && user.password) {
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-          return res.status(401).json({
-            success: false,
-            message: "Invalid credentials. Please try logging in directly.",
-          });
+          return res
+            .status(401)
+            .json({
+              success: false,
+              message: "Invalid credentials. Please try logging in directly.",
+            });
         }
       } else if (!password && user.password) {
-        return res.status(401).json({
-          success: false,
-          message: "Please provide your password to complete onboarding.",
-        });
+        return res
+          .status(401)
+          .json({
+            success: false,
+            message: "Please provide your password to complete onboarding.",
+          });
       }
     }
 
@@ -725,7 +729,6 @@ router.post("/logout", async (req, res) => {
   }
 });
 
-// REFRESH TOKEN
 // REFRESH TOKEN
 router.post("/refresh", async (req, res) => {
   try {
