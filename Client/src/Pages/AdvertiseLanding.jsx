@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Target, TrendingUp, Users, BarChart3, CheckCircle2, Sparkles } from 'lucide-react';
-import logo from '../assets/Admeasy/favicon.ico';
+const logo = '/favicon.ico';
 import SEO from '../components/SEO';
 
 const AdvertiseLanding = () => {

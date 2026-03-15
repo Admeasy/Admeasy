@@ -193,7 +193,7 @@ export default function UserProfile() {
     user.course
   ].filter(Boolean).join(', ');
 
-  const userImage = profileImageUrl || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp';
+  const userImage = profileImageUrl || 'https://admeasy.in/LOGO.webp';
   const userUrl = `https://admeasy.in/users/${user.username || user._id}`;
 
   const isOwnProfile = currentUser && (currentUser._id === user._id || currentUser.username === user.username);

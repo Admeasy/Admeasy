@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core'
+import { SplashScreen } from '@capacitor/splash-screen'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
@@ -11,6 +13,35 @@ import axios from 'axios';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 axios.defaults.withCredentials = true;
+
+// Native splash: hide Capacitor splash + custom HTML splash when app is ready
+const hideNativeSplash = async () => {
+  if (!Capacitor.isNativePlatform()) return
+  try {
+    await SplashScreen.hide()
+  } catch (err) {
+    console.error('Failed to hide splash screen', err)
+  }
+}
+
+const splash = document.getElementById('mobile-splash')
+if (splash) {
+  if (Capacitor.isNativePlatform()) {
+    splash.classList.add('visible')
+    const onAppReady = () => {
+      hideNativeSplash()
+      splash.classList.add('fade-out')
+      setTimeout(() => splash.remove(), 400)
+    }
+    if (document.readyState === 'complete') {
+      onAppReady()
+    } else {
+      window.addEventListener('load', onAppReady)
+    }
+  } else {
+    splash.remove()
+  }
+}
 
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>

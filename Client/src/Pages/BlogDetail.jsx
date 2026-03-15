@@ -47,7 +47,7 @@ const BlogDetail = () => {
       publisher: {
         "@type": "Organization",
         name: "Admeasy",
-        logo: { "@type": "ImageObject", url: "https://admeasy.in/src/assets/Admeasy/LOGO.webp" }
+        logo: { "@type": "ImageObject", url: "https://admeasy.in/LOGO.webp" }
       },
       datePublished: blog.createdAt,
       dateModified: blog.updatedAt || blog.createdAt,
@@ -101,7 +101,7 @@ const BlogDetail = () => {
         title={blog?.Title || 'Blog Post'}
         description={blog?.content?.replace(/<[^>]*>/g, '').substring(0, 160) || blog?.Title || 'Read our latest blog post'}
         keywords={`${blog?.category || ''}, education, college admissions, ${blog?.Title || ''}`}
-        image={blog?.Thumbnail || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp'}
+        image={blog?.Thumbnail || 'https://admeasy.in/LOGO.webp'}
         url={`https://admeasy.in/blog/${id}`}
         type="article"
         publishedTime={blog?.createdAt}
