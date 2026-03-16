@@ -132,6 +132,25 @@ function App() {
     };
   }, []);
 
+  // After Google OAuth redirect: add account to Switch Account list using switchToken from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('oauth_success') !== 'true' || !params.get('switchToken')) return;
+    const switchToken = params.get('switchToken');
+    let cancelled = false;
+    fetchUser(switchToken).then((loggedInUser) => {
+      if (cancelled || !loggedInUser) return;
+      const cleanPath = location.pathname || '/';
+      window.history.replaceState({}, '', cleanPath);
+      sessionStorage.removeItem('oauth_in_progress');
+      sessionStorage.removeItem('oauth_intended_path');
+    }).catch(() => {
+      const cleanPath = location.pathname || '/';
+      window.history.replaceState({}, '', cleanPath);
+    });
+    return () => { cancelled = true; };
+  }, [location.search, location.pathname]);
+
   // Username warning toast
   useEffect(() => {
     const isDismissed = sessionStorage.getItem('usernameWarningDismissed');

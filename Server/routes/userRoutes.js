@@ -564,9 +564,10 @@ router.get('/auth/google/callback',
                 return res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
             }
 
-            // Generate JWT tokens for the authenticated user
+            // Generate JWT tokens for the authenticated user (include switchToken for Switch Account feature)
             const accessToken = generateAccessToken(req.user);
             const refreshToken = generateRefreshToken(req.user);
+            const switchToken = generateSwitchToken(req.user);
             req.user.refreshToken = refreshToken;
             await req.user.save();
 
@@ -593,10 +594,12 @@ router.get('/auth/google/callback',
             const onboardingStatus = checkOnboardingStatus(req.user);
 
             // Always redirect to onboarding if incomplete, regardless of flag
+            // Include switchToken so frontend can add this account to the Switch Account list
+            const switchParam = `switchToken=${encodeURIComponent(switchToken)}`;
             if (onboardingStatus.requiresOnboarding) {
-                res.redirect(`${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}`);
+                res.redirect(`${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}&${switchParam}`);
             } else {
-                res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}`);
+                res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}&${switchParam}`);
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
