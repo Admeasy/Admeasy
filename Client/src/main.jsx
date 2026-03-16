@@ -14,34 +14,32 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 axios.defaults.withCredentials = true;
 
-// Native splash: hide Capacitor splash + custom HTML splash when app is ready
-const hideNativeSplash = async () => {
-  if (!Capacitor.isNativePlatform()) return
-  try {
-    await SplashScreen.hide()
-  } catch (err) {
-    console.error('Failed to hide splash screen', err)
-  }
+const isNative = Capacitor.isNativePlatform();
+
+if (isNative) {
+  const splash = document.getElementById("mobile-splash");
+  if (splash) splash.classList.add("visible");
 }
 
-const splash = document.getElementById('mobile-splash')
-if (splash) {
+// Hide native splash and web overlay once React loads (native only)
+window.addEventListener("load", async () => {
   if (Capacitor.isNativePlatform()) {
-    splash.classList.add('visible')
-    const onAppReady = () => {
-      hideNativeSplash()
-      splash.classList.add('fade-out')
-      setTimeout(() => splash.remove(), 400)
+    const splash = document.getElementById("mobile-splash");
+
+    try {
+      setTimeout(async () => {
+        await SplashScreen.hide();
+
+        if (splash) {
+          splash.classList.add("fade-out");
+          setTimeout(() => splash.remove(), 400);
+        }
+      }, 1200);
+    } catch (error) {
+      console.error("Error hiding splash screen:", error);
     }
-    if (document.readyState === 'complete') {
-      onAppReady()
-    } else {
-      window.addEventListener('load', onAppReady)
-    }
-  } else {
-    splash.remove()
   }
-}
+});
 
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
