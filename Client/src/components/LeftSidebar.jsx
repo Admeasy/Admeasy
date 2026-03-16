@@ -31,6 +31,7 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
     setUser,
     savedAccounts,
     removeSavedAccount,
+    logoutCurrentAccount,
     logoutAllAccounts,
     fetchUser,
   } = useUser();
@@ -285,6 +286,11 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                     <button onClick={() => { setShowAccountsPopup(false); navigate('/login'); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#9f3562] transition-colors">
                       <PlusCircle className="w-4 h-4" /> Add an existing account
                     </button>
+                    {savedAccounts.length > 1 && (
+                      <button onClick={() => { setShowAccountsPopup(false); logoutCurrentAccount(); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                        <LogOut className="w-4 h-4" /> Log out this account
+                      </button>
+                    )}
                     <button onClick={() => { setShowAccountsPopup(false); logoutAllAccounts(); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
                       <LogOut className="w-4 h-4" /> Log out all accounts
                     </button>
