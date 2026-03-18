@@ -1,18 +1,6 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import {
-  FileText,
-  File,
-  Share2,
-  Eye,
-  Heart,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  Lock,
-} from "lucide-react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, X } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import PaymentModal from "../components/PaymentModal";
 import { useUser } from "../context/UserContext";
@@ -54,6 +42,7 @@ const NotesPage = () => {
   const [scale, setScale] = useState(1.0);
   const [pdfLoading, setPdfLoading] = useState(true);
   const [containerWidth, setContainerWidth] = useState(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Scroll to top when component mounts or note ID changes
   useEffect(() => {
@@ -70,6 +59,21 @@ const NotesPage = () => {
       setNumPages(null);
     }
   }, [note?._id]);
+
+  // Escape key to exit full screen
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setIsFullScreen(false);
+    };
+    if (isFullScreen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleEscape);
+    }
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isFullScreen]);
 
   // Calculate container width for responsive PDF rendering
   useEffect(() => {
@@ -344,6 +348,7 @@ const NotesPage = () => {
             </button>
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Sidebar - Note Info */}
             <div className="lg:col-span-1 space-y-6">
@@ -612,6 +617,14 @@ const NotesPage = () => {
                             >
                               <ZoomIn className="w-5 h-5" />
                             </button>
+                            <button
+                              onClick={() => setIsFullScreen(true)}
+                              className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5"
+                              title="Full screen preview"
+                            >
+                              <Maximize2 className="w-5 h-5" />
+                              <span className="text-sm font-medium text-gray-700 hidden sm:inline">Full screen</span>
+                            </button>
                           </div>
                         </div>
 
@@ -714,6 +727,91 @@ const NotesPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Full screen PDF overlay */}
+          {isFullScreen && note?.fileUrl && !pdfError && (
+            <div className="fixed inset-0 z-[9999] bg-gray-900 flex flex-col">
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 shrink-0">
+                <div className="flex items-center gap-3 text-white">
+                  <FileText className="w-5 h-5" />
+                  <span className="font-semibold">{note.title} — Full preview</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 mr-2">
+                    <button
+                      onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                      disabled={pageNumber <= 1}
+                      className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white transition-colors"
+                      title="Previous page"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm text-gray-300 px-2 min-w-[80px] text-center">
+                      {pageNumber} / {numPages || "…"}
+                    </span>
+                    <button
+                      onClick={() => setPageNumber(prev => Math.min(numPages || 1, prev + 1))}
+                      disabled={pageNumber >= (numPages || 1)}
+                      className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white transition-colors"
+                      title="Next page"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1 mr-2">
+                    <button
+                      onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
+                      className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+                      title="Zoom out"
+                    >
+                      <ZoomOut className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm text-gray-300 px-2 min-w-[50px] text-center">{Math.round(scale * 100)}%</span>
+                    <button
+                      onClick={() => setScale(prev => Math.min(2.5, prev + 0.25))}
+                      className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+                      title="Zoom in"
+                    >
+                      <ZoomIn className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setIsFullScreen(false)}
+                    className="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors flex items-center gap-2"
+                    title="Close full screen"
+                  >
+                    <X className="w-5 h-5" />
+                    <span className="text-sm font-medium">Close</span>
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto flex items-start justify-center p-4 bg-gray-800">
+                <Document
+                  file={note.fileUrl}
+                  httpHeaders={pdfHeaders}
+                  withCredentials={false}
+                  options={pdfOptions}
+                  className="flex flex-col items-center"
+                >
+                  <div className="bg-white shadow-2xl">
+                    <Page
+                      pageNumber={pageNumber}
+                      scale={scale}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      width={Math.min(window.innerWidth - 48, 900)}
+                      loading={
+                        <div className="flex items-center justify-center p-16 min-h-[400px]">
+                          <div className="w-10 h-10 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin" />
+                        </div>
+                      }
+                    />
+                  </div>
+                </Document>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
