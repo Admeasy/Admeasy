@@ -20,6 +20,7 @@ const NotificationManager = require('../services/notificationManager');
 const { getRankedFeed } = require('../utils/feedRanking');
 const feedController = require('../controllers/feedController');
 const { extractPublicId } = require('../utils/cloudinary');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 const getPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== 'string') return null;
@@ -1550,6 +1551,16 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     if (req.user) {
       feedController.markPostAsEngaged(req.user._id, post._id, 'comment', post).catch(err => {
         console.error('Error marking post as engaged (comment):', err);
+      });
+      trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'comment_posted',
+        entityId: newComment._id,
+        post,
+        metadata: { postId: post._id },
+        dedupeWindowSeconds: 10,
+      }).catch(err => {
+        console.error('Error tracking comment_posted:', err);
       });
     }
 

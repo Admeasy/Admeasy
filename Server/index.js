@@ -28,8 +28,10 @@ const Db = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
+const InteractionRoutes = require('./routes/interactionRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
+const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
 const app = express();
 const server = http.createServer(app);
 
@@ -54,6 +56,9 @@ if (missing.length) {
 
 // Database connections are automatically established when db.js is required
 // The connections are created using mongoose.createConnection() which connects automatically
+ensureMasterTagsSeeded().catch((err) => {
+  console.error('Master tag seed failed:', err.message);
+});
 
 // CORS configuration
 app.use(cors({
@@ -334,6 +339,7 @@ app.use('/api/subscriptions', SubscriptionRoutes);
 app.use('/api/notifications', NotificationRoutes);
 app.use('/api/advertisers', AdvertiserRoutes);
 app.use('/api/ads', AdRoutes);
+app.use('/api/interactions', InteractionRoutes);
 
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {

@@ -16,6 +16,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Users } = require('../db.js');
 const NotificationService = require('../services/notificationService.js');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 const { verifyAdminToken } = require('../middleware/adminAuth.js');
 const passport = require('../middleware/passport.js');
 const { authenticateRequired, authenticateUserOrAdmin, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
@@ -1300,6 +1301,16 @@ router.post('/:targetId/follow', async (req, res) => {
             target.followers.push(follower._id);
             await follower.save();
             await target.save();
+
+            if (followerType === 'user') {
+                trackStudentEvent({
+                    userId: follower._id,
+                    eventType: targetType === 'mentor' ? 'follow_mentor' : 'follow_user',
+                    entityId: target._id,
+                    metadata: { targetType },
+                    dedupeWindowSeconds: 20,
+                }).catch((err) => console.error('follow tracking failed:', err));
+            }
 
 
             // Notify target using new notification system

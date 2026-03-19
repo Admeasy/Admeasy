@@ -5,13 +5,14 @@ const {
   getNoteById,
   likeNote,
   viewNote,
+  shareNote,
   uploadNote,
   getAllNotes,
   updateNote,
   deleteNote,
   proxyPdf
 } = require('../controllers/noteController');
-const { authenticateRequired } = require('../middleware/combinedAuth');
+const { authenticateRequired, authenticateOptional } = require('../middleware/combinedAuth');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 
 // Configure multer for file uploads
@@ -57,8 +58,9 @@ const handleMulterError = (err, req, res, next) => {
 router.get('/', getNotes);
 router.get('/:id/pdf', proxyPdf); // PDF proxy route with proper headers (must be before /:id)
 router.get('/:id', getNoteById);
-router.post('/:id/like', likeNote);
-router.post('/:id/view', viewNote);
+router.post('/:id/like', authenticateOptional, likeNote);
+router.post('/:id/view', authenticateOptional, viewNote);
+router.post('/:id/share', authenticateOptional, shareNote);
 
 // Mentor routes
 router.post('/', authenticateRequired, upload.single('noteFile'), handleMulterError, uploadNote);
