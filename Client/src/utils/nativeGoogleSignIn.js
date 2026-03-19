@@ -10,7 +10,7 @@ export function shouldUseNativeGoogleSignIn() {
 }
 
 function getWebClientId() {
-  return import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || '';
+  return import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 }
 
 /**
@@ -22,7 +22,7 @@ function getWebClientId() {
 export async function runNativeGoogleSignIn({ fetchUser, setMentor, navigate }) {
   const webClientId = getWebClientId();
   if (!webClientId) {
-    toast.error('Google Sign-In is not configured in this app build (missing VITE_GOOGLE_WEB_CLIENT_ID).');
+    toast.error('Google Sign-In is not configured in this app build (missing VITE_GOOGLE_CLIENT_ID).');
     return;
   }
 
