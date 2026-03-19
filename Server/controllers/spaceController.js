@@ -4,6 +4,7 @@ const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 const NotificationManager = require('../services/notificationManager');
 const { extractPublicId } = require('../utils/cloudinary');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 // Helper: get current actor (user or mentor) as a snapshot
 function getActorFromReq(req) {
@@ -321,6 +322,16 @@ exports.joinSpace = async (req, res) => {
       });
       await space.save();
 
+      if (req.user?._id) {
+        trackStudentEvent({
+          userId: req.user._id,
+          eventType: 'space_join',
+          entityId: space._id,
+          space,
+          dedupeWindowSeconds: 60,
+        }).catch((err) => console.error('space_join tracking failed:', err));
+      }
+
       // Emit socket event for real-time updates
       if (global.io) {
         global.io.to(`space:${space._id}`).emit('space_member_joined', {
@@ -487,6 +498,16 @@ exports.createMessage = async (req, res) => {
     await space.save();
 
     const createdMessage = space.messages[space.messages.length - 1];
+    if (req.user?._id) {
+      trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'comment_posted',
+        entityId: createdMessage?._id || null,
+        space,
+        metadata: { spaceId: space._id },
+        dedupeWindowSeconds: 5,
+      }).catch((err) => console.error('comment_posted tracking failed:', err));
+    }
 
     // Emit socket event for real-time updates
     if (global.io) {
