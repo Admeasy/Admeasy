@@ -1,7 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const User = require('../models/userSchema');
-const jwt = require('jsonwebtoken');
+const { findOrCreateGoogleUser } = require('../utils/googleUser');
 require('dotenv').config();
 
 // Google OAuth Strategy
@@ -35,43 +34,17 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     callbackURL: callbackURL
   }, async (accessToken, refreshToken, profile, done) => {
     try {
-      // Validate that email exists in profile
       if (!profile.emails || !profile.emails[0] || !profile.emails[0].value) {
         return done(new Error('Email not provided by Google'), null);
       }
 
-      // Check if user already exists with this Google ID
-      let user = await User.findOne({ googleId: profile.id });
-
-      if (user) {
-        // User exists, return user
-        return done(null, user);
-      }
-
-      // Check if user exists with this email (for users who signed up with email/password)
-      user = await User.findOne({ email: profile.emails[0].value });
-
-      if (user) {
-        // Link Google account to existing user
-        user.googleId = profile.id;
-        if (!user.image && profile.photos && profile.photos[0]) {
-          user.image = profile.photos[0].value;
-        }
-        user.isVerified = true;
-        await user.save();
-        return done(null, user);
-      }
-
-      // Create new user
-      user = new User({
+      const user = await findOrCreateGoogleUser({
         googleId: profile.id,
         email: profile.emails[0].value,
         name: profile.displayName || profile.name?.givenName || '',
-        image: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined,
-        isVerified: true
+        picture: profile.photos && profile.photos[0] ? profile.photos[0].value : undefined,
       });
 
-      await user.save();
       return done(null, user);
     } catch (err) {
       return done(err, null);
