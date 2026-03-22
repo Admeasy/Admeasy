@@ -1153,6 +1153,40 @@ router.get("/verification-status", async (req, res) => {
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 
+// JOIN SCHOOL (user provides schoolCode)
+router.post("/join-school", authenticateRequired, async (req, res) => {
+    try {
+        const { schoolCode } = req.body;
+        if (!schoolCode || !schoolCode.trim()) {
+            return res.status(400).json({ success: false, message: 'School code is required' });
+        }
+        const School = require('../models/schoolSchema');
+        const UserProfile = require('../models/userProfileSchema');
+        const code = schoolCode.trim().toUpperCase();
+        const school = await School.findOne({ schoolCode: code }).select('_id schoolName').lean();
+        if (!school) {
+            return res.status(404).json({ success: false, message: 'School not found' });
+        }
+        const userId = req.user._id;
+        let profile = await UserProfile.findOne({ userId });
+        if (!profile) {
+            profile = new UserProfile({ userId });
+        }
+        profile.schoolId = school._id;
+        profile.schoolName = school.schoolName;
+        profile.schoolRole = 'student';
+        await profile.save();
+        return res.json({
+            success: true,
+            message: 'Joined school successfully',
+            school: { _id: school._id, schoolName: school.schoolName, schoolCode: code }
+        });
+    } catch (err) {
+        console.error('join-school error:', err);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 // GET USER BY ID (for mentors who have chats with the user, or users viewing their own profile)
 router.get('/:userId', async (req, res) => {
     try {

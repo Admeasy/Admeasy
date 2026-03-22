@@ -29,6 +29,8 @@ const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
 const InteractionRoutes = require('./routes/interactionRoutes');
+const SchoolRoutes = require('./routes/schoolRoutes');
+const TeacherRoutes = require('./routes/teacherRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
@@ -340,6 +342,8 @@ app.use('/api/notifications', NotificationRoutes);
 app.use('/api/advertisers', AdvertiserRoutes);
 app.use('/api/ads', AdRoutes);
 app.use('/api/interactions', InteractionRoutes);
+app.use('/api/schools', SchoolRoutes);
+app.use('/api/teachers', TeacherRoutes);
 
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {

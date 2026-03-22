@@ -10,14 +10,19 @@ const userProfileSchema = new mongoose.Schema(
       index: true,
     },
     schoolId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Schools',
       default: null,
-      trim: true,
     },
     schoolName: {
       type: String,
       default: null,
       trim: true,
+    },
+    schoolRole: {
+      type: String,
+      enum: ['student'],
+      default: null, // 'student' when user has joined a school
     },
     city: {
       type: String,
