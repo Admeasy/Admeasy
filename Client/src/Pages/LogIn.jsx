@@ -13,7 +13,12 @@ import World from "../assets/Icons/World.gif"
 import { toast } from 'react-toastify'
 const LogIn = () => {
   const navigate = useNavigate()
+  /** true = show SignUp, false = show LogInComp (legacy page layout). */
   const [showLogin, setShowLogin] = useState(true)
+  const setAuthMode = (mode) => {
+    if (mode === 'signup') setShowLogin(true)
+    else if (mode === 'login') setShowLogin(false)
+  }
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const pathname = useLocation();
 
@@ -44,9 +49,9 @@ const LogIn = () => {
         {/* Left Side - Login */}
         <div className=" w-full lg:w-1/3 flex">
           {showLogin ? (
-            <SignUp setShowLogin={setShowLogin} showLogin={showLogin} />
+            <SignUp setAuthMode={setAuthMode} />
           ) : (
-            <LogInComp setShowLogin={setShowLogin} showLogin={showLogin} />
+            <LogInComp setAuthMode={setAuthMode} />
           )}
 
         </div>

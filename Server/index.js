@@ -28,6 +28,7 @@ const Db = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
+const { postGoogleIdTokenLogin } = require('./controllers/googleIdTokenAuthController');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const app = express();
@@ -313,6 +314,9 @@ app.get('/api/profile/:username', async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 });
+
+// Google ID token login (Capacitor native / SPA) — same handler as /api/users/auth/google/native
+app.post('/api/auth/google', postGoogleIdTokenLogin);
 
 // API Routes
 app.use('/api/colleges', CollegesRoutes);

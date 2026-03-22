@@ -10,11 +10,11 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import { enableNotifications } from "../Firebase/enableNotifications";
-import { runNativeGoogleSignIn, shouldUseNativeGoogleSignIn } from "../utils/nativeGoogleSignIn";
+import { runCapacitorGoogleSignIn, shouldUseCapacitorGooglePlugin, WEB_GOOGLE_OAUTH_PATH } from "../auth/googleSignIn";
 
 
 
-const LogInComp = ({ setShowLogin, onNotVerified }) => {
+const LogInComp = ({ setAuthMode, onNotVerified }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,11 +105,11 @@ const LogInComp = ({ setShowLogin, onNotVerified }) => {
     "flex items-center justify-center gap-3 w-full bg-white border-2 border-gray-300 text-gray-700 rounded-full text-base px-4 py-3 hover:bg-gray-50 transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed";
 
   const handleGoogleClick = async () => {
-    if (!shouldUseNativeGoogleSignIn()) return;
+    if (!shouldUseCapacitorGooglePlugin()) return;
     if (googleLoading) return;
     setGoogleLoading(true);
     try {
-      await runNativeGoogleSignIn({ fetchUser, setMentor, navigate });
+      await runCapacitorGoogleSignIn({ fetchUser, setMentor, navigate });
     } finally {
       setGoogleLoading(false);
     }
@@ -216,7 +216,7 @@ const LogInComp = ({ setShowLogin, onNotVerified }) => {
 
       {/* Google OAuth: native account picker on Android; web uses server redirect */}
       <div className="mt-6">
-        {shouldUseNativeGoogleSignIn() ? (
+        {shouldUseCapacitorGooglePlugin() ? (
           <button
             type="button"
             className={googleButtonClass}
@@ -244,7 +244,7 @@ const LogInComp = ({ setShowLogin, onNotVerified }) => {
             {googleLoading ? 'Connecting…' : 'Continue with Google'}
           </button>
         ) : (
-          <a href="/api/users/auth/google" className={googleButtonClass}>
+          <a href={WEB_GOOGLE_OAUTH_PATH} className={googleButtonClass}>
             <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
               <path
                 fill="#4285F4"
@@ -272,7 +272,7 @@ const LogInComp = ({ setShowLogin, onNotVerified }) => {
       <div className="mt-6 text-center">
         <span className="text-gray-700 text-sm">Don't have an account? </span>
         <button
-          onClick={() => setShowLogin?.(true)}
+          onClick={() => setAuthMode?.('signup')}
           className="text-brand-light hover:underline font-semibold cursor-pointer"
         >
           Create one
