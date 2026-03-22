@@ -17,11 +17,6 @@
       "backgroundColor": "#0f172a",
       "androidScaleType": "CENTER_CROP",
       "showSpinner": false
-    },
-    "GoogleAuth": {
-      "scopes": ["profile", "email", "openid"],
-      "serverClientId": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": true
     }
   }
 }
