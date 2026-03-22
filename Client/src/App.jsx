@@ -89,6 +89,12 @@ import MyAds from './Pages/MyAds';
 import OnboardingReminderBanner from './components/OnboardingReminderBanner';
 import ManagePosts from './Pages/ManagePosts';
 import ManageSpaces from './Pages/ManageSpaces';
+import ManageSchools from './Pages/ManageSchools';
+import SchoolLogin from './Pages/SchoolLogin';
+import TeacherSetPassword from './Pages/TeacherSetPassword';
+import SchoolDashboard from './Pages/SchoolDashboard';
+import AddTeacher from './Pages/AddTeacher';
+import TeacherDashboard from './Pages/TeacherDashboard';
 import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans';
 import MentorForgotPassword from './Pages/MentorForgotPassword';
 import MentorResetPassword from './Pages/MentorResetPassword';
@@ -499,11 +505,19 @@ function App() {
         <Route path="/admin/applications/:job" element={<JobApplications />} />
         <Route path="/admin/notes" element={<ManageNotes />} />
         <Route path="/admin/posts" element={<ManagePosts />} />
+        <Route path="/admin/schools" element={<ManageSchools />} />
         <Route path="/admin/spaces" element={<ManageSpaces />} />
         <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
         <Route path="/admin/payments" element={<CheckPayments />} />
         <Route path="/admin/advertisers" element={<ManageAdvertisers />} />
         <Route path="/admin/ads" element={<ManageAds />} />
+
+        {/* ================= SCHOOL ROUTES ================= */}
+        <Route path="/school-login" element={<SchoolLogin />} />
+        <Route path="/school/teacher/set-password" element={<TeacherSetPassword />} />
+        <Route path="/school/dashboard" element={<SchoolDashboard />} />
+        <Route path="/school/add-teacher" element={<AddTeacher />} />
+        <Route path="/school/teacher/dashboard" element={<TeacherDashboard />} />
 
         {/* ================= ADVERTISER ROUTES ================= */}
         <Route path="/advertise" element={<AdvertiseLanding />} />

@@ -50,7 +50,7 @@ const memberSnapshotSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'mentor'],
+      enum: ['user', 'mentor', 'teacher'],
       required: true,
     },
     username: {
@@ -152,9 +152,35 @@ const spaceSchema = new mongoose.Schema(
       type: memberSnapshotSchema,
       required: true,
     },
+    type: {
+      type: String,
+      enum: ['public', 'private', 'school'],
+      default: 'public',
+    },
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Schools',
+      default: null,
+    },
+    isJoinApprovalRequired: {
+      type: Boolean,
+      default: false,
+    },
+    isPostingRestricted: {
+      type: Boolean,
+      default: false, // false = free flow (WhatsApp style), true = admin only
+    },
+    allowedRoles: {
+      type: [String],
+      default: [], // e.g. ['student', 'teacher'] - empty means all
+    },
     members: {
       type: [memberSnapshotSchema],
       default: [],
+    },
+    moderators: {
+      type: [mongoose.Schema.Types.ObjectId],
+      default: [], // user/mentor/teacher IDs who can approve, moderate
     },
     messages: {
       type: [messageSchema],
@@ -171,6 +197,8 @@ const spaceSchema = new mongoose.Schema(
 spaceSchema.index({ 'members.id': 1, updatedAt: -1 });
 spaceSchema.index({ createdAt: -1 });
 spaceSchema.index({ name: 'text', description: 'text' });
+spaceSchema.index({ type: 1 });
+spaceSchema.index({ schoolId: 1 });
 
 module.exports = Admeasy.models.Spaces || Admeasy.model('Spaces', spaceSchema);
 

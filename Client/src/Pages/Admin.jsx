@@ -203,6 +203,12 @@ const Admin = () => {
                 <p className="text-gray-600">View all payments with transaction details</p>
               </div>
             </Link>
+            <Link to="/admin/schools">
+              <div className="admin-dashboard-card">
+                <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Schools</h2>
+                <p className="text-gray-600">Create schools, assign codes, manage credentials</p>
+              </div>
+            </Link>
             <Link to="/admin/spaces">
               <div className="admin-dashboard-card">
                 <h2 className="text-xl font-admeasy-bold text-gray-900 mb-4">Manage Spaces</h2>

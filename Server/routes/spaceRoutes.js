@@ -13,8 +13,10 @@ const {
   deleteSpace,
   getAllSpacesAdmin,
   deleteMessage,
+  getSpaceRequests,
+  approveRequest,
 } = require('../controllers/spaceController');
-const { authenticateRequired, authenticateOptional } = require('../middleware/combinedAuth');
+const { authenticateRequired, authenticateOptional, authenticateUserMentorOrTeacher } = require('../middleware/combinedAuth');
 const upload = require('../middleware/multer');
 const { verifyAdminToken } = require('../middleware/adminAuth');
 
@@ -46,6 +48,10 @@ router.get('/:id', authenticateOptional, getSpaceById);
 // Join / Leave
 router.post('/:id/join', authenticateRequired, joinSpace);
 router.post('/:id/leave', authenticateRequired, leaveSpace);
+
+// Space requests (join approval flow)
+router.get('/:spaceId/requests', authenticateUserMentorOrTeacher, getSpaceRequests);
+router.post('/approve', authenticateUserMentorOrTeacher, approveRequest);
 
 // Delete a space (creator only)
 router.delete('/:id', authenticateRequired, deleteSpace);

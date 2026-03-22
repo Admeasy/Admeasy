@@ -1,4 +1,6 @@
 const Space = require('../models/spaceSchema');
+const SpaceRequest = require('../models/spaceRequestSchema');
+const UserProfile = require('../models/userProfileSchema');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
 const { verifyAdminToken } = require('../middleware/adminAuth');
@@ -6,11 +8,20 @@ const NotificationManager = require('../services/notificationManager');
 const { extractPublicId } = require('../utils/cloudinary');
 const { trackStudentEvent } = require('../services/interactionTrackingService');
 
-// Helper: get current actor (user or mentor) as a snapshot
+// Helper: get current actor (user, mentor, or teacher) as a snapshot
 function getActorFromReq(req) {
-  const actor = req.user || req.mentor;
+  const actor = req.user || req.mentor || req.teacherActor;
   if (!actor) return null;
 
+  if (req.teacherActor) {
+    return {
+      id: req.teacherActor._id,
+      role: 'teacher',
+      name: req.teacherActor.name || 'Teacher',
+      username: null,
+      image: null,
+    };
+  }
   return {
     id: actor._id,
     role: req.mentor ? 'mentor' : 'user',
@@ -18,6 +29,21 @@ function getActorFromReq(req) {
     username: actor.username || null,
     image: actor.image || actor.imageUrl || null,
   };
+}
+
+// Check if actor can moderate (creator or in moderators list)
+function canModerate(space, actorId) {
+  if (!actorId) return false;
+  const sid = actorId.toString();
+  if (space.creator?.id?.toString() === sid) return true;
+  return space.moderators?.some((m) => m.toString() === sid) || false;
+}
+
+// Check if user (student) is in the same school as the space
+async function isSchoolMember(userId, schoolId) {
+  if (!userId || !schoolId) return false;
+  const profile = await UserProfile.findOne({ userId });
+  return profile?.schoolId?.toString() === schoolId.toString();
 }
 
 // Admin: format space for admin listing (more details)
@@ -41,18 +67,23 @@ function formatSpaceAdmin(space) {
 // Helper: format space for list views
 function formatSpaceSummary(space, currentActorId) {
   const membersCount = space.members.length;
-  const messagesCount = space.messages.length;
-  const lastMessage = space.messages[messagesCount - 1] || null;
+  const messagesCount = (space.messages || []).length;
+  const sortedMessages = [...(space.messages || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const lastMessage = sortedMessages[0] || null;
 
   const isMember =
     !!currentActorId &&
-    space.members.some((m) => m.id.toString() === currentActorId.toString());
+    space.members.some((m) => m.id && m.id.toString() === currentActorId.toString());
 
-  return {
+  const result = {
     _id: space._id,
     name: space.name,
     description: space.description,
     logo: space.logo || null,
+    type: space.type || 'public',
+    schoolId: space.schoolId || null,
+    isJoinApprovalRequired: space.isJoinApprovalRequired || false,
+    isPostingRestricted: space.isPostingRestricted || false,
     membersCount,
     messagesCount,
     lastMessage: lastMessage
@@ -67,6 +98,7 @@ function formatSpaceSummary(space, currentActorId) {
     createdAt: space.createdAt,
     updatedAt: space.updatedAt,
   };
+  return result;
 }
 
 exports.createSpace = async (req, res) => {
@@ -79,12 +111,19 @@ exports.createSpace = async (req, res) => {
       });
     }
 
-    const { name, description = '' } = req.body;
+    const { name, description = '', type = 'public', isJoinApprovalRequired = false, isPostingRestricted = false } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Space name is required',
+      });
+    }
+
+    if (!['public', 'private'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only public and private spaces can be created by users. School spaces are created by the system.',
       });
     }
 
@@ -109,10 +148,14 @@ exports.createSpace = async (req, res) => {
 
     const space = new Space({
       name: name.trim(),
-      description: description.trim(),
+      description: (description || '').trim(),
       logo: logoUrl,
+      type,
+      isJoinApprovalRequired: !!isJoinApprovalRequired,
+      isPostingRestricted: !!isPostingRestricted,
       creator: creatorSnapshot,
       members: [creatorSnapshot],
+      moderators: [actor.id], // Creator is moderator
     });
 
     await space.save();
@@ -170,10 +213,10 @@ exports.getSuggestedSpaces = async (req, res) => {
   try {
     const actor = getActorFromReq(req);
 
-    const query = actor
-      ? { 'members.id': { $ne: actor.id } }
-      : {};
-
+    const query = { type: 'public' };
+    if (actor) {
+      query['members.id'] = { $ne: actor.id };
+    }
     const spaces = await Space.find(query)
       .sort({ createdAt: -1 })
       .limit(20)
@@ -196,13 +239,12 @@ exports.getSuggestedSpaces = async (req, res) => {
   }
 };
 
-// GET /api/spaces/explore - all public spaces (includes spaces user is already a member of)
+// GET /api/spaces/explore - all public spaces (only type=public)
 exports.getAllPublicSpaces = async (req, res) => {
   try {
     const actor = getActorFromReq(req);
 
-    // Get all spaces without filtering by membership
-    const spaces = await Space.find({})
+    const spaces = await Space.find({ type: 'public' })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -239,25 +281,46 @@ exports.getSpaceById = async (req, res) => {
     const isMember =
       actor &&
       space.members.some(
-        (m) => m.id.toString() === actor.id.toString()
+        (m) => m.id && m.id.toString() === actor.id.toString()
       );
+
+    // For private/school spaces, non-members get limited view (no messages)
+    const canViewMessages = isMember || space.type === 'public';
+    if (!canViewMessages && (space.type === 'private' || space.type === 'school')) {
+      return res.json({
+        success: true,
+        space: {
+          _id: space._id,
+          name: space.name,
+          description: space.description,
+          logo: space.logo,
+          type: space.type || 'public',
+          schoolId: space.schoolId,
+          isJoinApprovalRequired: space.isJoinApprovalRequired,
+          isPostingRestricted: space.isPostingRestricted,
+          membersCount: space.members?.length || 0,
+          isMember: false,
+          createdAt: space.createdAt,
+          updatedAt: space.updatedAt,
+        },
+        messages: [],
+        pagination: { page: 1, limit: 20, totalMessages: 0, totalPages: 0, hasMore: false },
+      });
+    }
 
     // Pagination support for messages
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Get total message count
-    const totalMessages = space.messages.length;
+    const allMessages = space.messages || [];
+    const totalMessages = allMessages.length;
     const totalPages = Math.ceil(totalMessages / limit);
 
-    // Get paginated messages (newest first, then reverse for display)
-    const allMessages = space.messages || [];
-    const sortedMessages = [...allMessages].sort((a, b) => 
+    const sortedMessages = [...allMessages].sort((a, b) =>
       new Date(b.createdAt) - new Date(a.createdAt)
     );
     const paginatedMessages = sortedMessages.slice(skip, skip + limit);
-    // Reverse to show oldest first in the paginated set
     const reversedMessages = paginatedMessages.reverse();
 
     return res.json({
@@ -267,9 +330,13 @@ exports.getSpaceById = async (req, res) => {
         name: space.name,
         description: space.description,
         logo: space.logo,
+        type: space.type || 'public',
+        schoolId: space.schoolId,
+        isJoinApprovalRequired: space.isJoinApprovalRequired,
+        isPostingRestricted: space.isPostingRestricted,
         creator: space.creator,
         members: space.members,
-        membersCount: space.members.length,
+        membersCount: space.members?.length || 0,
         isMember,
         createdAt: space.createdAt,
         updatedAt: space.updatedAt,
@@ -303,6 +370,14 @@ exports.joinSpace = async (req, res) => {
       });
     }
 
+    // Only users (students) can join via this endpoint - teachers join through school flow
+    if (actor.role === 'teacher') {
+      return res.status(400).json({
+        success: false,
+        message: 'Teachers join spaces through school assignment',
+      });
+    }
+
     const space = await Space.findById(req.params.id);
     if (!space) {
       return res.status(404).json({
@@ -312,37 +387,92 @@ exports.joinSpace = async (req, res) => {
     }
 
     const alreadyMember = space.members.some(
-      (m) => m.id.toString() === actor.id.toString()
+      (m) => m.id && m.id.toString() === actor.id.toString()
     );
 
-    if (!alreadyMember) {
-      space.members.push({
-        ...actor,
-        joinedAt: new Date(),
+    if (alreadyMember) {
+      return res.json({
+        success: true,
+        message: 'Already a member',
+        space: formatSpaceSummary(space, actor.id),
       });
-      await space.save();
+    }
 
-      if (req.user?._id) {
-        trackStudentEvent({
-          userId: req.user._id,
-          eventType: 'space_join',
-          entityId: space._id,
-          space,
-          dedupeWindowSeconds: 60,
-        }).catch((err) => console.error('space_join tracking failed:', err));
-      }
-
-      // Emit socket event for real-time updates
-      if (global.io) {
-        global.io.to(`space:${space._id}`).emit('space_member_joined', {
-          spaceId: space._id.toString(),
-          member: {
-            ...actor,
-            joinedAt: new Date(),
-          },
-          membersCount: space.members.length,
+    // School space: only school members can join
+    if (space.type === 'school') {
+      const inSchool = await isSchoolMember(actor.id, space.schoolId);
+      if (!inSchool) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only members of this school can join this space',
         });
       }
+    }
+
+    // Private/School with join approval: create request instead of direct join
+    if (space.isJoinApprovalRequired) {
+      const existing = await SpaceRequest.findOne({
+        userId: actor.id,
+        spaceId: space._id,
+      });
+      if (existing) {
+        if (existing.status === 'approved') {
+          return res.json({
+            success: true,
+            message: 'Already a member',
+            space: formatSpaceSummary(space, actor.id),
+          });
+        }
+        if (existing.status === 'pending') {
+          return res.status(400).json({
+            success: false,
+            message: 'Join request already pending',
+          });
+        }
+        if (existing.status === 'rejected') {
+          return res.status(400).json({
+            success: false,
+            message: 'Your previous request was rejected',
+          });
+        }
+      }
+      const request = new SpaceRequest({
+        userId: actor.id,
+        spaceId: space._id,
+        status: 'pending',
+      });
+      await request.save();
+      return res.status(202).json({
+        success: true,
+        message: 'Join request submitted',
+        requestId: request._id,
+        space: formatSpaceSummary(space, actor.id),
+      });
+    }
+
+    // Direct join (public, or private/school without approval)
+    space.members.push({
+      ...actor,
+      joinedAt: new Date(),
+    });
+    await space.save();
+
+    if (req.user?._id) {
+      trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'space_join',
+        entityId: space._id,
+        space,
+        dedupeWindowSeconds: 60,
+      }).catch((err) => console.error('space_join tracking failed:', err));
+    }
+
+    if (global.io) {
+      global.io.to(`space:${space._id}`).emit('space_member_joined', {
+        spaceId: space._id.toString(),
+        member: { ...actor, joinedAt: new Date() },
+        membersCount: space.members.length,
+      });
     }
 
     return res.json({
@@ -434,13 +564,20 @@ exports.createMessage = async (req, res) => {
     }
 
     const isMember = space.members.some(
-      (m) => m.id.toString() === actor.id.toString()
+      (m) => m.id && m.id.toString() === actor.id.toString()
     );
 
     if (!isMember) {
       return res.status(403).json({
         success: false,
         message: 'You must join the space to post',
+      });
+    }
+
+    if (space.isPostingRestricted && !canModerate(space, actor.id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only moderators can post in this space',
       });
     }
 
@@ -835,10 +972,13 @@ exports.deleteSpace = async (req, res) => {
 // GET /api/spaces/admin - list all spaces (admin only)
 exports.getAllSpacesAdmin = async (req, res) => {
   try {
-    // verifyAdminToken middleware should already have run if wired in routes
     const spaces = await Space.find().sort({ createdAt: -1 }).lean();
 
-    const formatted = spaces.map((space) => formatSpaceAdmin(space));
+    const formatted = spaces.map((space) => ({
+      ...formatSpaceAdmin(space),
+      type: space.type || 'public',
+      schoolId: space.schoolId,
+    }));
 
     return res.json({
       success: true,
@@ -850,5 +990,119 @@ exports.getAllSpacesAdmin = async (req, res) => {
       success: false,
       message: 'Internal Server Error',
     });
+  }
+};
+
+// ================= SPACE REQUESTS =================
+
+// GET /api/spaces/:spaceId/requests - list pending join requests (moderator/teacher only)
+exports.getSpaceRequests = async (req, res) => {
+  try {
+    const actor = getActorFromReq(req);
+    if (!actor) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const space = await Space.findById(req.params.spaceId).lean();
+    if (!space) {
+      return res.status(404).json({ success: false, message: 'Space not found' });
+    }
+
+    const canReview = canModerate(space, actor.id) ||
+      (space.type === 'school' && req.schoolAuth?.teacherId && actor.role === 'teacher');
+    if (!canReview) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view requests' });
+    }
+
+    const requests = await SpaceRequest.find({
+      spaceId: space._id,
+      status: 'pending',
+    })
+      .populate('userId', 'name email username')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      requests: requests.map((r) => ({
+        _id: r._id,
+        userId: r.userId,
+        spaceId: r.spaceId,
+        status: r.status,
+        createdAt: r.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching space requests:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+// POST /api/spaces/approve - approve or reject a join request
+exports.approveRequest = async (req, res) => {
+  try {
+    const actor = getActorFromReq(req);
+    if (!actor) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const { requestId, approved } = req.body;
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: 'requestId is required' });
+    }
+
+    const request = await SpaceRequest.findById(requestId).populate('userId');
+    if (!request || request.status !== 'pending') {
+      return res.status(404).json({ success: false, message: 'Request not found or already processed' });
+    }
+
+    const space = await Space.findById(request.spaceId);
+    if (!space) {
+      return res.status(404).json({ success: false, message: 'Space not found' });
+    }
+
+    const canReview = canModerate(space, actor.id) ||
+      (space.type === 'school' && req.schoolAuth?.teacherId && actor.role === 'teacher');
+    if (!canReview) {
+      return res.status(403).json({ success: false, message: 'Not authorized to approve requests' });
+    }
+
+    request.status = approved ? 'approved' : 'rejected';
+    request.reviewedBy = actor.id;
+    request.reviewedAt = new Date();
+    await request.save();
+
+    if (approved) {
+      const user = request.userId && request.userId._id ? request.userId : await require('../models/userSchema').findById(request.userId).select('name username image').lean();
+      const userId = user?._id || request.userId;
+      const memberSnapshot = {
+        id: userId,
+        role: 'user',
+        username: user?.username || null,
+        name: user?.name || 'User',
+        image: user?.image || null,
+        joinedAt: new Date(),
+      };
+      space.members.push(memberSnapshot);
+      await space.save();
+
+      if (global.io) {
+        global.io.to(`space:${space._id}`).emit('space_member_joined', {
+          spaceId: space._id.toString(),
+          member: memberSnapshot,
+          membersCount: space.members.length,
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: approved ? 'Request approved' : 'Request rejected',
+      request: { _id: request._id, status: request.status },
+      space: formatSpaceSummary(space, actor.id),
+    });
+  } catch (error) {
+    console.error('Error approving request:', error);
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
