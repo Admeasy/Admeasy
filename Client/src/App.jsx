@@ -94,6 +94,7 @@ import MentorForgotPassword from './Pages/MentorForgotPassword';
 import MentorResetPassword from './Pages/MentorResetPassword';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import GoogleSignInBootstrap from './components/GoogleSignInBootstrap';
 
 function App() {
   const location = useLocation();
@@ -310,6 +311,7 @@ function App() {
         draggable
         pauseOnHover
       />
+      <GoogleSignInBootstrap />
       <Routes>
         <Route path='/contact' element={<Contact />}></Route>
         {/* <Route path='/modal' element={<LoginModal />}></Route> */}

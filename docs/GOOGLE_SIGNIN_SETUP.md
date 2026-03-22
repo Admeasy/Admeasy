@@ -119,10 +119,42 @@ Implementation: `Server/controllers/googleIdTokenAuthController.js`.
 
 ---
 
-## 10) Testing checklist
+## 10) Initialization (fixes “hang after account picker” on Android)
 
-- [ ] **Web**: Login → Continue with Google → redirect → lands logged in.  
-- [ ] **Android debug**: SHA-1 in Cloud Console → native sheet → `POST /api/auth/google` 200 → home / onboarding.  
+`GoogleSignIn.initialize()` **must finish before** `signIn()`. The app calls **`ensureGoogleSignInInitialized()`** once at startup via **`GoogleSignInBootstrap`** (`App.jsx`). The login button only calls **`signIn()`** (no duplicate `initialize` on the same tap).
+
+Console tags: `[GoogleSignIn]`, `[GoogleSignInBootstrap]`.
+
+### Logcat (Android Studio)
+
+Filter: `GoogleSignIn` or `capawesome` or `Credential`.
+
+Expect after app open:
+
+- `[GoogleSignIn] initialize() starting, platform= android`
+- `[GoogleSignIn] initialize() OK (native)`
+
+After tapping Continue with Google and choosing an account:
+
+- `[GoogleSignIn] signIn() starting (native)`
+- `[GoogleSignIn] signIn() resolved, has idToken: true`
+- `[GoogleSignIn] POST /api/auth/google …`
+
+### Google Cloud — Web plugin redirect (optional)
+
+If you use the **Capawesome web** implicit flow (`runWebGoogleSignInWithPlugin`), add **Authorized redirect URI**:
+
+- `https://admeasy.in/login` (fragment response)
+- `http://localhost:5173/login` (dev)
+
+The default **Passport** “Continue with Google” link does **not** need this.
+
+---
+
+## 11) Testing checklist
+
+- [ ] **Web (Passport)**: Login → Continue with Google → redirect → lands logged in.  
+- [ ] **Android debug**: SHA-1 in Cloud Console → init logs → native sheet → `POST /api/auth/google` 200 → home / onboarding.  
 - [ ] **Android release**: Release SHA-1 registered → internal track / Play install.  
 - [ ] **iOS**: After `Info.plist` + URL scheme → TestFlight.  
 - [ ] Revoked Google account / wrong client ID → friendly toast, no crash.  
