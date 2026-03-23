@@ -13,6 +13,7 @@ const {
   generateRefreshToken,
   generateSwitchToken,
   setTokenCookies,
+  clearTokenCookies,
 } = require("../utils/auth.js");
 const router = express.Router();
 const User = require("../models/userSchema.js");
@@ -21,23 +22,6 @@ const nodemailer = require("nodemailer");
 const multer = require("multer");
 const BackblazeB2Client = require("../b2Client.js");
 const b2 = new BackblazeB2Client();
-const path = require("path");
-const {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-  extractPublicId,
-} = require("../utils/cloudinary.js");
-require("dotenv").config();
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const { Users } = require("../db.js");
-const NotificationService = require("../services/notificationService.js");
-const { verifyAdminToken } = require("../middleware/adminAuth.js");
-const passport = require("../middleware/passport.js");
-const {
-  authenticateRequired,
-  requireSelfOrAdmin,
-} = require("../middleware/combinedAuth.js");
 const path = require("path");
 const {
   uploadToCloudinary,
