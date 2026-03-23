@@ -38,6 +38,27 @@ const {
   authenticateRequired,
   requireSelfOrAdmin,
 } = require("../middleware/combinedAuth.js");
+const path = require("path");
+const {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+  extractPublicId,
+} = require("../utils/cloudinary.js");
+require("dotenv").config();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { Users } = require("../db.js");
+const NotificationService = require("../services/notificationService.js");
+const { verifyAdminToken } = require("../middleware/adminAuth.js");
+const passport = require("../middleware/passport.js");
+const {
+  authenticateRequired,
+  authenticateUserOrAdmin,
+  requireSelfOrAdmin,
+} = require("../middleware/combinedAuth.js");
+const {
+  postGoogleIdTokenLogin,
+} = require("../controllers/googleIdTokenAuthController.js");
 // UPDATE CURRENT USER (protected)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -341,20 +362,16 @@ router.post("/onboarding", async (req, res) => {
       if (password && user.password) {
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
-          return res
-            .status(401)
-            .json({
-              success: false,
-              message: "Invalid credentials. Please try logging in directly.",
-            });
+          return res.status(401).json({
+            success: false,
+            message: "Invalid credentials. Please try logging in directly.",
+          });
         }
       } else if (!password && user.password) {
-        return res
-          .status(401)
-          .json({
-            success: false,
-            message: "Please provide your password to complete onboarding.",
-          });
+        return res.status(401).json({
+          success: false,
+          message: "Please provide your password to complete onboarding.",
+        });
       }
     }
 
@@ -637,6 +654,9 @@ router.get("/auth/google", (req, res, next) => {
     session: false, // Disable sessions, use JWT instead
   })(req, res, next);
 });
+
+/** @deprecated Prefer POST /api/auth/google — kept for older app builds */
+router.post("/auth/google/native", postGoogleIdTokenLogin);
 
 // Google OAuth callback
 router.get(

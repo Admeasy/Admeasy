@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, Mail, Lock } from 'lucide-react';
 import { toast } from 'react-toastify';
-import logo from '../assets/Admeasy/favicon.ico';
+const logo = '/favicon.ico';
 import SEO from '../components/SEO';
 
 const AdvertiserLogin = () => {

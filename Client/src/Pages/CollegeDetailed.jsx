@@ -167,7 +167,7 @@ const CollegeDetailed = () => {
         title={`${college?.name || 'College'} - College Details | Admeasy`}
         description={college?.desc || `Complete information about ${college?.name || 'this college'} including courses, fees, placements, and more.`}
         keywords={`${college?.name}, ${college?.location}, college, ${college?.type || ''} college, admissions, courses, placements, ${college?.keywords?.join(', ') || ''}`}
-        image={college?.logo || 'https://admeasy.in/src/assets/Admeasy/LOGO.webp'}
+        image={college?.logo || 'https://admeasy.in/LOGO.webp'}
         url={`https://admeasy.in/colleges/${id}`}
       />
       <div className="fixed inset-0 pointer-events-none overflow-hidden">

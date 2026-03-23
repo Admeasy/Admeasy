@@ -45,7 +45,7 @@ import Chats from './Pages/Chats';
 import MentorChats from './Pages/MentorChats';
 import MentorChat from './Pages/MentorChat';
 import ManageMentors from './Pages/ManageMentors';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUser } from './context/UserContext';
 import { useMentor } from './context/MentorContext';
 import { SocketProvider } from './context/SocketContext';
@@ -92,6 +92,9 @@ import ManageSpaces from './Pages/ManageSpaces';
 import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans';
 import MentorForgotPassword from './Pages/MentorForgotPassword';
 import MentorResetPassword from './Pages/MentorResetPassword';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import GoogleSignInBootstrap from './components/GoogleSignInBootstrap';
 
 function App() {
   const location = useLocation();
@@ -100,6 +103,35 @@ function App() {
   const { user, setUser, fetchUser } = useUser();
   const { mentor } = useMentor();
   const navigate = useNavigate();
+  const lastBackPressRef = useRef(0);
+
+  // Android hardware back button: history back or double-tap to exit
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android') return;
+
+    const backHandler = CapacitorApp.addListener('backButton', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2000) {
+        CapacitorApp.exitApp();
+      } else {
+        lastBackPressRef.current = now;
+        toast.info('Press back again to exit', {
+          position: 'bottom-center',
+          autoClose: 2000,
+          toastId: 'back-to-exit',
+        });
+      }
+    });
+
+    return () => {
+      backHandler.remove();
+    };
+  }, []);
 
   // Username warning toast
   useEffect(() => {
@@ -279,6 +311,7 @@ function App() {
         draggable
         pauseOnHover
       />
+      <GoogleSignInBootstrap />
       <Routes>
         <Route path='/contact' element={<Contact />}></Route>
         {/* <Route path='/modal' element={<LoginModal />}></Route> */}

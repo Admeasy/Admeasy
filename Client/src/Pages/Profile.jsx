@@ -1169,7 +1169,9 @@ export default function Profile() {
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-500">
                     {profile.competitiveExamsCleared.length} exam
-                    {profile.competitiveExamsCleared.length !== 1 ? "s" : ""}{" "}
+                    {profile.competitiveExamsCleared.length !== 1
+                      ? "s"
+                      : ""}{" "}
                     cleared
                   </p>
                 </div>
