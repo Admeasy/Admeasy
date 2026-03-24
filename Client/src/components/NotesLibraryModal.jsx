@@ -65,7 +65,7 @@ export default function NotesLibraryModal({ isOpen, onClose }) {
         {/* --- Header --- */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-purple-100 text-purple-600 rounded-xl">
+            <div className="p-2.5 bg-[#9f3562]/10 text-[#9f3562] rounded-xl">
               <BookOpen size={24} />
             </div>
             <div>
@@ -99,7 +99,7 @@ export default function NotesLibraryModal({ isOpen, onClose }) {
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
-              <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-4 border-[#9f3562]/30 border-t-[#9f3562] rounded-full animate-spin"></div>
               <p className="text-sm font-medium text-gray-500">Loading notes...</p>
             </div>
           ) : filteredNotes.length > 0 ? (

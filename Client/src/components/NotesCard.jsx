@@ -100,7 +100,7 @@ const NotesCard = ({ note, compact = false }) => {
             </span>
 
             {/* Views */}
-            <span className="flex items-center gap-1.5 text-purple-600 font-semibold text-xs sm:text-sm">
+            <span className="flex items-center gap-1.5 text-[#9f3562] font-semibold text-xs sm:text-sm">
               <Eye className="w-4 h-4" />
               {note?.views ?? 0}
             </span>
