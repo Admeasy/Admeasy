@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
-import { useMentor } from '../context/MentorContext';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useUser } from "../context/UserContext";
+import { useMentor } from "../context/MentorContext";
 import {
   Heart,
   MessageCircle,
@@ -17,16 +17,17 @@ import {
   Repeat2,
   MoreVertical,
   Edit,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-toastify';
-import { Loader2 } from 'lucide-react';
-import ConfirmModal from '../components/ConfirmModal';
-import PostCard from '../components/PostCard';
-import PostViewTracker from '../components/PostViewTracker';
-import EditPostModal from '../components/EditPostModal';
-import SharePostModal from '../components/SharePostModal';
-import { processMentions } from '../utils/processMentions';
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
+import ConfirmModal from "../components/ConfirmModal";
+import PostCard from "../components/PostCard";
+import PostViewTracker from "../components/PostViewTracker";
+import EditPostModal from "../components/EditPostModal";
+import SharePostModal from "../components/SharePostModal";
+import { processMentions } from "../utils/processMentions";
+import PollCard from "../components/PollCard";
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -39,10 +40,10 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [postState, setPostState] = useState(null);
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
-  const [replyContent, setReplyContent] = useState('');
+  const [replyContent, setReplyContent] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [likingCommentId, setLikingCommentId] = useState(null);
   const [deletingCommentId, setDeletingCommentId] = useState(null);
@@ -74,22 +75,22 @@ const PostDetail = () => {
   const postMenuRef = useRef(null);
 
   const fallbackProfilePic =
-    'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
   const fetchPost = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/posts/${postId}`, {
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (!response.ok) {
         if (response.status === 404) {
-          toast.error('Post not found');
-          navigate('/');
+          toast.error("Post not found");
+          navigate("/");
           return;
         }
-        throw new Error('Failed to fetch post');
+        throw new Error("Failed to fetch post");
       }
 
       const data = await response.json();
@@ -99,12 +100,12 @@ const PostDetail = () => {
         setComments(data.post.comments || []);
         setIsFollowing(data.post.isFollowing || false);
       } else {
-        throw new Error(data.message || 'Failed to fetch post');
+        throw new Error(data.message || "Failed to fetch post");
       }
     } catch (error) {
-      console.error('Error fetching post:', error);
-      toast.error('Failed to load post. Please try again.');
-      navigate('/');
+      console.error("Error fetching post:", error);
+      toast.error("Failed to load post. Please try again.");
+      navigate("/");
     } finally {
       setLoading(false);
     }
@@ -120,47 +121,48 @@ const PostDetail = () => {
   }, [pathname]);
 
   // Fetch more posts (excluding current post)
-  const fetchMorePosts = useCallback(async (pageNum = 1, append = false) => {
-    if (isFetchingMorePostsRef.current) return;
-    isFetchingMorePostsRef.current = true;
+  const fetchMorePosts = useCallback(
+    async (pageNum = 1, append = false) => {
+      if (isFetchingMorePostsRef.current) return;
+      isFetchingMorePostsRef.current = true;
 
-    try {
-      if (!append) setLoadingMorePosts(true);
+      try {
+        if (!append) setLoadingMorePosts(true);
 
-      const response = await fetch(
-        `/api/posts?page=${pageNum}&limit=20`,
-        { credentials: 'include' }
-      );
+        const response = await fetch(`/api/posts?page=${pageNum}&limit=20`, {
+          credentials: "include",
+        });
 
-      if (!response.ok) throw new Error('Failed to fetch posts');
+        if (!response.ok) throw new Error("Failed to fetch posts");
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch posts');
+        if (!data.success) {
+          throw new Error(data.message || "Failed to fetch posts");
+        }
+
+        // Filter out the current post
+        const filteredPosts = data.posts.filter((p) => p._id !== postId);
+
+        setMorePosts((prev) => {
+          const newPosts = append ? [...prev, ...filteredPosts] : filteredPosts;
+          return newPosts;
+        });
+
+        setHasMorePosts(
+          filteredPosts.length > 0 && pageNum < data.pagination.pages,
+        );
+        setMorePostsPage(pageNum);
+      } catch (err) {
+        console.error("Error fetching more posts:", err);
+        // Don't show toast for background loading
+      } finally {
+        setLoadingMorePosts(false);
+        isFetchingMorePostsRef.current = false;
       }
-
-      // Filter out the current post
-      const filteredPosts = data.posts.filter(p => p._id !== postId);
-
-      setMorePosts((prev) => {
-        const newPosts = append ? [...prev, ...filteredPosts] : filteredPosts;
-        return newPosts;
-      });
-
-      setHasMorePosts(
-        filteredPosts.length > 0 &&
-        pageNum < data.pagination.pages
-      );
-      setMorePostsPage(pageNum);
-    } catch (err) {
-      console.error('Error fetching more posts:', err);
-      // Don't show toast for background loading
-    } finally {
-      setLoadingMorePosts(false);
-      isFetchingMorePostsRef.current = false;
-    }
-  }, [postId]);
+    },
+    [postId],
+  );
 
   // Load more posts when post is loaded
   useEffect(() => {
@@ -181,9 +183,9 @@ const PostDetail = () => {
       },
       {
         root: null,
-        rootMargin: '300px', // Start loading 300px before reaching the bottom
+        rootMargin: "300px", // Start loading 300px before reaching the bottom
         threshold: 0.1,
-      }
+      },
     );
 
     const currentTarget = morePostsObserverTargetRef.current;
@@ -196,14 +198,20 @@ const PostDetail = () => {
         observer.unobserve(currentTarget);
       }
     };
-  }, [hasMorePosts, loadingMorePosts, morePostsPage, morePosts.length, fetchMorePosts]);
+  }, [
+    hasMorePosts,
+    loadingMorePosts,
+    morePostsPage,
+    morePosts.length,
+    fetchMorePosts,
+  ]);
 
   // Update post in more posts list
   const updatePostInMorePosts = useCallback((updatedPost) => {
     setMorePosts((prev) =>
       prev.map((p) =>
-        p._id === updatedPost._id ? { ...p, ...updatedPost } : p
-      )
+        p._id === updatedPost._id ? { ...p, ...updatedPost } : p,
+      ),
     );
   }, []);
 
@@ -234,14 +242,16 @@ const PostDetail = () => {
       }
     };
 
-    window.addEventListener('postInteraction', handlePostInteraction);
-    return () => window.removeEventListener('postInteraction', handlePostInteraction);
+    window.addEventListener("postInteraction", handlePostInteraction);
+    return () =>
+      window.removeEventListener("postInteraction", handlePostInteraction);
   }, [postId]);
 
   useEffect(() => {
     if (!postState) return;
     const authorId = postState?.mentor?._id || postState?.author?._id;
-    if (!authorId || !viewer || viewer._id?.toString() === authorId.toString()) return;
+    if (!authorId || !viewer || viewer._id?.toString() === authorId.toString())
+      return;
 
     const handleFollowStatusChange = (event) => {
       const { targetId, isFollowing: newFollowingStatus } = event.detail;
@@ -250,16 +260,19 @@ const PostDetail = () => {
       }
     };
 
-    window.addEventListener('followStatusChanged', handleFollowStatusChange);
+    window.addEventListener("followStatusChanged", handleFollowStatusChange);
     return () => {
-      window.removeEventListener('followStatusChanged', handleFollowStatusChange);
+      window.removeEventListener(
+        "followStatusChanged",
+        handleFollowStatusChange,
+      );
     };
   }, [postState, viewer]);
 
   const handleRepost = async (e) => {
     e?.stopPropagation();
     if (!viewer) {
-      toast.info('Log in to repost');
+      toast.info("Log in to repost");
       return;
     }
 
@@ -278,15 +291,19 @@ const PostDetail = () => {
 
     setPostState(optimisticPost);
     window.dispatchEvent(
-      new CustomEvent('postInteraction', {
-        detail: { postId, isReposted: !wasReposted, repostCount: optimisticPost.repostCount },
+      new CustomEvent("postInteraction", {
+        detail: {
+          postId,
+          isReposted: !wasReposted,
+          repostCount: optimisticPost.repostCount,
+        },
       }),
     );
 
     try {
       const res = await fetch(`/api/posts/${postId}/repost`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
       const data = await res.json();
 
@@ -298,7 +315,7 @@ const PostDetail = () => {
         };
         setPostState(syncedPost);
         window.dispatchEvent(
-          new CustomEvent('postInteraction', {
+          new CustomEvent("postInteraction", {
             detail: { postId, ...data },
           }),
         );
@@ -308,7 +325,7 @@ const PostDetail = () => {
     } catch (error) {
       setPostState(postState); // Rollback
       window.dispatchEvent(
-        new CustomEvent('postInteraction', {
+        new CustomEvent("postInteraction", {
           detail: {
             postId,
             isReposted: wasReposted,
@@ -316,7 +333,7 @@ const PostDetail = () => {
           },
         }),
       );
-      toast.error('Failed to repost');
+      toast.error("Failed to repost");
     } finally {
       isInteracting.current.repost = false;
     }
@@ -324,7 +341,7 @@ const PostDetail = () => {
 
   const handleLike = async () => {
     if (!viewer) {
-      toast.info('Log in to like posts');
+      toast.info("Log in to like posts");
       return;
     }
 
@@ -343,15 +360,19 @@ const PostDetail = () => {
 
     setPostState(optimisticPost);
     window.dispatchEvent(
-      new CustomEvent('postInteraction', {
-        detail: { postId, isLiked: !wasLiked, likesCount: optimisticPost.likesCount },
+      new CustomEvent("postInteraction", {
+        detail: {
+          postId,
+          isLiked: !wasLiked,
+          likesCount: optimisticPost.likesCount,
+        },
       }),
     );
 
     try {
       const res = await fetch(`/api/posts/${postId}/like`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
       const data = await res.json();
 
@@ -362,7 +383,7 @@ const PostDetail = () => {
           likesCount: data.likesCount,
         }));
         window.dispatchEvent(
-          new CustomEvent('postInteraction', {
+          new CustomEvent("postInteraction", {
             detail: { postId, ...data },
           }),
         );
@@ -372,8 +393,12 @@ const PostDetail = () => {
     } catch (error) {
       setPostState(postState); // Rollback
       window.dispatchEvent(
-        new CustomEvent('postInteraction', {
-          detail: { postId, isLiked: wasLiked, likesCount: postState.likesCount },
+        new CustomEvent("postInteraction", {
+          detail: {
+            postId,
+            isLiked: wasLiked,
+            likesCount: postState.likesCount,
+          },
         }),
       );
     } finally {
@@ -383,7 +408,7 @@ const PostDetail = () => {
 
   const handleShare = async () => {
     if (!viewer) {
-      toast.info('Log in to share posts');
+      toast.info("Log in to share posts");
       return;
     }
     setShowShareModal(true);
@@ -391,7 +416,7 @@ const PostDetail = () => {
 
   const handleFollow = async () => {
     if (!viewer) {
-      toast.info('Log in to follow users and mentors');
+      toast.info("Log in to follow users and mentors");
       return;
     }
     if (isInteracting.current.follow) return;
@@ -404,9 +429,7 @@ const PostDetail = () => {
     }
 
     const isOwnPost =
-      viewer._id &&
-      authorId &&
-      viewer._id.toString() === authorId.toString();
+      viewer._id && authorId && viewer._id.toString() === authorId.toString();
     if (isOwnPost) {
       isInteracting.current.follow = false;
       return;
@@ -417,15 +440,15 @@ const PostDetail = () => {
 
     setIsFollowingLoading(true);
     fetch(`/api/users/${authorId}/follow`, {
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setIsFollowing(data.isFollowing);
           window.dispatchEvent(
-            new CustomEvent('followStatusChanged', {
+            new CustomEvent("followStatusChanged", {
               detail: {
                 targetId: authorId.toString(),
                 isFollowing: data.isFollowing,
@@ -437,7 +460,7 @@ const PostDetail = () => {
         }
       })
       .catch((error) => {
-        console.error('Error following:', error);
+        console.error("Error following:", error);
         setIsFollowing(previousFollowing);
       })
       .finally(() => {
@@ -449,7 +472,7 @@ const PostDetail = () => {
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!viewer) {
-      toast.info('Log in to comment');
+      toast.info("Log in to comment");
       return;
     }
     if (!newComment.trim() || isSubmittingComment) return;
@@ -460,7 +483,7 @@ const PostDetail = () => {
       _id: tempCommentId,
       user: {
         _id: viewer._id,
-        name: viewer.name || 'You',
+        name: viewer.name || "You",
         image: viewer.imageUrl || viewer.image,
       },
       content: commentContent,
@@ -476,17 +499,17 @@ const PostDetail = () => {
       commentsCount: (prev?.commentsCount || 0) + 1,
     }));
     window.dispatchEvent(
-      new CustomEvent('postInteraction', {
+      new CustomEvent("postInteraction", {
         detail: { postId, commentsCount: (postState?.commentsCount || 0) + 1 },
       }),
     );
-    setNewComment('');
+    setNewComment("");
     setIsSubmittingComment(true);
 
     fetch(`/api/posts/${postId}/comment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ content: commentContent }),
     })
       .then((res) => res.json())
@@ -504,7 +527,7 @@ const PostDetail = () => {
             commentsCount: data.commentsCount,
           }));
           window.dispatchEvent(
-            new CustomEvent('postInteraction', {
+            new CustomEvent("postInteraction", {
               detail: { postId, commentsCount: data.commentsCount },
             }),
           );
@@ -515,13 +538,10 @@ const PostDetail = () => {
             commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
           }));
           window.dispatchEvent(
-            new CustomEvent('postInteraction', {
+            new CustomEvent("postInteraction", {
               detail: {
                 postId,
-                commentsCount: Math.max(
-                  0,
-                  (postState?.commentsCount || 0) - 1,
-                ),
+                commentsCount: Math.max(0, (postState?.commentsCount || 0) - 1),
               },
             }),
           );
@@ -529,20 +549,17 @@ const PostDetail = () => {
         }
       })
       .catch((error) => {
-        console.error('Error adding comment:', error);
+        console.error("Error adding comment:", error);
         setComments((prev) => prev.filter((c) => c._id !== tempCommentId));
         setPostState((prev) => ({
           ...prev,
           commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
         }));
         window.dispatchEvent(
-          new CustomEvent('postInteraction', {
+          new CustomEvent("postInteraction", {
             detail: {
               postId,
-              commentsCount: Math.max(
-                0,
-                (postState?.commentsCount || 0) - 1,
-              ),
+              commentsCount: Math.max(0, (postState?.commentsCount || 0) - 1),
             },
           }),
         );
@@ -555,7 +572,7 @@ const PostDetail = () => {
 
   const handleReplySubmit = async (commentId) => {
     if (!viewer) {
-      toast.info('Log in to reply');
+      toast.info("Log in to reply");
       return;
     }
     if (!replyContent.trim() || isSubmittingReply) return;
@@ -566,7 +583,7 @@ const PostDetail = () => {
       _id: tempReplyId,
       user: {
         _id: viewer._id,
-        name: viewer.name || 'You',
+        name: viewer.name || "You",
         image: viewer.imageUrl || viewer.image,
       },
       content: replyText,
@@ -592,13 +609,13 @@ const PostDetail = () => {
       commentsCount: (prev?.commentsCount || 0) + 1,
     }));
     setReplyingTo(null);
-    setReplyContent('');
+    setReplyContent("");
     setIsSubmittingReply(true);
 
     fetch(`/api/posts/${postId}/comments/${commentId}/reply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ content: replyText }),
     })
       .then((res) => res.json())
@@ -622,7 +639,7 @@ const PostDetail = () => {
             commentsCount: data.commentsCount,
           }));
           window.dispatchEvent(
-            new CustomEvent('postInteraction', {
+            new CustomEvent("postInteraction", {
               detail: { postId, commentsCount: data.commentsCount },
             }),
           );
@@ -632,9 +649,7 @@ const PostDetail = () => {
               if (comment._id === commentId) {
                 return {
                   ...comment,
-                  replies: comment.replies.filter(
-                    (r) => r._id !== tempReplyId,
-                  ),
+                  replies: comment.replies.filter((r) => r._id !== tempReplyId),
                 };
               }
               return comment;
@@ -645,13 +660,10 @@ const PostDetail = () => {
             commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
           }));
           window.dispatchEvent(
-            new CustomEvent('postInteraction', {
+            new CustomEvent("postInteraction", {
               detail: {
                 postId,
-                commentsCount: Math.max(
-                  0,
-                  (postState?.commentsCount || 0) - 1,
-                ),
+                commentsCount: Math.max(0, (postState?.commentsCount || 0) - 1),
               },
             }),
           );
@@ -660,7 +672,7 @@ const PostDetail = () => {
         }
       })
       .catch((error) => {
-        console.error('Error adding reply:', error);
+        console.error("Error adding reply:", error);
         setComments((prev) =>
           prev.map((comment) => {
             if (comment._id === commentId) {
@@ -677,13 +689,10 @@ const PostDetail = () => {
           commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
         }));
         window.dispatchEvent(
-          new CustomEvent('postInteraction', {
+          new CustomEvent("postInteraction", {
             detail: {
               postId,
-              commentsCount: Math.max(
-                0,
-                (postState?.commentsCount || 0) - 1,
-              ),
+              commentsCount: Math.max(0, (postState?.commentsCount || 0) - 1),
             },
           }),
         );
@@ -698,7 +707,7 @@ const PostDetail = () => {
   // FIXED: like comment / like reply logic (removed malformed ternary / extra object)
   const handleCommentLike = async (commentId) => {
     if (!viewer) {
-      toast.info('Log in to like comments');
+      toast.info("Log in to like comments");
       return;
     }
     if (likingCommentId === commentId) return;
@@ -721,7 +730,10 @@ const PostDetail = () => {
           };
         }
 
-        if (comment.replies && comment.replies.some((r) => r._id === commentId)) {
+        if (
+          comment.replies &&
+          comment.replies.some((r) => r._id === commentId)
+        ) {
           parentCommentId = comment._id;
           return {
             ...comment,
@@ -748,8 +760,8 @@ const PostDetail = () => {
 
     setLikingCommentId(commentId);
     fetch(`/api/posts/${postId}/comments/${commentId}/like`, {
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
@@ -772,10 +784,10 @@ const PostDetail = () => {
                   replies: comment.replies.map((reply) =>
                     reply._id === commentId
                       ? {
-                        ...reply,
-                        isLiked: data.isLiked,
-                        likesCount: data.likesCount,
-                      }
+                          ...reply,
+                          isLiked: data.isLiked,
+                          likesCount: data.likesCount,
+                        }
                       : reply,
                   ),
                 };
@@ -800,10 +812,10 @@ const PostDetail = () => {
                   replies: comment.replies.map((reply) =>
                     reply._id === commentId
                       ? {
-                        ...reply,
-                        isLiked: previousLiked,
-                        likesCount: previousCount,
-                      }
+                          ...reply,
+                          isLiked: previousLiked,
+                          likesCount: previousCount,
+                        }
                       : reply,
                   ),
                 };
@@ -814,7 +826,7 @@ const PostDetail = () => {
         }
       })
       .catch((error) => {
-        console.error('Error liking comment:', error);
+        console.error("Error liking comment:", error);
         setComments((prev) =>
           prev.map((comment) => {
             if (comment._id === commentId) {
@@ -830,10 +842,10 @@ const PostDetail = () => {
                 replies: comment.replies.map((reply) =>
                   reply._id === commentId
                     ? {
-                      ...reply,
-                      isLiked: previousLiked,
-                      likesCount: previousCount,
-                    }
+                        ...reply,
+                        isLiked: previousLiked,
+                        likesCount: previousCount,
+                      }
                     : reply,
                 ),
               };
@@ -873,7 +885,10 @@ const PostDetail = () => {
           deletedComment = comment;
           return null;
         }
-        if (comment.replies && comment.replies.some((reply) => reply._id === commentId)) {
+        if (
+          comment.replies &&
+          comment.replies.some((reply) => reply._id === commentId)
+        ) {
           isReply = true;
           parentCommentId = comment._id;
           deletedComment = comment.replies.find((r) => r._id === commentId);
@@ -892,7 +907,7 @@ const PostDetail = () => {
       commentsCount: Math.max(0, (prev?.commentsCount || 0) - 1),
     }));
     window.dispatchEvent(
-      new CustomEvent('postInteraction', {
+      new CustomEvent("postInteraction", {
         detail: {
           postId,
           commentsCount: Math.max(0, (postState?.commentsCount || 0) - 1),
@@ -902,8 +917,8 @@ const PostDetail = () => {
 
     setDeletingCommentId(commentId);
     fetch(`/api/posts/${postId}/comments/${commentId}`, {
-      method: 'DELETE',
-      credentials: 'include',
+      method: "DELETE",
+      credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
@@ -913,7 +928,7 @@ const PostDetail = () => {
             commentsCount: data.commentsCount,
           }));
           window.dispatchEvent(
-            new CustomEvent('postInteraction', {
+            new CustomEvent("postInteraction", {
               detail: { postId, commentsCount: data.commentsCount },
             }),
           );
@@ -923,9 +938,9 @@ const PostDetail = () => {
               prev.map((comment) =>
                 comment._id === parentCommentId
                   ? {
-                    ...comment,
-                    replies: [...(comment.replies || []), deletedComment],
-                  }
+                      ...comment,
+                      replies: [...(comment.replies || []), deletedComment],
+                    }
                   : comment,
               ),
             );
@@ -937,22 +952,22 @@ const PostDetail = () => {
             commentsCount: (prev?.commentsCount || 0) + 1,
           }));
           window.dispatchEvent(
-            new CustomEvent('postInteraction', {
+            new CustomEvent("postInteraction", {
               detail: { postId, commentsCount: postState?.commentsCount || 0 },
             }),
           );
         }
       })
       .catch((error) => {
-        console.error('Error deleting comment:', error);
+        console.error("Error deleting comment:", error);
         if (isReply && parentCommentId) {
           setComments((prev) =>
             prev.map((comment) =>
               comment._id === parentCommentId
                 ? {
-                  ...comment,
-                  replies: [...(comment.replies || []), deletedComment],
-                }
+                    ...comment,
+                    replies: [...(comment.replies || []), deletedComment],
+                  }
                 : comment,
             ),
           );
@@ -964,7 +979,7 @@ const PostDetail = () => {
           commentsCount: (prev?.commentsCount || 0) + 1,
         }));
         window.dispatchEvent(
-          new CustomEvent('postInteraction', {
+          new CustomEvent("postInteraction", {
             detail: { postId, commentsCount: postState?.commentsCount },
           }),
         );
@@ -988,35 +1003,35 @@ const PostDetail = () => {
     try {
       setIsDeletingPost(true);
       const res = await fetch(`/api/posts/${postId}`, {
-        method: 'DELETE',
-        credentials: 'include',
+        method: "DELETE",
+        credentials: "include",
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to delete post');
+        throw new Error(data.message || "Failed to delete post");
       }
 
-      toast.success('Post deleted successfully');
+      toast.success("Post deleted successfully");
       setShowDeletePostModal(false);
       // Navigate back to feed after deletion
       setTimeout(() => {
-        navigate('/');
+        navigate("/");
       }, 500);
     } catch (err) {
       console.error(err);
-      toast.error(err.message || 'Failed to delete post');
+      toast.error(err.message || "Failed to delete post");
     } finally {
       setIsDeletingPost(false);
     }
   };
 
   const handlePostUpdated = (updatedPost) => {
-    setPostState(prev => ({ ...prev, ...updatedPost }));
+    setPostState((prev) => ({ ...prev, ...updatedPost }));
     // Broadcast update to other components
     window.dispatchEvent(
-      new CustomEvent('postInteraction', {
+      new CustomEvent("postInteraction", {
         detail: { postId, ...updatedPost },
       }),
     );
@@ -1027,15 +1042,15 @@ const PostDetail = () => {
     let cleanUrl = url;
     if (cleanUrl) {
       // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
       // Remove any HTML tags (decoded)
-      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+      cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
       // Remove any remaining angle brackets
-      cleanUrl = cleanUrl.replace(/[<>]/g, '');
+      cleanUrl = cleanUrl.replace(/[<>]/g, "");
       // Trim whitespace
       cleanUrl = cleanUrl.trim();
     }
-    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+    window.open(cleanUrl, "_blank", "noopener,noreferrer");
   };
 
   const formatDate = (dateString) => {
@@ -1043,15 +1058,17 @@ const PostDetail = () => {
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
 
-    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 60) return "just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800)
+      return `${Math.floor(diffInSeconds / 86400)}d ago`;
 
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -1061,7 +1078,7 @@ const PostDetail = () => {
         <div className="absolute top-1/4 left-1/4 w-48 sm:w-72 h-48 sm:h-72 bg-[#9f3562]/5 rounded-full blur-3xl animate-pulse" />
         <div
           className="absolute bottom-1/4 right-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '1s' }}
+          style={{ animationDelay: "1s" }}
         />
         <div className="flex flex-col items-center gap-3 sm:gap-4 relative z-10 px-4">
           <div className="relative">
@@ -1082,18 +1099,22 @@ const PostDetail = () => {
 
   // Check if the current viewer owns this post
   const authorId = postState?.mentor?._id || postState?.author?._id;
-  const isOwnPost = viewer && authorId && viewer._id && viewer._id.toString() === authorId.toString();
+  const isOwnPost =
+    viewer &&
+    authorId &&
+    viewer._id &&
+    viewer._id.toString() === authorId.toString();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#9f3562]/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '8s' }}
+          style={{ animationDuration: "8s" }}
         />
         <div
           className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '10s' }}
+          style={{ animationDuration: "10s" }}
         />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
@@ -1121,12 +1142,12 @@ const PostDetail = () => {
             {/* Header */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 md:p-6 border-b border-gray-100 flex-wrap">
               <Link
-                to={`/${author?.username || ''}`}
+                to={`/${author?.username || ""}`}
                 className="relative flex-shrink-0"
               >
                 <img
                   src={author?.image || fallbackProfilePic}
-                  alt={author?.name || 'User'}
+                  alt={author?.name || "User"}
                   className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover aspect-square ring-2 ring-gray-100 shadow-md"
                   onError={(e) => {
                     e.target.src = fallbackProfilePic;
@@ -1142,7 +1163,7 @@ const PostDetail = () => {
                     if (username) navigate(`/${username}`);
                   }}
                 >
-                  {author?.name || 'User'}
+                  {author?.name || "User"}
                 </h3>
                 {author?.username && (
                   <p
@@ -1166,7 +1187,7 @@ const PostDetail = () => {
                 (postState.mentor?._id || postState.author?._id) &&
                 viewer._id &&
                 (postState.mentor?._id || postState.author?._id).toString() !==
-                viewer._id.toString() &&
+                  viewer._id.toString() &&
                 !isFollowing && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -1222,7 +1243,9 @@ const PostDetail = () => {
                           className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />
-                          <span className="text-sm font-medium">Delete post</span>
+                          <span className="text-sm font-medium">
+                            Delete post
+                          </span>
                         </button>
                       </motion.div>
                     )}
@@ -1231,7 +1254,9 @@ const PostDetail = () => {
               )}
 
               <span className="text-[10px] sm:text-xs font-medium text-gray-400 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-50 rounded-full flex-shrink-0">
-                {postState.isEdited && <span className="text-gray-500">(Edited) </span>}
+                {postState.isEdited && (
+                  <span className="text-gray-500">(Edited) </span>
+                )}
                 {formatDate(postState.createdAt)}
               </span>
             </div>
@@ -1239,55 +1264,61 @@ const PostDetail = () => {
             {/* Content */}
             <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5">
               <style>{`
-                .post-content h1, .post-content h2, .post-content h3 { font-weight: 700; margin-top: 0.5rem; margin-bottom: 0.5rem; }
-                .post-content p { margin-bottom: 0.75rem; line-height: 1.6; }
-                .post-content ul, .post-content ol { margin-left: 1.5rem; margin-bottom: 0.75rem; }
-                .post-content ul { list-style: disc; }
-                .post-content ol { list-style: decimal; }
-                .post-content a { color: #9f3562; text-decoration: underline; }
-                .post-content a:hover { color: #b14270; }
-                .post-content table { border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; margin: 1rem 0; font-size: 0.875rem; }
-                .post-content table td, .post-content table th { padding: 0.5rem; border: 1px solid #e2e8f0; }
-                @media (max-width: 400px) {
-                  .post-content table { font-size: 0.75rem; }
-                  .post-content table td, .post-content table th { padding: 0.25rem; }
-                  .post-content ul, .post-content ol { margin-left: 1rem; }
-                }
-              `}</style>
-              <div
-                className="text-gray-800 break-words text-sm sm:text-base md:text-lg leading-relaxed post-content"
-                dangerouslySetInnerHTML={{ __html: processMentions(postState.content) }}
-                onClick={(e) => {
-                  // Handle mention link clicks
-                  const mentionLink = e.target.closest('a.mention-link');
-                  if (mentionLink) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const username = mentionLink.getAttribute('data-username');
-                    if (username) {
-                      navigate(`/${username}`);
-                    }
-                    return;
-                  }
+    .post-content h1, .post-content h2, .post-content h3 { font-weight: 700; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .post-content p { margin-bottom: 0.75rem; line-height: 1.6; }
+    .post-content ul, .post-content ol { margin-left: 1.5rem; margin-bottom: 0.75rem; }
+    .post-content ul { list-style: disc; }
+    .post-content ol { list-style: decimal; }
+    .post-content a { color: #9f3562; text-decoration: underline; }
+    .post-content a:hover { color: #b14270; }
+    .post-content table { border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; margin: 1rem 0; font-size: 0.875rem; }
+    .post-content table td, .post-content table th { padding: 0.5rem; border: 1px solid #e2e8f0; }
+    @media (max-width: 400px) {
+      .post-content table { font-size: 0.75rem; }
+      .post-content table td, .post-content table th { padding: 0.25rem; }
+      .post-content ul, .post-content ol { margin-left: 1rem; }
+    }
+  `}</style>
 
-                  // Intercept clicks on other links within post content
-                  const link = e.target.closest('a');
-                  if (link && link.href) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    let cleanUrl = link.href;
-                    // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-                    cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
-                    // Remove any HTML tags (decoded)
-                    cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
-                    // Remove any remaining angle brackets
-                    cleanUrl = cleanUrl.replace(/[<>]/g, '');
-                    // Trim whitespace
-                    cleanUrl = cleanUrl.trim();
-                    window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+              {postState.type === "poll" ? (
+                <PollCard
+                  post={postState}
+                  onVote={(updatedPost) =>
+                    setPostState((prev) => ({ ...prev, ...updatedPost }))
                   }
-                }}
-              />
+                />
+              ) : (
+                <div
+                  className="text-gray-800 break-words text-sm sm:text-base md:text-lg leading-relaxed post-content"
+                  dangerouslySetInnerHTML={{
+                    __html: postState.content
+                      ? processMentions(postState.content)
+                      : "",
+                  }}
+                  onClick={(e) => {
+                    const mentionLink = e.target.closest("a.mention-link");
+                    if (mentionLink) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const username =
+                        mentionLink.getAttribute("data-username");
+                      if (username) navigate(`/${username}`);
+                      return;
+                    }
+                    const link = e.target.closest("a");
+                    if (link && link.href) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      let cleanUrl = link.href;
+                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
+                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
+                      cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                      cleanUrl = cleanUrl.trim();
+                      window.open(cleanUrl, "_blank", "noopener,noreferrer");
+                    }
+                  }}
+                />
+              )}
             </div>
 
             {/* Image */}
@@ -1310,7 +1341,7 @@ const PostDetail = () => {
                 className="mx-3 sm:mx-4 md:mx-6 my-3 sm:my-4 md:my-5 border-2 border-gray-100 rounded-xl sm:rounded-2xl overflow-hidden hover:border-[#9f3562]/30 hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 md:p-5 bg-gradient-to-r from-gray-50 to-white group-hover:from-[#9f3562]/5 group-hover:to-pink-50/50 transition-all">
-                  {postState.externalLink.preview?.platform === 'youtube' ? (
+                  {postState.externalLink.preview?.platform === "youtube" ? (
                     <div className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-md">
                       <Youtube className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                     </div>
@@ -1319,7 +1350,7 @@ const PostDetail = () => {
                       {postState.externalLink.preview?.favicon ? (
                         <img
                           src={postState.externalLink.preview.favicon}
-                          alt={postState.externalLink.preview?.domain || 'Link'}
+                          alt={postState.externalLink.preview?.domain || "Link"}
                           className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 object-contain"
                         />
                       ) : (
@@ -1331,7 +1362,7 @@ const PostDetail = () => {
                     <p className="font-bold text-xs sm:text-sm md:text-base text-gray-900 line-clamp-1">
                       {postState.externalLink.preview?.title ||
                         postState.externalLink.preview?.domain ||
-                        'External Link'}
+                        "External Link"}
                     </p>
                     {postState.externalLink.preview?.domain && (
                       <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 mt-0.5 sm:mt-1">
@@ -1363,14 +1394,16 @@ const PostDetail = () => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLike}
-                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isLiked
-                  ? 'text-red-500'
-                  : 'text-gray-600 hover:text-red-500'
-                  }`}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${
+                  postState.isLiked
+                    ? "text-red-500"
+                    : "text-gray-600 hover:text-red-500"
+                }`}
               >
                 <Heart
-                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${postState.isLiked ? 'fill-current' : ''
-                    }`}
+                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${
+                    postState.isLiked ? "fill-current" : ""
+                  }`}
                 />
                 <span className="text-sm sm:text-base md:text-lg font-bold">
                   {postState.likesCount}
@@ -1388,14 +1421,16 @@ const PostDetail = () => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleRepost}
-                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${postState.isReposted
-                  ? 'text-[#9f3562]'
-                  : 'text-gray-600 hover:text-[#9f3562]'
-                  }`}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-colors ${
+                  postState.isReposted
+                    ? "text-[#9f3562]"
+                    : "text-gray-600 hover:text-[#9f3562]"
+                }`}
               >
                 <Repeat2
-                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${postState.isReposted ? 'fill-current' : ''
-                    }`}
+                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 ${
+                    postState.isReposted ? "fill-current" : ""
+                  }`}
                 />
                 {postState.repostCount > 0 && (
                   <span className="text-sm sm:text-base md:text-lg font-bold">
@@ -1449,7 +1484,7 @@ const PostDetail = () => {
                         >
                           <img
                             src={comment.user?.image || fallbackProfilePic}
-                            alt={comment.user?.name || 'User'}
+                            alt={comment.user?.name || "User"}
                             className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover aspect-square ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
                             onError={(e) => {
                               e.target.src = fallbackProfilePic;
@@ -1458,15 +1493,17 @@ const PostDetail = () => {
                         </Link>
                       ) : (
                         <Link
-                          to={`/${comment.user?.username || ''}`}
+                          to={`/${comment.user?.username || ""}`}
                           onClick={(e) => e.stopPropagation()}
                           className="flex-shrink-0"
                         >
                           <img
                             src={comment.user?.image || fallbackProfilePic}
-                            alt={comment.user?.name || 'User'}
+                            alt={comment.user?.name || "User"}
                             className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover aspect-square flex-shrink-0 ring-2 ring-gray-100 group-hover:ring-[#9f3562]/30 transition-all cursor-pointer"
-                            onError={(e) => { e.target.src = fallbackProfilePic; }}
+                            onError={(e) => {
+                              e.target.src = fallbackProfilePic;
+                            }}
                           />
                         </Link>
                       )}
@@ -1480,13 +1517,19 @@ const PostDetail = () => {
                               className="block"
                             >
                               <p className="font-semibold text-xs sm:text-sm text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
-                                {comment.user?.name || 'Unknown User'}
+                                {comment.user?.name || "Unknown User"}
                               </p>
                             </Link>
                           ) : (
-                            <Link to={`/${comment.user?.username || comment.user?._id}`} onClick={(e) => e.stopPropagation()} className="block">
+                            <Link
+                              to={`/${
+                                comment.user?.username || comment.user?._id
+                              }`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="block"
+                            >
                               <p className="font-semibold text-xs sm:text-sm text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
-                                {comment.user?.name || 'Unknown User'}
+                                {comment.user?.name || "Unknown User"}
                               </p>
                             </Link>
                           )}
@@ -1501,14 +1544,16 @@ const PostDetail = () => {
                               handleCommentLike(comment._id, comment.isLiked)
                             }
                             disabled={likingCommentId === comment._id}
-                            className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${comment.isLiked
-                              ? 'text-red-500'
-                              : 'text-gray-500 hover:text-red-500'
-                              }`}
+                            className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${
+                              comment.isLiked
+                                ? "text-red-500"
+                                : "text-gray-500 hover:text-red-500"
+                            }`}
                           >
                             <Heart
-                              className={`w-3 h-3 sm:w-4 sm:h-4 ${comment.isLiked ? 'fill-current' : ''
-                                }`}
+                              className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                                comment.isLiked ? "fill-current" : ""
+                              }`}
                             />
                             <span>{comment.likesCount || 0}</span>
                           </button>
@@ -1561,8 +1606,10 @@ const PostDetail = () => {
                                     className="flex-shrink-0"
                                   >
                                     <img
-                                      src={reply.user?.image || fallbackProfilePic}
-                                      alt={reply.user?.name || 'User'}
+                                      src={
+                                        reply.user?.image || fallbackProfilePic
+                                      }
+                                      alt={reply.user?.name || "User"}
                                       className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover aspect-square ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
                                       onError={(e) => {
                                         e.target.src = fallbackProfilePic;
@@ -1570,32 +1617,50 @@ const PostDetail = () => {
                                     />
                                   </Link>
                                 ) : (
-                                  <Link to={`/${reply.user?.username || reply.user?._id}`} onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                                  <Link
+                                    to={`/${
+                                      reply.user?.username || reply.user?._id
+                                    }`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-shrink-0"
+                                  >
                                     <img
-                                      src={reply.user?.image || fallbackProfilePic}
-                                      alt={reply.user?.name || 'User'}
+                                      src={
+                                        reply.user?.image || fallbackProfilePic
+                                      }
+                                      alt={reply.user?.name || "User"}
                                       className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover aspect-square ring-2 ring-gray-100 hover:ring-[#9f3562]/30 transition-all cursor-pointer"
-                                      onError={(e) => { e.target.src = fallbackProfilePic; }}
+                                      onError={(e) => {
+                                        e.target.src = fallbackProfilePic;
+                                      }}
                                     />
                                   </Link>
                                 )}
 
                                 <div className="flex-1 min-w-0">
                                   <div className="bg-gray-50 rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-100">
-                                    {viewer && reply.user?._id === viewer._id ? (
+                                    {viewer &&
+                                    reply.user?._id === viewer._id ? (
                                       <Link
                                         to="/me"
                                         onClick={(e) => e.stopPropagation()}
                                         className="block"
                                       >
                                         <p className="font-semibold text-[10px] sm:text-xs text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
-                                          {reply.user?.name || 'Unknown User'}
+                                          {reply.user?.name || "Unknown User"}
                                         </p>
                                       </Link>
                                     ) : (
-                                      <Link to={`/${reply.user?.username || reply.user?._id}`} onClick={(e) => e.stopPropagation()} className="block">
+                                      <Link
+                                        to={`/${
+                                          reply.user?.username ||
+                                          reply.user?._id
+                                        }`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="block"
+                                      >
                                         <p className="font-semibold text-[10px] sm:text-xs text-gray-900 hover:text-[#9f3562] transition-colors cursor-pointer">
-                                          {reply.user?.name || 'Unknown User'}
+                                          {reply.user?.name || "Unknown User"}
                                         </p>
                                       </Link>
                                     )}
@@ -1607,38 +1672,46 @@ const PostDetail = () => {
                                   <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-1.5 ml-2 sm:ml-3 flex-wrap">
                                     <button
                                       onClick={() =>
-                                        handleCommentLike(reply._id, reply.isLiked)
+                                        handleCommentLike(
+                                          reply._id,
+                                          reply.isLiked,
+                                        )
                                       }
                                       disabled={likingCommentId === reply._id}
-                                      className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${reply.isLiked
-                                        ? 'text-red-500'
-                                        : 'text-gray-500 hover:text-red-500'
-                                        }`}
+                                      className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium transition-colors disabled:opacity-50 ${
+                                        reply.isLiked
+                                          ? "text-red-500"
+                                          : "text-gray-500 hover:text-red-500"
+                                      }`}
                                     >
                                       <Heart
-                                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${reply.isLiked ? 'fill-current' : ''
-                                          }`}
+                                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                                          reply.isLiked ? "fill-current" : ""
+                                        }`}
                                       />
                                       <span>{reply.likesCount || 0}</span>
                                     </button>
                                     <span className="text-[10px] sm:text-xs text-gray-500">
                                       {formatDate(reply.createdAt)}
                                     </span>
-                                    {viewer && reply.user?._id === viewer._id && (
-                                      <button
-                                        onClick={() =>
-                                          handleCommentDeleteClick(
-                                            reply._id,
-                                            true,
-                                            comment._id,
-                                          )
-                                        }
-                                        disabled={deletingCommentId === reply._id}
-                                        className="ml-auto flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
-                                      >
-                                        <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                      </button>
-                                    )}
+                                    {viewer &&
+                                      reply.user?._id === viewer._id && (
+                                        <button
+                                          onClick={() =>
+                                            handleCommentDeleteClick(
+                                              reply._id,
+                                              true,
+                                              comment._id,
+                                            )
+                                          }
+                                          disabled={
+                                            deletingCommentId === reply._id
+                                          }
+                                          className="ml-auto flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
+                                        >
+                                          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        </button>
+                                      )}
                                   </div>
                                 </div>
                               </div>
@@ -1656,13 +1729,13 @@ const PostDetail = () => {
                               placeholder="Write a reply..."
                               className="flex-1 min-w-[120px] px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9f3562]/30 focus:border-[#9f3562] transition-all"
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.key === "Enter" && !e.shiftKey) {
                                   e.preventDefault();
                                   handleReplySubmit(comment._id);
                                 }
-                                if (e.key === 'Escape') {
+                                if (e.key === "Escape") {
                                   setReplyingTo(null);
-                                  setReplyContent('');
+                                  setReplyContent("");
                                 }
                               }}
                               autoFocus
@@ -1671,7 +1744,9 @@ const PostDetail = () => {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => handleReplySubmit(comment._id)}
-                              disabled={!replyContent.trim() || isSubmittingReply}
+                              disabled={
+                                !replyContent.trim() || isSubmittingReply
+                              }
                               className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold"
                             >
                               {isSubmittingReply ? (
@@ -1683,7 +1758,7 @@ const PostDetail = () => {
                             <button
                               onClick={() => {
                                 setReplyingTo(null);
-                                setReplyContent('');
+                                setReplyContent("");
                               }}
                               className="px-2 sm:px-3 py-1.5 sm:py-2 text-gray-600 hover:text-gray-800 transition-colors text-xs sm:text-sm"
                             >
@@ -1707,7 +1782,7 @@ const PostDetail = () => {
                     (viewer && (viewer.imageUrl || viewer.image)) ||
                     fallbackProfilePic
                   }
-                  alt={viewer?.name || 'User avatar'}
+                  alt={viewer?.name || "User avatar"}
                   className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full object-cover aspect-square flex-shrink-0 ring-2 ring-gray-100"
                   onError={(e) => {
                     e.target.src = fallbackProfilePic;
@@ -1719,7 +1794,7 @@ const PostDetail = () => {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder={
-                      viewer ? 'Add a comment...' : 'Log in to comment'
+                      viewer ? "Add a comment..." : "Log in to comment"
                     }
                     disabled={!viewer}
                     className="flex-1 px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/30 focus:border-[#9f3562] disabled:bg-gray-100 disabled:text-gray-400 transition-all text-xs sm:text-sm md:text-base"
@@ -1828,8 +1903,8 @@ const PostDetail = () => {
         title="Delete Comment"
         message={
           confirmModal.isReply
-            ? 'Are you sure you want to delete this reply? This action cannot be undone.'
-            : 'Are you sure you want to delete this comment? This action cannot be undone.'
+            ? "Are you sure you want to delete this reply? This action cannot be undone."
+            : "Are you sure you want to delete this comment? This action cannot be undone."
         }
         confirmText="Delete"
         cancelText="Cancel"

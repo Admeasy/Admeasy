@@ -22,6 +22,7 @@ import { useMentor } from "../context/MentorContext";
 import { processMentions } from "../utils/processMentions";
 import CreateNoteTab from "../components/CreateNoteTab";
 import CreatePollTab from "../components/CreatePollTab";
+import PollCard from "../components/PollCard";
 
 // Registration stays the same...
 Quill.register("modules/tableUI", TableUI, true);
@@ -747,37 +748,50 @@ const MentorPost = () => {
                 </div>
 
                 {/* Content */}
-                <div
-                  className="text-[15px] text-slate-700 post-content leading-relaxed"
-                  dangerouslySetInnerHTML={{
-                    __html: processMentions(post.content),
-                  }}
-                  onClick={(e) => {
-                    const mentionLink = e.target.closest("a.mention-link");
-                    if (mentionLink) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const username =
-                        mentionLink.getAttribute("data-username");
-                      if (username) {
-                        navigate(`/${username}`);
+                {post.type === "poll" ? (
+                  <PollCard
+                    post={post}
+                    onVote={(updatePost) =>
+                      setPosts((prev) =>
+                        prev.map((p) =>
+                          p._id === updatePost._id ? updatePost : p,
+                        ),
+                      )
+                    }
+                  />
+                ) : (
+                  <div
+                    className="text-[15px] text-slate-700 post-content leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: post.content ? processMentions(post.content) : "",
+                    }}
+                    onClick={(e) => {
+                      const mentionLink = e.target.closest("a.mention-link");
+                      if (mentionLink) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const username =
+                          mentionLink.getAttribute("data-username");
+                        if (username) {
+                          navigate(`/${username}`);
+                        }
+                        return;
                       }
-                      return;
-                    }
 
-                    const link = e.target.closest("a");
-                    if (link && link.href) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      let cleanUrl = link.href;
-                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                      cleanUrl = cleanUrl.replace(/[<>]/g, "");
-                      cleanUrl = cleanUrl.trim();
-                      window.open(cleanUrl, "_blank", "noopener,noreferrer");
-                    }
-                  }}
-                />
+                      const link = e.target.closest("a");
+                      if (link && link.href) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        let cleanUrl = link.href;
+                        cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
+                        cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
+                        cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                        cleanUrl = cleanUrl.trim();
+                        window.open(cleanUrl, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                  />
+                )}
 
                 {/* Hashtags Display (Optional here, but useful) */}
                 {post.hashtags && post.hashtags.length > 0 && (

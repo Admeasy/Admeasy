@@ -1,27 +1,37 @@
-const mongoose = require('mongoose');
-const { Admeasy } = require('../db');
+const mongoose = require("mongoose");
+const { Admeasy } = require("../db");
 
 const postSchema = new mongoose.Schema(
   {
+    type: {
+      type: String,
+      enum: ["post", "poll", "mcq", "notes"],
+      default: "post",
+    },
+
     mentorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Mentor', // Fixed: Changed from 'Mentors' to 'Mentor' to match model registration
+      ref: "Mentor", // Fixed: Changed from 'Mentors' to 'Mentor' to match model registration
       required: false, // Made optional to support user posts
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Users',
+      ref: "Users",
       required: false, // Made optional to support mentor posts
     },
     content: {
       type: String,
-      required: true,
+      required: false, //was required true before implementing poll and mcq
       trim: true,
+      default: null,
     },
-    hashtags: [{          // NEW: Array of strings for hashtags
-      type: String,
-      trim: true,
-    }],
+    hashtags: [
+      {
+        // NEW: Array of strings for hashtags
+        type: String,
+        trim: true,
+      },
+    ],
     image: {
       type: String, // Cloudinary URL
       default: null,
@@ -58,69 +68,111 @@ const postSchema = new mongoose.Schema(
         },
         platform: {
           type: String,
-          enum: ['youtube', 'website', 'other'],
-          default: 'website',
+          enum: ["youtube", "website", "other"],
+          default: "website",
         },
       },
     },
-    likes: [{
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      },
-    }],
-    likesCount: {
-      type: Number,
-      default: 0,
-    },
-    comments: [{
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Users',
-      },
-      content: {
+
+    //add poll doc
+    poll: {
+      question: {
         type: String,
-        required: true,
         trim: true,
+        default: null,
       },
-      likes: [{
+      options: [
+        {
+          text: {
+            type: String,
+            trim: true,
+            required: true,
+          },
+          votes: {
+            type: Number,
+            default: 0,
+          },
+          // Store IDs of users/mentors who voted for this option
+          // Used to enforce one-vote-per-user rule
+          votedBy: [
+            {
+              type: mongoose.Schema.Types.ObjectId,
+              //can be either mentor or user, so we won't use ref here,stored raw object id
+            },
+          ],
+        },
+      ],
+      //total unique voters across all options (for quick display)
+      totalVotes: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    likes: [
+      {
         userId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Users',
+          ref: "Users",
         },
         createdAt: {
           type: Date,
           default: Date.now,
         },
-      }],
-      likesCount: {
-        type: Number,
-        default: 0,
       },
-      parentCommentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        default: null,
+    ],
+    likesCount: {
+      type: Number,
+      default: 0,
+    },
+    comments: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Users",
+        },
+        content: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        likes: [
+          {
+            userId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "Users",
+            },
+            createdAt: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+        ],
+        likesCount: {
+          type: Number,
+          default: 0,
+        },
+        parentCommentId: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: null,
+        },
+        deleted: {
+          type: Boolean,
+          default: false,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
-      deleted: {
-        type: Boolean,
-        default: false,
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      },
-    }],
+    ],
     commentsCount: {
       type: Number,
       default: 0,
     },
     repostOf: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Posts',
+      ref: "Posts",
       default: null,
     },
     repostCount: {
@@ -138,16 +190,32 @@ const postSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
+//content only required for type post, not for poll or mcq or notes
+//polls require poll.question and poll.options instead
 // Validation: At least one of mentorId or userId must be present
-postSchema.pre('validate', function(next) {
+postSchema.pre("validate", function (next) {
   if (!this.mentorId && !this.userId) {
-    return next(new Error('Either mentorId or userId must be provided'));
+    return next(new Error("Either mentorId or userId must be provided"));
   }
   if (this.mentorId && this.userId) {
-    return next(new Error('Post cannot have both mentorId and userId'));
+    return next(new Error("Post cannot have both mentorId and userId"));
+  }
+  if (this.type === "post" && (!this.content || !this.content.trim())) {
+    return next(new Error("Content is required for post type"));
+  }
+  if (this.type === "poll") {
+    if (!this.poll || !this.poll.question || !this.poll.question.trim()) {
+      return next(new Error("Poll question is required for poll type"));
+    }
+    if (!this.poll.options || this.poll.options.length < 2) {
+      return next(new Error("Poll must have at least 2 options"));
+    }
+    if (this.poll.options.length > 4) {
+      return next(new Error("Poll cannot have more than 4 options"));
+    }
   }
   next();
 });
@@ -157,10 +225,9 @@ postSchema.index({ hashtags: 1 });
 postSchema.index({ mentorId: 1, createdAt: -1 });
 postSchema.index({ userId: 1, createdAt: -1 });
 postSchema.index({ createdAt: -1 });
-postSchema.index({ 'comments.deleted': 1, 'comments.createdAt': 1 });
-postSchema.index({ 'comments.parentCommentId': 1 });
+postSchema.index({ "comments.deleted": 1, "comments.createdAt": 1 });
+postSchema.index({ "comments.parentCommentId": 1 });
 // Compound index for feed queries
 postSchema.index({ createdAt: -1, likesCount: -1 });
 
-module.exports = Admeasy.models.PPosts || Admeasy.model('Posts', postSchema);
-
+module.exports = Admeasy.models.PPosts || Admeasy.model("Posts", postSchema);

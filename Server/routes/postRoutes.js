@@ -600,6 +600,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
 
       return {
         _id: post._id,
+        type: post.type || "post",
         mentor: author, // Keep 'mentor' key for backward compatibility
         author: author, // Add 'author' key for clarity
         content: post.content,
@@ -616,7 +617,41 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
-        commentPreview, // Add comment preview
+        commentPreview, // Add comment preview,
+        poll:
+          post.type === "poll"
+            ? {
+                question: post.poll?.question,
+                options: (post.poll?.options || []).map((opt) => ({
+                  _id: opt._id,
+                  text: opt.text,
+                  votes: opt.votes,
+                  percentage:
+                    post.poll.totalVotes > 0
+                      ? Math.round((opt.votes / post.poll.totalVotes) * 100)
+                      : 0,
+                })),
+                totalVotes: post.poll?.totalVotes || 0,
+              }
+            : null, // Add poll data if type is poll
+        hasVoted:
+          post.type === "poll" && currentUser
+            ? (post.poll?.options || []).some((opt) =>
+                (opt.votedBy || []).some(
+                  (id) => id.toString() === currentUser._id.toString(),
+                ),
+              )
+            : false,
+        userVotedOption:
+          post.type === "poll" && currentUser
+            ? (post.poll?.options || [])
+                .find((opt) =>
+                  (opt.votedBy || []).some(
+                    (id) => id.toString() === currentUser._id.toString(),
+                  ),
+                )
+                ?._id?.toString() || null
+            : null,
       };
     });
 
@@ -706,6 +741,7 @@ router.get("/user/:userId", async (req, res) => {
 
       return {
         _id: post._id,
+        type: post.type || "post",
         mentor: author,
         author: author,
         content: post.content,
@@ -729,6 +765,40 @@ router.get("/user/:userId", async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
+        poll:
+          post.type === "poll"
+            ? {
+                question: post.poll?.question,
+                options: (post.poll?.options || []).map((opt) => ({
+                  _id: opt._id,
+                  text: opt.text,
+                  votes: opt.votes,
+                  percentage:
+                    post.poll.totalVotes > 0
+                      ? Math.round((opt.votes / post.poll.totalVotes) * 100)
+                      : 0,
+                })),
+                totalVotes: post.poll?.totalVotes || 0,
+              }
+            : null,
+        hasVoted:
+          post.type === "poll" && currentUser
+            ? (post.poll?.options || []).some((opt) =>
+                (opt.votedBy || []).some(
+                  (id) => id.toString() === currentUser._id.toString(),
+                ),
+              )
+            : false,
+        userVotedOption:
+          post.type === "poll" && currentUser
+            ? (post.poll?.options || [])
+                .find((opt) =>
+                  (opt.votedBy || []).some(
+                    (id) => id.toString() === currentUser._id.toString(),
+                  ),
+                )
+                ?._id?.toString() || null
+            : null,
       };
     });
 
@@ -845,6 +915,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
 
       return {
         _id: post._id,
+        type: post.type || "post",
         mentor: author,
         author: author,
         content: post.content,
@@ -861,6 +932,40 @@ router.get("/mentor/:mentorId", async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
+        poll:
+          post.type === "poll"
+            ? {
+                question: post.poll?.question,
+                options: (post.poll?.options || []).map((opt) => ({
+                  _id: opt._id,
+                  text: opt.text,
+                  votes: opt.votes,
+                  percentage:
+                    post.poll.totalVotes > 0
+                      ? Math.round((opt.votes / post.poll.totalVotes) * 100)
+                      : 0,
+                })),
+                totalVotes: post.poll?.totalVotes || 0,
+              }
+            : null,
+        hasVoted:
+          post.type === "poll" && currentUser
+            ? (post.poll?.options || []).some((opt) =>
+                (opt.votedBy || []).some(
+                  (id) => id.toString() === currentUser._id.toString(),
+                ),
+              )
+            : false,
+        userVotedOption:
+          post.type === "poll" && currentUser
+            ? (post.poll?.options || [])
+                .find((opt) =>
+                  (opt.votedBy || []).some(
+                    (id) => id.toString() === currentUser._id.toString(),
+                  ),
+                )
+                ?._id?.toString() || null
+            : null,
       };
     });
 
@@ -1102,6 +1207,7 @@ router.get("/:postId", async (req, res) => {
 
     const formattedPost = {
       _id: post._id,
+      type: post.type || "post",
       mentor: author, // Keep 'mentor' key for backward compatibility
       author: author, // Add 'author' key for clarity
       content: post.content,
@@ -1127,6 +1233,40 @@ router.get("/:postId", async (req, res) => {
       updatedAt: post.updatedAt,
       isEdited: post.isEdited || false,
       editedAt: post.editedAt || null,
+      poll:
+        post.type === "poll" // ← add this
+          ? {
+              question: post.poll?.question,
+              options: (post.poll?.options || []).map((opt) => ({
+                _id: opt._id,
+                text: opt.text,
+                votes: opt.votes,
+                percentage:
+                  post.poll.totalVotes > 0
+                    ? Math.round((opt.votes / post.poll.totalVotes) * 100)
+                    : 0,
+              })),
+              totalVotes: post.poll?.totalVotes || 0,
+            }
+          : null,
+      hasVoted:
+        post.type === "poll" && currentUser // ← add this
+          ? (post.poll?.options || []).some((opt) =>
+              (opt.votedBy || []).some(
+                (id) => id.toString() === currentUser._id.toString(),
+              ),
+            )
+          : false,
+      userVotedOption:
+        post.type === "poll" && currentUser // ← add this
+          ? (post.poll?.options || [])
+              .find((opt) =>
+                (opt.votedBy || []).some(
+                  (id) => id.toString() === currentUser._id.toString(),
+                ),
+              )
+              ?._id?.toString() || null
+          : null,
     };
 
     res.json({ success: true, post: formattedPost });
@@ -1140,13 +1280,279 @@ router.get("/:postId", async (req, res) => {
  * POST /api/posts
  * Create a new post (mentors and users)
  */
+// router.post(
+//   "/",
+//   authenticateRequired,
+//   upload.single("image"),
+//   async (req, res) => {
+//     try {
+//       const { content, hashtags } = req.body; // NEW: Extract hashtags from req.body
+
+//       if (!content || !content.trim()) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Content is required",
+//         });
+//       }
+
+//       // Detect URL in content
+//       const detectedUrl = detectUrl(content);
+//       let linkPreview = null;
+
+//       if (detectedUrl) {
+//         try {
+//           linkPreview = await generateLinkPreview(detectedUrl);
+//         } catch (previewError) {
+//           console.log("Link preview generation failed:", previewError.message);
+//           // Continue without preview
+//         }
+//       }
+
+//       // Handle image upload
+//       let imageUrl = null;
+//       if (req.file) {
+//         try {
+//           imageUrl = await uploadToCloudinary(req.file.path, "posts");
+//         } catch (uploadError) {
+//           console.error("Error uploading image:", uploadError);
+//           return res.status(500).json({
+//             success: false,
+//             message: "Error uploading image",
+//           });
+//         }
+//       }
+
+//       // Create post - support both mentors and users
+//       const postData = {
+//         content: content.trim(),
+//         image: imageUrl,
+//         hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse and save the hashtags array
+//       };
+
+//       if (req.mentor) {
+//         postData.mentorId = req.mentor._id;
+//       } else if (req.user) {
+//         postData.userId = req.user._id;
+//       }
+
+//       if (linkPreview) {
+//         postData.externalLink = {
+//           url: linkPreview.url,
+//           preview: {
+//             title: linkPreview.title,
+//             description: linkPreview.description,
+//             image: linkPreview.image,
+//             domain: linkPreview.domain,
+//             platform: linkPreview.platform,
+//             favicon: linkPreview.favicon,
+//           },
+//         };
+//       }
+
+//       const post = new Post(postData);
+//       await post.save();
+
+//       // Populate the appropriate author (mentor or user)
+//       if (post.mentorId) {
+//         await post.populate("mentorId", "name username image");
+//       } else if (post.userId) {
+//         // Manually populate user since it's on a different connection
+//         const user = await populateUser(post.userId);
+//         post.userId = user;
+//       }
+
+//       // Format response based on author type
+//       const author = post.mentorId
+//         ? {
+//             _id: post.mentorId._id,
+//             name: post.mentorId.name,
+//             username: post.mentorId.username,
+//             image: post.mentorId.image,
+//           }
+//         : post.userId
+//           ? {
+//               _id: post.userId._id,
+//               name: post.userId.name,
+//               username: post.userId.username || null,
+//               image: post.userId.image,
+//             }
+//           : null;
+
+//       res.status(201).json({
+//         success: true,
+//         message: "Post created successfully",
+//         post: {
+//           _id: post._id,
+//           mentor: author, // Keep 'mentor' key for backward compatibility
+//           author: author, // Add 'author' key for clarity
+//           content: post.content,
+//           image: post.image,
+//           hashtags: post.hashtags || [], // NEW: Send hashtags back to the client immediately
+//           externalLink: post.externalLink,
+//           likesCount: post.likesCount,
+//           commentsCount: post.commentsCount,
+//           createdAt: post.createdAt,
+//           updatedAt: post.updatedAt,
+//           isEdited: post.isEdited || false,
+//           editedAt: post.editedAt || null,
+//         },
+//       });
+
+//       // Create mention notifications (async, don't block response)
+//       (async () => {
+//         try {
+//           const actorId = req.mentor ? req.mentor._id : req.user._id;
+//           const actorRole = req.mentor ? "mentor" : "user";
+//           const actorName = author?.name || "Someone";
+//           await createMentionNotifications(
+//             content,
+//             post._id,
+//             actorId,
+//             actorRole,
+//             actorName,
+//           );
+//         } catch (err) {
+//           console.error("Error creating mention notifications (create):", err);
+//         }
+//       })();
+
+//       // Notify followers using new notification system
+//       (async () => {
+//         try {
+//           const authorDoc = req.mentor || req.user;
+//           const authorId = authorDoc._id;
+//           const authorName = author ? author.name : authorDoc.name || "Someone";
+//           const authorRole = req.mentor ? "mentor" : "user";
+//           const followers = authorDoc.followers || [];
+
+//           if (followers.length > 0) {
+//             // Determine recipient role (assume users for now, but could be mixed)
+//             // For simplicity, we'll use 'user' as default, but this could be enhanced
+//             await NotificationManager.createAndSendMultiple({
+//               recipientIds: followers,
+//               recipientRole: "user", // Could be enhanced to check actual role
+//               actorId: authorId,
+//               type: "FOLLOWING_POST",
+//               entityType: "POST",
+//               entityId: post._id,
+//               originPath: `/posts/${post._id}`,
+//               message: `${authorName} posted something new`,
+//               actorInfo: { name: authorName, username: author?.username },
+//             });
+//           }
+//         } catch (err) {
+//           console.error("Error sending new post notification:", err);
+//         }
+//       })();
+//     } catch (error) {
+//       console.error("Error creating post:", error);
+//       res
+//         .status(500)
+//         .json({ success: false, message: "Internal Server Error" });
+//     }
+//   },
+// );
 router.post(
   "/",
   authenticateRequired,
   upload.single("image"),
   async (req, res) => {
     try {
-      const { content, hashtags } = req.body; // NEW: Extract hashtags from req.body
+      const { type = "post", hashtags } = req.body;
+
+      // ── POLL branch ──────────────────────────────────────────────────────
+      if (type === "poll") {
+        const { question, options: rawOptions } = req.body;
+
+        // Parse options — frontend sends JSON string
+        let options;
+        try {
+          options =
+            typeof rawOptions === "string"
+              ? JSON.parse(rawOptions)
+              : rawOptions;
+        } catch {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid options format",
+          });
+        }
+
+        if (!question || !question.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: "Poll question is required",
+          });
+        }
+
+        if (!options || options.length < 2 || options.length > 4) {
+          return res.status(400).json({
+            success: false,
+            message: "Poll must have between 2 and 4 options",
+          });
+        }
+
+        const postData = {
+          type: "poll",
+          poll: {
+            question: question.trim(),
+            options: options.map((opt) => ({
+              text: opt.text.trim(),
+              votes: 0,
+              votedBy: [],
+            })),
+            totalVotes: 0,
+          },
+        };
+
+        if (req.mentor) postData.mentorId = req.mentor._id;
+        else if (req.user) postData.userId = req.user._id;
+
+        const post = new Post(postData);
+        await post.save();
+
+        // Populate author
+        let author = null;
+        if (post.mentorId) {
+          await post.populate("mentorId", "name username image");
+          author = {
+            _id: post.mentorId._id,
+            name: post.mentorId.name,
+            username: post.mentorId.username,
+            image: post.mentorId.image,
+          };
+        } else if (post.userId) {
+          const user = await populateUser(post.userId);
+          author = user;
+        }
+
+        return res.status(201).json({
+          success: true,
+          message: "Poll created successfully",
+          post: {
+            _id: post._id,
+            type: "poll",
+            author,
+            mentor: author,
+            poll: {
+              question: post.poll.question,
+              options: post.poll.options.map((opt) => ({
+                _id: opt._id,
+                text: opt.text,
+                votes: 0,
+              })),
+              totalVotes: 0,
+            },
+            hasVoted: false,
+            userVotedOption: null,
+            createdAt: post.createdAt,
+          },
+        });
+      }
+      // ── END POLL branch ──────────────────────────────────────────────────
+
+      // ── Original POST branch (no changes below this line) ────────────────
+      const { content } = req.body;
 
       if (!content || !content.trim()) {
         return res.status(400).json({
@@ -1155,7 +1561,6 @@ router.post(
         });
       }
 
-      // Detect URL in content
       const detectedUrl = detectUrl(content);
       let linkPreview = null;
 
@@ -1164,11 +1569,9 @@ router.post(
           linkPreview = await generateLinkPreview(detectedUrl);
         } catch (previewError) {
           console.log("Link preview generation failed:", previewError.message);
-          // Continue without preview
         }
       }
 
-      // Handle image upload
       let imageUrl = null;
       if (req.file) {
         try {
@@ -1182,18 +1585,15 @@ router.post(
         }
       }
 
-      // Create post - support both mentors and users
       const postData = {
+        type: "post",
         content: content.trim(),
         image: imageUrl,
-        hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse and save the hashtags array
+        hashtags: hashtags ? JSON.parse(hashtags) : [],
       };
 
-      if (req.mentor) {
-        postData.mentorId = req.mentor._id;
-      } else if (req.user) {
-        postData.userId = req.user._id;
-      }
+      if (req.mentor) postData.mentorId = req.mentor._id;
+      else if (req.user) postData.userId = req.user._id;
 
       if (linkPreview) {
         postData.externalLink = {
@@ -1212,16 +1612,13 @@ router.post(
       const post = new Post(postData);
       await post.save();
 
-      // Populate the appropriate author (mentor or user)
       if (post.mentorId) {
         await post.populate("mentorId", "name username image");
       } else if (post.userId) {
-        // Manually populate user since it's on a different connection
         const user = await populateUser(post.userId);
         post.userId = user;
       }
 
-      // Format response based on author type
       const author = post.mentorId
         ? {
             _id: post.mentorId._id,
@@ -1243,22 +1640,23 @@ router.post(
         message: "Post created successfully",
         post: {
           _id: post._id,
-          mentor: author, // Keep 'mentor' key for backward compatibility
-          author: author, // Add 'author' key for clarity
+          type: "post",
+          mentor: author,
+          author: author,
           content: post.content,
           image: post.image,
-          hashtags: post.hashtags || [], // NEW: Send hashtags back to the client immediately
+          hashtags: post.hashtags || [],
           externalLink: post.externalLink,
           likesCount: post.likesCount,
           commentsCount: post.commentsCount,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
-          isEdited: post.isEdited || false,
-          editedAt: post.editedAt || null,
+          isEdited: false,
+          editedAt: null,
         },
       });
 
-      // Create mention notifications (async, don't block response)
+      // Mention notifications (unchanged)
       (async () => {
         try {
           const actorId = req.mentor ? req.mentor._id : req.user._id;
@@ -1276,21 +1674,18 @@ router.post(
         }
       })();
 
-      // Notify followers using new notification system
+      // Follower notifications (unchanged)
       (async () => {
         try {
           const authorDoc = req.mentor || req.user;
           const authorId = authorDoc._id;
           const authorName = author ? author.name : authorDoc.name || "Someone";
-          const authorRole = req.mentor ? "mentor" : "user";
           const followers = authorDoc.followers || [];
 
           if (followers.length > 0) {
-            // Determine recipient role (assume users for now, but could be mixed)
-            // For simplicity, we'll use 'user' as default, but this could be enhanced
             await NotificationManager.createAndSendMultiple({
               recipientIds: followers,
-              recipientRole: "user", // Could be enhanced to check actual role
+              recipientRole: "user",
               actorId: authorId,
               type: "FOLLOWING_POST",
               entityType: "POST",
@@ -1312,6 +1707,101 @@ router.post(
     }
   },
 );
+
+/**
+ * POST /api/posts/:postId/vote
+ * Cast a vote on a poll option (authenticated users and mentors)
+ * Rules:
+ *   - One vote per user per poll (enforced via votedBy array)
+ *   - Cannot change vote once cast
+ *   - Only works on posts with type: "poll"
+ */
+
+router.post("/:postId/vote", authenticateRequired, async (req, res) => {
+  try {
+    const { optionId } = req.body;
+
+    if (!optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "optionId is required",
+      });
+    }
+
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    if (post.type !== "poll") {
+      return res.status(400).json({
+        success: false,
+        message: "This post is not a poll",
+      });
+    }
+
+    // Get the voter's ID (works for both users and mentors)
+    const voterId = req.user ? req.user._id : req.mentor._id;
+
+    // Check if this user has already voted on ANY option
+    const alreadyVoted = post.poll.options.some((opt) =>
+      opt.votedBy.some((id) => id.toString() === voterId.toString()),
+    );
+
+    if (alreadyVoted) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already voted on this poll",
+      });
+    }
+
+    // Find the target option
+    const targetOption = post.poll.options.id(optionId);
+
+    if (!targetOption) {
+      return res.status(404).json({
+        success: false,
+        message: "Option not found",
+      });
+    }
+
+    // Cast the vote
+    targetOption.votes += 1;
+    targetOption.votedBy.push(voterId);
+    post.poll.totalVotes += 1;
+
+    await post.save();
+
+    // Return updated options (with vote counts, but WITHOUT votedBy arrays)
+    // We only reveal results after voting
+    const updatedOptions = post.poll.options.map((opt) => ({
+      _id: opt._id,
+      text: opt.text,
+      votes: opt.votes,
+      // Calculate percentage for frontend display
+      percentage:
+        post.poll.totalVotes > 0
+          ? Math.round((opt.votes / post.poll.totalVotes) * 100)
+          : 0,
+    }));
+
+    return res.json({
+      success: true,
+      message: "Vote cast successfully",
+      poll: {
+        options: updatedOptions,
+        totalVotes: post.poll.totalVotes,
+        userVotedOption: optionId, // Tell frontend which option this user picked
+      },
+    });
+  } catch (error) {
+    console.error("Error casting vote:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 /**
  * PUT /api/posts/:postId

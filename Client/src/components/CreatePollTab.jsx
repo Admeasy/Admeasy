@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Send, Loader2, BarChart2 } from "lucide-react";
+import { Plus, Trash2, Send, Loader2, BarChart2, Upload } from "lucide-react";
 import { toast } from "react-toastify";
 
 const MAX_OPTIONS = 4;
@@ -54,22 +54,38 @@ const CreatePollTab = () => {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    const payload = {
-      type: "poll",
-      question: question.trim(),
-      options: options
-        .filter((o) => o.trim())
-        .map((text) => ({ text: text.trim(), votes: 0 })),
-    };
+    // const payload = {
+    //   type: "poll",
+    //   question: question.trim(),
+    //   options: options
+    //     .filter((o) => o.trim())
+    //     .map((text) => ({ text: text.trim(), votes: 0 })),
+    // };
 
     try {
       setIsSubmitting(true);
 
+      //build FormData instead of JSON -required because
+      // the backend route uses multer (Upload.single("image")) which expects multipart/form-data not application/json
+
+      const formData = new FormData();
+      formData.append("type", "poll");
+      formData.append("question", question.trim());
+      formData.append(
+        "options",
+        JSON.stringify(
+          options
+            .filter((o) => o.trim())
+            .map((text) => ({ text: text.trim(), votes: 0 })),
+        ),
+      );
+
       const res = await fetch("/api/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: formData,
+        //NO headers because when using FormData, the browser sets the correct Content-Type with boundary automatically. Setting it manually can cause issues.
       });
 
       const data = await res.json();

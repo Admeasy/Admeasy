@@ -21,6 +21,7 @@ import { useMentor } from "../context/MentorContext";
 import EditPostModal from "./EditPostModal";
 import ConfirmModal from "./ConfirmModal";
 import { processMentions } from "../utils/processMentions";
+import PollCard from "./PollCard";
 import { truncateHtml } from "../utils/textUtils";
 import SharePostModal from "./SharePostModal";
 
@@ -40,7 +41,7 @@ const PostCard = ({ post, onPostUpdate }) => {
   // Calculate processed and truncated content
   // Must depend on postState to reflect edits immediately
   const processedContent = useMemo(
-    () => processMentions(postState.content || post.content),
+    () => processMentions(postState.content || post.content || ""),
     [postState.content, post.content],
   );
 
@@ -76,7 +77,7 @@ const PostCard = ({ post, onPostUpdate }) => {
           prev.repostCount !== post.repostCount ||
           prev.commentsCount !== post.commentsCount ||
           JSON.stringify(prev.commentPreview) !==
-          JSON.stringify(post.commentPreview)
+            JSON.stringify(post.commentPreview)
         ) {
           return { ...post };
         }
@@ -662,6 +663,62 @@ const PostCard = ({ post, onPostUpdate }) => {
 
         {/* Post Content */}
         <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
+          {postState.type === "poll" ? (
+            <PollCard
+              post={postState}
+              onVote={(updatedPost) => {
+                setPostState(updatedPost);
+                if (onPostUpdate) onPostUpdate(updatedPost);
+              }}
+            />
+          ) : (
+            <>
+              <div
+                className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
+                dangerouslySetInnerHTML={{
+                  __html: isExpanded
+                    ? processedContent
+                    : truncatedContent.hasMore
+                    ? truncatedContent.html
+                    : processedContent,
+                }}
+                onClick={(e) => {
+                  const mentionLink = e.target.closest("a.mention-link");
+                  if (mentionLink) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const username = mentionLink.getAttribute("data-username");
+                    if (username) navigate(`/${username}`);
+                    return;
+                  }
+                  const link = e.target.closest("a");
+                  if (link && link.href) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    let cleanUrl = link.href;
+                    cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
+                    cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
+                    cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                    cleanUrl = cleanUrl.trim();
+                    window.open(cleanUrl, "_blank", "noopener,noreferrer");
+                  }
+                }}
+              />
+              {truncatedContent.hasMore && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
+                >
+                  {isExpanded ? "Show less" : "Read more"}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+        {/* <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
           <div
             className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
             dangerouslySetInnerHTML={{
@@ -713,7 +770,7 @@ const PostCard = ({ post, onPostUpdate }) => {
               {isExpanded ? "Show less" : "Read more"}
             </button>
           )}
-        </div>
+        </div> */}
 
         {/* NEW: Clickable Hashtags Display */}
         {postState.hashtags && postState.hashtags.length > 0 && (
@@ -822,16 +879,18 @@ const PostCard = ({ post, onPostUpdate }) => {
             className="flex items-center gap-2 group/like"
           >
             <Heart
-              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${postState.isLiked
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
+                postState.isLiked
                   ? "fill-red-500 text-red-500"
                   : "text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110"
-                }`}
+              }`}
             />
             <span
-              className={`text-sm sm:text-base font-bold transition-colors ${postState.isLiked
+              className={`text-sm sm:text-base font-bold transition-colors ${
+                postState.isLiked
                   ? "text-red-500"
                   : "text-gray-600 group-hover/like:text-red-500"
-                }`}
+              }`}
             >
               {postState.likesCount}
             </span>
@@ -883,17 +942,22 @@ const PostCard = ({ post, onPostUpdate }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleRepost}
-            className={`flex items-center gap-2 transition-colors ${postState.isReposted
+            className={`flex items-center gap-2 transition-colors ${
+              postState.isReposted
                 ? "text-[#9f3562]"
                 : "text-gray-500 hover:text-[#9f3562]"
-              }`}
+            }`}
           >
             <Repeat2
-              className={`w-5 h-5 sm:w-6 sm:h-6 ${postState.isReposted ? "fill-current" : ""}`}
+              className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                postState.isReposted ? "fill-current" : ""
+              }`}
             />
             {postState.repostCount > 0 && (
               <span
-                className={`text-sm sm:text-base font-bold ${postState.isReposted ? "text-[#9f3562]" : "text-gray-600"}`}
+                className={`text-sm sm:text-base font-bold ${
+                  postState.isReposted ? "text-[#9f3562]" : "text-gray-600"
+                }`}
               >
                 {postState.repostCount}
               </span>
