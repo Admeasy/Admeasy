@@ -22,6 +22,7 @@ import EditPostModal from "./EditPostModal";
 import ConfirmModal from "./ConfirmModal";
 import { processMentions } from "../utils/processMentions";
 import PollCard from "./PollCard";
+import McqCard from "./McqCard";
 import { truncateHtml } from "../utils/textUtils";
 import SharePostModal from "./SharePostModal";
 
@@ -667,6 +668,14 @@ const PostCard = ({ post, onPostUpdate }) => {
             <PollCard
               post={postState}
               onVote={(updatedPost) => {
+                setPostState(updatedPost);
+                if (onPostUpdate) onPostUpdate(updatedPost);
+              }}
+            />
+          ) : postState.type === "mcq" ? (
+            <McqCard
+              post={postState}
+              onAnswer={(updatedPost) => {
                 setPostState(updatedPost);
                 if (onPostUpdate) onPostUpdate(updatedPost);
               }}

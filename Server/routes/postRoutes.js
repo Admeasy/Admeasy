@@ -200,6 +200,50 @@ async function getOptionalUser(req) {
   }
 }
 
+/**
+ * MCQ payload for API: hides correct answer until the viewer has submitted an answer
+ * (same for author and everyone — avoids spoiling the question in the feed).
+ */
+function formatMcqForResponse(post, currentUser, _author) {
+  if (post.type !== "mcq" || !post.mcq) return null;
+  const options = post.mcq.options || [];
+  const viewerId = currentUser?._id;
+  const userSelectedOpt =
+    viewerId &&
+    options.find((opt) =>
+      (opt.answeredBy || []).some(
+        (id) => id.toString() === viewerId.toString(),
+      ),
+    );
+  const hasAnswered = !!userSelectedOpt;
+  const totalAnswers = post.mcq.totalAnswers || 0;
+  const reveal = hasAnswered;
+
+  return {
+    question: post.mcq.question,
+    options: options.map((opt) => {
+      const base = {
+        _id: opt._id,
+        text: opt.text,
+      };
+      if (!reveal) return base;
+      const ac = (opt.answeredBy || []).length;
+      return {
+        ...base,
+        isCorrect: !!opt.isCorrect,
+        answerCount: ac,
+        percentage:
+          totalAnswers > 0 ? Math.round((ac / totalAnswers) * 100) : 0,
+      };
+    }),
+    totalAnswers,
+    hasAnswered,
+    userSelectedOptionId: userSelectedOpt?._id?.toString() || null,
+    isUserCorrect:
+      hasAnswered && userSelectedOpt ? !!userSelectedOpt.isCorrect : null,
+  };
+}
+
 // Get full user context for feed ranking (includes exam and academic context)
 async function getUserForRanking(req) {
   const token = req.cookies?.accessToken;
@@ -652,6 +696,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
                 )
                 ?._id?.toString() || null
             : null,
+        mcq: formatMcqForResponse(post, currentUser, author),
       };
     });
 
@@ -799,6 +844,7 @@ router.get("/user/:userId", async (req, res) => {
                 )
                 ?._id?.toString() || null
             : null,
+        mcq: formatMcqForResponse(post, currentUser, author),
       };
     });
 
@@ -966,6 +1012,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
                 )
                 ?._id?.toString() || null
             : null,
+        mcq: formatMcqForResponse(post, currentUser, author),
       };
     });
 
@@ -1267,6 +1314,7 @@ router.get("/:postId", async (req, res) => {
               )
               ?._id?.toString() || null
           : null,
+      mcq: formatMcqForResponse(post, currentUser, author),
     };
 
     res.json({ success: true, post: formattedPost });
@@ -1551,6 +1599,108 @@ router.post(
       }
       // ── END POLL branch ──────────────────────────────────────────────────
 
+      // ── MCQ branch ───────────────────────────────────────────────────────
+      if (type === "mcq") {
+        const { question, options: rawOptions } = req.body;
+
+        let options;
+        try {
+          options =
+            typeof rawOptions === "string"
+              ? JSON.parse(rawOptions)
+              : rawOptions;
+        } catch {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid options format",
+          });
+        }
+
+        if (!question || !question.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: "Question is required",
+          });
+        }
+
+        if (!options || !Array.isArray(options) || options.length !== 4) {
+          return res.status(400).json({
+            success: false,
+            message: "MCQ must have exactly 4 options",
+          });
+        }
+
+        const trimmed = options.map((opt) => ({
+          text: (opt.text || "").trim(),
+          isCorrect: !!opt.isCorrect,
+        }));
+
+        if (trimmed.some((o) => !o.text)) {
+          return res.status(400).json({
+            success: false,
+            message: "All MCQ options must have text",
+          });
+        }
+
+        const correctCount = trimmed.filter((o) => o.isCorrect).length;
+        if (correctCount !== 1) {
+          return res.status(400).json({
+            success: false,
+            message: "Select exactly one correct answer",
+          });
+        }
+
+        const postData = {
+          type: "mcq",
+          mcq: {
+            question: question.trim(),
+            options: trimmed.map((opt) => ({
+              text: opt.text,
+              isCorrect: opt.isCorrect,
+              answeredBy: [],
+            })),
+            totalAnswers: 0,
+          },
+        };
+
+        if (req.mentor) postData.mentorId = req.mentor._id;
+        else if (req.user) postData.userId = req.user._id;
+
+        const post = new Post(postData);
+        await post.save();
+
+        let author = null;
+        if (post.mentorId) {
+          await post.populate("mentorId", "name username image");
+          author = {
+            _id: post.mentorId._id,
+            name: post.mentorId.name,
+            username: post.mentorId.username,
+            image: post.mentorId.image,
+          };
+        } else if (post.userId) {
+          author = await populateUser(post.userId);
+        }
+
+        const viewer =
+          req.mentor && req.mentor._id ? req.mentor : req.user || null;
+        const mcqPayload = formatMcqForResponse(post, viewer, author);
+
+        return res.status(201).json({
+          success: true,
+          message: "Q&A published successfully",
+          post: {
+            _id: post._id,
+            type: "mcq",
+            author,
+            mentor: author,
+            mcq: mcqPayload,
+            createdAt: post.createdAt,
+          },
+        });
+      }
+      // ── END MCQ branch ─────────────────────────────────────────────────────
+
       // ── Original POST branch (no changes below this line) ────────────────
       const { content } = req.body;
 
@@ -1799,6 +1949,92 @@ router.post("/:postId/vote", authenticateRequired, async (req, res) => {
     });
   } catch (error) {
     console.error("Error casting vote:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * POST /api/posts/:postId/mcq-answer
+ * Submit one answer on an MCQ (one attempt per user; correct answer revealed after submit)
+ */
+router.post("/:postId/mcq-answer", authenticateRequired, async (req, res) => {
+  try {
+    const { optionId } = req.body;
+
+    if (!optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "optionId is required",
+      });
+    }
+
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    if (post.type !== "mcq") {
+      return res.status(400).json({
+        success: false,
+        message: "This post is not an MCQ",
+      });
+    }
+
+    const voterId = req.user ? req.user._id : req.mentor._id;
+
+    const alreadyAnswered = post.mcq.options.some((opt) =>
+      (opt.answeredBy || []).some(
+        (id) => id.toString() === voterId.toString(),
+      ),
+    );
+
+    if (alreadyAnswered) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already answered this question",
+      });
+    }
+
+    const targetOption = post.mcq.options.id(optionId);
+
+    if (!targetOption) {
+      return res.status(404).json({
+        success: false,
+        message: "Option not found",
+      });
+    }
+
+    targetOption.answeredBy.push(voterId);
+    post.mcq.totalAnswers = (post.mcq.totalAnswers || 0) + 1;
+
+    await post.save();
+
+    const viewer = req.user || req.mentor;
+    let author = null;
+    if (post.mentorId) {
+      await post.populate("mentorId", "name username image");
+      author = {
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
+      };
+    } else if (post.userId) {
+      author = await populateUser(post.userId);
+    }
+
+    const mcqPayload = formatMcqForResponse(post, viewer, author);
+
+    return res.json({
+      success: true,
+      message: "Answer recorded",
+      mcq: mcqPayload,
+    });
+  } catch (error) {
+    console.error("Error submitting MCQ answer:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });

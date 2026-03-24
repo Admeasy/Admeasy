@@ -22,7 +22,9 @@ import { useMentor } from "../context/MentorContext";
 import { processMentions } from "../utils/processMentions";
 import CreateNoteTab from "../components/CreateNoteTab";
 import CreatePollTab from "../components/CreatePollTab";
+import CreateMcqTab from "../components/CreateMcqTab";
 import PollCard from "../components/PollCard";
+import McqCard from "../components/McqCard";
 
 // Registration stays the same...
 Quill.register("modules/tableUI", TableUI, true);
@@ -657,15 +659,7 @@ const MentorPost = () => {
           {/* closes activeTab === "post" */}
           {/* Poll placeholder */}
           {activeTab === "poll" && <CreatePollTab />}
-          {/* Q&A placeholder */}
-          {activeTab === "qa" && (
-            <div className="text-center py-12 text-gray-400">
-              <p className="text-4xl mb-3">❓</p>
-              <p className="font-semibold text-gray-600">
-                Q&A creation coming soon!
-              </p>
-            </div>
-          )}
+          {activeTab === "qa" && <CreateMcqTab />}
           {/* Notes placeholder */}
           {activeTab === "notes" && <CreateNoteTab />}
         </div>{" "}
@@ -752,6 +746,17 @@ const MentorPost = () => {
                   <PollCard
                     post={post}
                     onVote={(updatePost) =>
+                      setPosts((prev) =>
+                        prev.map((p) =>
+                          p._id === updatePost._id ? updatePost : p,
+                        ),
+                      )
+                    }
+                  />
+                ) : post.type === "mcq" ? (
+                  <McqCard
+                    post={post}
+                    onAnswer={(updatePost) =>
                       setPosts((prev) =>
                         prev.map((p) =>
                           p._id === updatePost._id ? updatePost : p,

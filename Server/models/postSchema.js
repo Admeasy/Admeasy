@@ -109,6 +109,37 @@ const postSchema = new mongoose.Schema(
       },
     },
 
+    // MCQ (single correct answer) — future-ready for quizzes / learning analytics
+    mcq: {
+      question: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+      options: [
+        {
+          text: {
+            type: String,
+            trim: true,
+            required: true,
+          },
+          isCorrect: {
+            type: Boolean,
+            default: false,
+          },
+          answeredBy: [
+            {
+              type: mongoose.Schema.Types.ObjectId,
+            },
+          ],
+        },
+      ],
+      totalAnswers: {
+        type: Number,
+        default: 0,
+      },
+    },
+
     likes: [
       {
         userId: {
@@ -215,6 +246,23 @@ postSchema.pre("validate", function (next) {
     }
     if (this.poll.options.length > 4) {
       return next(new Error("Poll cannot have more than 4 options"));
+    }
+  }
+  if (this.type === "mcq") {
+    if (!this.mcq || !this.mcq.question || !this.mcq.question.trim()) {
+      return next(new Error("MCQ question is required for mcq type"));
+    }
+    if (!this.mcq.options || this.mcq.options.length !== 4) {
+      return next(new Error("MCQ must have exactly 4 options"));
+    }
+    const correctCount = this.mcq.options.filter((o) => o.isCorrect).length;
+    if (correctCount !== 1) {
+      return next(new Error("MCQ must have exactly one correct option"));
+    }
+    for (const o of this.mcq.options) {
+      if (!o.text || !String(o.text).trim()) {
+        return next(new Error("All MCQ options must have text"));
+      }
     }
   }
   next();

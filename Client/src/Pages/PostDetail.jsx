@@ -28,6 +28,7 @@ import EditPostModal from "../components/EditPostModal";
 import SharePostModal from "../components/SharePostModal";
 import { processMentions } from "../utils/processMentions";
 import PollCard from "../components/PollCard";
+import McqCard from "../components/McqCard";
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -1284,6 +1285,13 @@ const PostDetail = () => {
                 <PollCard
                   post={postState}
                   onVote={(updatedPost) =>
+                    setPostState((prev) => ({ ...prev, ...updatedPost }))
+                  }
+                />
+              ) : postState.type === "mcq" ? (
+                <McqCard
+                  post={postState}
+                  onAnswer={(updatedPost) =>
                     setPostState((prev) => ({ ...prev, ...updatedPost }))
                   }
                 />
