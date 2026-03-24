@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { FileText, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 import { Document, Page, pdfjs } from 'react-pdf';
 
 // ✅ CSS imports to fix Blank/White Screen
@@ -138,7 +139,7 @@ const NotesPage = () => {
         "learningResourceType": "Study Notes",
         "author": {
           "@type": "Person",
-          "name": note.uploaderName
+          "name": resolveNoteAuthor(note).displayName,
         },
         "provider": {
           "@type": "Organization",
@@ -215,7 +216,12 @@ const NotesPage = () => {
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ")
       : "Not shared";
-  const uploaderName = note?.uploaderName || note?.uploader || "Unknown contributor";
+
+  const authorAttribution = useMemo(
+    () => (note ? resolveNoteAuthor(note) : null),
+    [note],
+  );
+
   const uploadedAt = note?.publishedAt || note?.uploadDate;
   const uploadedOn = uploadedAt
     ? new Date(uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
@@ -320,16 +326,43 @@ const NotesPage = () => {
                 <h1 className="text-2xl font-bold text-gray-900 mb-3">{note.title}</h1>
                 <p className="text-gray-600 text-sm leading-relaxed mb-4">{note.description}</p>
 
-                {/* Uploader Info */}
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
+                {/* Uploader — profile image, full name, @username (like posts) */}
+                {authorAttribution && (
+                  <div className="mb-6 pb-6 border-b border-gray-200">
+                    <button
+                      type="button"
+                      disabled={!authorAttribution.profilePath}
+                      onClick={() =>
+                        authorAttribution.profilePath &&
+                        navigate(authorAttribution.profilePath)
+                      }
+                      className={`flex items-center gap-3 w-full text-left rounded-xl p-1 -m-1 transition-colors ${
+                        authorAttribution.profilePath
+                          ? "hover:bg-slate-50 cursor-pointer"
+                          : "cursor-default"
+                      }`}
+                    >
+                      <img
+                        src={authorAttribution.image}
+                        alt=""
+                        className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 flex-shrink-0 bg-white"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-gray-900 text-base truncate">
+                          {authorAttribution.displayName}
+                        </p>
+                        {authorAttribution.username ? (
+                          <p className="text-sm text-[#9f3562] font-semibold truncate">
+                            @{authorAttribution.username}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Uploaded • {uploadedOn}
+                        </p>
+                      </div>
+                    </button>
                   </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{uploaderName}</p>
-                    <p className="text-xs text-gray-500">Uploaded • {uploadedOn}</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="space-y-3 mb-6">

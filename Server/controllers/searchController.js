@@ -1,6 +1,7 @@
 const Blog = require("../models/blogSchema");
 const Mentor = require("../models/mentorSchema");
 const Note = require("../models/noteSchema");
+const { attachAuthorsToNotes } = require("../utils/noteAuthor");
 const College = require("../models/collegeSchema");
 const Post = require("../models/postSchema");
 const { Users } = require("../db");
@@ -80,13 +81,14 @@ exports.globalSearch = async (req, res) => {
 
       /* ===================== NOTES ===================== */
       if (!type || type === "notes") {
-        const allNotes = await Note.find({})
+        const allNotes = await Note.find({ status: "published" })
           .select(
-            `title description subject uploader uploaderName likes views createdAt hashtags`,
+            `title description course university uploader uploaderModel uploaderName likes views createdAt publishedAt hashtags`,
           )
           .limit(50)
           .lean();
-        results.notes = shuffleArray(allNotes).slice(0, 15);
+        const withAuthors = await attachAuthorsToNotes(allNotes);
+        results.notes = shuffleArray(withAuthors).slice(0, 15);
       }
 
       /* ===================== POSTS ===================== */
@@ -210,20 +212,22 @@ exports.globalSearch = async (req, res) => {
 
     /* ===================== NOTES ===================== */
     if (!type || type === "notes") {
-      results.notes = await Note.find({
+      const foundNotes = await Note.find({
+        status: "published",
         $or: [
           { title: regex },
           { description: regex },
-          { subject: regex },
+          { course: regex },
           { uploaderName: regex },
           { hashtags: regex },
         ],
       })
         .select(
-          `title description subject uploader uploaderName likes views createdAt hashtags`,
+          `title description course university uploader uploaderModel uploaderName likes views createdAt publishedAt hashtags`,
         )
         .limit(20)
         .lean();
+      results.notes = await attachAuthorsToNotes(foundNotes);
     }
 
     /* ===================== POSTS ===================== */
