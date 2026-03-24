@@ -11,6 +11,7 @@ import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import AdCard from '../components/AdCard';
+import HeroActivityTicker from '../components/HeroActivityTicker';
 import { Loader2, X, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
@@ -526,6 +527,8 @@ const Feed = () => {
               )}
             </div>
           </div>
+
+          <HeroActivityTicker variant="feed" />
 
           {/* Active Hashtag Filter Banner */}
           {tagFilter && (
