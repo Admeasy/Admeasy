@@ -4,7 +4,79 @@ import { FaPaperPlane, FaUser, FaCheck, FaCheckDouble, FaCircle } from 'react-ic
 import { toast } from 'react-toastify';
 import { useMentor } from '../context/MentorContext';
 import { useSocket } from '../context/SocketContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, ExternalLink } from 'lucide-react';
+
+const SharedPostCard = ({ post }) => {
+  const navigate = useNavigate();
+
+  if (!post) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-400 italic">
+        Post no longer available
+      </div>
+    );
+  }
+
+  const getPlainText = (html = "", maxLength = 100) => {
+    const plain = html.replace(/<[^>]*>/g, "").trim();
+    return plain.length > maxLength
+      ? plain.substring(0, maxLength) + "..."
+      : plain;
+  };
+
+  const author = post.author || post.mentor;
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/posts/${post._id}`);
+      }}
+      className="rounded-xl border border-gray-200 bg-white overflow-hidden cursor-pointer hover:border-[#9f3562]/30 hover:shadow-md transition-all duration-200 max-w-xs"
+    >
+      {post.image && (
+        <img
+          src={post.image}
+          alt="Shared post"
+          className="w-full h-32 object-cover"
+        />
+      )}
+      <div className="p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <img
+            src={
+              author?.image ||
+              "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+            }
+            alt={author?.name || "User"}
+            className="w-5 h-5 rounded-full object-cover"
+          />
+          <span className="text-xs font-semibold text-gray-700 truncate">
+            {author?.name || "User"}
+          </span>
+        </div>
+        {post.content && (
+          <p className="text-xs text-gray-600 leading-relaxed">
+            {getPlainText(post.content)}
+          </p>
+        )}
+        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-100">
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <Heart className="w-3 h-3" />
+            {post.likesCount || 0}
+          </span>
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <MessageCircle className="w-3 h-3" />
+            {post.commentsCount || 0}
+          </span>
+          <span className="text-xs text-[#9f3562] ml-auto font-medium flex items-center gap-1">
+            View post <ExternalLink className="w-3 h-3" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MentorChat = () => {
   const { id } = useParams(); // Changed from userId to id
@@ -728,8 +800,15 @@ const MentorChat = () => {
                     {!isPreviousMessageFromSameSender && !isMentor && (
                       <p className="text-xs font-semibold text-gray-700 mb-1">{senderName}</p>
                     )}
-                    
-                    <p className="text-sm leading-relaxed">{message.message || message.text || ''}</p>
+
+                    {message.messageType === "post" ? (
+                      <SharedPostCard post={message.post} />
+                    ) : (
+                      <p className="text-sm leading-relaxed">{message.message || message.text || ''}</p>
+                    )}
+                    {message.messageType === "post" && message.message && (
+                      <p className="text-sm leading-relaxed mt-2">{message.message}</p>
+                    )}
                     <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMentor ? 'text-pink-100' : 'text-gray-500'}`}>
                       <span>{formatTime(message.createdAt || message.timestamp)}</span>
                       {isMentor && getMessageStatus(message)}
