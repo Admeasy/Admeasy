@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Note = require('../models/noteSchema');
+const { attachAuthorsToNotes, attachAuthorToNote } = require('../utils/noteAuthor');
 const cloudinary = require('../config/cloudinary'); // or wherever your cloudinary config is
 const fs = require('fs').promises;
 const path = require('path');
@@ -52,7 +53,8 @@ exports.getNotes = async (req, res) => {
   try {
     const filter = buildFilter(req.query);
     const notes = await Note.find(filter).sort({ isFeatured: -1, likes: -1, createdAt: -1 });
-    res.json({ success: true, data: notes });
+    const data = await attachAuthorsToNotes(notes);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching notes:', error);
     res.status(500).json({ success: false, message: 'Unable to fetch notes right now.' });
@@ -71,7 +73,8 @@ exports.getNoteById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Note not found.' });
     }
 
-    res.json({ success: true, data: note });
+    const data = await attachAuthorToNote(note);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching note:', error);
     res.status(500).json({ success: false, message: 'Unable to fetch note right now.' });
@@ -94,7 +97,8 @@ const updateCounter = async (req, res, field) => {
       return res.status(404).json({ success: false, message: 'Note not found.' });
     }
 
-    res.json({ success: true, data: note });
+    const data = await attachAuthorToNote(note);
+    res.json({ success: true, data });
   } catch (error) {
     console.error(`Error updating note ${field}:`, error);
     res.status(500).json({ success: false, message: `Unable to update ${field}.` });

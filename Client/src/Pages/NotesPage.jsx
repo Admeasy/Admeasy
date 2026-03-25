@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { FileText, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 import { Document, Page, pdfjs } from 'react-pdf';
 
 // ✅ CSS imports to fix Blank/White Screen
@@ -138,7 +139,7 @@ const NotesPage = () => {
         "learningResourceType": "Study Notes",
         "author": {
           "@type": "Person",
-          "name": note.uploaderName
+          "name": resolveNoteAuthor(note).displayName,
         },
         "provider": {
           "@type": "Organization",
@@ -215,7 +216,12 @@ const NotesPage = () => {
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ")
       : "Not shared";
-  const uploaderName = note?.uploaderName || note?.uploader || "Unknown contributor";
+
+  const authorAttribution = useMemo(
+    () => (note ? resolveNoteAuthor(note) : null),
+    [note],
+  );
+
   const uploadedAt = note?.publishedAt || note?.uploadDate;
   const uploadedOn = uploadedAt
     ? new Date(uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
@@ -235,7 +241,7 @@ const NotesPage = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <button
             onClick={() => navigate("/notes")}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#6C63FF] transition-colors"
+            className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-medium">Back to Notes</span>
@@ -264,7 +270,7 @@ const NotesPage = () => {
             <p className="text-gray-600 mb-4">This note is no longer available.</p>
             <button
               onClick={() => navigate("/notes")}
-              className="px-4 py-2 bg-[#6C63FF] text-white rounded-xl font-semibold shadow-lg hover:bg-[#5A52E8] transition"
+              className="px-4 py-2 bg-[#9f3562] text-white rounded-xl font-semibold shadow-lg hover:bg-[#b14270] transition"
             >
               Explore other notes
             </button>
@@ -274,10 +280,10 @@ const NotesPage = () => {
             {/* Left Sidebar - Note Info */}
             <div className="lg:col-span-1 space-y-6">
               {/* Stats Cards */}
-              <div className="bg-pink-50 rounded-2xl p-5 border border-pink-200">
+              <div className="bg-[#9f3562]/5 rounded-2xl p-5 border border-[#9f3562]/20">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Heart className="w-6 h-6 text-pink-600 fill-pink-500" />
+                  <div className="w-12 h-12 bg-[#9f3562]/10 rounded-full flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-[#9f3562] fill-[#9f3562]/30" />
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-gray-900">{formatNumber(note.likes)}</p>
@@ -286,10 +292,10 @@ const NotesPage = () => {
                 </div>
               </div>
 
-              <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
+              <div className="bg-[#9f3562]/5 rounded-2xl p-5 border border-[#9f3562]/15">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Eye className="w-6 h-6 text-purple-600" />
+                  <div className="w-12 h-12 bg-[#9f3562]/10 rounded-full flex items-center justify-center">
+                    <Eye className="w-6 h-6 text-[#9f3562]" />
                   </div>
                   <div>
                     <p className="text-3xl font-bold text-gray-900">{formatNumber(note.views)}</p>
@@ -320,16 +326,43 @@ const NotesPage = () => {
                 <h1 className="text-2xl font-bold text-gray-900 mb-3">{note.title}</h1>
                 <p className="text-gray-600 text-sm leading-relaxed mb-4">{note.description}</p>
 
-                {/* Uploader Info */}
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
+                {/* Uploader — profile image, full name, @username (like posts) */}
+                {authorAttribution && (
+                  <div className="mb-6 pb-6 border-b border-gray-200">
+                    <button
+                      type="button"
+                      disabled={!authorAttribution.profilePath}
+                      onClick={() =>
+                        authorAttribution.profilePath &&
+                        navigate(authorAttribution.profilePath)
+                      }
+                      className={`flex items-center gap-3 w-full text-left rounded-xl p-1 -m-1 transition-colors ${
+                        authorAttribution.profilePath
+                          ? "hover:bg-slate-50 cursor-pointer"
+                          : "cursor-default"
+                      }`}
+                    >
+                      <img
+                        src={authorAttribution.image}
+                        alt=""
+                        className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-100 flex-shrink-0 bg-white"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-gray-900 text-base truncate">
+                          {authorAttribution.displayName}
+                        </p>
+                        {authorAttribution.username ? (
+                          <p className="text-sm text-[#9f3562] font-semibold truncate">
+                            @{authorAttribution.username}
+                          </p>
+                        ) : null}
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Uploaded • {uploadedOn}
+                        </p>
+                      </div>
+                    </button>
                   </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{uploaderName}</p>
-                    <p className="text-xs text-gray-500">Uploaded • {uploadedOn}</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="space-y-3 mb-6">
@@ -346,11 +379,11 @@ const NotesPage = () => {
                     disabled={liked || isLiking}
                     className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all border-2 ${
                       liked
-                        ? "bg-pink-100 text-pink-600 border-pink-200"
-                        : "bg-white text-gray-700 hover:bg-pink-50 border-gray-200"
+                        ? "bg-[#9f3562]/10 text-[#9f3562] border-[#9f3562]/25"
+                        : "bg-white text-gray-700 hover:bg-[#9f3562]/5 border-gray-200 hover:border-[#9f3562]/20"
                     }`}
                   >
-                    <Heart className={`w-5 h-5 ${liked ? "fill-pink-500 text-pink-500" : "text-pink-500"}`} />
+                    <Heart className={`w-5 h-5 ${liked ? "fill-[#9f3562] text-[#9f3562]" : "text-[#9f3562]"}`} />
                     {liked ? "Liked" : isLiking ? "Liking…" : "Like"}
                   </button>
                 </div>
@@ -375,7 +408,7 @@ const NotesPage = () => {
             {/* Right Side - PDF Viewer */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden sticky top-6">
-                <div className="bg-gradient-to-r from-[#6C63FF] to-[#5A52E8] px-6 py-4 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-[#9f3562] to-[#b14270] px-6 py-4 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-3">
                     <FileText className="w-6 h-6 text-white" />
                     <h2 className="text-xl font-bold text-white">Document Preview</h2>
@@ -387,12 +420,12 @@ const NotesPage = () => {
                     {!pdfError ? (
                       <div className="flex flex-col h-auto lg:h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
                         {/* PDF Controls */}
-                        <div className="bg-gray-100 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
+                        <div className="bg-gradient-to-b from-[#9f3562]/5 to-gray-100 border-b border-[#9f3562]/10 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
                               disabled={pageNumber <= 1}
-                              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               title="Previous page"
                             >
                               <ChevronLeft className="w-5 h-5" />
@@ -403,7 +436,7 @@ const NotesPage = () => {
                             <button
                               onClick={() => setPageNumber(prev => Math.min(numPages || 1, prev + 1))}
                               disabled={pageNumber >= (numPages || 1)}
-                              className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               title="Next page"
                             >
                               <ChevronRight className="w-5 h-5" />
@@ -412,7 +445,7 @@ const NotesPage = () => {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
-                              className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                              className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] transition-colors"
                               title="Zoom out"
                             >
                               <ZoomOut className="w-5 h-5" />
@@ -422,7 +455,7 @@ const NotesPage = () => {
                             </span>
                             <button
                               onClick={() => setScale(prev => Math.min(2.5, prev + 0.25))}
-                              className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                              className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] transition-colors"
                               title="Zoom in"
                             >
                               <ZoomIn className="w-5 h-5" />
@@ -435,7 +468,7 @@ const NotesPage = () => {
                           {pdfLoading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                               <div className="flex flex-col items-center gap-3">
-                                <div className="w-12 h-12 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
+                                <div className="w-12 h-12 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin"></div>
                                 <p className="text-gray-600 font-medium">Loading PDF...</p>
                               </div>
                             </div>
@@ -458,7 +491,7 @@ const NotesPage = () => {
                             }}
                             loading={
                               <div className="flex flex-col items-center gap-3">
-                                <div className="w-12 h-12 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
+                                <div className="w-12 h-12 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin"></div>
                                 <p className="text-gray-600 font-medium">Loading PDF...</p>
                               </div>
                             }
@@ -481,7 +514,7 @@ const NotesPage = () => {
                                 width={containerWidth || undefined}
                                 loading={
                                   <div className="flex items-center justify-center p-8 min-h-[400px]">
-                                    <div className="w-8 h-8 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
+                                    <div className="w-8 h-8 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin"></div>
                                   </div>
                                 }
                                 onRenderError={(error) => {

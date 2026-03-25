@@ -5,8 +5,13 @@ import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import { useUnreadSpaceMessages } from '../hooks/useUnreadSpaceMessages';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { trackAdmeasyEvent } from '../utils/trackEvent';
+
+const BOTTOM_CTA_TOOLTIP_KEY = 'admeasy:bottom_cta_tooltip_done';
+/** Dedupe analytics if React Strict Mode runs the effect twice before hide. */
+let bottomCtaShownEventSent = false;
 
 const BottomNavBar = () => {
   const location = useLocation();
@@ -24,6 +29,31 @@ const BottomNavBar = () => {
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
+
+  const [showPlusHint, setShowPlusHint] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (sessionStorage.getItem(BOTTOM_CTA_TOOLTIP_KEY)) return;
+    } catch {
+      return;
+    }
+    setShowPlusHint(true);
+    if (!bottomCtaShownEventSent) {
+      bottomCtaShownEventSent = true;
+      trackAdmeasyEvent('bottom_cta_shown');
+    }
+    const hide = window.setTimeout(() => {
+      setShowPlusHint(false);
+      try {
+        sessionStorage.setItem(BOTTOM_CTA_TOOLTIP_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+    }, 4500);
+    return () => window.clearTimeout(hide);
+  }, []);
 
   // Reset image error when user or mentor changes
   useEffect(() => {
@@ -117,7 +147,10 @@ const BottomNavBar = () => {
       id: 'upload',
       icon: CirclePlus,
       path: '/posts/create',
-      onClick: () => handleProtectedRoute('/posts/create', 'create a post'),
+      onClick: () => {
+        trackAdmeasyEvent('bottom_cta_clicked');
+        handleProtectedRoute('/posts/create', 'create a post');
+      },
       requiresAuth: true
     },
     {
@@ -181,6 +214,8 @@ const BottomNavBar = () => {
         const isProfileItem = item.id === 'profile';
         const showProfileImage = isProfileItem && hasProfileImage;
 
+        const showCreateHint = item.id === 'upload' && showPlusHint;
+
         return (
           <motion.button
             key={item.id}
@@ -190,6 +225,24 @@ const BottomNavBar = () => {
               ${isActive ? 'text-[#9f3562]' : 'text-gray-400 hover:text-gray-600'}
             `}
           >
+            <AnimatePresence>
+              {showCreateHint && (
+                <motion.div
+                  key="plus-cta-hint"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.25 }}
+                  className="pointer-events-none absolute -top-[42px] left-1/2 z-[60] -translate-x-1/2 whitespace-nowrap"
+                  aria-hidden
+                >
+                  <span className="block rounded-lg border border-gray-200/80 bg-gray-900/88 px-2.5 py-1.5 text-[11px] font-medium leading-tight text-white shadow-lg backdrop-blur-sm">
+                    Have doubt? Ask now
+                  </span>
+                  <span className="mx-auto block h-0 w-0 border-x-[6px] border-x-transparent border-t-[5px] border-t-gray-900/88" />
+                </motion.div>
+              )}
+            </AnimatePresence>
             {/* Active Indicator Dot */}
             {isActive && (
               <motion.span

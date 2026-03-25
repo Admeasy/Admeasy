@@ -5,6 +5,7 @@ import SearchLogo from '../assets/Others/search.png';
 import girl from '../assets/Others/girl.png';
 import boy from '../assets/Others/boy2.png';
 import { Building2, GraduationCap, BookOpen, TrendingUp, Award, Lightbulb } from 'lucide-react';
+import HeroActivityTicker from '../components/HeroActivityTicker';
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -222,6 +223,8 @@ className="relative w-48 h-48 sm:w-52 sm:h-52 md:w-56 md:h-56 lg:w-64 lg:h-64 ob
               />
             </motion.button>
           </motion.form>
+
+          <HeroActivityTicker variant="hero" />
 
           {/* Mobile Images - Show below search on small screens */}
           <div className="flex md:hidden items-center justify-center gap-4 sm:gap-6 mt-4">

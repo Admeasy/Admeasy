@@ -1,14 +1,13 @@
 /**
- * Google Sign-In for Admeasy — @capawesome/capacitor-google-sign-in
+ * Google Sign-In for Admeasy.
  *
- * Native: init runs once at app start (GoogleSignInBootstrap); button only calls signIn().
- * Web: Passport redirect (link) OR plugin implicit flow + handleRedirectCallback (hash).
+ * Native: Codetrix plugin (GoogleAuth) + idToken exchange with backend.
+ * Web: existing Passport redirect flow stays unchanged.
  */
-import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'react-toastify';
 import type { NavigateFunction } from 'react-router-dom';
-import type { SignInResult } from '@capawesome/capacitor-google-sign-in';
 import { enableNotifications } from '../Firebase/enableNotifications';
 
 import { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
@@ -46,13 +45,6 @@ interface BackendLoginResponse {
 
 interface UserLike {
   _id?: string;
-}
-
-function randomNonce(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 /**
@@ -100,10 +92,10 @@ export async function completeGoogleSessionFromIdToken(
 }
 
 async function completeGoogleSessionFromSignInResult(
-  result: SignInResult,
+  result: { idToken?: string | null; email?: string | null; userId?: string | null },
   deps: GoogleLoginDeps
 ): Promise<void> {
-  const idToken = result.idToken;
+  const idToken = result.idToken ?? null;
   if (!idToken) {
     toast.error('Could not get Google credentials. Please try again.');
     return;
@@ -112,27 +104,11 @@ async function completeGoogleSessionFromSignInResult(
   await completeGoogleSessionFromIdToken(idToken, deps, { email: result.email });
 }
 
-/**
- * After plugin web redirect: URL hash contains id_token. Call once on /login load.
- */
+/** Web flow is server-redirect based; no plugin redirect callback to consume. */
 export async function tryConsumeGoogleWebRedirect(deps: GoogleLoginDeps): Promise<boolean> {
+  void deps;
   if (Capacitor.isNativePlatform()) return false;
-  const hash = typeof window !== 'undefined' ? window.location.hash : '';
-  if (!hash || !hash.includes('id_token')) return false;
-
-  try {
-    console.log('[GoogleSignIn] Web OAuth hash detected, handleRedirectCallback()');
-    await ensureGoogleSignInInitialized();
-    const result = await GoogleSignIn.handleRedirectCallback();
-    await completeGoogleSessionFromSignInResult(result, deps);
-    return true;
-  } catch (e) {
-    console.error('[GoogleSignIn] handleRedirectCallback failed:', e);
-    const msg = e instanceof Error ? e.message : String(e);
-    toast.error(msg || 'Google sign-in failed');
-    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-    return true;
-  }
+  return false;
 }
 
 /**
@@ -144,12 +120,19 @@ export async function runCapacitorGoogleSignIn(deps: GoogleLoginDeps): Promise<v
     await ensureGoogleSignInInitialized();
     console.log('[GoogleSignIn] signIn() starting (native)');
 
-    const result = await GoogleSignIn.signIn({
-      nonce: randomNonce(),
-    });
+    const nativeUser = await GoogleAuth.signIn();
+    const idToken = nativeUser?.authentication?.idToken ?? null;
+    const email = nativeUser?.email ?? null;
 
-    console.log('[GoogleSignIn] signIn() resolved, has idToken:', !!result.idToken);
-    await completeGoogleSessionFromSignInResult(result, deps);
+    console.log('[GoogleSignIn] signIn() resolved, has idToken:', !!idToken);
+    await completeGoogleSessionFromSignInResult(
+      {
+        idToken,
+        email,
+        userId: nativeUser?.id ?? null,
+      },
+      deps
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error('[GoogleSignIn] signIn error:', error);
@@ -160,12 +143,7 @@ export async function runCapacitorGoogleSignIn(deps: GoogleLoginDeps): Promise<v
   }
 }
 
-/**
- * Web: start Capawesome implicit flow (redirect). Promise does not resolve.
- * Add `https://admeasy.in/login` (and localhost) as authorized redirect in Google Cloud if you use this.
- */
+/** Legacy web-plugin entrypoint retained for compatibility; no-op on current web flow. */
 export async function runWebGoogleSignInWithPlugin(): Promise<void> {
   await ensureGoogleSignInInitialized();
-  console.log('[GoogleSignIn] signIn() — browser will redirect to Google');
-  await GoogleSignIn.signIn({ nonce: randomNonce() });
 }

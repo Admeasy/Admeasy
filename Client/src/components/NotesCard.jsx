@@ -1,6 +1,7 @@
 import React from "react";
-import { FileText, User, File, Heart, Eye } from "lucide-react";
+import { FileText, File, Heart, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 
 /* ---------- SAFE TEXT HELPER ---------- */
 const renderText = (value) => {
@@ -14,6 +15,7 @@ const NotesCard = ({ note, compact = false }) => {
   const navigate = useNavigate();
   const noteId = note?._id || note?.id;
   const isFree = note?.isFree ?? true;
+  const authorInfo = resolveNoteAuthor(note);
 
   return (
     <div
@@ -98,7 +100,7 @@ const NotesCard = ({ note, compact = false }) => {
             </span>
 
             {/* Views */}
-            <span className="flex items-center gap-1.5 text-purple-600 font-semibold text-xs sm:text-sm">
+            <span className="flex items-center gap-1.5 text-[#9f3562] font-semibold text-xs sm:text-sm">
               <Eye className="w-4 h-4" />
               {note?.views ?? 0}
             </span>
@@ -111,14 +113,38 @@ const NotesCard = ({ note, compact = false }) => {
         <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Left Meta */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* Uploader */}
-            <div className="flex items-center gap-2 bg-gray-900 text-white px-3 py-1.5 rounded-lg">
-              <User className="w-4 h-4" />
-              <span className="text-xs sm:text-sm font-medium truncate max-w-[180px]">
-                {renderText(note.uploaderName || note.uploader) ||
-                  "Unknown uploader"}
-              </span>
-            </div>
+            {/* Uploader — same attribution pattern as posts */}
+            <button
+              type="button"
+              disabled={!authorInfo.profilePath}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (authorInfo.profilePath) navigate(authorInfo.profilePath);
+              }}
+              className={`flex items-center gap-3 min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-left transition-colors ${
+                authorInfo.profilePath
+                  ? "hover:bg-slate-100 hover:border-[#9f3562]/30 cursor-pointer"
+                  : "cursor-default opacity-90"
+              }`}
+            >
+              <img
+                src={authorInfo.image}
+                alt=""
+                className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-sm flex-shrink-0 bg-white"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900 truncate">
+                  {authorInfo.displayName}
+                </p>
+                {authorInfo.username ? (
+                  <p className="text-xs text-[#9f3562] font-semibold truncate">
+                    @{authorInfo.username}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500">Uploader</p>
+                )}
+              </div>
+            </button>
 
             {/* Pages */}
             <div className="flex items-center gap-2 text-gray-700">
