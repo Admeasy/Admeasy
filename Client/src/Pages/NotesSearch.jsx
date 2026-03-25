@@ -114,7 +114,7 @@ const NotesSearch = () => {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <button
             onClick={() => navigate("/notes")}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#6C63FF] transition-colors mb-4"
+            className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-medium">Back to Notes</span>
@@ -128,7 +128,7 @@ const NotesSearch = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
-              className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#6C63FF] focus:outline-none shadow-lg text-gray-900 placeholder-gray-400"
+              className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-[#9f3562] focus:outline-none focus:ring-2 focus:ring-[#9f3562]/20 shadow-lg text-gray-900 placeholder-gray-400"
             />
           </div>
         </div>

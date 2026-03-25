@@ -10,8 +10,13 @@ import Logo from "../assets/Admeasy/AdmeasyLatest.png";
 import EmailVerificationModal from "../components/EmailVerificationModal";
 import { toast } from "react-toastify";
 import { enableNotifications } from "../Firebase/enableNotifications";
-import { runCapacitorGoogleSignIn, shouldUseCapacitorGooglePlugin, WEB_GOOGLE_OAUTH_PATH } from "../auth/googleSignIn";
-
+import ReCAPTCHA from "react-google-recaptcha";
+import { useRef } from "react";
+import {
+  runCapacitorGoogleSignIn,
+  shouldUseCapacitorGooglePlugin,
+  WEB_GOOGLE_OAUTH_PATH,
+} from "../auth/googleSignIn";
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
@@ -28,8 +33,9 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
   const [usernameStatus, setUsernameStatus] = useState("idle"); // idle, checking, available, taken, invalid
   const [usernameMessage, setUsernameMessage] = useState("");
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const recaptchaRef = useRef(null);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [googleLoading, setGoogleLoading] = useState(false);
-
 
   const navigate = useNavigate();
   const { fetchUser, setUser } = useUser();
@@ -43,38 +49,35 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
     /[0-9]/.test(password) &&
     /[^A-Za-z0-9]/.test(password);
 
-  const checkUsernameAvailability = React.useCallback(
-    async (val) => {
-      if (!val) {
-        setUsernameStatus("idle");
-        setUsernameMessage("");
-        return;
-      }
+  const checkUsernameAvailability = React.useCallback(async (val) => {
+    if (!val) {
+      setUsernameStatus("idle");
+      setUsernameMessage("");
+      return;
+    }
 
-      if (!validateUsername(val)) {
-        setUsernameStatus("invalid");
-        setUsernameMessage("3-20 chars, lowercase, numbers & underscore only");
-        return;
-      }
+    if (!validateUsername(val)) {
+      setUsernameStatus("invalid");
+      setUsernameMessage("3-20 chars, lowercase, numbers & underscore only");
+      return;
+    }
 
-      setUsernameStatus("checking");
-      try {
-        const res = await fetch(`/api/check-username/${val}`);
-        const data = await res.json();
-        if (data.available) {
-          setUsernameStatus("available");
-          setUsernameMessage("Username is available!");
-        } else {
-          setUsernameStatus("taken");
-          setUsernameMessage("Username is already taken");
-        }
-      } catch (err) {
-        console.error("Check username error:", err);
-        setUsernameStatus("idle");
+    setUsernameStatus("checking");
+    try {
+      const res = await fetch(`/api/check-username/${val}`);
+      const data = await res.json();
+      if (data.available) {
+        setUsernameStatus("available");
+        setUsernameMessage("Username is available!");
+      } else {
+        setUsernameStatus("taken");
+        setUsernameMessage("Username is already taken");
       }
-    },
-    []
-  );
+    } catch (err) {
+      console.error("Check username error:", err);
+      setUsernameStatus("idle");
+    }
+  }, []);
 
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -85,11 +88,10 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
     return () => clearTimeout(timeoutId);
   }, [username, checkUsernameAvailability]);
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
+    console.log("Site key:", import.meta.env.VITE_RECAPTCHA_SITE_KEY);
     if (!email.trim() || !password.trim() || !username.trim())
       return setError("All fields are required!");
 
@@ -99,25 +101,28 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
     if (usernameStatus !== "available")
       return setError("Please choose an available username!");
 
-
     if (!validateEmail(email))
       return setError("Please enter a valid email address!");
 
     if (!validatePassword(password))
       return setError(
-        "Password must be at least 8 characters, with letters, numbers & special characters."
+        "Password must be at least 8 characters, with letters, numbers & special characters.",
       );
+    if (!captchaToken) {
+      return setError("Please complete the captcha verification!");
+    }
 
     setIsSubmitting(true);
 
     try {
+      console.log("captcha token before send:", captchaToken);
+
       const res = await fetch("/api/users/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, username }),
+        body: JSON.stringify({ email, password, username, captchaToken }),
         credentials: "include",
       });
-
       const data = await res.json();
 
       if (!res.ok) {
@@ -133,19 +138,19 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
         _id: data.id,
         email,
         username,
-        isVerified: false
+        isVerified: false,
       });
 
       // Show verification modal instead of redirecting
       setIsVerificationModalOpen(true);
 
       // Store ID and flag for navigation after verification
-      localStorage.setItem('temp_signup_id', data.id);
-      localStorage.setItem('new_signup_verification', 'true');
-
-
+      localStorage.setItem("temp_signup_id", data.id);
+      localStorage.setItem("new_signup_verification", "true");
     } catch (err) {
       setError(err.message || "An error occurred. Please try again.");
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -153,24 +158,22 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
 
   const handleVerified = () => {
     // Check if this is a new signup (not a logged-in user verifying email)
-    const isNewSignup = localStorage.getItem('new_signup_verification');
-    const id = localStorage.getItem('temp_signup_id');
+    const isNewSignup = localStorage.getItem("new_signup_verification");
+    const id = localStorage.getItem("temp_signup_id");
 
-    if (isNewSignup === 'true' && id) {
+    if (isNewSignup === "true" && id) {
       // New user - redirect to onboarding
       enableNotifications(id, "user", true);
       navigate(`/onboarding/${id}`);
     } else {
       // Logged-in user or edge case - redirect to home
       if (id) enableNotifications(id, "user", true);
-      navigate('/');
+      navigate("/");
     }
 
-
-
     // Clean up localStorage flags
-    localStorage.removeItem('new_signup_verification');
-    localStorage.removeItem('temp_signup_id');
+    localStorage.removeItem("new_signup_verification");
+    localStorage.removeItem("temp_signup_id");
   };
 
   const googleButtonClass =
@@ -205,7 +208,7 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
         <div
           className="flex flex-col w-full mx-auto"
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            if (e.key === "Enter") {
               e.preventDefault();
               handleSubmit(e);
             }
@@ -233,26 +236,37 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
           {/* Username Input */}
           <div className="relative mb-4">
             <div className="relative flex items-center">
-              <span className="absolute left-3 text-gray-400 font-bold text-xl">@</span>
+              <span className="absolute left-3 text-gray-400 font-bold text-xl">
+                @
+              </span>
               <input
                 type="text"
                 placeholder="Username"
-                className={`pl-11 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 transition-all ${usernameStatus === "available"
-                  ? "focus:ring-green-400"
-                  : usernameStatus === "taken" || usernameStatus === "invalid"
-                    ? "focus:ring-red-400"
-                    : "focus:ring-brand-light/30"
-                  }`}
+                className={`pl-11 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 transition-all ${
+                  usernameStatus === "available"
+                    ? "focus:ring-green-400"
+                    : usernameStatus === "taken" || usernameStatus === "invalid"
+                      ? "focus:ring-red-400"
+                      : "focus:ring-brand-light/30"
+                }`}
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
+                onChange={(e) =>
+                  setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))
+                }
                 autoComplete="username"
                 disabled={isSubmitting}
               />
             </div>
             {usernameMessage && (
-              <p className={`mt-1 ml-4 text-xs font-semibold ${usernameStatus === "available" ? "text-green-600" :
-                (usernameStatus === "taken" || usernameStatus === "invalid") ? "text-red-600" : "text-gray-500"
-                }`}>
+              <p
+                className={`mt-1 ml-4 text-xs font-semibold ${
+                  usernameStatus === "available"
+                    ? "text-green-600"
+                    : usernameStatus === "taken" || usernameStatus === "invalid"
+                      ? "text-red-600"
+                      : "text-gray-500"
+                }`}
+              >
                 {usernameMessage}
               </p>
             )}
@@ -279,18 +293,28 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
             </button>
           </div>
 
+          {/* Captcha */}
+          <div className="flex justify-center mb-4">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+              onChange={(token) => setCaptchaToken(token)}
+              onExpired={() => setCaptchaToken(null)}
+            />
+          </div>
           {/* Submit */}
           {isSubmitting ? (
-            <LoadingButton text={"Creating Account..."} variant={'blue'} />
+            <LoadingButton text={"Creating Account..."} variant={"blue"} />
           ) : (
             <button
               type="button"
               onClick={handleSubmit}
               disabled={usernameStatus !== "available"}
-              className={`w-full inline-flex items-center justify-center px-8 py-3.5 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 ${usernameStatus === "available"
-                ? "bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 hover:shadow-xl hover:-translate-y-0.5"
-                : "bg-gray-400 cursor-not-allowed"
-                }`}
+              className={`w-full inline-flex items-center justify-center px-8 py-3.5 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 ${
+                usernameStatus === "available"
+                  ? "bg-[#9f3562] hover:bg-[#b24a78] shadow-[#9f3562]/50 hover:shadow-xl hover:-translate-y-0.5"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
             >
               Create Account
             </button>
@@ -331,7 +355,7 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              {googleLoading ? 'Connecting…' : 'Continue with Google'}
+              {googleLoading ? "Connecting…" : "Continue with Google"}
             </button>
           ) : (
             <a href={WEB_GOOGLE_OAUTH_PATH} className={googleButtonClass}>
@@ -360,9 +384,11 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
 
         {/* Switch to Login */}
         <div className="mt-6 text-center">
-          <span className="text-gray-700 text-sm">Already have an account? </span>
+          <span className="text-gray-700 text-sm">
+            Already have an account?{" "}
+          </span>
           <button
-            onClick={() => setAuthMode?.('login')}
+            onClick={() => setAuthMode?.("login")}
             className="text-brand-light hover:underline font-semibold"
           >
             Log In

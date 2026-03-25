@@ -6,6 +6,7 @@ import { IoIosArrowForward, IoIosArrowBack } from "react-icons/io";
 import CustomButton from "../HomeComponents/3d-btn";
 import { motion } from "framer-motion";
 import { FileText, Loader2, Heart, Eye } from "lucide-react";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/autoplay";
@@ -157,10 +158,41 @@ const NoteSuggestionSwiper = () => {
                                         {note.description || "No description provided for this note. Explore it to learn more."}
                                     </p>
 
-                                    <div className="flex items-center justify-between text-[11px] font-medium text-gray-500 mt-auto pt-3 border-t border-gray-50">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-gray-900">{note.uploaderName || 'Unknown'}</span>
-                                        </div>
+                                    <div className="flex items-center justify-between gap-2 text-[11px] font-medium mt-auto pt-3 border-t border-gray-50">
+                                        {(() => {
+                                            const a = resolveNoteAuthor(note);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    className={`flex items-center gap-2 min-w-0 text-left ${
+                                                        a.profilePath
+                                                            ? "text-gray-900 hover:text-[#9f3562] cursor-pointer"
+                                                            : "text-gray-700 cursor-default"
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (a.profilePath) navigate(a.profilePath);
+                                                    }}
+                                                >
+                                                    <img
+                                                        src={a.image}
+                                                        alt=""
+                                                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-gray-100 flex-shrink-0 bg-gray-50"
+                                                    />
+                                                    <span className="flex flex-col min-w-0">
+                                                        <span className="font-bold text-gray-900 truncate text-xs leading-tight">
+                                                            {a.displayName}
+                                                        </span>
+                                                        {a.username ? (
+                                                            <span className="text-[10px] text-[#9f3562] font-semibold truncate">
+                                                                @{a.username}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })()}
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-1">
                                                 <Heart className="w-3.5 h-3.5 text-gray-400" />

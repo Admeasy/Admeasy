@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  Plus,
+  // Plus,
   FileText,
   Filter,
   TrendingUp,
@@ -9,8 +9,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useMentor } from "../context/MentorContext";
-import { useUser } from "../context/UserContext";
+// import { useMentor } from "../context/MentorContext";
+// import { useUser } from "../context/UserContext";
 import CourseSearchDropdown from "../components/CourseSearchDropdown";
 import FilterSection from "../components/FilterSection";
 import NotesCard from "../components/NotesCard";
@@ -18,8 +18,8 @@ import SEO from "../components/SEO";
 
 const Notes = () => {
   const navigate = useNavigate();
-  const { mentor, isLoading: mentorLoading } = useMentor();
-  const { user, isLoading: userLoading } = useUser();
+  // const { mentor, isLoading: mentorLoading } = useMentor();
+  // const { user, isLoading: userLoading } = useUser();
 
   // Filter states
   const [selectedUniversity, setSelectedUniversity] = useState("all");
@@ -207,7 +207,7 @@ const Notes = () => {
             </div>
 
             {/* Add Note */}
-            {!mentorLoading && !userLoading && (mentor || user) && (
+            {/* {!mentorLoading && !userLoading && (mentor || user) && (
               <button
                 onClick={() => navigate("/add-note")}
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#9f3562] to-[#b8447a] text-white px-6 py-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
@@ -216,6 +216,7 @@ const Notes = () => {
                 <span>Add Note</span>
               </button>
             )}
+            */}
           </div>
         </div>
 

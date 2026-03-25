@@ -9,6 +9,7 @@ import { HiOutlineUserGroup } from "react-icons/hi";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import PostCard from "../components/PostCard";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 
 /* ================= SAFE RENDER HELPER ================= */
 const renderText = (value) => {
@@ -403,7 +404,45 @@ const Explore = () => {
                           </div>
                         )}
 
-                        {(note.uploaderName || note.uploader) && <p className="text-xs text-gray-500 mb-3 flex items-center gap-1"><Users className="w-3.5 h-3.5" />{renderText(note.uploaderName || note.uploader)}</p>}
+                        <div className="mb-3">
+                          {(() => {
+                            const a = resolveNoteAuthor(note);
+                            return (
+                              <button
+                                type="button"
+                                disabled={!a.profilePath}
+                                onClick={() =>
+                                  a.profilePath && navigate(a.profilePath)
+                                }
+                                className={`flex items-center gap-3 w-full text-left rounded-xl border border-gray-100 bg-slate-50/90 px-3 py-2 transition-colors ${
+                                  a.profilePath
+                                    ? "hover:bg-slate-100 hover:border-[#9f3562]/30 cursor-pointer"
+                                    : "cursor-default"
+                                }`}
+                              >
+                                <img
+                                  src={a.image}
+                                  alt=""
+                                  className="w-10 h-10 rounded-xl object-cover ring-2 ring-white flex-shrink-0 bg-white"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-bold text-gray-900 truncate">
+                                    {a.displayName}
+                                  </p>
+                                  {a.username ? (
+                                    <p className="text-xs text-[#9f3562] font-semibold truncate">
+                                      @{a.username}
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs text-gray-500">
+                                      Study notes
+                                    </p>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })()}
+                        </div>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           {note.likes !== undefined && <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{note.likes}</span>}
                           {note.views !== undefined && <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{note.views}</span>}

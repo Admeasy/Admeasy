@@ -1873,11 +1873,11 @@ const getMentorToUserChatsData = async (mentorId) => {
     .sort({ updatedAt: -1 })
     .lean();
 
-  const UserModel = Users.model("Users");
+  // const UserModel = User("Users");
   const formattedChats = await Promise.all(
     chats.map(async (chat) => {
       try {
-        const user = await UserModel.findById(chat.userId)
+        const user = await User.findById(chat.userId)
           .select("name course image")
           .lean();
         if (!user) return null;

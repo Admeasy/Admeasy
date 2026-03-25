@@ -28,6 +28,7 @@ const Db = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
+const ActivityRoutes = require('./routes/activityRoutes');
 const { postGoogleIdTokenLogin } = require('./controllers/googleIdTokenAuthController');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
@@ -338,6 +339,7 @@ app.use('/api/subscriptions', SubscriptionRoutes);
 app.use('/api/notifications', NotificationRoutes);
 app.use('/api/advertisers', AdvertiserRoutes);
 app.use('/api/ads', AdRoutes);
+app.use('/api/activity', ActivityRoutes);
 
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {

@@ -15,6 +15,7 @@ import { useSocket } from "../context/SocketContext";
 import { ArrowLeft } from "lucide-react";
 import { Heart, MessageCircle, ExternalLink } from "lucide-react";
 import SEO from "../components/SEO";
+import { trackAdmeasyEvent } from "../utils/trackEvent";
 
 const SharedPostCard = ({ post }) => {
   const navigate = useNavigate();
@@ -114,6 +115,24 @@ const Chatpage = () => {
   const attachmentMenuRef = useRef(null);
   const initializationDone = useRef(false);
   const menuCloseTimeoutRef = useRef(null);
+  const pendingFeedNudgeRef = useRef(false);
+  const [showFeedNudge, setShowFeedNudge] = useState(false);
+  const mentorChatStartedTrackedRef = useRef(null);
+
+  const FEED_NUDGE_PREFIX = "admeasy:mentorChatFeedNudge:";
+  const feedNudgeStorageKey = (cid) =>
+    cid ? `${FEED_NUDGE_PREFIX}${cid.toString()}` : "";
+
+  const countUserOutgoingMessages = (msgs, userId) => {
+    if (!userId) return 0;
+    const uid = userId.toString();
+    return msgs.filter((m) => {
+      const sid = m.senderId?.toString?.() ?? m.senderId;
+      const role =
+        m.senderRole || (sid === uid ? "user" : "mentor");
+      return sid === uid || role === "user";
+    }).length;
+  };
 
   const fallbackProfilePic =
     "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -164,6 +183,33 @@ const Chatpage = () => {
       }
     }
   }, [id, user, navigate]);
+
+  useEffect(() => {
+    pendingFeedNudgeRef.current = false;
+    setShowFeedNudge(false);
+  }, [chatId, id]);
+
+  useEffect(() => {
+    mentorChatStartedTrackedRef.current = null;
+  }, [id]);
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      chatType !== "userToMentor" ||
+      !chatId ||
+      !otherPerson?._id
+    ) {
+      return;
+    }
+    const sessionKey = `${String(chatId)}:${String(otherPerson._id)}`;
+    if (mentorChatStartedTrackedRef.current === sessionKey) return;
+    mentorChatStartedTrackedRef.current = sessionKey;
+    trackAdmeasyEvent("mentor_chat_started", {
+      chat_id: String(chatId),
+      mentor_id: String(otherPerson._id),
+    });
+  }, [isLoading, chatType, chatId, otherPerson?._id]);
 
   const initializeChat = async () => {
     try {
@@ -397,12 +443,39 @@ const Chatpage = () => {
 
     const handleMessageError = (error) => {
       console.error("Message error:", error);
+      pendingFeedNudgeRef.current = false;
       toast.error(error.message || "Failed to send message");
       setIsSending(false);
     };
 
     const handleMessageSent = (message) => {
       if (message.chatId && message.chatId.toString() === chatId.toString()) {
+        const uid = user?._id?.toString?.();
+        const isFromUser =
+          message.senderRole === "user" ||
+          (uid && message.senderId?.toString?.() === uid);
+
+        if (
+          chatType === "userToMentor" &&
+          isFromUser &&
+          pendingFeedNudgeRef.current
+        ) {
+          const key = feedNudgeStorageKey(chatId);
+          if (key && !localStorage.getItem(key)) {
+            localStorage.setItem(key, "1");
+            pendingFeedNudgeRef.current = false;
+            setShowFeedNudge(true);
+            trackAdmeasyEvent("chat_prompt_shown", {
+              chat_id: String(chatId),
+              mentor_id: otherPerson?._id
+                ? String(otherPerson._id)
+                : String(id || ""),
+            });
+          } else {
+            pendingFeedNudgeRef.current = false;
+          }
+        }
+
         // Normalize message data - ensure sender info is present
         const normalizedMessage = {
           ...message,
@@ -446,7 +519,7 @@ const Chatpage = () => {
       socket.off("message_sent", handleMessageSent);
       socket.off("user_to_user_message_sent", handleMessageSent);
     };
-  }, [socket, chatId, chatType]);
+  }, [socket, chatId, chatType, user, id, otherPerson?._id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -520,6 +593,12 @@ const Chatpage = () => {
     setIsSending(true);
 
     if (chatType === "userToMentor") {
+      const priorUserCount = countUserOutgoingMessages(messages, user._id);
+      const nudgeKey = feedNudgeStorageKey(chatId);
+      pendingFeedNudgeRef.current =
+        priorUserCount === 0 &&
+        Boolean(nudgeKey) &&
+        !localStorage.getItem(nudgeKey);
       socketSendMessage({
         chatId,
         senderId: user._id,
@@ -527,6 +606,7 @@ const Chatpage = () => {
         senderRole: "user",
       });
     } else {
+      pendingFeedNudgeRef.current = false;
       socket.emit("send_user_to_user_message", {
         chatId,
         message: messageToSend,
@@ -959,6 +1039,49 @@ const Chatpage = () => {
           </form>
         </div>
       </div>
+
+      {/* First user→mentor message: nudge to ask on feed (once per chat) */}
+      {showFeedNudge && chatType === "userToMentor" && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 pb-8 sm:p-6 bg-black/45 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="feed-nudge-title"
+        >
+          <div className="relative w-full max-w-[340px] rounded-2xl bg-white shadow-2xl border border-gray-100 px-5 pt-5 pb-4">
+            <button
+              type="button"
+              onClick={() => setShowFeedNudge(false)}
+              className="absolute top-2.5 right-2.5 p-0.5 text-gray-400 hover:text-gray-700 leading-none text-[15px] font-light"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+            <h2
+              id="feed-nudge-title"
+              className="text-base font-semibold text-gray-900 pr-7 leading-snug"
+            >
+              Ask in feed, get faster answers
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                trackAdmeasyEvent("chat_prompt_clicked", {
+                  chat_id: chatId ? String(chatId) : "",
+                  mentor_id: otherPerson?._id
+                    ? String(otherPerson._id)
+                    : String(id || ""),
+                });
+                setShowFeedNudge(false);
+                navigate("/posts/create?askDoubt=true");
+              }}
+              className="mt-4 w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#9f3562] to-[#b14270] hover:opacity-95 shadow-md shadow-[#9f3562]/25 transition-opacity"
+            >
+              Ask Now
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
