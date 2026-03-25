@@ -671,13 +671,12 @@ const EditProfile = () => {
   if (loading) {
     return (
       <main className="
-        relative max-w-md mx-auto my-10 p-8 
-        bg-primary rounded-2xl shadow-3d 
-        border border-white/20
+        relative max-w-md mx-auto my-10 p-6 md:p-8 
+        bg-white rounded-xl border border-gray-200
       ">
         {/* Title Skeleton */}
         <div className="flex justify-center mb-8">
-          <div className="h-10 w-48 bg-gray-300/50 rounded-lg animate-pulse" />
+          <div className="h-8 w-48 bg-gray-200 rounded-md animate-pulse" />
         </div>
 
         <div className="flex flex-col gap-6">
@@ -705,13 +704,12 @@ const EditProfile = () => {
   return (
     <>
       <main className="
-  relative max-w-md mx-auto my-10 p-8 
-  bg-primary rounded-2xl shadow-3d 
-  backdrop-blur-lg border border-white/20
+  relative max-w-md mx-auto my-10 p-6 md:p-8 
+  bg-white rounded-xl border border-gray-200
 ">
 
         {/* TITLE */}
-        <h2 className="text-3xl font-admeasy-extrabold text-center mb-6 text-tprimary drop-shadow-sm">
+        <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">
           My Profile
         </h2>
 
@@ -724,8 +722,7 @@ const EditProfile = () => {
                 src={preview || fallbackProfilePic}
                 alt="Profile Preview"
                 className="
-            w-24 h-24 rounded-full object-cover mb-2 border-2 border-gray-200 
-            shadow-md duration-200
+            w-24 h-24 rounded-full object-cover mb-2 border border-gray-200 
           "
                 onError={e => e.target.src = fallbackProfilePic}
               />
@@ -739,8 +736,8 @@ const EditProfile = () => {
             <div {...getRootProps()} className="mt-2 cursor-pointer">
               <input {...getInputProps()} />
               <div className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isDragActive
-                ? 'bg-blue-100 text-blue-700 border-2 border-blue-400 border-dashed'
-                : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                ? 'bg-gray-50 text-gray-700 border-2 border-gray-300 border-dashed'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-none'
                 }`}>
                 <Upload className="inline-block mr-2 w-4 h-4" />
                 {isDragActive ? 'Drop image here' : 'Upload Photo'}
@@ -759,10 +756,10 @@ const EditProfile = () => {
               onChange={handleChange}
               required
               className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:outline-none focus:ring-2 focus:ring-tprimary
-          transition
+          w-full px-3 py-2.5 rounded-md border border-gray-300 
+          bg-white text-sm
+          focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400
+          transition-colors
         "
             />
           </label>
@@ -775,14 +772,14 @@ const EditProfile = () => {
               value={form.username}
               onChange={handleChange}
               className={`
-          w-full px-3 py-2 rounded-lg border shadow-sm
-          bg-white/90
-          focus:outline-none focus:ring-2 transition
+          w-full px-3 py-2.5 rounded-md border text-sm
+          bg-white
+          focus:outline-none focus:ring-1 transition-colors
           ${usernameStatus.available === false
-                  ? 'border-red-300 focus:ring-red-500'
+                  ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
                   : usernameStatus.available === true
-                    ? 'border-green-300 focus:ring-green-500'
-                    : 'border-gray-300 focus:ring-tprimary'
+                    ? 'border-green-400 focus:ring-green-400 focus:border-green-400'
+                    : 'border-gray-300 focus:ring-gray-400 focus:border-gray-400'
                 }
         `}
               placeholder="Choose a username"
@@ -805,9 +802,9 @@ const EditProfile = () => {
               onChange={handleChange}
               required
               className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:outline-none focus:ring-2 focus:ring-tprimary
+          w-full px-3 py-2.5 rounded-md border border-gray-300 
+          bg-white text-sm
+          focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400
         "
             >
               <option value="">Select Gender</option>
@@ -825,8 +822,8 @@ const EditProfile = () => {
               value={form.email}
               disabled
               className="
-          w-full px-3 py-2 rounded-lg border border-gray-200 
-          bg-gray-100 text-gray-400 cursor-not-allowed shadow-sm
+          w-full px-3 py-2.5 rounded-md border border-gray-200 
+          bg-gray-50 text-gray-500 cursor-not-allowed text-sm
         "
             />
           </label>
@@ -840,9 +837,9 @@ const EditProfile = () => {
               required
               onChange={handleChange}
               className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:outline-none focus:ring-2 focus:ring-tprimary
+          w-full px-3 py-2.5 rounded-md border border-gray-300 
+          bg-white text-sm
+          focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400
         "
             />
           </label>
@@ -856,9 +853,9 @@ const EditProfile = () => {
               required
               onChange={handleChange}
               className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:ring-2 focus:ring-tprimary
+          w-full px-3 py-2.5 rounded-md border border-gray-300 
+          bg-white text-sm
+          focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400
         "
             />
           </label>
@@ -871,9 +868,9 @@ const EditProfile = () => {
               onChange={handleChange}
               required
               className="
-          w-full px-3 py-2 rounded-lg border border-gray-300 
-          bg-white/90 shadow-sm
-          focus:ring-2 focus:ring-tprimary
+          w-full px-3 py-2.5 rounded-md border border-gray-300 
+          bg-white text-sm
+          focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400
         "
             >
               <option value="">Select Course</option>
@@ -900,9 +897,9 @@ const EditProfile = () => {
                 required
                 placeholder="E.g., B.Tech Mechanical — 2nd Year"
                 className="
-            w-full px-3 py-2 rounded-lg border border-gray-300 
-            bg-white/90 shadow-sm
-            focus:ring-2 focus:ring-tprimary
+            w-full px-3 py-2.5 rounded-md border border-gray-300 
+            bg-white text-sm
+            focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400
           "
               />
             </label>
@@ -918,13 +915,13 @@ const EditProfile = () => {
               <button
                 type="button"
                 onClick={addExam}
-                className="text-sm text-[#9f3562] hover:text-[#b14270] font-medium transition-colors"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
                 + Add Exam
               </button>
             </div>
             {exams.length === 0 ? (
-              <div className="text-sm text-gray-500 py-4 text-center border border-gray-200 rounded-lg bg-gray-50">
+              <div className="text-sm text-gray-500 py-4 text-center border border-gray-200 rounded-md bg-gray-50">
                 No exams added yet. Click "Add Exam" to add one.
               </div>
             ) : (
@@ -935,7 +932,7 @@ const EditProfile = () => {
                       <select
                         value={exam}
                         onChange={(e) => updateExam(index, e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9f3562] text-sm bg-white"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-sm bg-white"
                       >
                         <option value="">Select an exam</option>
                         {examsList.map((examName) => (
@@ -965,7 +962,7 @@ const EditProfile = () => {
             {isSubmitting ? <LoadingButton text={'Saving'} variant={'blue'} /> :
               <button
                 type="submit"
-                className="w-full relative inline-flex items-center justify-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/50 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 text-white font-medium rounded-md bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
                 disabled={isSubmitting || isEmpty}>
                 Save
               </button>
@@ -975,10 +972,10 @@ const EditProfile = () => {
               type="button"
               onClick={handleCancel}
               className="
-          px-6 py-2 rounded-lg border border-gray-300 bg-white 
-          text-gray-700 font-semibold shadow-sm 
-          hover:bg-gray-100 transition
-          disabled:bg-gray-100 disabled:cursor-not-allowed
+          px-6 py-2.5 rounded-md border border-gray-300 bg-white 
+          text-gray-700 font-medium
+          hover:bg-gray-50 transition-colors
+          disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed
         "
               disabled={!isDirty}
             >
