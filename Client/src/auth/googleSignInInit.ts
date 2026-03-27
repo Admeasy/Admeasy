@@ -1,20 +1,16 @@
 /**
  * Single-flight Google Sign-In initialization.
- * Android Credential Manager + Play Services expect initialize() to complete BEFORE signIn();
- * calling both back-to-back on button click can leave the native flow hanging after account pick.
+ * Native GoogleAuth init should complete before signIn().
  */
-import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 
 import { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
 
 /** Scopes: openid + profile + email (short names work with Google's OAuth endpoints). */
 export const GOOGLE_SIGN_IN_SCOPES = [
-  'openid',
-  'email',
   'profile',
-  'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/userinfo.profile',
+  'email',
 ];
 
 let initPromise: Promise<void> | null = null;
@@ -42,20 +38,15 @@ export function ensureGoogleSignInInitialized(): Promise<void> {
       const base = {
         clientId: GOOGLE_WEB_CLIENT_ID,
         scopes: GOOGLE_SIGN_IN_SCOPES,
+        grantOfflineAccess: true,
       };
 
-      // Web (browser): implicit flow needs redirect_uri + handleRedirectCallback on return.
       if (platform === 'web') {
-        const redirectUrl = `${window.location.origin}/login`;
-        await GoogleSignIn.initialize({
-          ...base,
-          redirectUrl,
-        });
-        console.log('[GoogleSignIn] initialize() OK (web), redirectUrl=', redirectUrl);
+        console.log('[GoogleSignIn] initialize() skipped on web');
         return;
       }
 
-      await GoogleSignIn.initialize(base);
+      await GoogleAuth.initialize(base);
       console.log('[GoogleSignIn] initialize() OK (native)');
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));

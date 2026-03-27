@@ -11,6 +11,14 @@
     ]
   },
   "plugins": {
+    "GoogleAuth": {
+      "scopes": [
+        "profile",
+        "email"
+      ],
+      "serverClientId": "131243298453-f8l1eud7gadl0mgap85smr5le64g7k95.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    },
     "SplashScreen": {
       "launchShowDuration": 0,
       "launchAutoHide": false,
