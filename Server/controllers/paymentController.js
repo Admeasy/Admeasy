@@ -14,14 +14,10 @@ const crypto = require("crypto");
 /**
  * code to run server locally withput env variables(changes from line 17 to line 24)
  */
-if (process.env.NODE_ENV === "production") {
-  razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
-} else {
-  console.warn("Razorpay not initialized in development mode.");
-}
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder",
+});
 
 // -------------------------------------------------------
 // 1️⃣ CREATE ORDER
@@ -29,7 +25,11 @@ if (process.env.NODE_ENV === "production") {
 exports.createOrder = async (req, res) => {
   try {
     const { noteId } = req.body;
-    const userId = req.user._id;
+    const userId = req.user?._id || req.mentor?._id;
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
 
     const note = await Note.findById(noteId);
     if (!note || note.isFree) {
@@ -40,6 +40,7 @@ exports.createOrder = async (req, res) => {
     const existing = await Payment.findOne({
       user: userId,
       note: noteId,
+      paymentType: "note",
       status: { $in: ["completed", "pending"] }, // ← KEY CHANGE
     });
 
@@ -56,7 +57,7 @@ exports.createOrder = async (req, res) => {
     const order = await razorpay.orders.create({
       amount: note.price * 100,
       currency: "INR",
-      receipt: `note_${noteId}_${userId}_${Date.now()}`,
+      receipt: `note_${noteId.toString().slice(-8)}_${Date.now().toString().slice(-8)}`,
       payment_capture: 1,
     });
 
@@ -64,6 +65,7 @@ exports.createOrder = async (req, res) => {
     await Payment.create({
       user: userId,
       note: noteId,
+      paymentType: "note",
       amount: note.price,
       razorpayOrderId: order.id,
       status: "pending", // ← Prevents duplicate orders
@@ -93,7 +95,12 @@ exports.verifyPayment = async (req, res) => {
       razorpay_signature,
       noteId,
     } = req.body;
-    const userId = req.user._id;
+    // const userId = req.user._id;
+    const userId = req.user?._id || req.mentor?._id;
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
 
     // Verify signature
     const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -117,6 +124,7 @@ exports.verifyPayment = async (req, res) => {
     const payment = await Payment.findOneAndUpdate(
       {
         razorpayOrderId: razorpay_order_id,
+        paymentType: "note",
         status: "pending", // ← Only update if still pending
       },
       {
@@ -147,7 +155,8 @@ exports.verifyPayment = async (req, res) => {
         return res.json({
           success: true,
           message: "Payment already verified",
-          downloadUrl: note.fileUrl,
+          hasAccess: true,
+          noteId: note._id,
         });
       }
     }
@@ -155,7 +164,8 @@ exports.verifyPayment = async (req, res) => {
     return res.json({
       success: true,
       message: "Payment verified",
-      downloadUrl: note.fileUrl,
+      hasAccess: true,
+      noteId: note._id,
     });
   } catch (error) {
     console.error("Verify payment error:", error);
@@ -172,12 +182,18 @@ exports.verifyPayment = async (req, res) => {
 exports.checkPurchase = async (req, res) => {
   try {
     const { noteId } = req.params;
-    const userId = req.user._id;
+    // const userId = req.user._id;
+    const userId = req.user?._id || req.mentor?._id;
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
 
     const payment = await Payment.findOne({
       user: userId,
       note: noteId,
       status: "completed",
+      paymentType: "note",
     });
 
     return res.json({
@@ -197,13 +213,18 @@ exports.checkPurchase = async (req, res) => {
 // -------------------------------------------------------
 exports.getUserPurchases = async (req, res) => {
   try {
-    const userId = req.user._id;
+    // const userId = req.user._id;
+    const userId = req.user?._id || req.mentor?._id;
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Authentication required" });
 
     const payments = await Payment.find({
       user: userId,
       status: "completed",
     })
-      .populate("note", "title description price fileUrl")
+      .populate("note", "title description price isFree standard course")
       .sort({ paymentDate: -1 });
 
     return res.json({

@@ -41,7 +41,7 @@ const NoteSuggestionSwiper = () => {
         const fetchNotes = async () => {
             try {
                 setLoading(true);
-                const response = await fetch("/api/notes");
+                const response = await fetch("/api/notes", { credentials: "include" });
                 if (!response.ok) throw new Error("Failed to fetch notes");
 
                 const data = await response.json();

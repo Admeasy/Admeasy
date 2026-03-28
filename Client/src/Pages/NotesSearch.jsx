@@ -64,6 +64,7 @@ const NotesSearch = () => {
         setError("");
         const response = await fetch("/api/notes", {
           signal: controller.signal,
+          credentials: "include",
         });
         if (!response.ok) {
           throw new Error("Failed to load notes");

@@ -1,13 +1,27 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { FileText, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import {
+  FileText,
+  File,
+  Share2,
+  Eye,
+  Heart,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  Lock,
+} from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import SEO from "../components/SEO";
+import PaymentModal from "../components/PaymentModal";
+import { useUser } from "../context/UserContext";
 import { resolveNoteAuthor } from "../utils/noteAuthor";
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, Page, pdfjs } from "react-pdf";
 
 // ✅ CSS imports to fix Blank/White Screen
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 
 // ✅ Worker URL to prevent Vite ES module error
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -21,13 +35,15 @@ const pdfOptions = {
 };
 
 const pdfHeaders = {
-  'Accept': 'application/pdf',
+  Accept: "application/pdf",
 };
 
 const NotesPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, mentor, isLoading: userLoading } = useUser();
   const [note, setNote] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -41,7 +57,7 @@ const NotesPage = () => {
 
   // Scroll to top when component mounts or note ID changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [id]);
 
   // Reset PDF viewer state when note changes
@@ -58,18 +74,19 @@ const NotesPage = () => {
   // Calculate container width for responsive PDF rendering
   useEffect(() => {
     const updateWidth = () => {
-      const container = document.querySelector('[data-pdf-container]');
+      const container = document.querySelector("[data-pdf-container]");
       if (container) {
         setContainerWidth(container.clientWidth - 32); // Subtract padding
       }
     };
 
     updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
   }, [note]);
 
   useEffect(() => {
+    if (userLoading) return;
     let ignore = false;
     const controller = new AbortController();
 
@@ -78,7 +95,10 @@ const NotesPage = () => {
         setLoading(true);
         setError("");
 
-        const res = await fetch(`/api/notes/${id}`, { signal: controller.signal });
+        const res = await fetch(`/api/notes/${id}`, {
+          signal: controller.signal,
+          credentials: "include",
+        });
         if (!res.ok) {
           throw new Error("Unable to load this note right now.");
         }
@@ -88,11 +108,13 @@ const NotesPage = () => {
         if (!data) {
           throw new Error("Note not found.");
         }
-        
+
         // Increment view count
         let updatedWithView = null;
         try {
-          const viewRes = await fetch(`/api/notes/${data._id || id}/view`, { method: "POST" });
+          const viewRes = await fetch(`/api/notes/${data._id || id}/view`, {
+            method: "POST",
+          });
           if (viewRes.ok) {
             const viewPayload = await viewRes.json();
             updatedWithView = viewPayload?.data;
@@ -100,7 +122,7 @@ const NotesPage = () => {
         } catch (viewErr) {
           console.error("Error incrementing views:", viewErr);
         }
-        
+
         if (!ignore) {
           if (updatedWithView) {
             data = updatedWithView;
@@ -125,7 +147,33 @@ const NotesPage = () => {
       ignore = true;
       controller.abort();
     };
+  }, [id, userLoading]);
+
+  const refetchNote = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/notes/${id}`, { credentials: "include" });
+      if (!res.ok) return;
+      const payload = await res.json();
+      const data = payload?.data;
+      if (data) setNote(data);
+    } catch {
+      /* ignore */
+    }
   }, [id]);
+
+  /** Backend sets hasAccess; legacy notes may omit it — treat missing as free-only. */
+  const canViewPdf =
+    note &&
+    (note.hasAccess === true ||
+      (note.hasAccess === undefined && note.isFree !== false));
+
+  const pdfSource =
+    canViewPdf && id
+      ? `${
+          typeof window !== "undefined" ? window.location.origin : ""
+        }/api/notes/${id}/pdf`
+      : null;
 
   // Add structured data for note
   useEffect(() => {
@@ -133,35 +181,37 @@ const NotesPage = () => {
       const structuredData = {
         "@context": "https://schema.org",
         "@type": "LearningResource",
-        "name": note.title,
-        "description": note.description,
-        "educationalLevel": note.standard,
-        "learningResourceType": "Study Notes",
-        "author": {
+        name: note.title,
+        description: note.description,
+        educationalLevel: note.standard,
+        learningResourceType: "Study Notes",
+        author: {
           "@type": "Person",
-          "name": resolveNoteAuthor(note).displayName,
+          name: resolveNoteAuthor(note).displayName,
         },
-        "provider": {
+        provider: {
           "@type": "Organization",
-          "name": "Admeasy"
+          name: "Admeasy",
         },
-        "inLanguage": "en",
-        "isAccessibleForFree": note.isFree || false,
-        "offers": note.isFree ? undefined : {
-          "@type": "Offer",
-          "price": note.price || 0,
-          "priceCurrency": "INR"
-        }
+        inLanguage: "en",
+        isAccessibleForFree: note.isFree || false,
+        offers: note.isFree
+          ? undefined
+          : {
+              "@type": "Offer",
+              price: note.price || 0,
+              priceCurrency: "INR",
+            },
       };
-      
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
+
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
       script.text = JSON.stringify(structuredData);
-      script.id = 'note-structured-data';
+      script.id = "note-structured-data";
       document.head.appendChild(script);
-      
+
       return () => {
-        const existingScript = document.getElementById('note-structured-data');
+        const existingScript = document.getElementById("note-structured-data");
         if (existingScript) {
           document.head.removeChild(existingScript);
         }
@@ -192,7 +242,9 @@ const NotesPage = () => {
 
     try {
       setIsLiking(true);
-      const res = await fetch(`/api/notes/${note._id || id}/like`, { method: "POST" });
+      const res = await fetch(`/api/notes/${note._id || id}/like`, {
+        method: "POST",
+      });
       if (!res.ok) {
         throw new Error("Unable to like this note right now.");
       }
@@ -224,18 +276,30 @@ const NotesPage = () => {
 
   const uploadedAt = note?.publishedAt || note?.uploadDate;
   const uploadedOn = uploadedAt
-    ? new Date(uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+    ? new Date(uploadedAt).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
     : "Recently";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       <SEO
-        title={note ? `${note.title} - Study Notes | Admeasy` : 'Study Notes | Admeasy'}
-        description={note?.description || 'Access premium study notes for your courses'}
-        keywords={`${note?.title || ''}, ${note?.standard || ''}, study notes, ${note?.course || ''}, ${note?.university || ''}`}
+        title={
+          note
+            ? `${note.title} - Study Notes | Admeasy`
+            : "Study Notes | Admeasy"
+        }
+        description={
+          note?.description || "Access premium study notes for your courses"
+        }
+        keywords={`${note?.title || ""}, ${
+          note?.standard || ""
+        }, study notes, ${note?.course || ""}, ${note?.university || ""}`}
         url={`https://admeasy.in/notes/${id}`}
       />
-      
+
       {/* Back Button */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -256,7 +320,9 @@ const NotesPage = () => {
           </div>
         ) : error ? (
           <div className="bg-red-50 rounded-2xl border border-red-200 p-8 text-center shadow-lg text-red-700">
-            <p className="font-semibold mb-2">We couldn&apos;t fetch this note.</p>
+            <p className="font-semibold mb-2">
+              We couldn&apos;t fetch this note.
+            </p>
             <p className="text-sm mb-6">{error}</p>
             <button
               onClick={() => navigate("/notes")}
@@ -267,7 +333,9 @@ const NotesPage = () => {
           </div>
         ) : !note ? (
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-10 text-center">
-            <p className="text-gray-600 mb-4">This note is no longer available.</p>
+            <p className="text-gray-600 mb-4">
+              This note is no longer available.
+            </p>
             <button
               onClick={() => navigate("/notes")}
               className="px-4 py-2 bg-[#9f3562] text-white rounded-xl font-semibold shadow-lg hover:bg-[#b14270] transition"
@@ -286,7 +354,9 @@ const NotesPage = () => {
                     <Heart className="w-6 h-6 text-[#9f3562] fill-[#9f3562]/30" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-900">{formatNumber(note.likes)}</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {formatNumber(note.likes)}
+                    </p>
                     <p className="text-base text-gray-600">likes</p>
                   </div>
                 </div>
@@ -298,7 +368,9 @@ const NotesPage = () => {
                     <Eye className="w-6 h-6 text-[#9f3562]" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-gray-900">{formatNumber(note.views)}</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {formatNumber(note.views)}
+                    </p>
                     <p className="text-base text-gray-600">views</p>
                   </div>
                 </div>
@@ -314,7 +386,11 @@ const NotesPage = () => {
                         : "bg-blue-50 text-blue-700 border border-blue-200"
                     }`}
                   >
-                    {note.isFree ?? true ? "FREE" : note.price ? `₹${note.price}` : "Paid"}
+                    {note.isFree ?? true
+                      ? "FREE"
+                      : note.price
+                      ? `₹${note.price}`
+                      : "Paid"}
                   </span>
                   {note.standard && (
                     <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 border border-gray-200">
@@ -323,8 +399,12 @@ const NotesPage = () => {
                   )}
                 </div>
 
-                <h1 className="text-2xl font-bold text-gray-900 mb-3">{note.title}</h1>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">{note.description}</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-3">
+                  {note.title}
+                </h1>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                  {note.description}
+                </p>
 
                 {/* Uploader — profile image, full name, @username (like posts) */}
                 {authorAttribution && (
@@ -383,7 +463,13 @@ const NotesPage = () => {
                         : "bg-white text-gray-700 hover:bg-[#9f3562]/5 border-gray-200 hover:border-[#9f3562]/20"
                     }`}
                   >
-                    <Heart className={`w-5 h-5 ${liked ? "fill-[#9f3562] text-[#9f3562]" : "text-[#9f3562]"}`} />
+                    <Heart
+                      className={`w-5 h-5 ${
+                        liked
+                          ? "fill-[#9f3562] text-[#9f3562]"
+                          : "text-[#9f3562]"
+                      }`}
+                    />
                     {liked ? "Liked" : isLiking ? "Liking…" : "Like"}
                   </button>
                 </div>
@@ -391,14 +477,27 @@ const NotesPage = () => {
                 {/* Note Details */}
                 <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
                   {[
-                    { label: "University", value: note.university ? note.university.toUpperCase() : "Not shared" },
-                    { label: "Programme", value: formatLabelValue(note.programme) },
+                    {
+                      label: "University",
+                      value: note.university
+                        ? note.university.toUpperCase()
+                        : "Not shared",
+                    },
+                    {
+                      label: "Programme",
+                      value: formatLabelValue(note.programme),
+                    },
                     { label: "Course", value: formatLabelValue(note.course) },
                     { label: "Total Pages", value: note.pages ?? "Not shared" },
                   ].map((detail) => (
-                    <div key={detail.label} className="flex justify-between items-center">
+                    <div
+                      key={detail.label}
+                      className="flex justify-between items-center"
+                    >
                       <p className="text-sm text-gray-600">{detail.label}</p>
-                      <p className="font-semibold text-gray-900 text-sm">{detail.value}</p>
+                      <p className="font-semibold text-gray-900 text-sm">
+                        {detail.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -411,11 +510,54 @@ const NotesPage = () => {
                 <div className="bg-gradient-to-r from-[#9f3562] to-[#b14270] px-6 py-4 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-3">
                     <FileText className="w-6 h-6 text-white" />
-                    <h2 className="text-xl font-bold text-white">Document Preview</h2>
+                    <h2 className="text-xl font-bold text-white">
+                      Document Preview
+                    </h2>
                   </div>
                 </div>
 
-                {note.fileUrl ? (
+                {!canViewPdf &&
+                (note.requiresPurchase === true || note.isFree === false) ? (
+                  <div className="p-8 sm:p-12 text-center min-h-[400px] flex flex-col items-center justify-center bg-gradient-to-b from-[#9f3562]/5 to-gray-50">
+                    <div className="w-16 h-16 rounded-2xl bg-[#9f3562]/10 flex items-center justify-center mb-4">
+                      <Lock className="w-8 h-8 text-[#9f3562]" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      Premium note
+                    </h3>
+                    <p className="text-gray-600 text-sm max-w-md mb-6">
+                      Purchase this note for ₹{note.price ?? "—"} to view the
+                      full PDF. Your access is saved to your account.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      {userLoading ? (
+                        <button
+                          disabled
+                          className="px-6 py-3 rounded-xl font-semibold text-white bg-[#9f3562]/50 cursor-wait"
+                        >
+                          Loading...
+                        </button>
+                      ) : user || mentor ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowPaymentModal(true)}
+                          className="px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9f3562] to-[#b14270] shadow-lg hover:shadow-[#9f3562]/30 transition-all"
+                        >
+                          Purchase & unlock
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/login?redirect=${encodeURIComponent(
+                            `/notes/${id}`,
+                          )}`}
+                          className="px-6 py-3 rounded-xl font-semibold text-center text-white bg-gradient-to-r from-[#9f3562] to-[#b14270]"
+                        >
+                          Log in to purchase
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ) : pdfSource ? (
                   <div className="relative">
                     {!pdfError ? (
                       <div className="flex flex-col h-auto lg:h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
@@ -423,7 +565,9 @@ const NotesPage = () => {
                         <div className="bg-gradient-to-b from-[#9f3562]/5 to-gray-100 border-b border-[#9f3562]/10 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
+                              onClick={() =>
+                                setPageNumber((prev) => Math.max(1, prev - 1))
+                              }
                               disabled={pageNumber <= 1}
                               className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               title="Previous page"
@@ -431,10 +575,14 @@ const NotesPage = () => {
                               <ChevronLeft className="w-5 h-5" />
                             </button>
                             <span className="text-sm font-medium text-gray-700 px-2">
-                              Page {pageNumber} of {numPages || '...'}
+                              Page {pageNumber} of {numPages || "..."}
                             </span>
                             <button
-                              onClick={() => setPageNumber(prev => Math.min(numPages || 1, prev + 1))}
+                              onClick={() =>
+                                setPageNumber((prev) =>
+                                  Math.min(numPages || 1, prev + 1),
+                                )
+                              }
                               disabled={pageNumber >= (numPages || 1)}
                               className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               title="Next page"
@@ -444,7 +592,9 @@ const NotesPage = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
+                              onClick={() =>
+                                setScale((prev) => Math.max(0.5, prev - 0.25))
+                              }
                               className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] transition-colors"
                               title="Zoom out"
                             >
@@ -454,7 +604,9 @@ const NotesPage = () => {
                               {Math.round(scale * 100)}%
                             </span>
                             <button
-                              onClick={() => setScale(prev => Math.min(2.5, prev + 0.25))}
+                              onClick={() =>
+                                setScale((prev) => Math.min(2.5, prev + 0.25))
+                              }
                               className="p-2 rounded-lg hover:bg-[#9f3562]/15 text-gray-700 hover:text-[#9f3562] transition-colors"
                               title="Zoom in"
                             >
@@ -464,42 +616,53 @@ const NotesPage = () => {
                         </div>
 
                         {/* PDF Viewer */}
-                        <div className="flex-1 overflow-auto bg-gray-100 flex items-start justify-center p-2 sm:p-4" data-pdf-container>
+                        <div
+                          className="flex-1 overflow-auto bg-gray-100 flex items-start justify-center p-2 sm:p-4"
+                          data-pdf-container
+                        >
                           {pdfLoading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                               <div className="flex flex-col items-center gap-3">
                                 <div className="w-12 h-12 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin"></div>
-                                <p className="text-gray-600 font-medium">Loading PDF...</p>
+                                <p className="text-gray-600 font-medium">
+                                  Loading PDF...
+                                </p>
                               </div>
                             </div>
                           )}
                           <Document
-                            // ✅ FINAL FIX: Direct original Cloudinary link passed. No more 400 errors!
-                            file={note.fileUrl}
-                            httpHeaders={pdfHeaders}  
-                            withCredentials={false}
-                            options={pdfOptions}      
+                            file={pdfSource}
+                            httpHeaders={pdfHeaders}
+                            withCredentials
+                            options={pdfOptions}
                             onLoadSuccess={({ numPages }) => {
                               setNumPages(numPages);
                               setPdfLoading(false);
                               setPdfError(false);
                             }}
                             onLoadError={(error) => {
-                              console.error('PDF load error:', error);
+                              console.error("PDF load error:", error);
                               setPdfError(true);
                               setPdfLoading(false);
                             }}
                             loading={
                               <div className="flex flex-col items-center gap-3">
                                 <div className="w-12 h-12 border-4 border-[#9f3562]/20 border-t-[#9f3562] rounded-full animate-spin"></div>
-                                <p className="text-gray-600 font-medium">Loading PDF...</p>
+                                <p className="text-gray-600 font-medium">
+                                  Loading PDF...
+                                </p>
                               </div>
                             }
                             error={
                               <div className="p-8 text-center flex flex-col items-center justify-center">
                                 <File className="w-20 h-20 text-gray-300 mb-4" />
-                                <p className="text-gray-600 font-semibold mb-2">Unable to load PDF</p>
-                                <p className="text-gray-500 text-sm">The PDF file may be corrupted, inaccessible, or blocked by CORS policy.</p>
+                                <p className="text-gray-600 font-semibold mb-2">
+                                  Unable to load PDF
+                                </p>
+                                <p className="text-gray-500 text-sm">
+                                  The PDF file may be corrupted, inaccessible,
+                                  or blocked by CORS policy.
+                                </p>
                               </div>
                             }
                             className="flex flex-col items-center"
@@ -518,7 +681,7 @@ const NotesPage = () => {
                                   </div>
                                 }
                                 onRenderError={(error) => {
-                                  console.error('Page render error:', error);
+                                  console.error("Page render error:", error);
                                 }}
                               />
                             </div>
@@ -528,16 +691,24 @@ const NotesPage = () => {
                     ) : (
                       <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
                         <File className="w-20 h-20 text-gray-300 mb-4" />
-                        <p className="text-gray-600 font-semibold mb-2">Unable to display PDF in browser</p>
-                        <p className="text-gray-500 text-sm">Some PDFs cannot be previewed directly.</p>
+                        <p className="text-gray-600 font-semibold mb-2">
+                          Unable to display PDF in browser
+                        </p>
+                        <p className="text-gray-500 text-sm">
+                          Some PDFs cannot be previewed directly.
+                        </p>
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
                     <File className="w-20 h-20 text-gray-300 mb-4" />
-                    <p className="text-gray-600 font-semibold">No preview available</p>
-                    <p className="text-gray-500 text-sm">The PDF file is being processed</p>
+                    <p className="text-gray-600 font-semibold">
+                      No preview available
+                    </p>
+                    <p className="text-gray-500 text-sm">
+                      The PDF file is being processed
+                    </p>
                   </div>
                 )}
               </div>
@@ -545,6 +716,17 @@ const NotesPage = () => {
           </div>
         )}
       </div>
+
+      {note && (
+        <PaymentModal
+          note={note}
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onPaymentSuccess={() => {
+            refetchNote();
+          }}
+        />
+      )}
     </div>
   );
 };
