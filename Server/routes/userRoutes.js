@@ -567,12 +567,15 @@ router.post("/login", async (req, res) => {
         .status(401)
         .json({ success: false, message: "Invalid credentials" });
     }
-    // Check if user signed up with Google (no password)
-    if (!user.password) {
+    // Allow manual login whenever a stored password hash exists.
+    // Block only when password is not set (null/undefined/empty).
+    const hasPassword =
+      typeof user.password === "string" && user.password.trim().length > 0;
+    if (!hasPassword) {
       return res.status(401).json({
         success: false,
         message:
-          "This account was created with Google. Please sign in with Google.",
+          "This account does not have a password set. Please sign in with Google.",
       });
     }
     const valid = await bcrypt.compare(password, user.password);

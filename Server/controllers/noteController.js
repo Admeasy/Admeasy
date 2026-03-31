@@ -22,7 +22,7 @@ const buildFilter = ({ search, university, programme, course, hashtag, uploader 
 
   if (hashtag) {
     // If user clicks a tag, e.g. ?hashtag=React, find notes containing it
-    filter.hashtags = { $in: [hashtag] }; 
+    filter.hashtags = { $in: [hashtag] };
   }
 
   if (university && university !== 'all') {
@@ -111,28 +111,30 @@ exports.viewNote = (req, res) => updateCounter(req, res, 'views');
 // Upload note with Cloudinary compression
 exports.uploadNote = async (req, res) => {
   let tempFilePath = null;
-  
+
   try {
     // Check for either a Mentor or a User
     const uploader = req.mentor || req.user;
     const uploaderType = req.mentor ? 'Mentor' : 'User';
 
     if (!uploader || !uploader._id) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please log in.' 
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in.'
       });
     }
 
-const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags } = req.body;    // Validate required fields
-const missingFields = [];
+    const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags, schoolNotes } = req.body;
+
+    // Validate required fields
+    const isSchoolNote = schoolNotes === 'true' || schoolNotes === true;
+    const missingFields = [];
     if (!title || !title.trim()) missingFields.push('title');
     if (!description || !description.trim()) missingFields.push('description');
     if (!standard || !standard.trim()) missingFields.push('standard');
     if (!course || !course.trim()) missingFields.push('course');
 
-    // ONLY require university and programme if it's a mentor
-    if (uploaderType === 'Mentor') {
+    if (!isSchoolNote) {
       if (!university || !university.trim()) missingFields.push('university');
       if (!programme || !programme.trim()) missingFields.push('programme');
     }
@@ -146,33 +148,33 @@ const missingFields = [];
 
     // Check if file exists
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No file uploaded. Please select a PDF file.' 
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded. Please select a PDF file.'
       });
     }
 
     // Validate file buffer
     if (!req.file.buffer || req.file.buffer.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'File is empty or corrupted. Please try uploading again.' 
+      return res.status(400).json({
+        success: false,
+        message: 'File is empty or corrupted. Please try uploading again.'
       });
     }
 
     // Validate file size (10MB)
     if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'File size must be less than 10MB' 
+      return res.status(400).json({
+        success: false,
+        message: 'File size must be less than 10MB'
       });
     }
 
     // Validate file type
     if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Only PDF files are allowed' 
+      return res.status(400).json({
+        success: false,
+        message: 'Only PDF files are allowed'
       });
     }
 
@@ -190,9 +192,9 @@ const missingFields = [];
       console.log('Temporary file created:', tempFilePath);
     } catch (fileError) {
       console.error('Error creating temporary file:', fileError);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Failed to process file. Please try again.' 
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process file. Please try again.'
       });
     }
 
@@ -201,11 +203,11 @@ const missingFields = [];
       console.error('Cloudinary configuration missing');
       // Clean up temp file
       if (tempFilePath) {
-        await fs.unlink(tempFilePath).catch(() => {});
+        await fs.unlink(tempFilePath).catch(() => { });
       }
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Server configuration error. Please contact support.' 
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error. Please contact support.'
       });
     }
 
@@ -215,7 +217,7 @@ const missingFields = [];
       cloudinaryResult = await cloudinary.uploader.upload(tempFilePath, {
         resource_type: "auto",
         folder: "notes",
-        access_mode: "public", 
+        access_mode: "public",
         public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, '_')}`
       });
       console.log('Cloudinary upload successful:', cloudinaryResult.secure_url);
@@ -224,11 +226,11 @@ const missingFields = [];
       console.error('Cloudinary upload error:', cloudinaryError);
       // Clean up temp file
       if (tempFilePath) {
-        await fs.unlink(tempFilePath).catch(() => {});
+        await fs.unlink(tempFilePath).catch(() => { });
       }
-      return res.status(500).json({ 
-        success: false, 
-        message: cloudinaryError.message || 'Failed to upload file to storage. Please try again.' 
+      return res.status(500).json({
+        success: false,
+        message: cloudinaryError.message || 'Failed to upload file to storage. Please try again.'
       });
     }
 
@@ -243,9 +245,9 @@ const missingFields = [];
 
     // Validate Cloudinary response
     if (!cloudinaryResult || !cloudinaryResult.secure_url) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'File upload completed but failed to get file URL. Please try again.' 
+      return res.status(500).json({
+        success: false,
+        message: 'File upload completed but failed to get file URL. Please try again.'
       });
     }
 
@@ -259,8 +261,9 @@ const missingFields = [];
         pages: pages && pages.trim() ? parseInt(pages) : undefined,
         isFree: isFree === 'true' || isFree === true || isFree === 'true',
         price: price && price.trim() ? parseFloat(price) : undefined,
-        university: university ? university.trim().toLowerCase() : 'general',
-        programme: programme ? programme.trim().toLowerCase() : 'general',
+        schoolNotes: isSchoolNote,
+        university: isSchoolNote ? undefined : (university ? university.trim().toLowerCase() : undefined),
+        programme: isSchoolNote ? undefined : (programme ? programme.trim().toLowerCase() : undefined),
         course: course.trim().toLowerCase(),
         tags: tags && tags.trim() ? tags.trim() : undefined,
         hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse the incoming stringified array
@@ -285,9 +288,9 @@ const missingFields = [];
           console.error('Error deleting from Cloudinary after DB failure:', deleteError);
         }
       }
-      return res.status(500).json({ 
-        success: false, 
-        message: dbError.message || 'Failed to save note. Please try again.' 
+      return res.status(500).json({
+        success: false,
+        message: dbError.message || 'Failed to save note. Please try again.'
       });
     }
 
@@ -317,7 +320,7 @@ const missingFields = [];
       stack: error.stack,
       mentor: req.mentor ? req.mentor._id : 'not authenticated'
     });
-    
+
     // Provide more specific error messages
     let errorMessage = 'Failed to upload note. Please try again.';
     if (error.name === 'ValidationError') {
@@ -328,9 +331,9 @@ const missingFields = [];
       errorMessage = error.message;
     }
 
-    res.status(500).json({ 
-      success: false, 
-      message: errorMessage 
+    res.status(500).json({
+      success: false,
+      message: errorMessage
     });
   }
 };
