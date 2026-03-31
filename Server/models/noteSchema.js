@@ -29,15 +29,23 @@ const noteSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    schoolNotes: {
+      type: Boolean,
+      default: false,
+    },
     university: {
       type: String,
       trim: true,
-      default: "general", // Default value for users
+      required: function () {
+        return !this.schoolNotes;
+      },
     },
     programme: {
       type: String,
       trim: true,
-      default: "general", // Default value for users
+      required: function () {
+        return !this.schoolNotes;
+      },
     },
     course: {
       type: String,

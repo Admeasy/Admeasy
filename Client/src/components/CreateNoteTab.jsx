@@ -10,9 +10,32 @@ const CreateNoteTab = () => {
   const { mentor } = useMentor();
   const { user } = useUser();
 
+  const universities = [
+    { id: "du", label: "Delhi University" },
+    { id: "mu", label: "Mumbai University" },
+    { id: "davu", label: "Devi Ahilya Vishwavidyalaya" },
+    { id: "rgpv", label: "RGPV Bhopal" },
+    { id: "iit", label: "IIT (All Campuses)" },
+    { id: "iim", label: "IIM (All Campuses)" },
+    { id: "lu", label: "Lucknow University" },
+    { id: "manipal", label: "Manipal University" },
+    { id: "sage", label: "Sage University" },
+    { id: "medicaps", label: "Medicaps University" },
+    { id: "oriental", label: "Oriental University" },
+    { id: "pu", label: "Panjab University" },
+  ];
+
+  const programmes = [
+    { id: "bachelors", label: "Bachelors" },
+    { id: "masters", label: "Masters" },
+  ];
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    schoolNotes: false,
+    university: "",
+    programme: "",
     standard: "",
     subject: "",
   });
@@ -39,8 +62,16 @@ const CreateNoteTab = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+
+    setFormData((prev) => {
+      const isSchoolNoteToggle = name === "schoolNotes";
+      return {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+        ...(isSchoolNoteToggle && checked ? { university: "", programme: "" } : {})
+      };
+    });
   };
 
   const handleFileChange = (e) => {
@@ -90,6 +121,18 @@ const CreateNoteTab = () => {
       return;
     }
 
+    if (!formData.schoolNotes) {
+      if (!formData.university.trim()) {
+        toast.error("University is required");
+        return;
+      }
+
+      if (!formData.programme.trim()) {
+        toast.error("Programme is required");
+        return;
+      }
+    }
+
     if (!formData.standard.trim()) {
       toast.error("Class/Standard is required");
       return;
@@ -106,6 +149,11 @@ const CreateNoteTab = () => {
       const submitData = new FormData();
       submitData.append("title", formData.title.trim());
       submitData.append("description", formData.description.trim());
+      submitData.append("schoolNotes", formData.schoolNotes);
+      if (!formData.schoolNotes) {
+        submitData.append("university", formData.university.trim());
+        submitData.append("programme", formData.programme.trim());
+      }
       submitData.append("standard", formData.standard.trim());
       submitData.append("course", formData.subject.trim()); // maps to existing 'course' field in backend
       submitData.append("isFree", "true");
@@ -125,7 +173,7 @@ const CreateNoteTab = () => {
           "Notes uploaded successfully! 📚 It will be reviewed before publishing.",
         );
         // Reset form
-        setFormData({ title: "", description: "", standard: "", subject: "" });
+        setFormData({ title: "", description: "", schoolNotes: false, university: "", programme: "", standard: "", subject: "" });
         setSelectedFile(null);
         setFileError("");
         setHashtags([]);
@@ -227,6 +275,60 @@ const CreateNoteTab = () => {
           placeholder="Describe what these notes cover..."
         />
       </div>
+
+      {/* School Notes Toggle */}
+      <div>
+        <label className="flex items-center gap-2 p-3 border border-slate-200 rounded-xl bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
+          <input
+            type="checkbox"
+            name="schoolNotes"
+            checked={formData.schoolNotes}
+            onChange={handleInputChange}
+            className="w-4 h-4 text-[#9f3562] focus:ring-[#9f3562] border-slate-300 rounded"
+          />
+          <span className="text-sm font-semibold text-slate-700 select-none">
+            This is a School Note
+          </span>
+        </label>
+      </div>
+
+      {/* University and Programme side by side */}
+      {!formData.schoolNotes && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              University <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="university"
+              value={formData.university}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/20 focus:border-[#9f3562]/50 transition-all text-sm appearance-none bg-white"
+            >
+              <option value="">Select University</option>
+              {universities.map(uni => (
+                <option key={uni.id} value={uni.id}>{uni.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Programme <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="programme"
+              value={formData.programme}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/20 focus:border-[#9f3562]/50 transition-all text-sm appearance-none bg-white"
+            >
+              <option value="">Select Programme</option>
+              {programmes.map(prog => (
+                <option key={prog.id} value={prog.id}>{prog.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Class and Subject side by side */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
