@@ -9,7 +9,7 @@ import Ballpit from '../components/Ballpit'
 import Guide from "../assets/Icons/guide.gif"
 import Mentor from "../assets/Icons/Mentor.gif"
 import SignUp from './SignUp.jsx'
-import World from "../assets/Icons/world.gif"
+import World from "../assets/Icons/World.gif"
 import { toast } from 'react-toastify'
 const LogIn = () => {
   const navigate = useNavigate()
