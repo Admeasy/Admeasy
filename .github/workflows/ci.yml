@@ -1,7 +1,9 @@
 # Production CI/CD: Build → Validate → Deploy to VPS (PM2)
 # Repo: Client (Vite/React) + Server (Node/Express)
-# Required secrets: VPS_HOST, VPS_USER, SSH_PRIVATE_KEY
-# Optional: PM2_APP_NAME (default: admeasy-server), DEPLOY_PATH (default: ~/SiteAdmeasy)
+# Required GitHub Secrets:
+# - VPS_HOST
+# - VPS_USER
+# - SSH_PRIVATE_KEY
 
 name: CI/CD Pipeline
 
@@ -12,6 +14,8 @@ on:
 
 env:
   NODE_VERSION: "18"
+  DEPLOY_PATH: /var/www/admeasy/Admeasy
+  PM2_APP_NAME: admeasy-backend
 
 jobs:
   build-and-validate:
@@ -26,38 +30,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # No npm cache — it persists broken native optional binaries across
-          # runs due to a known npm bug: https://github.com/npm/cli/issues/4828
 
-      # --- Client ---
-      # No node_modules cache either — same reason as above.
-      # Native optional deps (rollup, lightningcss, tailwindcss/oxide) must be
-      # installed fresh every run and then explicitly forced for linux-x64-gnu.
-
+      # ---------------------------
+      # Client
+      # ---------------------------
       - name: Install Client dependencies
         working-directory: ./Client
         run: |
           npm ci --legacy-peer-deps
-          # Force-install all known linux-x64-gnu native binaries.
-          # npm silently skips these when package-lock.json was generated on
-          # a different OS (e.g. Windows/macOS dev machine).
           npm install --no-save \
             @rollup/rollup-linux-x64-gnu \
             lightningcss-linux-x64-gnu \
             --legacy-peer-deps
 
       - name: Build Client
-        working-directory: Client
+        working-directory: ./Client
         env:
           NODE_ENV: production
         run: npm run build
-
-      - name: Upload Client build
-        uses: actions/upload-artifact@v4
-        with:
-          name: client-dist
-          path: Client/dist
-          retention-days: 1
 
       - name: Validate Client build output
         run: |
@@ -67,35 +57,109 @@ jobs:
           fi
           echo "Client/dist exists ($(find Client/dist -type f | wc -l) files)"
 
-      # --- Server ---
-      - name: Cache Server node_modules
-        uses: actions/cache@v4
-        id: server-cache
+      - name: Upload Client build
+        uses: actions/upload-artifact@v4
         with:
-          path: Server/node_modules
-          key: server-${{ runner.os }}-node-${{ hashFiles('Server/package-lock.json') }}
-          restore-keys: |
-            server-${{ runner.os }}-node-
+          name: client-dist
+          path: Client/dist
+          retention-days: 1
 
+      # ---------------------------
+      # Server
+      # ---------------------------
       - name: Install Server dependencies
-        working-directory: Server
+        working-directory: ./Server
         run: npm ci
 
-      - name: Validate Server (dependencies & syntax)
-        working-directory: Server
+      - name: Validate Server syntax
+        working-directory: ./Server
         run: |
           node -c index.js
           npm ls --omit=dev --no-audit --no-fund
+
+      - name: Check for broken relative imports (Linux-safe)
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+
+          const exts = ['.js', '.json'];
+          let failed = false;
+
+          function existsCaseSensitive(targetPath) {
+            const parts = path.resolve(targetPath).split(path.sep).filter(Boolean);
+            let current = path.isAbsolute(targetPath) ? path.sep : '';
+            for (const part of parts) {
+              const dir = current || path.sep;
+              try {
+                const entries = fs.readdirSync(dir);
+                if (!entries.includes(part)) return false;
+              } catch {
+                return false;
+              }
+              current = path.join(current, part);
+            }
+            return true;
+          }
+
+          function resolveImport(baseDir, importPath) {
+            const full = path.resolve(baseDir, importPath);
+
+            const candidates = [
+              full,
+              ...exts.map(ext => full + ext),
+              ...exts.map(ext => path.join(full, 'index' + ext)),
+            ];
+
+            return candidates.find(p => fs.existsSync(p) && existsCaseSensitive(p));
+          }
+
+          function walk(dir) {
+            for (const file of fs.readdirSync(dir)) {
+              const full = path.join(dir, file);
+              const stat = fs.statSync(full);
+
+              if (stat.isDirectory()) {
+                if (['node_modules', '.git', 'dist'].includes(file)) continue;
+                walk(full);
+              } else if (file.endsWith('.js')) {
+                const content = fs.readFileSync(full, 'utf8');
+
+                const regexes = [
+                  /require\(['"`](\.{1,2}\/[^'"`]+)['"`]\)/g,
+                  /from ['"`](\.{1,2}\/[^'"`]+)['"`]/g,
+                  /import\(['"`](\.{1,2}\/[^'"`]+)['"`]\)/g
+                ];
+
+                for (const regex of regexes) {
+                  let match;
+                  while ((match = regex.exec(content)) !== null) {
+                    const rel = match[1];
+                    const resolved = resolveImport(path.dirname(full), rel);
+                    if (!resolved) {
+                      console.error(`❌ Broken or case-mismatched import in ${full} → ${rel}`);
+                      failed = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          walk('./Server');
+
+          if (failed) {
+            process.exit(1);
+          } else {
+            console.log('✅ No broken/case-mismatched relative imports found');
+          }
+          EOF
 
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: build-and-validate
     if: success() && github.ref == 'refs/heads/main'
-
-    env:
-      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '~/SiteAdmeasy' }}
-      PM2_APP_NAME: ${{ secrets.PM2_APP_NAME || 'admeasy-server' }}
 
     steps:
       - name: Checkout
@@ -114,6 +178,22 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Backup server .env before deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+          ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "
+            mkdir -p ${DEPLOY_PATH}/backup
+            if [ -f ${DEPLOY_PATH}/Server/.env ]; then
+              cp ${DEPLOY_PATH}/Server/.env ${DEPLOY_PATH}/backup/.env.backup
+              echo '✅ Existing .env backed up'
+            else
+              echo '⚠️ No existing .env found to back up'
+            fi
+          "
+
       - name: Deploy to VPS (rsync + PM2)
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -121,27 +201,40 @@ jobs:
         run: |
           SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
 
-          # Sync server source (exclude node_modules and dist; we upload dist separately)
+          # Sync server source safely (preserve .env and runtime files)
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude '.git' \
+            --exclude '.github' \
             --exclude 'Client' \
             --exclude 'dist' \
             --exclude '*.log' \
+            --exclude '.env' \
+            --exclude 'uploads' \
             -e "ssh $SSH_OPTS" \
             Server/ "$VPS_USER@$VPS_HOST:${DEPLOY_PATH}/Server/"
 
-          # Sync built client into Server/dist (served by Express)
+          # Sync built client into Express-served dist
           rsync -avz --delete \
             -e "ssh $SSH_OPTS" \
             client-dist/ "$VPS_USER@$VPS_HOST:${DEPLOY_PATH}/Server/dist/"
 
-          # On VPS: install production deps and restart PM2
+          # Restore .env if somehow missing, install deps, restart PM2
           ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "
             set -e
             cd ${DEPLOY_PATH}/Server
+
+            if [ ! -f .env ] && [ -f ${DEPLOY_PATH}/backup/.env.backup ]; then
+              cp ${DEPLOY_PATH}/backup/.env.backup .env
+              echo '✅ Restored .env from backup'
+            fi
+
             export NODE_ENV=production
+
             npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund
-            pm2 restart $PM2_APP_NAME --update-env || pm2 start index.js --name $PM2_APP_NAME
+
+            pm2 restart ${PM2_APP_NAME} --update-env || pm2 start index.js --name ${PM2_APP_NAME}
+            pm2 save
+
+            echo '🚀 Deployment complete'
           "
-          

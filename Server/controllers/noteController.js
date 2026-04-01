@@ -180,8 +180,9 @@ exports.uploadNote = async (req, res) => {
 
     console.log('Uploading note:', {
       title: title.trim(),
-      mentorId: req.mentor._id,
-      mentorName: req.mentor.name,
+      uploaderId: uploader._id,
+      uploaderName: uploader.name || 'Unknown',
+      uploaderType: uploaderType,
       fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
       fileName: req.file.originalname
     });
@@ -318,7 +319,7 @@ exports.uploadNote = async (req, res) => {
     console.error('Unexpected error uploading note:', {
       error: error.message,
       stack: error.stack,
-      mentor: req.mentor ? req.mentor._id : 'not authenticated'
+      uploaderId: req.mentor ? req.mentor._id : (req.user ? req.user._id : 'not authenticated')
     });
 
     // Provide more specific error messages
@@ -328,7 +329,11 @@ exports.uploadNote = async (req, res) => {
     } else if (error.name === 'MongoError' || error.name === 'MongoServerError') {
       errorMessage = 'Database error. Please try again in a moment.';
     } else if (error.message) {
-      errorMessage = error.message;
+      if (error.message.includes('Cannot read properties') || error.message.includes('undefined')) {
+        errorMessage = 'An internal system error occurred during upload. Please try again.';
+      } else {
+        errorMessage = error.message;
+      }
     }
 
     res.status(500).json({
