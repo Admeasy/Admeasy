@@ -111,34 +111,34 @@ const CreateNoteTab = () => {
       return;
     }
 
-    if (!formData.title.trim()) {
+    if (!formData.title?.trim()) {
       toast.error("Title is required");
       return;
     }
 
-    if (!formData.description.trim()) {
+    if (!formData.description?.trim()) {
       toast.error("Description is required");
       return;
     }
 
     if (!formData.schoolNotes) {
-      if (!formData.university.trim()) {
+      if (!formData.university?.trim()) {
         toast.error("University is required");
         return;
       }
 
-      if (!formData.programme.trim()) {
+      if (!formData.programme?.trim()) {
         toast.error("Programme is required");
         return;
       }
     }
 
-    if (!formData.standard.trim()) {
+    if (!formData.standard?.trim()) {
       toast.error("Class/Standard is required");
       return;
     }
 
-    if (!formData.subject.trim()) {
+    if (!formData.subject?.trim()) {
       toast.error("Subject is required");
       return;
     }
@@ -147,15 +147,15 @@ const CreateNoteTab = () => {
 
     try {
       const submitData = new FormData();
-      submitData.append("title", formData.title.trim());
-      submitData.append("description", formData.description.trim());
+      submitData.append("title", formData.title?.trim() || "");
+      submitData.append("description", formData.description?.trim() || "");
       submitData.append("schoolNotes", formData.schoolNotes);
       if (!formData.schoolNotes) {
-        submitData.append("university", formData.university.trim());
-        submitData.append("programme", formData.programme.trim());
+        submitData.append("university", formData.university?.trim() || "");
+        submitData.append("programme", formData.programme?.trim() || "");
       }
-      submitData.append("standard", formData.standard.trim());
-      submitData.append("course", formData.subject.trim()); // maps to existing 'course' field in backend
+      submitData.append("standard", formData.standard?.trim() || "");
+      submitData.append("course", formData.subject?.trim() || ""); // maps to existing 'course' field in backend
       submitData.append("isFree", "true");
       submitData.append("hashtags", JSON.stringify(hashtags));
       submitData.append("noteFile", selectedFile);
@@ -166,7 +166,12 @@ const CreateNoteTab = () => {
         body: submitData,
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
 
       if (data.success) {
         toast.success(
@@ -183,7 +188,8 @@ const CreateNoteTab = () => {
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error(error.message || "Failed to upload notes. Please try again.");
+      const errorMsg = error.message || "Failed to upload notes. Please try again.";
+      toast.error(errorMsg.includes('Cannot read properties') ? 'An internal error occurred. Please try again.' : errorMsg);
     } finally {
       setIsSubmitting(false);
     }
