@@ -7,7 +7,7 @@ import LogInComp from './LogInComp'
 import MobileBg from "../assets/Others/login-mb-bg.webp"
 import Ballpit from '../components/Ballpit'
 import Guide from "../assets/Icons/guide.gif"
-import Mentor from "../assets/Icons/mentor.gif"
+import Mentor from "../assets/Icons/Mentor.gif"
 import SignUp from './SignUp.jsx'
 import World from "../assets/Icons/world.gif"
 import { toast } from 'react-toastify'
