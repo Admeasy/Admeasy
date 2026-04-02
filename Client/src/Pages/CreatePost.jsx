@@ -30,6 +30,13 @@ const MentorPost = () => {
   // NEW: Hashtag State
   const [hashtags, setHashtags] = useState([]);
   const [hashtagInput, setHashtagInput] = useState('');
+
+  // NEW: Headline, Category, Space
+  const [headline, setHeadline] = useState('');
+  const [category, setCategory] = useState('study'); // 'study' | 'masti'
+  const [spaceId, setSpaceId] = useState('');
+  const [spaces, setSpaces] = useState([]);
+  const [spacesLoading, setSpacesLoading] = useState(false);
   
   // Check if coming from "Ask a Doubt" CTA
   const isAskDoubt = searchParams.get('askDoubt') === 'true';
@@ -102,6 +109,27 @@ const MentorPost = () => {
       navigate("/login");
     }
   }, [user, mentor, navigate]);
+
+  // Fetch spaces from API
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      setSpacesLoading(true);
+      try {
+        const res = await fetch('/api/spaces', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.spaces)) {
+          setSpaces(data.spaces);
+        } else if (Array.isArray(data)) {
+          setSpaces(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch spaces:', err);
+      } finally {
+        setSpacesLoading(false);
+      }
+    };
+    fetchSpaces();
+  }, []);
 
   // Fetch mention suggestions
   const fetchMentionSuggestions = useCallback(async (query) => {
@@ -310,8 +338,18 @@ const MentorPost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!headline.trim()) {
+      toast.error("Headline is required");
+      return;
+    }
+
     if (!content.trim() || content === '<p><br></p>') {
       toast.error("Post content is required");
+      return;
+    }
+
+    if (!spaceId) {
+      toast.error("Please select a Space for this post");
       return;
     }
 
@@ -320,6 +358,9 @@ const MentorPost = () => {
 
       const formData = new FormData();
       formData.append("content", content);
+      formData.append("headline", headline.trim());
+      formData.append("category", category);
+      formData.append("spaceId", spaceId);
       if (image) formData.append("image", image);
       
       // Add hashtags to form data
@@ -348,6 +389,9 @@ const MentorPost = () => {
 
       toast.success("Post published successfully 🚀");
       setContent("");
+      setHeadline("");
+      setCategory("study");
+      setSpaceId("");
       setImage(null);
       setPreview(null);
       setHashtags([]); // Reset hashtags on success
@@ -395,6 +439,61 @@ const MentorPost = () => {
           </div>
 
           <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300 relative">
+            {/* ─── Headline ──────────────────────────────────── */}
+            <div className="px-4 pt-4 pb-2 border-b border-slate-100">
+              <input
+                type="text"
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="Headline (required) — e.g. 'JEE 2025 strategy that actually works'"
+                className="w-full text-base font-bold text-gray-900 placeholder:text-gray-300 placeholder:font-normal bg-transparent focus:outline-none"
+                maxLength={150}
+              />
+              <div className="text-[10px] text-gray-300 text-right mt-0.5">{headline.length}/150</div>
+            </div>
+
+            {/* ─── Category Toggle ────────────────────────────── */}
+            <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-3">
+              <span className="text-xs text-gray-500 font-semibold shrink-0">Post to:</span>
+              <div className="inline-flex rounded-xl p-0.5 bg-gray-100 gap-0.5">
+                {[
+                  { key: 'study', label: '📚 Study', desc: 'Knowledge & tips' },
+                  { key: 'masti', label: '😎 Masti', desc: 'Fun & campus life' },
+                ].map(({ key, label, desc }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setCategory(key)}
+                    title={desc}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${category === key
+                      ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ─── Space Selector ──────────────────────────────── */}
+            <div className="px-4 py-2 border-b border-slate-100">
+              <select
+                value={spaceId}
+                onChange={(e) => setSpaceId(e.target.value)}
+                className="w-full text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer appearance-none"
+                disabled={spacesLoading}
+              >
+                <option value="">
+                  {spacesLoading ? 'Loading spaces...' : '🌐 Select a Space (required)'}
+                </option>
+                {spaces.map(s => (
+                  <option key={s._id} value={s._id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <ReactQuill
               ref={quillRef}
               theme="snow"

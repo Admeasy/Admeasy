@@ -75,6 +75,12 @@ export default function Profile() {
   const { setMentor } = useMentor();
   const postsSectionRef = useRef(null);
 
+  const handlePostUpdate = (updatedPost) => {
+    setPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
+    setAllPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
+    setReposts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
+  };
+
   const handleScrollToPosts = () => {
     postsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -1194,7 +1200,7 @@ export default function Profile() {
                   ) : allPosts.length > 0 ? (
                     <div className="space-y-4">
                       {(showAllPosts ? allPosts : allPosts.slice(0, 10)).map((post) => (
-                        <PostCard key={post._id} post={post} />
+                        <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
                       ))}
                       {!showAllPosts && totalPostsCount > 10 && (
                         <div className="flex justify-center pt-4">
@@ -1235,7 +1241,7 @@ export default function Profile() {
                   ) : reposts.length > 0 ? (
                     <div className="space-y-4">
                       {reposts.map((post) => (
-                        <PostCard key={post._id} post={post} />
+                        <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
                       ))}
                     </div>
                   ) : (

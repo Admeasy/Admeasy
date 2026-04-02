@@ -11,8 +11,20 @@ import * as pdfjsLib from "pdfjs-dist"
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import axios from 'axios';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 axios.defaults.withCredentials = true;
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes — feeds stay fresh
+      gcTime: 10 * 60 * 1000,   // 10 minutes cache retention
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 // Native splash: hide Capacitor splash + custom HTML splash when app is ready
 const hideNativeSplash = async () => {
@@ -45,14 +57,16 @@ if (splash) {
 
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <BrowserRouter>
-      <UserProvider>
-        <MentorProvider>
-          <SocketProvider>
-            <App />
-          </SocketProvider>
-        </MentorProvider>
-      </UserProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <UserProvider>
+          <MentorProvider>
+            <SocketProvider>
+              <App />
+            </SocketProvider>
+          </MentorProvider>
+        </UserProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   </ErrorBoundary>
 )

@@ -1,621 +1,355 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useUser } from '../context/UserContext';
 import { useMentor } from '../context/MentorContext';
 import PostCard from '../components/PostCard';
-import NotesCard from '../components/NotesCard';
 import PostViewTracker from '../components/PostViewTracker';
 import MentorSuggestionSwiper from '../components/MentorSuggestionSwiper';
 import SpaceSuggestionSwiper from '../components/SpaceSuggestionSwiper';
+import NoteSuggestionSwiper from '../components/NoteSuggestionSwiper';
+import CollegeSuggestionSwiper from '../components/CollegeSuggestionSwiper';
 import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import AdCard from '../components/AdCard';
-import { Loader2, X, ChevronRight } from 'lucide-react';
+import { Loader2, X, BookOpen, Smile } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
-import { motion } from 'framer-motion';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { FreeMode, Navigation } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/free-mode';
-import 'swiper/css/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const FEED_STORAGE_KEY = 'admeasy:feed:state';
+// ─── Fetch function ──────────────────────────────────────────────────────────
+const fetchFeedPage = async ({ pageParam = 1, queryKey }) => {
+  const [, feedType, hashtag] = queryKey;
+  const params = new URLSearchParams({
+    page: pageParam,
+    limit: 20,
+    type: feedType,
+  });
+  if (hashtag) params.set('hashtag', hashtag);
+  const res = await fetch(`/api/posts?${params}`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch posts');
+  return res.json();
+};
 
-const LOGGED_OUT_HERO_MESSAGES = [
-  { title: "Bro Found the Notes Before the Exam", subtitle: "Your study-first community feed" },
-  { title: "POV: You Finally Found Good Notes", subtitle: "Your study-first community feed" },
-  { title: "Notes So Good You'll Stop Asking 'Bhai PDF Hai?'", subtitle: "Your study-first community feed" },
-  { title: "Topper Energy Only", subtitle: "Notes, discussions, and student insights." },
-  { title: "Your Daily Dose of Academic Aura", subtitle: "Explore notes, ideas, and student insights." },
+// ─── Random hero messages ────────────────────────────────────────────────────
+const STUDY_HERO = [
+  { title: "Yeh feed marks badhane wali hai", subtitle: "Your study-first community feed" },
+  { title: "Mentors ne bola, sunna padega", subtitle: "Your study-first community feed" },
+  { title: "College clarity starts here", subtitle: "Your study-first community feed" },
+  { title: "One right suggestion > 100 random videos", subtitle: "Ask seniors. Save time. Reduce stress." },
+  { title: "Talk to seniors who've already cracked it.", subtitle: "Real experiences. Honest mistakes." },
+];
+const MASTI_HERO = [
+  { title: "Chill mode: activated 😎", subtitle: "Student life, unfiltered vibes" },
+  { title: "Study hard, laugh harder 😂", subtitle: "Your daily dose of campus life" },
+  { title: "The feed that understands your struggle 🎉", subtitle: "Masti mode — no pressure, just vibes" },
 ];
 
+const CollegeSuggestionSwiperSafe = () => {
+  try {
+    return <CollegeSuggestionSwiper />;
+  } catch {
+    return null;
+  }
+};
+
+// ─── Main Feed Component ─────────────────────────────────────────────────────
 const Feed = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const tagFilter = searchParams.get('tag');
 
-  const [posts, setPosts] = useState([]);
-  const [notes, setNotes] = useState([]);
+  // Feed type state: 'study' | 'masti'
+  const [feedType, setFeedType] = useState(() => localStorage.getItem('feedType') || 'study');
+
+  // Persistence: Save to local storage on change
+  useEffect(() => {
+    localStorage.setItem('feedType', feedType);
+  }, [feedType]);
+
+  // For ads
   const [ads, setAds] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
 
-  const isFetchingRef = useRef(false);
-  const observerTarget = useRef(null);
-  const observerRef = useRef(null);
-  const pageRef = useRef(1);
-  const hasMoreRef = useRef(true);
-  const loadingMoreRef = useRef(false);
+  // Single source of truth for posts (merged from pages)
+  const [allPosts, setAllPosts] = useState([]);
+
   const observerTargetRef = useRef(null);
-  const feedContainerRef = useRef(null);
-  const shouldRestoreScrollRef = useRef(false);
-  const isFirstRender = useRef(true);
 
-  //🔥 SINGLE SOURCE OF TRUTH
+  // ── React Query: infinite feed ─────────────────────────────────────────────
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ['feed', feedType, tagFilter],
+    queryFn: fetchFeedPage,
+    getNextPageParam: (lastPage) => {
+      const { page, pages } = lastPage.pagination || {};
+      if (page < pages) return page + 1;
+      return undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const updatePostInFeed = useCallback((updatedPost) => {
-    // If post is deleted, remove it from the feed
-    if (updatedPost.deleted) {
-      setPosts((prev) => prev.filter((p) => p._id !== updatedPost._id));
-      return;
+  // Flatten pages into a single posts array
+  useEffect(() => {
+    if (data) {
+      const merged = data.pages.flatMap(p => p.posts || []);
+      // Deduplicate by _id
+      const seen = new Set();
+      const unique = merged.filter(p => {
+        if (seen.has(p._id)) return false;
+        seen.add(p._id);
+        return true;
+      });
+      setAllPosts(unique);
     }
-    // Otherwise, update the post
-    setPosts((prev) =>
-      prev.map((p) =>
-        p._id === updatedPost._id ? { ...p, ...updatedPost } : p
-      )
-    );
+  }, [data]);
+
+  // ── Fetch ads (one-shot, independent of feed type) ─────────────────────────
+  useEffect(() => {
+    fetch('/api/ads/feed/random?limit=5', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.success && d.ads) setAds(d.ads); })
+      .catch(() => { });
+  }, []);
+
+  // ── Optimistic post update ─────────────────────────────────────────────────
+  const updatePostInFeed = useCallback((updatedPost) => {
+    setAllPosts(prev => {
+      if (updatedPost.deleted) return prev.filter(p => p._id !== updatedPost._id);
+      return prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p);
+    });
   }, []);
 
   const updateAdInFeed = useCallback((updatedAd) => {
-    // Update the ad in the ads array
-    setAds((prev) =>
-      prev.map((a) =>
-        a._id === updatedAd._id ? { ...a, ...updatedAd } : a
-      )
-    );
+    setAds(prev => prev.map(a => a._id === updatedAd._id ? { ...a, ...updatedAd } : a));
   }, []);
 
-  // Save feed state to sessionStorage
-  const saveFeedState = useCallback((currentPage, currentPosts, scrollPosition) => {
-    // Don't save feed state if we are currently filtering by a tag to avoid weird restores
-    if (tagFilter) return;
-
-    try {
-      const state = {
-        page: currentPage,
-        posts: currentPosts.map(p => ({ _id: p._id })),
-        scrollPosition,
-        timestamp: Date.now(),
-      };
-      sessionStorage.setItem(FEED_STORAGE_KEY, JSON.stringify(state));
-    } catch (err) {
-      console.error('Failed to save feed state:', err);
-    }
-  }, [tagFilter]);
-
-  // Load feed state from sessionStorage
-  const loadFeedState = useCallback(() => {
-    try {
-      const stored = sessionStorage.getItem(FEED_STORAGE_KEY);
-      if (stored) {
-        const state = JSON.parse(stored);
-        // Only restore if state is less than 30 minutes old
-        if (Date.now() - state.timestamp < 30 * 60 * 1000) {
-          return state;
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load feed state:', err);
-    }
-    return null;
-  }, []);
-
-
-  // Fetch Notes Function
-  const fetchNotes = useCallback(async () => {
-    try {
-      const url = tagFilter ? `/api/notes?hashtag=${encodeURIComponent(tagFilter)}` : '/api/notes';
-      const response = await fetch(url, { credentials: 'include' });
-      if (response.ok) {
-        const data = await response.json();
-        const notesList = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-        setNotes(notesList);
-      }
-    } catch (error) {
-      console.error('Failed to fetch notes:', error);
-    }
-  }, [tagFilter]);
-
-  // Fetch ads
-  const fetchAds = useCallback(async () => {
-    try {
-      const response = await fetch('/api/ads/feed/random?limit=5', {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.ads) {
-          setAds(data.ads);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch ads:', error);
-    }
-  }, []);
-
-  // Fetch Posts
-  const fetchPosts = useCallback(async (pageNum = 1, append = false) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
-
-    try {
-      pageNum === 1 ? setLoading(true) : setLoadingMore(true);
-
-      const url = `/api/posts?page=${pageNum}&limit=20${tagFilter ? `&hashtag=${encodeURIComponent(tagFilter)}` : ''}`;
-      const response = await fetch(url, { credentials: 'include' });
-
-      if (!response.ok) throw new Error('Failed to fetch posts');
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch posts');
-      }
-
-      setPosts((prev) => {
-        // Deduplicate posts based on _id
-        const incomingPosts = append ? data.posts : data.posts;
-        const existingIds = new Set(prev.map(p => p._id));
-
-        let newPosts;
-        if (append) {
-          // Filter out duplicates from incoming posts
-          const uniqueIncoming = incomingPosts.filter(p => !existingIds.has(p._id));
-          newPosts = [...prev, ...uniqueIncoming];
-        } else {
-          newPosts = incomingPosts;
-        }
-
-        // Save state after updating posts
-        setTimeout(() => {
-          saveFeedState(pageNum, newPosts, window.scrollY);
-        }, 100);
-        return newPosts;
-      });
-
-      setHasMore(
-        data.posts.length === 20 &&
-        pageNum < (data.pagination.pages || 100) // Fallback for pages
-      );
-      setPage(pageNum);
-
-      // Fetch ads on first page load
-      if (pageNum === 1) {
-        fetchAds();
-        fetchNotes();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load posts. Please try again.');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      loadingMoreRef.current = false;
-      isFetchingRef.current = false;
-    }
-  }, [saveFeedState, fetchNotes, fetchAds, tagFilter]);
-
-  // Load more posts (for infinite scroll)
-  const loadMore = useCallback(() => {
-    if (loadingMore || !hasMore || isFetchingRef.current) return;
-    const nextPage = page + 1;
-    fetchPosts(nextPage, true);
-  }, [page, loadingMore, hasMore, fetchPosts]);
-
-  // Restore scroll position and load saved state (Runs only on mount)
+  // ── Infinite scroll observer ───────────────────────────────────────────────
   useEffect(() => {
-    const isReturningFromPost = document.referrer.includes('/posts/') ||
-      sessionStorage.getItem('admeasy:fromPostDetail') === 'true';
-
-    if (isReturningFromPost) {
-      sessionStorage.removeItem('admeasy:fromPostDetail');
-    }
-
-    const savedState = loadFeedState();
-
-    const shouldRestore = savedState && (
-      isReturningFromPost ||
-      (Date.now() - savedState.timestamp < 10 * 60 * 1000)
-    );
-
-    if (shouldRestore && savedState.scrollPosition > 0 && !tagFilter) {
-      shouldRestoreScrollRef.current = true;
-      setPage(savedState.page);
-
-      const loadAllPages = async () => {
-        setLoading(true);
-        try {
-          const allPosts = [];
-          for (let p = 1; p <= savedState.page; p++) {
-            const response = await fetch(
-              `/api/posts?page=${p}&limit=20`,
-              { credentials: 'include' }
-            );
-            if (response.ok) {
-              const data = await response.json();
-              if (data.success) {
-                allPosts.push(...data.posts);
-              }
-            }
-          }
-          setPosts(allPosts);
-          fetchNotes();
-
-          let attempts = 0;
-          const maxAttempts = 10;
-
-          const restoreScroll = () => {
-            attempts++;
-            const scrollTarget = savedState.scrollPosition || 0;
-
-            if (scrollTarget > 0 && document.body.scrollHeight >= scrollTarget) {
-              window.scrollTo({
-                top: scrollTarget,
-                behavior: 'auto'
-              });
-              shouldRestoreScrollRef.current = false;
-            } else if (attempts < maxAttempts) {
-              setTimeout(restoreScroll, 100);
-            } else {
-              window.scrollTo({
-                top: Math.min(scrollTarget, document.body.scrollHeight),
-                behavior: 'auto'
-              });
-              shouldRestoreScrollRef.current = false;
-            }
-          };
-
-          setTimeout(restoreScroll, 100);
-        } catch (err) {
-          console.error('Failed to restore feed state:', err);
-          fetchPosts(1, false);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadAllPages();
-    } else {
-      if (savedState && Date.now() - savedState.timestamp > 10 * 60 * 1000) {
-        sessionStorage.removeItem(FEED_STORAGE_KEY);
-      }
-      fetchPosts(1, false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Refetch when the hashtag filter changes
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return; // Skip the first render as the restore-scroll useEffect handles it
-    }
-
-    setPosts([]);
-    setNotes([]);
-    setPage(1);
-    setHasMore(true);
-    fetchPosts(1, false);
-    window.scrollTo(0, 0); // Scroll to top when filter is applied/removed
-  }, [tagFilter, fetchPosts]);
-
-  // Infinite scroll with IntersectionObserver
-  useEffect(() => {
-    if (!hasMore || loading || loadingMore) return;
-
+    if (!hasNextPage || isFetchingNextPage) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isFetchingRef.current) {
-          loadMore();
-        }
+        if (entries[0].isIntersecting) fetchNextPage();
       },
-      {
-        root: null,
-        rootMargin: '200px', // Start loading 200px before reaching the bottom
-        threshold: 0.1,
-      }
+      { root: null, rootMargin: '250px', threshold: 0.1 }
     );
+    if (observerTargetRef.current) observer.observe(observerTargetRef.current);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const currentTarget = observerTargetRef.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasMore, loading, loadingMore, loadMore]);
-
-  // Save scroll position on scroll (throttled)
+  // ── Hero message ───────────────────────────────────────────────────────────
+  const [hero, setHero] = useState({ title: '', subtitle: '' });
   useEffect(() => {
-    let scrollTimeout;
-    const handleScroll = () => {
-      if (shouldRestoreScrollRef.current) return; // Don't save during restoration
+    const pool = feedType === 'masti' ? MASTI_HERO : STUDY_HERO;
+    setHero(pool[Math.floor(Math.random() * pool.length)]);
+  }, [feedType, user, mentor]);
 
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        // Save immediately with current scroll position
-        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-        saveFeedState(page, posts, currentScroll);
-      }, 300); // Throttle: save every 300ms (faster for better UX)
-    };
+  // ── Feed type toggle handler ───────────────────────────────────────────────
+  const handleFeedTypeChange = (type) => {
+    if (type === feedType) return;
+    setFeedType(type);
+    setAllPosts([]); // clear immediately so there's no stale flash
+    window.scrollTo(0, 0);
+  };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
-  }, [page, posts, saveFeedState]);
+  const isMasti = feedType === 'masti';
 
-  // Save state when navigating away (location change)
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-      saveFeedState(page, posts, currentScroll);
-    };
-
-    const handleLocationChange = () => {
-      setTimeout(() => {
-        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-        saveFeedState(page, posts, currentScroll);
-      }, 50);
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleLocationChange);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleLocationChange);
-      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-      saveFeedState(page, posts, currentScroll);
-    };
-  }, [page, posts, saveFeedState, location.pathname]);
-
-
-  // Prepare Posts Logic (Notes separated to Swiper)
-  const feedItems = useMemo(() => {
-    const formattedPosts = posts.map(p => ({ ...p, contentType: 'post' }));
-
-    return formattedPosts.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
-    });
-  }, [posts]);
-
-  // Random Heading logic 
-  const [randomHeading, setRandomHeading] = useState({ title: '', subtitle: '' });
-
-  useEffect(() => {
-    const userName = (user?.name || "").split(' ')[0] || "there";
-    const mentorName = (mentor?.name || "").split(' ')[0] || "there";
-
-    const userHeadings = [
-      { title: "Yeh feed marks badhane wali hai", subtitle: "Your study-first community feed" },
-      { title: "Mentors ne bola, sunna padega", subtitle: "Your study-first community feed" },
-      {
-        title: "Scroll less nonsense. Scroll real study advice.",
-        subtitle: "A feed made only for students."
-      },
-      { title: "College clarity starts here", subtitle: "Your study-first community feed" },
-      { title: `Hey ${userName} 👋, mentors have dropped something useful`, subtitle: "Your study-first community feed" },
-      { title: `Welcome back, ${userName}! Top mentors are active`, subtitle: "Your study-first community feed" },
-      { title: "Marks, boards, college, sab ka scene clear hoga", subtitle: "Step-by-step guidance from real seniors" },
-      {
-        title: "Talk to seniors who’ve already cracked what you’re preparing for.", subtitle: "No guessing. No YouTube overload. Just clear direction"
-      },
-      {
-        title: "Not teachers. Not influencers. Seniors who actually care.", subtitle: "Real experiences. Honest mistakes. Practical guidance."
-      },
-      {
-        title: "One right suggestion > 100 random videos",
-        subtitle: "Ask seniors. Save time. Reduce stress."
-      },
-      {
-        title: "Jo galti tum kar rahe ho, hum already kar chuke hain.",
-        subtitle: "Learn from seniors. Don’t repeat mistakes."
-      },
-    ];
-
-    const mentorHeadings = [
-      { title: `${mentorName}, Students need your guidance today`, subtitle: "Your experience matters" },
-      { title: "Your experience can change someone’s college decision", subtitle: "Help them make the right choice" },
-      { title: `${mentorName}, Help someone choose better`, subtitle: "Your guidance is valuable" },
-      { title: `${mentorName}, Answer a student’s doubt`, subtitle: "Clear their path to success" },
-      { title: `${mentorName}, Guide students today`, subtitle: "Inspire the next batch" }
-    ];
-
-    if (user) {
-      const random = userHeadings[Math.floor(Math.random() * userHeadings.length)];
-      setRandomHeading(random);
-    } else if (mentor) {
-      const random = mentorHeadings[Math.floor(Math.random() * mentorHeadings.length)];
-      setRandomHeading(random);
-    } else {
-      const random = LOGGED_OUT_HERO_MESSAGES[Math.floor(Math.random() * LOGGED_OUT_HERO_MESSAGES.length)];
-      setRandomHeading(random);
-    }
-  }, [user, mentor]);
-
-  // Loading state
-  if (loading) {
+  // ── Loading skeleton ───────────────────────────────────────────────────────
+  if (isLoading && allPosts.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
+      <div className={`min-h-screen flex items-center justify-center ${isMasti ? 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100/60' : 'bg-gradient-to-br from-gray-50 via-white to-pink-50/30'}`}>
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-[#9f3562]" />
-          <p className="text-gray-600 font-medium">Loading amazing content...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-[#9f3562]" />
+          <p className="text-gray-600 font-medium text-sm">Loading {isMasti ? 'Masti' : 'Study'} feed...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center space-y-3">
+          <p className="text-gray-800 font-semibold">Failed to load feed</p>
+          <button onClick={() => refetch()} className="px-4 py-2 bg-[#9f3562] text-white rounded-xl text-sm font-medium hover:bg-[#b14270] transition-colors">
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden">
+    <div className={`min-h-screen relative overflow-x-hidden transition-colors duration-500 ${isMasti
+      ? 'bg-gradient-to-br from-pink-50/80 via-rose-50/60 to-pink-100/40'
+      : 'bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]'}`}
+    >
       <SEO
-        title={tagFilter ? `#${tagFilter} - Admeasy Feed` : "Admeasy"}
-        description="Discover knowledge shared by mentors"
+        title={tagFilter ? `#${tagFilter} - Admeasy Feed` : `${isMasti ? 'Masti' : 'Study'} Feed — Admeasy`}
+        description="Discover knowledge shared by mentors and students"
         url="https://admeasy.in"
       />
 
-      {/* Ask Doubt CTA */}
-      <AskDoubtCTA />
+      {/* Background Grids Overlay */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={feedType}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 pointer-events-none z-0"
+        >
+          {isMasti && (
+            // Yellowish square grid for Masti
+            <div
+              className="absolute inset-0 opacity-[0.15]"
+              style={{ backgroundImage: 'linear-gradient(#eab308 1px, transparent 1px), linear-gradient(90deg, #eab308 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Add Exam Info CTA */}
+      <AskDoubtCTA />
       <AddExamInfoCTA />
 
       <div className="flex justify-center relative z-10">
-        <div className="w-full max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
+        <div className="w-full max-w-2xl px-3 sm:px-4 py-4 sm:py-8">
 
-          {/* Header */}
-          <div className="w-9/10 mb-8 sm:mb-14">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          {/* ── Header ─────────────────────────────────────────── */}
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex-1">
-                <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
-                  {user || mentor ? (
-                    <>
-                      {randomHeading.title.includes(user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0]) ? (
-                        <>
-                          {randomHeading.title.split(user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0])[0]}
-                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9f3562] to-[#701a3c]">
-                            {user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0]}
-                          </span>
-                          {randomHeading.title.split(user?.name?.split(' ')[0] || mentor?.name?.split(' ')[0])[1]}
-                        </>
-                      ) : (
-                        randomHeading.title
-                      )}
-                    </>
-                  ) : (
-                    randomHeading.title
-                  )}
+                <h1 className="text-lg sm:text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+                  {hero.title}
                 </h1>
-                <p className="text-gray-600 mt-2 text-xs sm:text-base md:text-lg">
-                  {randomHeading.subtitle}
-                </p>
+                <p className="text-gray-500 mt-1 text-xs sm:text-sm">{hero.subtitle}</p>
               </div>
-
-
               {!user && !mentor && (
                 <button
                   onClick={() => navigate('/login')}
-                  className="w-fit h-fit px-1.5 py-1 font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg cursor-pointer hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-1500"
+                  className="w-fit px-3 py-1.5 text-sm font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-lg cursor-pointer hover:shadow-lg hover:shadow-[#9f3562]/40 transition-all"
                 >
-                  Log in to interact
+                  Log in
                 </button>
               )}
             </div>
           </div>
 
-          {/* Active Hashtag Filter Banner */}
+          {/* ── Dual-Channel Toggle (Custom Animated Switch) ──────────────── */}
+          <div className="mb-8 flex justify-center items-center gap-4">
+            <span className={`text-sm font-bold transition-opacity duration-300 ${!isMasti ? 'text-[#9f3562] opacity-100' : 'text-gray-400 opacity-60'}`}>
+              Study
+            </span>
+
+            <button
+              onClick={() => handleFeedTypeChange(isMasti ? 'study' : 'masti')}
+              className={`relative w-14 h-7 rounded-full transition-colors duration-500 ease-in-out focus:outline-none ${isMasti ? 'bg-rose-300 shadow-inner' : 'bg-[#9f3562] shadow-md'
+                }`}
+            >
+              <motion.div
+                animate={{ x: isMasti ? 28 : 4 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-lg flex items-center justify-center overflow-hidden"
+              >
+                {isMasti ? <Smile className="w-3 h-3 text-rose-500" /> : <BookOpen className="w-3 h-3 text-[#9f3562]" />}
+              </motion.div>
+            </button>
+
+            <span className={`text-sm font-bold transition-opacity duration-300 ${isMasti ? 'text-rose-500 opacity-100' : 'text-gray-400 opacity-60'}`}>
+              Masti
+            </span>
+          </div>
+
+          {/* ── Hashtag Filter Banner ──────────────────────────── */}
           {tagFilter && (
             <motion.div
               initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-              className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gradient-to-r from-pink-50 to-white p-4 rounded-2xl border border-pink-100 shadow-sm gap-4"
+              className="mb-4 flex items-center justify-between bg-gradient-to-r from-pink-50 to-white p-3 rounded-2xl border border-pink-100 shadow-sm gap-3"
             >
-              <div className="flex items-center gap-3">
-                <div className="bg-[#9f3562] text-white p-2 rounded-xl">
-                  <span className="font-bold text-lg">#</span>
+              <div className="flex items-center gap-2">
+                <div className="bg-[#9f3562] text-white p-1.5 rounded-lg">
+                  <span className="font-bold text-sm">#</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Showing results for hashtag</p>
-                  <p className="text-lg font-bold text-gray-900">{tagFilter}</p>
+                  <p className="text-xs text-gray-500 font-medium">Filtering by</p>
+                  <p className="text-sm font-bold text-gray-900">#{tagFilter}</p>
                 </div>
               </div>
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-red-500 bg-white px-4 py-2 rounded-xl border border-gray-200 hover:border-red-200 transition-all cursor-pointer"
+                className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-red-500 bg-white px-3 py-1.5 rounded-xl border border-gray-200 hover:border-red-200 transition-all cursor-pointer"
               >
-                <X size={16} /> Clear Filter
+                <X size={14} /> Clear
               </button>
             </motion.div>
           )}
 
-          {/* Notes Swiper Section */}
-          {notes.length > 0 && !tagFilter && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
-            >
-              <div className="flex justify-between items-center mb-4 px-2 sm:px-0">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Recommended Notes</h3>
-                <button
-                  onClick={() => navigate('/notes')}
-                  className="text-sm font-semibold text-[#9f3562] flex items-center gap-1 hover:underline transition-all hover:gap-2 px-3 py-1.5 rounded-full hover:bg-pink-50 cursor-pointer"
-                >
-                  View More <ChevronRight size={16} />
-                </button>
-              </div>
-              <Swiper
-                modules={[FreeMode, Navigation]}
-                spaceBetween={16}
-                slidesPerView={1.1}
-                freeMode={true}
-                navigation={false}
-                breakpoints={{
-                  640: { slidesPerView: 1.5, spaceBetween: 20 },
-                  1024: { slidesPerView: 2.1, spaceBetween: 24 }
-                }}
-                className="!pb-6 !px-2 sm:!px-0"
-              >
-                {notes.map(note => (
-                  <SwiperSlide key={note._id} className="h-auto">
-                    <NotesCard note={note} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-            </motion.div>
-          )}
-
-          {/* Feed Loop Updated */}
-          {feedItems.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center shadow">
-              <p className="text-lg font-semibold text-gray-800">
-                {tagFilter ? `No posts found for #${tagFilter}` : "No content available yet"}
+          {/* ── Feed Content ──────────────────────────────────── */}
+          {allPosts.length === 0 && !isLoading ? (
+            <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-gray-100">
+              <p className="text-base font-semibold text-gray-800">
+                {tagFilter ? `No posts for #${tagFilter}` : `No ${isMasti ? 'Masti' : 'Study'} posts yet`}
               </p>
-              <p className="text-gray-500 mt-1">Check back later for updates</p>
+              <p className="text-gray-400 mt-1 text-sm">Check back later!</p>
             </div>
           ) : (
-            <div ref={feedContainerRef} className="space-y-4 sm:space-y-8">
-              {feedItems.map((item, index) => {
-                const shouldShowAd = ads.length > 0 && index > 0 && index % 5 === 0;
-                const adIndex = Math.floor(index / 5) % ads.length;
+            <div className="space-y-2 sm:space-y-3">
+              {allPosts.map((post, index) => {
+                const shouldShowAd = ads.length > 0 && index > 0 && index % 6 === 0;
+                const adIndex = Math.floor(index / 6) % ads.length;
                 const ad = shouldShowAd ? ads[adIndex] : null;
 
                 return (
-                  <div key={item._id} className="relative">
-                    <PostViewTracker postId={item._id}>
+                  <div key={post._id} className="relative">
+                    {/* Mentor Swiper — lead the feed, compact (Study only, index 0) */}
+                    {index === 0 && !tagFilter && !isMasti && (
+                      <div className="mb-2">
+                        <MentorSuggestionSwiper compact />
+                      </div>
+                    )}
+
+                    <PostViewTracker postId={post._id}>
                       <PostCard
-                        post={item}
-                        onPostUpdate={updatePostInFeed} // 🔥 CRITICAL
+                        post={post}
+                        onPostUpdate={updatePostInFeed}
+                        isMastiMode={isMasti}
                       />
                     </PostViewTracker>
 
-                    {index === 0 && !tagFilter && <MentorSuggestionSwiper />}
-                    {index === 2 && !tagFilter && <SpaceSuggestionSwiper />}
+                    {/* Notes Swiper after index 1 (Study only) */}
+                    {index === 1 && !tagFilter && !isMasti && (
+                      <div className="mt-2">
+                        <NoteSuggestionSwiper compact />
+                      </div>
+                    )}
+
+                    {/* Space Swiper after index 3 (Study only) */}
+                    {index === 3 && !tagFilter && !isMasti && (
+                      <div className="mt-2">
+                        <SpaceSuggestionSwiper />
+                      </div>
+                    )}
+
+                    {/* College Swiper after index 5 (Study only) */}
+                    {index === 5 && !tagFilter && !isMasti && (
+                      <div className="mt-2">
+                        <CollegeSuggestionSwiperSafe />
+                      </div>
+                    )}
+
+                    {/* Ads every 6th post */}
                     {ad && !tagFilter && (
-                      <div className="mt-4 sm:mt-8">
+                      <div className="mt-2">
                         <AdCard ad={ad} onAdUpdate={updateAdInFeed} />
                       </div>
                     )}
@@ -624,24 +358,19 @@ const Feed = () => {
               })}
 
               {/* Infinite scroll trigger */}
-              {hasMore && (
-                <div
-                  ref={observerTargetRef}
-                  className="flex justify-center pt-8 pb-12 min-h-[100px]"
-                >
-                  {loadingMore && (
-                    <div className="flex items-center gap-3 text-gray-600">
-                      <Loader2 className="w-7.5 sm:w-10 h-7.5 sm:h-10 animate-spin text-[#9f3562]" />
-                    </div>
+              {hasNextPage && (
+                <div ref={observerTargetRef} className="flex justify-center py-6 min-h-[80px]">
+                  {isFetchingNextPage && (
+                    <Loader2 className="w-8 h-8 animate-spin text-[#9f3562]" />
                   )}
                 </div>
               )}
 
-              {/* End of feed message */}
-              {!hasMore && posts.length > 0 && (
-                <div className="flex justify-center pt-8 pb-12">
-                  <p className="text-gray-500 text-sm">
-                    {'No more posts for now. Come back for more :)'}
+              {/* End of feed */}
+              {!hasNextPage && allPosts.length > 0 && (
+                <div className="flex justify-center py-6">
+                  <p className="text-gray-400 text-xs">
+                    {isMasti ? "That's all the masti for now 🎉" : "You're all caught up! Come back for more 📚"}
                   </p>
                 </div>
               )}
