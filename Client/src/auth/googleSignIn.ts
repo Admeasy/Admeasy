@@ -10,14 +10,12 @@ import { toast } from 'react-toastify';
 import type { NavigateFunction } from 'react-router-dom';
 import { enableNotifications } from '../Firebase/enableNotifications';
 
-import { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
-import { ensureGoogleSignInInitialized } from './googleSignInInit';
+import { ensureGoogleSignInInitialized, GOOGLE_SIGN_IN_SCOPES } from './googleSignInInit';
 
-export { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
-export { ensureGoogleSignInInitialized, GOOGLE_SIGN_IN_SCOPES } from './googleSignInInit';
+export { ensureGoogleSignInInitialized, GOOGLE_SIGN_IN_SCOPES };
 
 export function getWebClientId(): string {
-  return GOOGLE_WEB_CLIENT_ID;
+  return import.meta.env.VITE_GOOGLE_CLIENT_ID;
 }
 
 /** True on Android & iOS — native account picker + POST idToken. */
@@ -136,6 +134,9 @@ export async function runCapacitorGoogleSignIn(deps: GoogleLoginDeps): Promise<v
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error('[GoogleSignIn] signIn error:', error);
+    console.log('[GoogleSignIn] clientId:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+    console.log('[GoogleSignIn] platform:', Capacitor.getPlatform());
+
     if (/cancel|dismiss|user denied|12501|16|Canceled|abort/i.test(msg)) {
       return;
     }

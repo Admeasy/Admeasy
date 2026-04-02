@@ -293,7 +293,7 @@ router.post('/mentorship/accept/:id', async (req, res) => {
                                     <a href="tel:+919358691990" class="contact-link">+91 93586 91990</a>
                                 </p>
                                 <p class="signature">
-                                    Meeral Babani<br>
+                                    Arpita Gupta<br>
                                     HR @ Admeasy
                                 </p>
                             </div>

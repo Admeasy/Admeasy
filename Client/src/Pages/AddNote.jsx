@@ -15,6 +15,7 @@ const AddNote = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    schoolNotes: false,
     standard: "",
     pages: "",
     isFree: true,
@@ -83,6 +84,7 @@ const AddNote = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+      ...(name === "schoolNotes" && checked ? { university: "", programme: "" } : {}),
     }));
   };
 
@@ -145,7 +147,7 @@ const AddNote = () => {
           }));
           throw new Error(
             errorData.message ||
-              `Request failed with status ${response.status}`,
+            `Request failed with status ${response.status}`,
           );
         }
         // For server errors (5xx), retry
@@ -193,7 +195,7 @@ const AddNote = () => {
 
     // Validate required fields
     const requiredFields = ['title', 'description', 'standard', 'course'];
-    if (isMentor) {
+    if (!formData.schoolNotes) {
       requiredFields.push('university', 'programme');
     }
     const missingFields = requiredFields.filter(
@@ -201,9 +203,7 @@ const AddNote = () => {
     );
 
     if (missingFields.length > 0) {
-      toast.error(
-        `Please fill in all required fields: ${missingFields.join(", ")}`,
-      );
+      toast.error("Please fill all required fields");
       return;
     }
 
@@ -215,6 +215,12 @@ const AddNote = () => {
       // Add all form fields with proper formatting
       Object.keys(formData).forEach((key) => {
         const value = formData[key];
+
+        // Skip university and programme if schoolNotes is true
+        if (formData.schoolNotes && (key === 'university' || key === 'programme')) {
+          return;
+        }
+
         // Skip empty strings, null, and undefined
         if (value !== "" && value !== null && value !== undefined) {
           // Convert boolean to string for FormData
@@ -281,6 +287,7 @@ const AddNote = () => {
         setFormData({
           title: "",
           description: "",
+          schoolNotes: false,
           standard: "",
           pages: "",
           isFree: true,
@@ -503,8 +510,23 @@ const AddNote = () => {
               )}
             </div>
 
-            {/* University - ONLY FOR MENTORS */}
-            {isMentor && (
+            {/* School Notes Toggle */}
+            <div className="flex items-center gap-2 p-4 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+              <input
+                type="checkbox"
+                name="schoolNotes"
+                id="schoolNotesToggleAdd"
+                checked={formData.schoolNotes}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+              />
+              <label htmlFor="schoolNotesToggleAdd" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                This is a School Note
+              </label>
+            </div>
+
+            {/* University */}
+            {!formData.schoolNotes && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   University <span className="text-red-500">*</span>
@@ -514,7 +536,7 @@ const AddNote = () => {
                   value={formData.university}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required={isMentor}
+                  required
                 >
                   <option value="">Select University</option>
                   {universities.map(uni => (
@@ -526,7 +548,7 @@ const AddNote = () => {
 
             {/* Programme and Course */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {isMentor && (
+              {!formData.schoolNotes && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Programme <span className="text-red-500">*</span>
@@ -536,7 +558,7 @@ const AddNote = () => {
                     value={formData.programme}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required={isMentor}
+                    required
                   >
                     <option value="">Select Programme</option>
                     {programmes.map(prog => (
@@ -545,7 +567,7 @@ const AddNote = () => {
                   </select>
                 </div>
               )}
-              <div className={!isMentor ? "md:col-span-2" : ""}>
+              <div className={formData.schoolNotes ? "md:col-span-2" : ""}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Course <span className="text-red-500">*</span>
                 </label>
@@ -601,11 +623,10 @@ const AddNote = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                isSubmitting
-                  ? "opacity-70 cursor-not-allowed"
-                  : "hover:bg-blue-700"
-              }`}
+              className={`w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isSubmitting
+                ? "opacity-70 cursor-not-allowed"
+                : "hover:bg-blue-700"
+                }`}
             >
               {isSubmitting ? "Uploading..." : "Upload Notes"}
             </button>
