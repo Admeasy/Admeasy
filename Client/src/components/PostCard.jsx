@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Heart,
   MessageCircle,
@@ -12,9 +12,12 @@ import {
   MoreVertical,
   Edit,
   Trash2,
+  Tag,
+  Copy,
+  Link2,
+  Send,
 } from "lucide-react";
-// import { motion, AnimatePresence } from "framer-motion";
-import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
@@ -25,10 +28,18 @@ import { hasVisiblePostText } from "../utils/postContent";
 import { truncateHtml } from "../utils/textUtils";
 import SharePostModal from "./SharePostModal";
 
-const PostCard = ({ post, onPostUpdate }) => {
+const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const { mentor } = useMentor();
+
+  // Check if current page is the user's/mentor's own profile
+  const isOwnProfilePage =
+    location.pathname === '/me' ||
+    (user?.username && location.pathname === `/${user.username}`) ||
+    (mentor?.username && location.pathname === `/${mentor.username}`);
+
   const isAuthed = Boolean(user || mentor);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -59,6 +70,8 @@ const PostCard = ({ post, onPostUpdate }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isChangingCategory, setIsChangingCategory] = useState(false);
+  const [showNativeShare, setShowNativeShare] = useState(false);
   const menuRef = useRef(null);
 
   // Interaction Locks (Action Locks)
@@ -78,10 +91,19 @@ const PostCard = ({ post, onPostUpdate }) => {
           prev.isReposted !== post.isReposted ||
           prev.repostCount !== post.repostCount ||
           prev.commentsCount !== post.commentsCount ||
+<<<<<<< HEAD
           JSON.stringify(prev.commentPreview) !==
             JSON.stringify(post.commentPreview)
+=======
+          JSON.stringify(prev.commentPreview) !== JSON.stringify(post.commentPreview)
+>>>>>>> 32930030 (Implemented Study and Masti mode)
         ) {
-          return { ...post };
+          // If it's a completely new post (e.g. navigation), take the full prop object
+          if (prev._id !== post._id) return { ...post };
+
+          // Otherwise preserve the local optimistic category override against prop snap-backs
+          const finalCategory = prev.category !== post.category ? prev.category : post.category;
+          return { ...post, category: finalCategory };
         }
         return prev;
       });
@@ -473,41 +495,61 @@ const PostCard = ({ post, onPostUpdate }) => {
     }
   };
 
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const handleDirectComment = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthed) {
+      toast.info("Log in to comment");
+      return;
+    }
+    if (!commentText.trim() || isSubmittingComment) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const res = await fetch(`/api/posts/${post._id}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content: commentText.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Comment added!");
+        setCommentText("");
+        const updatedPost = {
+          ...postState,
+          commentsCount: data.commentsCount,
+          commentPreview: data.comment,
+        };
+        setPostState(updatedPost);
+        if (onPostUpdate) onPostUpdate(updatedPost);
+
+        // Broadcast global update
+        window.dispatchEvent(
+          new CustomEvent("postInteraction", {
+            detail: { postId: post._id, commentsCount: data.commentsCount },
+          }),
+        );
+      } else {
+        toast.error(data.message || "Failed to add comment");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Network error");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       onClick={() => {
-        // Save current scroll position immediately before navigation
-        const currentScroll =
-          window.scrollY ||
-          window.pageYOffset ||
-          document.documentElement.scrollTop;
-        const feedState = {
-          page: 1, // Will be updated by Feed component
-          posts: [],
-          scrollPosition: currentScroll,
-          timestamp: Date.now(),
-        };
-        try {
-          // Try to get existing state and update scroll position
-          const existing = sessionStorage.getItem("admeasy:feed:state");
-          if (existing) {
-            const existingState = JSON.parse(existing);
-            feedState.page = existingState.page || 1;
-            feedState.posts = existingState.posts || [];
-          }
-          sessionStorage.setItem(
-            "admeasy:feed:state",
-            JSON.stringify(feedState),
-          );
-        } catch (err) {
-          console.error("Failed to save scroll position:", err);
-        }
-
-        // Mark that we're navigating to post detail
-        sessionStorage.setItem("admeasy:fromPostDetail", "true");
         navigate(`/posts/${post._id}`);
       }}
       className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
@@ -601,6 +643,15 @@ const PostCard = ({ post, onPostUpdate }) => {
                 @{author.username}
               </p>
             )}
+            {/* Space below creator name */}
+            {postState.space && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {postState.space.logo && (
+                  <img src={postState.space.logo} alt={postState.space.name} className="w-4 h-4 rounded-full object-cover" />
+                )}
+                <span className="text-[11px] text-[#9f3562] font-semibold">{postState.space.name}</span>
+              </div>
+            )}
           </div>
           {isAuthed && !isOwnPost && author && author._id && !isFollowing && (
             <motion.button
@@ -620,6 +671,7 @@ const PostCard = ({ post, onPostUpdate }) => {
               )}
             </motion.button>
           )}
+          {/* 3-dot menu — own post: Edit + Delete */}
           {isOwnPost && (
             <div className="relative" ref={menuRef}>
               <motion.button
@@ -639,7 +691,7 @@ const PostCard = ({ post, onPostUpdate }) => {
                     initial={{ opacity: 0, scale: 0.95, y: -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50"
+                    className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-50"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
@@ -663,6 +715,7 @@ const PostCard = ({ post, onPostUpdate }) => {
           )}
         </div>
 
+<<<<<<< HEAD
         {/* Post Content — hide block when HTML has no visible text (legacy empty rich-text bodies) */}
         {showTextBody && (
           <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
@@ -674,6 +727,61 @@ const PostCard = ({ post, onPostUpdate }) => {
                   : truncatedContent.hasMore
                     ? truncatedContent.html
                     : processedContent,
+=======
+        {/* Post Content */}
+        <div className="px-3.5 sm:px-5 pb-2 sm:pb-3">
+          {/* Headline (new posts only — null for old posts) */}
+          {postState.headline && (
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 leading-snug">
+              {postState.headline}
+            </h2>
+          )}
+          <div
+            className="text-gray-700 break-words leading-snug text-[13px] sm:text-[14px] post-content"
+            dangerouslySetInnerHTML={{
+              __html: isExpanded
+                ? processedContent
+                : truncatedContent.hasMore
+                  ? truncatedContent.html
+                  : processedContent,
+            }}
+            onClick={(e) => {
+              // Handle mention link clicks
+              const mentionLink = e.target.closest("a.mention-link");
+              if (mentionLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                const username = mentionLink.getAttribute("data-username");
+                if (username) {
+                  navigate(`/${username}`);
+                }
+                return;
+              }
+
+              // Intercept clicks on other links within post content
+              const link = e.target.closest("a");
+              if (link && link.href) {
+                e.preventDefault();
+                e.stopPropagation();
+                let cleanUrl = link.href;
+                // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+                cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
+                // Remove any HTML tags (decoded)
+                cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
+                // Remove any remaining angle brackets
+                cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                // Trim whitespace
+                cleanUrl = cleanUrl.trim();
+                window.open(cleanUrl, "_blank", "noopener,noreferrer");
+              }
+            }}
+          />
+          {truncatedContent.hasMore && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+>>>>>>> 32930030 (Implemented Study and Masti mode)
               }}
               onClick={(e) => {
                 // Handle mention link clicks
@@ -827,7 +935,7 @@ const PostCard = ({ post, onPostUpdate }) => {
         )}
 
         {/* Post Actions */}
-        <div className="flex items-center gap-4 sm:gap-7 px-3.5 sm:px-6 py-2.5 sm:py-5 border-t border-gray-100">
+        <div className="flex items-center gap-3 sm:gap-6 px-3.5 sm:px-5 py-2 sm:py-3 border-t border-gray-100">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -835,6 +943,7 @@ const PostCard = ({ post, onPostUpdate }) => {
             className="flex items-center gap-2 group/like"
           >
             <Heart
+<<<<<<< HEAD
               className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
                 postState.isLiked
                   ? "fill-red-500 text-red-500"
@@ -847,6 +956,18 @@ const PostCard = ({ post, onPostUpdate }) => {
                   ? "text-red-500"
                   : "text-gray-600 group-hover/like:text-red-500"
               }`}
+=======
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${postState.isLiked
+                ? "fill-red-500 text-red-500"
+                : "text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110"
+                }`}
+            />
+            <span
+              className={`text-sm sm:text-base font-bold transition-colors ${postState.isLiked
+                ? "text-red-500"
+                : "text-gray-600 group-hover/like:text-red-500"
+                }`}
+>>>>>>> 32930030 (Implemented Study and Masti mode)
             >
               {postState.likesCount}
             </span>
@@ -857,39 +978,12 @@ const PostCard = ({ post, onPostUpdate }) => {
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
               e.stopPropagation();
-              // Save current scroll position immediately before navigation
-              const currentScroll =
-                window.scrollY ||
-                window.pageYOffset ||
-                document.documentElement.scrollTop;
-              const feedState = {
-                page: 1,
-                posts: [],
-                scrollPosition: currentScroll,
-                timestamp: Date.now(),
-              };
-              try {
-                const existing = sessionStorage.getItem("admeasy:feed:state");
-                if (existing) {
-                  const existingState = JSON.parse(existing);
-                  feedState.page = existingState.page || 1;
-                  feedState.posts = existingState.posts || [];
-                }
-                sessionStorage.setItem(
-                  "admeasy:feed:state",
-                  JSON.stringify(feedState),
-                );
-              } catch (err) {
-                console.error("Failed to save scroll position:", err);
-              }
-
-              sessionStorage.setItem("admeasy:fromPostDetail", "true");
               navigate(`/posts/${post._id}`);
             }}
             className="flex items-center gap-2 text-gray-500 hover:text-[#9f3562] transition-colors group/comment"
           >
-            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 group-hover/comment:scale-110 transition-transform" />
-            <span className="text-sm sm:text-base font-bold">
+            <MessageCircle className="w-5 h-5 group-hover/comment:scale-110 transition-transform" />
+            <span className="text-sm font-bold">
               {postState.commentsCount}
             </span>
           </motion.button>
@@ -898,11 +992,18 @@ const PostCard = ({ post, onPostUpdate }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleRepost}
+<<<<<<< HEAD
             className={`flex items-center gap-2 transition-colors ${
               postState.isReposted
                 ? "text-[#9f3562]"
                 : "text-gray-500 hover:text-[#9f3562]"
             }`}
+=======
+            className={`flex items-center gap-2 transition-colors ${postState.isReposted
+              ? "text-[#9f3562]"
+              : "text-gray-500 hover:text-[#9f3562]"
+              }`}
+>>>>>>> 32930030 (Implemented Study and Masti mode)
           >
             <Repeat2
               className={`w-5 h-5 sm:w-6 sm:h-6 ${
@@ -926,75 +1027,129 @@ const PostCard = ({ post, onPostUpdate }) => {
             onClick={handleShare}
             className="flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors"
           >
-            <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
+            <Share2 className="w-5 h-5" />
           </motion.button>
+
+          {/* Mode Toggle inside action bar (Only visible on own profile) */}
+          {isOwnProfilePage && (
+            <div className="ml-auto flex items-center bg-gray-100/80 p-1 rounded-lg border border-gray-200/50" onClick={(e) => e.stopPropagation()}>
+              {['study', 'masti'].map((mode) => {
+                const isActive = (postState.category || 'study') === mode;
+                return (
+                  <button
+                    key={mode}
+                    disabled={isChangingCategory || isActive}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (isChangingCategory || isActive) return;
+                      setIsChangingCategory(true);
+                      const prevCat = postState.category || 'study';
+                      setPostState(prev => ({ ...prev, category: mode }));
+                      try {
+                        const res = await fetch(`/api/posts/${post._id}/category`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ category: mode }),
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          toast.success(`Moved to ${mode === 'study' ? 'Study' : 'Masti'} feed`);
+                          if (onPostUpdate) onPostUpdate({ ...postState, category: mode });
+                        } else {
+                          setPostState(prev => ({ ...prev, category: prevCat }));
+                          toast.error(data.message || 'Could not update mode');
+                        }
+                      } catch {
+                        setPostState(prev => ({ ...prev, category: prevCat }));
+                        toast.error('Network error');
+                      } finally {
+                        setIsChangingCategory(false);
+                      }
+                    }}
+                    className={`px-3 py-1 rounded-md text-xs font-bold capitalize transition-all duration-300 ${isActive
+                        ? 'bg-white text-[#9f3562] shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    {mode}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Comment Preview */}
+        {/* LinkedIn-style Direct Comment Input (Masti Mode Only) */}
+        {isMastiMode && (
+          <div className="px-3.5 sm:px-5 pb-3 pt-1 border-t border-gray-50/50" onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleDirectComment} className="flex items-center gap-2">
+              <img
+                src={(user?.imageUrl || user?.image || mentor?.imageUrl || mentor?.image) || fallbackProfilePic}
+                alt="Me"
+                className="w-7 h-7 rounded-full object-cover border border-gray-100 flex-shrink-0"
+              />
+              <div className="flex-1 relative group/input">
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="w-full bg-gray-50/80 hover:bg-gray-100/80 focus:bg-white text-xs sm:text-sm py-1.5 px-3 rounded-full border border-gray-100 focus:border-[#9f3562]/30 focus:outline-none transition-all pr-10"
+                />
+                <button
+                  type="submit"
+                  disabled={!commentText.trim() || isSubmittingComment}
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all duration-300 flex items-center justify-center ${
+                    commentText.trim() 
+                      ? 'bg-[#9f3562] text-white shadow-md hover:scale-105 active:scale-95' 
+                      : 'text-gray-300'
+                  }`}
+                >
+                  <Send className={`w-3.5 h-3.5 ${isSubmittingComment ? 'animate-pulse' : ''}`} />
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Comment Preview — reduced visual weight */}
         {postState.commentPreview && (
-          <div className="px-5 sm:px-6 pb-3 sm:pb-4 hover:scale-101 transition-transform duration-300">
-            <div className="flex items-start gap-2.5 sm:gap-3 shadow-md rounded-lg p-2 relative">
+          <div className="px-3.5 sm:px-5 pb-2">
+            <div className="flex items-start gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5 relative">
               {postState.commentPreview.isMentor && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm absolute top-2 right-2">
-                  Mentor Comment
+                <span className="absolute top-1 right-2 text-[9px] font-bold text-[#9f3562] uppercase tracking-wider">
+                  Mentor
                 </span>
               )}
               <img
-                src={
-                  postState.commentPreview.author?.image || fallbackProfilePic
-                }
+                src={postState.commentPreview.author?.image || fallbackProfilePic}
                 alt={postState.commentPreview.author?.name || "User"}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border border-gray-200"
+                className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-gray-200 mt-0.5"
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className="text-xs sm:text-sm font-semibold text-gray-900 cursor-pointer hover:text-[#9f3562] transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (postState.commentPreview.author?.username) {
-                        navigate(
-                          `/${postState.commentPreview.author.username}`,
-                        );
-                      }
-                    }}
-                  >
-                    {postState.commentPreview.author?.name || "User"}
-                  </span>
-                  {postState.commentPreview.author?.username && (
-                    <span
-                      className="text-xs text-gray-500 cursor-pointer hover:text-[#9f3562] transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(
-                          `/${postState.commentPreview.author.username}`,
-                        );
-                      }}
-                    >
-                      @{postState.commentPreview.author.username}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="text-xs sm:text-sm text-gray-700 leading-relaxed line-clamp-2"
-                  style={{
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
+                <span
+                  className="text-[11px] font-semibold text-gray-700 cursor-pointer hover:text-[#9f3562] transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (postState.commentPreview.author?.username) {
+                      navigate(`/${postState.commentPreview.author.username}`);
+                    }
                   }}
                 >
-                  {postState.commentPreview.content}
-                </div>
+                  {postState.commentPreview.author?.name || "User"}:
+                </span>
+                <span className="text-[11px] text-gray-500 ml-1 line-clamp-1">
+                  {postState.commentPreview.content?.replace(/<[^>]*>/g, '') || ''}
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        <h6 className="text-xs font-medium text-gray-400 flex-shrink-0 mx-5 sm:mx-6 mb-1 sm:mb-2 text-right">
+        <h6 className="text-[10px] font-medium text-gray-400 flex-shrink-0 mx-3.5 sm:mx-5 mb-1 text-right">
           {postState.isEdited && (
-            <span className="text-gray-500">(Edited) </span>
+            <span className="text-gray-400">(Edited) </span>
           )}
           {formatDate(postState.createdAt)}
         </h6>

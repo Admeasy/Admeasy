@@ -267,9 +267,15 @@ function getUserFollowingIds(user) {
  * @param {Number} limit - Posts per page
  * @returns {Promise<Object>} - Ranked posts with pagination
  */
-async function getRankedFeed(user = null, page = 1, limit = 20) {
+async function getRankedFeed(user = null, page = 1, limit = 20, category = 'study') {
   try {
     const skip = (page - 1) * limit;
+    // Category filter:
+    // - 'study': include posts explicitly set to study OR with no category field (old posts)
+    // - 'masti': strict match only
+    const categoryFilter = category === 'study'
+      ? { $or: [{ category: 'study' }, { category: { $exists: false } }, { category: null }] }
+      : { category: 'masti' };
 
     // Step 1: Get post view states for current user
     let unseenPostIds = [];
@@ -303,7 +309,8 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
     // First, try to get UNSEEN posts (posts user has never seen)
     if (user && unseenPostIds.length > 0) {
       const unseenPosts = await Post.find({
-        _id: { $in: unseenPostIds }
+        _id: { $in: unseenPostIds },
+        ...categoryFilter,
       })
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .lean()
@@ -314,7 +321,8 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
     // If no unseen posts or need more, get posts that haven't been viewed at all
     if (posts.length < targetCount && user) {
       const unviewedPosts = await Post.find({
-        _id: { $nin: allViewedPostIds }
+        _id: { $nin: allViewedPostIds },
+        ...categoryFilter,
       })
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .sort({ createdAt: -1 })
@@ -326,7 +334,8 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
     // If still not enough, get SEEN but not ENGAGED posts
     if (posts.length < targetCount && user && seenPostIds.length > 0) {
       const seenPosts = await Post.find({
-        _id: { $in: seenPostIds }
+        _id: { $in: seenPostIds },
+        ...categoryFilter,
       })
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .lean()
@@ -337,7 +346,8 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
     // Last resort: get ENGAGED posts (heavily deprioritized)
     if (posts.length < targetCount && user && engagedPostIds.length > 0) {
       const engagedPosts = await Post.find({
-        _id: { $in: engagedPostIds }
+        _id: { $in: engagedPostIds },
+        ...categoryFilter,
       })
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .lean()
@@ -348,8 +358,8 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
     // For non-authenticated users or if still need more posts, fetch recent posts
     if (posts.length < targetCount) {
       const query = user && allViewedPostIds.length > 0
-        ? { _id: { $nin: allViewedPostIds } }
-        : {};
+        ? { _id: { $nin: allViewedPostIds }, ...categoryFilter }
+        : { ...categoryFilter };
 
       const morePosts = await Post.find(query)
         .populate('mentorId', 'name username image competitiveExamsCleared')
@@ -392,7 +402,7 @@ async function getRankedFeed(user = null, page = 1, limit = 20) {
       .map(item => item.post);
 
     // Step 6: Get total count for pagination
-    const totalPosts = await Post.countDocuments();
+    const totalPosts = await Post.countDocuments(categoryFilter);
     const totalPages = Math.ceil(totalPosts / limit);
 
     return {

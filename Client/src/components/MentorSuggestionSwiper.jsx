@@ -5,7 +5,7 @@ import { Navigation, Autoplay } from "swiper/modules";
 import { IoIosArrowForward, IoIosArrowBack } from "react-icons/io";
 import CustomButton from "../HomeComponents/3d-btn";
 import { motion } from "framer-motion";
-import { UserPlus, UserCheck, Loader2 } from "lucide-react";
+import { UserPlus, UserCheck, Loader2, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
@@ -307,12 +307,20 @@ const MentorSuggestionSwiper = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="my-8 relative"
+      className="my-4 sm:my-6 relative"
     >
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 md:p-6 relative">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 px-2">
-          Suggested Mentors
-        </h3>
+      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 sm:p-5 relative overflow-hidden">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+            Suggested for you
+          </h3>
+          <Link 
+            to="/mentors" 
+            className="text-xs font-semibold text-[#9f3562] hover:underline transition-colors"
+          >
+            See all
+          </Link>
+        </div>
 
         {/* Custom Navigation Buttons */}
         <div className="hidden md:block absolute left-2 top-1/2 z-10 -translate-y-1/2">
@@ -349,11 +357,12 @@ const MentorSuggestionSwiper = () => {
             });
           }}
           breakpoints={{
-            0: { slidesPerView: 1.5, spaceBetween: 12 },
-            640: { slidesPerView: 2.5, spaceBetween: 16 },
-            1024: { slidesPerView: 4.2, spaceBetween: 20 },
+            0: { slidesPerView: 3.2, spaceBetween: 8 },
+            480: { slidesPerView: 4.2, spaceBetween: 10 },
+            768: { slidesPerView: 5.2, spaceBetween: 12 },
+            1024: { slidesPerView: 6.5, spaceBetween: 14 },
           }}
-          className="pb-2"
+          className="pb-0.5"
         >
           {mentors.map((mentorItem, index) => {
             const isFollowing = followStatuses[mentorItem._id] || false;
@@ -365,8 +374,9 @@ const MentorSuggestionSwiper = () => {
               <>
                 <div className="flex flex-col items-center w-full flex-1">
                   {/* Profile Image - Top Center */}
-                  <div className="relative mb-3">
-                    <div className="w-20 h-20 rounded-full p-1 bg-white shadow-sm border border-gray-100">
+                  {/* Profile Image - Top Center (Compact) */}
+                  <div className="relative mb-1">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-0.5 bg-white shadow-sm border border-gray-100">
                       <img
                         src={mentorItem.imageUrl || fallbackImage}
                         alt={mentorItem.name || "Mentor"}
@@ -382,57 +392,28 @@ const MentorSuggestionSwiper = () => {
                   </div>
 
                   {/* Text Content */}
-                  <div className="text-center w-full px-1">
-                    {/* Full Name */}
-                    <h4 className="text-sm font-bold text-gray-900 line-clamp-1 mb-0.5">
-                      {mentorItem.name || "Admeasy Mentor"}
+                  {/* Name only for ultra-compactness */}
+                  <div className="text-center w-full px-0.5">
+                    <h4 className="text-[9px] sm:text-[10px] font-bold text-slate-800 line-clamp-1 mb-0.5">
+                      {mentorItem.name || "Admeasy"}
                     </h4>
-
-                    {/* Username */}
-                    {mentorItem.username && (
-                      <p className="text-xs text-gray-400 font-medium mb-2">
-                        @{mentorItem.username}
-                      </p>
-                    )}
-
-                    {/* College Name */}
-                    {(mentorItem.college?.name || typeof mentorItem.college === 'string') && (
-                      <p className="text-xs font-semibold text-gray-700 line-clamp-1 mb-1 leading-tight" title={mentorItem.college?.name || mentorItem.college}>
-                        {mentorItem.college?.name || mentorItem.college}
-                      </p>
-                    )}
-
-                    {/* Course */}
-                    {(mentorItem.course?.name || typeof mentorItem.course === 'string') && (
-                      <p className="text-[10px] text-gray-500 line-clamp-1 font-medium bg-gray-100 px-2 py-0.5 rounded-full inline-block mt-1" title={mentorItem.course?.name || mentorItem.course}>
-                        {mentorItem.course?.name || mentorItem.course}
-                      </p>
-                    )}
                   </div>
                 </div>
 
                 {/* Follow Button - Fixed at bottom */}
-                <div className="w-full mt-3">
+                <div className="w-full mt-1">
                   <button
                     onClick={(e) => handleFollow(e, mentorItem._id)}
                     disabled={isLoading}
-                    className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${isFollowing
-                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
-                      : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/30"
+                    className={`w-full flex items-center justify-center py-1 px-1 rounded-md text-[8px] sm:text-[9px] font-bold transition-all disabled:opacity-50 ${isFollowing
+                      ? "bg-gray-100 text-gray-500 border border-gray-100"
+                      : "bg-[#9f3562] text-white hover:bg-[#862b52]" 
                       }`}
                   >
                     {isLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : isFollowing ? (
-                      <>
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>Following</span>
-                      </>
+                      <Loader2 className="w-2 h-2 animate-spin" />
                     ) : (
-                      <>
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>Follow</span>
-                      </>
+                      <span>{isFollowing ? 'Following' : 'Follow'}</span>
                     )}
                   </button>
                 </div>
@@ -441,45 +422,32 @@ const MentorSuggestionSwiper = () => {
 
             return (
               <SwiperSlide key={mentorItem._id || index} className="h-auto">
-                {mentorProfilePath ? (
-                  <Link to={mentorProfilePath} className="block h-full">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="flex flex-col items-center justify-between h-[280px] p-4 bg-white rounded-xl border border-gray-100 hover:border-[#9f3562]/20 hover:shadow-lg hover:shadow-pink-50 transition-all duration-300 cursor-pointer group"
-                    >
-                      <CardContent />
-                    </motion.div>
-                  </Link>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="flex flex-col items-center justify-between h-[280px] p-4 bg-white rounded-xl border border-gray-100 hover:border-[#9f3562]/20 hover:shadow-lg hover:shadow-pink-50 transition-all duration-300 cursor-default group"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="flex flex-col items-center justify-between h-[120px] sm:h-[140px] p-2 bg-white rounded-lg border border-gray-100 hover:border-blue-100 transition-all duration-300 relative group"
+                >
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMentors(prev => prev.filter(m => m._id !== mentorItem._id));
+                    }}
+                    className="absolute top-1.5 right-1.5 p-1 text-gray-400 hover:text-gray-600 transition-colors z-10"
                   >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <Link to={mentorProfilePath || "#"} className="w-full flex-1 flex flex-col items-center">
                     <CardContent />
-                  </motion.div>
-                )}
+                  </Link>
+                </motion.div>
               </SwiperSlide>
             );
           })}
         </Swiper>
 
-        {/* Discover More Button */}
-        <div className="flex justify-center mt-4">
-          <Link to="/mentors">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-2.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-300 flex items-center gap-2"
-            >
-              <span>View All</span>
-              <IoIosArrowForward className="w-4 h-4" />
-            </motion.button>
-          </Link>
-        </div>
+
       </div>
     </motion.div>
   );

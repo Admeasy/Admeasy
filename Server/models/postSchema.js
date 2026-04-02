@@ -19,19 +19,34 @@ const postSchema = new mongoose.Schema(
       ref: "Users",
       required: false, // Made optional to support mentor posts
     },
+    // headline: Optional for new posts; null for old posts (handle in rendering layer)
+    headline: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     content: {
       type: String,
       required: false, //was required true before implementing poll and mcq
       trim: true,
       default: null,
     },
-    hashtags: [
-      {
-        // NEW: Array of strings for hashtags
-        type: String,
-        trim: true,
-      },
-    ],
+    // category: 'study' | 'masti'. Defaults to 'study' for all existing posts.
+    category: {
+      type: String,
+      enum: ['study', 'masti'],
+      default: 'study',
+    },
+    // spaceId: Optional. Not required for old posts.
+    spaceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Space',
+      default: null,
+    },
+    hashtags: [{          // NEW: Array of strings for hashtags
+      type: String,
+      trim: true,
+    }],
     image: {
       type: String, // Cloudinary URL
       default: null,
@@ -277,5 +292,8 @@ postSchema.index({ "comments.deleted": 1, "comments.createdAt": 1 });
 postSchema.index({ "comments.parentCommentId": 1 });
 // Compound index for feed queries
 postSchema.index({ createdAt: -1, likesCount: -1 });
+// Index for dual-channel feed filtering
+postSchema.index({ category: 1, createdAt: -1 });
+postSchema.index({ spaceId: 1, createdAt: -1 });
 
 module.exports = Admeasy.models.PPosts || Admeasy.model("Posts", postSchema);

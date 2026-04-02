@@ -289,8 +289,14 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
-    // NEW: Extract hashtag from query
+    // NEW: Extract hashtag and feed type (study/masti) from query
     const hashtag = req.query.hashtag;
+    const category = ['study', 'masti'].includes(req.query.type) ? req.query.type : 'study';
+
+    // Build category filter (backward safe: old posts with no category → treated as 'study')
+    const categoryFilter = category === 'study'
+      ? { $or: [{ category: 'study' }, { category: { $exists: false } }, { category: null }] }
+      : { category: 'masti' };
 
     // Use ranking algorithm to get personalized feed
     let feedResult;
@@ -298,11 +304,12 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     // NEW: If a hashtag is searched, bypass ranking and filter directly
     if (hashtag) {
       const skip = (page - 1) * limit;
-      // Case-insensitive regex match for the hashtag
-      const filter = { hashtags: new RegExp(`^${hashtag}$`, 'i') };
+      // Case-insensitive regex match for the hashtag — also respect category
+      const filter = { hashtags: new RegExp(`^${hashtag}$`, 'i'), ...categoryFilter };
 
       const filteredPosts = await Post.find(filter)
         .populate('mentorId', 'name username image')
+        .populate('spaceId', 'name logo')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -320,21 +327,22 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         },
       };
     } else {
-      // Normal behavior: Use ranking algorithm
+      // Normal behavior: Use ranking algorithm with category filter
       try {
-        feedResult = await getRankedFeed(currentUser, page, limit);
+        feedResult = await getRankedFeed(currentUser, page, limit, category);
       } catch (rankingError) {
         console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
         // Fallback to simple date-based sorting if ranking fails
         const skip = (page - 1) * limit;
-        const fallbackPosts = await Post.find()
+        const fallbackPosts = await Post.find(categoryFilter)
           .populate('mentorId', 'name username image')
+          .populate('spaceId', 'name logo')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
           .lean();
 
-        const total = await Post.countDocuments();
+        const total = await Post.countDocuments(categoryFilter);
         feedResult = {
           posts: fallbackPosts,
           pagination: {
@@ -551,7 +559,10 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         _id: post._id,
         mentor: author, // Keep 'mentor' key for backward compatibility
         author: author, // Add 'author' key for clarity
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
@@ -653,7 +664,10 @@ router.get("/user/:userId", async (req, res) => {
         _id: post._id,
         mentor: author,
         author: author,
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
@@ -779,7 +793,10 @@ router.get("/mentor/:mentorId", async (req, res) => {
         _id: post._id,
         mentor: author,
         author: author,
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
@@ -1013,7 +1030,10 @@ router.get("/:postId", async (req, res) => {
       _id: post._id,
       mentor: author, // Keep 'mentor' key for backward compatibility
       author: author, // Add 'author' key for clarity
+      headline: post.headline || null,
       content: post.content,
+      category: post.category || 'study',
+      space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
       image: post.image,
       hashtags: post.hashtags || [],
       externalLink: post.externalLink,
@@ -1048,7 +1068,7 @@ router.get("/:postId", async (req, res) => {
  */
 router.post("/", authenticateRequired, upload.single("image"), async (req, res) => {
   try {
-    const { content, hashtags } = req.body; // NEW: Extract hashtags from req.body
+    const { content, hashtags, headline, category, spaceId } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({
@@ -1087,8 +1107,11 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
     // Create post - support both mentors and users
     const postData = {
       content: content.trim(),
+      headline: headline ? headline.trim() : null,
+      category: ['study', 'masti'].includes(category) ? category : 'study',
+      spaceId: spaceId || null,
       image: imageUrl,
-      hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse and save the hashtags array
+      hashtags: hashtags ? JSON.parse(hashtags) : [],
     };
 
     if (req.mentor) {
@@ -1145,11 +1168,14 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
       message: "Post created successfully",
       post: {
         _id: post._id,
-        mentor: author, // Keep 'mentor' key for backward compatibility
-        author: author, // Add 'author' key for clarity
+        mentor: author,
+        author: author,
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: null, // space lookup can be done on feed refresh
         image: post.image,
-        hashtags: post.hashtags || [], // NEW: Send hashtags back to the client immediately
+        hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -1401,6 +1427,58 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
 });
 
 /**
+ * PATCH /api/posts/:postId/category
+ * Authenticated users OR mentors can change category on their own posts.
+ * Mentors can also change category on ANY post (moderation).
+ */
+router.patch("/:postId/category", authenticateRequired, async (req, res) => {
+  try {
+    const { category } = req.body;
+
+    if (!['study', 'masti'].includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: "category must be 'study' or 'masti'"
+      });
+    }
+
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Authorization: post owner OR any mentor (moderation)
+    const isOwner =
+      (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
+      (req.user && post.userId && post.userId.toString() === req.user._id.toString());
+    const isMentor = Boolean(req.mentor);
+
+    if (!isOwner && !isMentor) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only change the category of your own posts"
+      });
+    }
+
+    post.category = category;
+    await post.save();
+
+    // Clear cache so new feeds reflect updated category
+    apiCache.clear('/api/posts');
+
+    res.json({
+      success: true,
+      message: `Post moved to '${category}' feed`,
+      postId: post._id,
+      category: post.category,
+    });
+  } catch (error) {
+    console.error("Error updating post category:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
  * DELETE /api/posts/admin/:postId
  * Admin: delete any post
  */
@@ -1547,6 +1625,9 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
 
     await post.save();
 
+    // Manually populate user data for the new comment (cross-connection population)
+    const newComment = post.comments[post.comments.length - 1];
+
     // Mark as engaged when user comments (only for users, not mentors)
     if (req.user) {
       feedController.markPostAsEngaged(req.user._id, post._id, 'comment', post).catch(err => {
@@ -1564,8 +1645,6 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
       });
     }
 
-    // Manually populate user data for the new comment (cross-connection population)
-    const newComment = post.comments[post.comments.length - 1];
     const user = req.user ? await populateUser(newComment.userId) : await populateMentor(newComment.userId);
     const userData = user || { _id: newComment.userId };
 

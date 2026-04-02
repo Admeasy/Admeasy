@@ -120,10 +120,18 @@ const SpaceSuggestionSwiper = () => {
       transition={{ duration: 0.5 }}
       className="my-8 relative"
     >
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 md:p-6 relative">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 px-2">
-          Suggested Spaces
-        </h3>
+      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 sm:p-5 relative">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h3 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+            Suggested Spaces
+          </h3>
+          <Link 
+            to="/spaces" 
+            className="text-xs font-semibold text-[#9f3562] hover:underline transition-all"
+          >
+            See all
+          </Link>
+        </div>
 
         {/* Custom Navigation Buttons */}
         <div className="hidden md:block absolute left-2 top-1/2 z-10 -translate-y-1/2">
@@ -160,11 +168,12 @@ const SpaceSuggestionSwiper = () => {
             });
           }}
           breakpoints={{
-            0: { slidesPerView: 1.5, spaceBetween: 12 },
-            640: { slidesPerView: 2.5, spaceBetween: 16 },
-            1024: { slidesPerView: 4.2, spaceBetween: 20 },
+            0: { slidesPerView: 3.2, spaceBetween: 8 },
+            480: { slidesPerView: 4.2, spaceBetween: 10 },
+            768: { slidesPerView: 5.2, spaceBetween: 12 },
+            1024: { slidesPerView: 6.5, spaceBetween: 14 },
           }}
-          className="pb-2"
+          className="pb-0.5"
         >
           {spaces.map((space, index) => {
             const isLoading = joiningSpaces[space._id] || false;
@@ -176,19 +185,19 @@ const SpaceSuggestionSwiper = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="flex flex-col items-center justify-between h-[200px] p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  className="flex flex-col items-center justify-between h-[105px] sm:h-[130px] p-2 bg-white rounded-lg border border-gray-100 hover:border-blue-50 transition-all relative"
                 >
                   {/* Space Logo - Clickable to navigate */}
                   <Link
                     to={`/spaces/${space._id}`}
                     className="flex-shrink-0 cursor-pointer"
                   >
-                    <div className="relative">
+                    <div className="relative mb-1">
                       {space.logo ? (
                         <img
                           src={space.logo}
                           alt={space.name || "Space"}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-gray-100 shadow-sm"
                           onError={(e) => {
                             e.target.style.display = "none";
                             e.target.nextSibling.style.display = "flex";
@@ -196,10 +205,10 @@ const SpaceSuggestionSwiper = () => {
                         />
                       ) : null}
                       <div
-                        className={`w-16 h-16 rounded-full bg-gradient-to-br from-[#9f3562]/10 via-pink-100 to-purple-100 flex items-center justify-center border-2 border-white shadow-md ${space.logo ? "hidden" : ""
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 ${space.logo ? "hidden" : ""
                           }`}
                       >
-                        <span className="text-lg font-semibold text-[#9f3562]">
+                        <span className="text-[10px] font-bold text-slate-400">
                           {space.name?.[0]?.toUpperCase() || "S"}
                         </span>
                       </div>
@@ -207,42 +216,28 @@ const SpaceSuggestionSwiper = () => {
                   </Link>
 
                   {/* Name and Members Count - Clickable to navigate */}
-                  <Link
+                   <Link
                     to={`/spaces/${space._id}`}
-                    className="flex-1 flex flex-col items-center justify-center text-center min-h-[3rem] cursor-pointer w-full"
+                    className="flex-1 flex flex-col items-center justify-center text-center w-full"
                   >
-                    <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
+                    <h4 className="text-[9px] sm:text-[10px] font-bold text-slate-800 line-clamp-1">
                       {space.name || "Space"}
                     </h4>
-                    {space.membersCount != null && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {space.membersCount} member{space.membersCount === 1 ? "" : "s"}
-                      </p>
-                    )}
                   </Link>
 
                   {/* Join Button */}
                   <button
                     onClick={(e) => handleJoin(e, space._id)}
                     disabled={isLoading || isMember}
-                    className={`w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 flex-shrink-0 ${isMember
-                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      : "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white hover:shadow-lg hover:shadow-[#9f3562]/50"
+                    className={`w-full py-1 px-1 rounded-md text-[8px] sm:text-[9px] font-bold transition-all disabled:opacity-50 ${isMember
+                      ? "bg-gray-100 text-gray-400"
+                      : "bg-[#9f3562] text-white hover:bg-[#862b52]"
                       }`}
                   >
                     {isLoading ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : isMember ? (
-                      <>
-                        <UserCheck className="w-3 h-3" />
-                        <span>Joined</span>
-                      </>
+                      <Loader2 className="w-2 h-2 animate-spin mx-auto" />
                     ) : (
-                      <>
-                        <Users className="w-3 h-3" />
-                        <span>Join</span>
-                      </>
+                      <span>{isMember ? 'Joined' : 'Join'}</span>
                     )}
                   </button>
                 </motion.div>
@@ -251,19 +246,7 @@ const SpaceSuggestionSwiper = () => {
           })}
         </Swiper>
 
-        {/* Discover More Button */}
-        <div className="flex justify-center mt-4">
-          <Link to="/spaces">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-2.5 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-[#9f3562]/50 transition-all duration-300 flex items-center gap-2"
-            >
-              <span>View All</span>
-              <IoIosArrowForward className="w-4 h-4" />
-            </motion.button>
-          </Link>
-        </div>
+
       </div>
     </motion.div>
   );
