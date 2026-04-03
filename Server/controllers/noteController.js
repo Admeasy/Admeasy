@@ -363,14 +363,53 @@ exports.getAllNotes = async (req, res) => {
       filter.status = status;
     }
 
-    const notes = await Note.find(filter)
-      .populate('uploader', 'email')
-      .sort({ createdAt: -1 });
+    // Step 1: Query notes using .lean() directly
+    const notes = await Note.find(filter).sort({ createdAt: -1 }).lean();
 
-    res.json({ success: true, data: notes });
+    // Step 2: Manually populate the uploader email across DB connections
+    const UserModel = require('../models/userSchema');
+    const MentorModel = require('../models/mentorSchema');
+
+    // Collect IDs safely
+    const mentorIds = [];
+    const userIds = [];
+
+    notes.forEach(note => {
+      if (!note.uploader) return;
+      const id = note.uploader.toString();
+      if (note.uploaderModel === 'Mentor') mentorIds.push(id);
+      else userIds.push(id);
+    });
+
+    // Fetch emails concurrently
+    const [mentors, users] = await Promise.all([
+      mentorIds.length ? MentorModel.find({ _id: { $in: mentorIds } }, 'email').lean() : [],
+      userIds.length ? UserModel.find({ _id: { $in: userIds } }, 'email').lean() : []
+    ]);
+
+    // Create lookup maps
+    const emailMap = new Map();
+    mentors.forEach(m => emailMap.set(m._id.toString(), m.email));
+    users.forEach(u => emailMap.set(u._id.toString(), u.email));
+
+    // Attach to notes
+    notes.forEach(note => {
+      if (!note.uploader) return;
+      const id = note.uploader.toString();
+      note.uploader = {
+        _id: id,
+        email: emailMap.get(id) || 'Unknown'
+      };
+    });
+
+    return res.status(200).json({ success: true, count: notes.length, data: notes });
   } catch (error) {
     console.error('Error fetching all notes:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch notes' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch notes',
+      error: error.message
+    });
   }
 };
 

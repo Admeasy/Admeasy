@@ -8,9 +8,9 @@ const COOKIE_MAX_AGE = 12 * 60 * 60 * 1000; // 12 hours
  * Get admin JWT from request: Authorization Bearer header (production-friendly) or cookie.
  */
 function getAdminToken(req) {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.header('Authorization');
   if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-    return authHeader.split(' ')[1];
+    return authHeader.substring(7); // Better than split
   }
   return req.cookies?.adminToken || null;
 }
