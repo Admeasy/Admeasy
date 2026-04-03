@@ -20,7 +20,7 @@ const paymentSchema = new mongoose.Schema({
   },
   mentor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mentors',
+    ref: 'Mentor',
     required: false
   },
   billingPeriod: {

@@ -5,12 +5,12 @@ const SubscriptionPlan = require("../models/subscriptionPlanSchema");
 const Subscription = require("../models/subscriptionSchema");
 const crypto = require("crypto");
 
-// Initialize Razorpay(original code)
-// const razorpay = new Razorpay({
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET,
-// });
+// Razorpay must work in development too when keys are set (subscriptions / note purchases).
+let razorpay = null;
+const razorpayKeysPresent =
+  process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET;
 
+<<<<<<< Updated upstream
 /**
  * code to run server locally withput env variables(changes from line 17 to line 24)
  */
@@ -18,12 +18,40 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
   key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder",
 });
+=======
+if (razorpayKeysPresent) {
+  try {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  } catch (err) {
+    console.error("Failed to initialize Razorpay:", err);
+  }
+} else {
+  console.warn(
+    "Razorpay not configured: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Server/.env",
+  );
+}
+
+function paymentGatewayUnavailable(res) {
+  return res.status(503).json({
+    success: false,
+    message:
+      "Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to the server environment.",
+  });
+}
+>>>>>>> Stashed changes
 
 // -------------------------------------------------------
 // 1️⃣ CREATE ORDER
 // -------------------------------------------------------
 exports.createOrder = async (req, res) => {
   try {
+    if (!razorpay) {
+      return paymentGatewayUnavailable(res);
+    }
+
     const { noteId } = req.body;
     const userId = req.user?._id || req.mentor?._id;
     if (!userId)
@@ -55,7 +83,7 @@ exports.createOrder = async (req, res) => {
     }
 
     const order = await razorpay.orders.create({
-      amount: note.price * 100,
+      amount: Math.round(Number(note.price) * 100),
       currency: "INR",
       receipt: `note_${noteId.toString().slice(-8)}_${Date.now().toString().slice(-8)}`,
       payment_capture: 1,
@@ -244,6 +272,10 @@ exports.getUserPurchases = async (req, res) => {
 // -------------------------------------------------------
 exports.createSubscriptionOrder = async (req, res) => {
   try {
+    if (!razorpay) {
+      return paymentGatewayUnavailable(res);
+    }
+
     const { planId, mentorId, billingPeriod } = req.body;
     const userId = req.user._id;
 
@@ -289,7 +321,7 @@ exports.createSubscriptionOrder = async (req, res) => {
     const receipt = `sub_${shortPlanId}_${timestamp}`;
 
     const order = await razorpay.orders.create({
-      amount: price * 100,
+      amount: Math.round(Number(price) * 100),
       currency: "INR",
       receipt: receipt.length > 40 ? receipt.slice(0, 40) : receipt,
       payment_capture: 1,
@@ -315,9 +347,11 @@ exports.createSubscriptionOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("Subscription order creation error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to create subscription order" });
+    const message =
+      error?.error?.description ||
+      error?.message ||
+      "Failed to create subscription order";
+    return res.status(500).json({ success: false, message });
   }
 };
 
