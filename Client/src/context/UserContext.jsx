@@ -92,56 +92,60 @@ export function UserProvider({ children }) {
       setIsLoading(true);
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
 
-      if (storedRole !== 'mentor') {
-        try {
-          const refreshRes = await fetch("/api/users/refresh", { method: "POST", credentials: "include" });
-          if (refreshRes.status === 401) {
-            setUser(null);
-            localStorage.removeItem(USER_STORAGE_KEY);
-            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
-            localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
-            setIsLoading(false);
-            return;
-          }
-          const res = await fetch("/api/users/me", { credentials: "include" });
-          if (res.ok) {
-            const data = await res.json();
-            let userObj = data.user;
+      // Do not ping /me if we expect the user to be a mentor, admin, or completely logged out
+      if (!storedRole || storedRole !== 'user') {
+        setIsLoading(false);
+        return;
+      }
 
-            try {
-              const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
-              if (imageRes.ok) {
-                const imageUrl = await imageRes.json();
-                userObj.imageUrl = imageUrl;
-              }
-            } catch (e) {
-              console.warn("Profile pic fetch failed", e);
+      try {
+        const refreshRes = await fetch("/api/users/refresh", { method: "POST", credentials: "include" });
+        if (refreshRes.status === 401) {
+          setUser(null);
+          localStorage.removeItem(USER_STORAGE_KEY);
+          localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+          localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+          setIsLoading(false);
+          return;
+        }
+        const res = await fetch("/api/users/me", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          let userObj = data.user;
+
+          try {
+            const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+            if (imageRes.ok) {
+              const imageUrl = await imageRes.json();
+              userObj.imageUrl = imageUrl;
             }
-
-            setUser(userObj);
-            localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userObj._id);
-
-            // Auto update saved account details if changed
-            setSavedAccounts(prev => {
-              const updated = prev.map(acc => acc.id === userObj._id ? { ...acc, name: userObj.name, avatar: userObj.imageUrl || userObj.image } : acc);
-              localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
-              return updated;
-            });
-          } else {
-            if (storedRole === 'user') {
-              setUser(null);
-              localStorage.removeItem(USER_STORAGE_KEY);
-              localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
-              localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
-            }
+          } catch (e) {
+            console.warn("Profile pic fetch failed", e);
           }
-        } catch (err) {
+
+          setUser(userObj);
+          localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userObj._id);
+
+          // Auto update saved account details if changed
+          setSavedAccounts(prev => {
+            const updated = prev.map(acc => acc.id === userObj._id ? { ...acc, name: userObj.name, avatar: userObj.imageUrl || userObj.image } : acc);
+            localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
+            return updated;
+          });
+        } else {
           if (storedRole === 'user') {
             setUser(null);
             localStorage.removeItem(USER_STORAGE_KEY);
             localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
             localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
           }
+        }
+      } catch (err) {
+        if (storedRole === 'user') {
+          setUser(null);
+          localStorage.removeItem(USER_STORAGE_KEY);
+          localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+          localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
         }
       }
       setIsLoading(false);

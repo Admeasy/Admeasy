@@ -855,11 +855,6 @@ router.get("/me", async (req, res) => {
       }
     }
     if (!user) {
-      console.log("GET /me failed: User not found or not authenticated", {
-        hasUser: !!req.user,
-        authHeader: req.headers.authorization ? "Present" : "Missing",
-        cookie: req.cookies["accessToken"] ? "Present" : "Missing",
-      });
       return res
         .status(401)
         .json({ success: false, message: "Not authenticated" });
