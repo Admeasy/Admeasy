@@ -9,6 +9,7 @@ const apiCache = require("../middleware/apiCache");
 const authenticateMentorJWT = require("../middleware/mentorAuth");
 const authenticateJWT = require("../middleware/userAuth");
 const { authenticateRequired } = require("../middleware/combinedAuth");
+<<<<<<< Updated upstream
 const upload = require("../middleware/multer");
 const {
   uploadToCloudinary,
@@ -23,6 +24,21 @@ const NotificationManager = require("../services/notificationManager");
 const { getRankedFeed } = require("../utils/feedRanking");
 const feedController = require("../controllers/feedController");
 const { extractPublicId } = require("../utils/cloudinary");
+=======
+const upload = require('../middleware/multer');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
+const path = require('path');
+const jwt = require('jsonwebtoken');
+const { verifyAdminToken } = require('../middleware/adminAuth');
+const NotificationService = require('../services/notificationService');
+const NotificationManager = require('../services/notificationManager');
+const { getRankedFeed } = require('../utils/feedRanking');
+const feedController = require('../controllers/feedController');
+const { extractPublicId } = require('../utils/cloudinary');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
+const { hasVisiblePostText } = require('../utils/postContent');
+>>>>>>> Stashed changes
 
 const getPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== "string") return null;
@@ -1336,6 +1352,7 @@ router.get("/:postId", async (req, res) => {
 //     try {
 //       const { content, hashtags } = req.body; // NEW: Extract hashtags from req.body
 
+<<<<<<< Updated upstream
 //       if (!content || !content.trim()) {
 //         return res.status(400).json({
 //           success: false,
@@ -1872,9 +1889,19 @@ router.post("/:postId/vote", authenticateRequired, async (req, res) => {
     const { optionId } = req.body;
 
     if (!optionId) {
+=======
+    // Reject rich-text "empty" bodies (e.g. <p><br></p>) unless there is an image
+    if (!content || !content.trim()) {
+>>>>>>> Stashed changes
       return res.status(400).json({
         success: false,
         message: "optionId is required",
+      });
+    }
+    if (!hasVisiblePostText(content) && !req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Add some text or an image to your post"
       });
     }
 
@@ -2053,10 +2080,83 @@ router.put(
       const { content, hashtags } = req.body;
       const post = await Post.findById(req.params.postId);
 
+<<<<<<< Updated upstream
       if (!post) {
         return res
           .status(404)
           .json({ success: false, message: "Post not found" });
+=======
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Check authorization: user must be the creator
+    const isAuthorized =
+      (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
+      (req.user && post.userId && post.userId.toString() === req.user._id.toString());
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own posts"
+      });
+    }
+
+    if (content && content.trim()) {
+      const willHaveImage = Boolean(req.file || post.image);
+      if (!hasVisiblePostText(content) && !willHaveImage) {
+        return res.status(400).json({
+          success: false,
+          message: "Post cannot be empty — add text or keep your image"
+        });
+      }
+      post.content = content.trim();
+      post.isEdited = true;
+      post.editedAt = new Date();
+
+      const detectedUrl = detectUrl(content);
+      // ... (Keep your existing linkPreview logic here)
+      if (detectedUrl) {
+        try {
+          const linkPreview = await generateLinkPreview(detectedUrl);
+          if (linkPreview) {
+            post.externalLink = {
+              url: linkPreview.url,
+              preview: {
+                title: linkPreview.title,
+                description: linkPreview.description,
+                image: linkPreview.image,
+                domain: linkPreview.domain,
+                platform: linkPreview.platform,
+                favicon: linkPreview.favicon,
+              },
+            };
+          }
+        } catch (previewError) {
+          console.log('Link preview update failed:', previewError.message);
+        }
+      } else {
+        post.externalLink = null;
+      }
+    }
+
+    // NEW: Update hashtags if they are provided during edit
+    if (hashtags) {
+      post.hashtags = JSON.parse(hashtags);
+    }
+
+    if (req.file) {
+      // ... (Keep your existing image upload logic here)
+      if (post.image) {
+        try {
+          const publicId = getPublicIdFromUrl(post.image);
+          if (publicId) {
+            await deleteFromCloudinary(publicId);
+          }
+        } catch (deleteError) {
+          console.error('Error deleting old image:', deleteError);
+        }
+>>>>>>> Stashed changes
       }
 
       // Check authorization: user must be the creator

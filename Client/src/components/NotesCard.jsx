@@ -146,13 +146,15 @@ const NotesCard = ({ note, compact = false }) => {
               </div>
             </button>
 
-            {/* Pages */}
-            <div className="flex items-center gap-2 text-gray-700">
-              <File className="w-4 h-4" />
-              <span className="text-xs sm:text-sm font-medium">
-                {note?.pages ? `${note.pages} pages` : "Pages N/A"}
-              </span>
-            </div>
+            {/* Pages — only when uploader/admin provided a count (optional field) */}
+            {typeof note?.pages === "number" && note.pages > 0 && (
+              <div className="flex items-center gap-2 text-gray-700">
+                <File className="w-4 h-4" />
+                <span className="text-xs sm:text-sm font-medium">
+                  {note.pages} {note.pages === 1 ? "page" : "pages"}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Standard / Tag */}
