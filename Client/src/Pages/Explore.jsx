@@ -49,11 +49,10 @@ const setCachedResults = (query, tab, data) => {
   } catch { }
 };
 
-// Helper: detect IIT/JEE mentor from college or competitive exams
+// Helper: detect IIT mentor from college name only
 const isIITMentor = (mentor) => {
-  const collegeStr = (mentor.college?.name || mentor.college || '').toString().toLowerCase();
-  const exams = (mentor.competitiveExamsCleared || []).map(e => (e?.name || e || '').toString().toLowerCase()).join(' ');
-  return collegeStr.includes('iit') || collegeStr.includes('jee') || exams.includes('iit') || exams.includes('jee');
+  const collegeStr = (mentor.college?.name || mentor.college || "").toString().toLowerCase();
+  return collegeStr.includes("indian institute of technology") || collegeStr.includes("iit");
 };
 
 /* ================= COMPONENT ================= */
@@ -321,14 +320,12 @@ const Explore = () => {
                     return (
                       <div key={mentorItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
                         <div className="p-6">
-                          {mentorIsIIT && (
-                            <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl">
-                              <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
-                                <Award className="w-4 h-4 text-amber-600" />
-                                This mentor cleared IIT, Chat Now!
-                              </p>
-                            </div>
-                          )}
+                          <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl">
+                            <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
+                              <Award className="w-4 h-4 text-amber-600" />
+                              {mentorIsIIT ? "This mentor cleared IIT, Chat Now!" : "Connect with this mentor"}
+                            </p>
+                          </div>
                           <div className="flex items-start gap-4 mb-4">
                             <img src={mentorItem.image || mentorItem.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`} alt={mentorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20" />
                             <div className="flex-1 min-w-0">
@@ -340,11 +337,9 @@ const Explore = () => {
                             <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm">
                               <Eye className="w-4 h-4" /> View Profile
                             </button>
-                            {mentorIsIIT && (
-                              <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-sm">
-                                <MessageCircle className="w-4 h-4" /> Chat
-                              </button>
-                            )}
+                            <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-sm">
+                              <MessageCircle className="w-4 h-4" /> Chat
+                            </button>
                           </div>
                         </div>
                       </div>

@@ -9,20 +9,18 @@ const apiCache = require("../middleware/apiCache");
 const authenticateMentorJWT = require("../middleware/mentorAuth");
 const authenticateJWT = require("../middleware/userAuth");
 const { authenticateRequired } = require("../middleware/combinedAuth");
-const upload = require("../middleware/multer");
-const {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-} = require("../utils/cloudinary");
-const { detectUrl, generateLinkPreview } = require("../utils/linkPreview");
-const path = require("path");
-const jwt = require("jsonwebtoken");
-const { verifyAdminToken } = require("../middleware/adminAuth");
-const NotificationService = require("../services/notificationService");
-const NotificationManager = require("../services/notificationManager");
-const { getRankedFeed } = require("../utils/feedRanking");
-const feedController = require("../controllers/feedController");
-const { extractPublicId } = require("../utils/cloudinary");
+const upload = require('../middleware/multer');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
+const path = require('path');
+const jwt = require('jsonwebtoken');
+const { verifyAdminToken } = require('../middleware/adminAuth');
+const NotificationService = require('../services/notificationService');
+const NotificationManager = require('../services/notificationManager');
+const { getRankedFeed } = require('../utils/feedRanking');
+const feedController = require('../controllers/feedController');
+const { extractPublicId } = require('../utils/cloudinary');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 const getPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== "string") return null;
@@ -2413,11 +2411,19 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
 
     // Mark as engaged when user comments (only for users, not mentors)
     if (req.user) {
-      feedController
-        .markPostAsEngaged(req.user._id, post._id, "comment", post)
-        .catch((err) => {
-          console.error("Error marking post as engaged (comment):", err);
-        });
+      feedController.markPostAsEngaged(req.user._id, post._id, 'comment', post).catch(err => {
+        console.error('Error marking post as engaged (comment):', err);
+      });
+      trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'comment_posted',
+        entityId: newComment._id,
+        post,
+        metadata: { postId: post._id },
+        dedupeWindowSeconds: 10,
+      }).catch(err => {
+        console.error('Error tracking comment_posted:', err);
+      });
     }
 
     // Manually populate user data for the new comment (cross-connection population)

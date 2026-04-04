@@ -22,28 +22,18 @@ const nodemailer = require("nodemailer");
 const multer = require("multer");
 const BackblazeB2Client = require("../b2Client.js");
 const b2 = new BackblazeB2Client();
-const path = require("path");
-const {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-  extractPublicId,
-} = require("../utils/cloudinary.js");
-require("dotenv").config();
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const { Users } = require("../db.js");
-const NotificationService = require("../services/notificationService.js");
-const { verifyAdminToken } = require("../middleware/adminAuth.js");
-const passport = require("../middleware/passport.js");
-const {
-  authenticateRequired,
-  authenticateUserOrAdmin,
-  requireSelfOrAdmin,
-} = require("../middleware/combinedAuth.js");
-const {
-  postGoogleIdTokenLogin,
-} = require("../controllers/googleIdTokenAuthController.js");
-// UPDATE CURRENT USER (protected)
+const path = require('path');
+const { uploadToCloudinary, deleteFromCloudinary, extractPublicId } = require('../utils/cloudinary.js');
+require('dotenv').config();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { Users } = require('../db.js');
+const NotificationService = require('../services/notificationService.js');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
+const { verifyAdminToken } = require('../middleware/adminAuth.js');
+const passport = require('../middleware/passport.js');
+const { authenticateRequired, authenticateUserOrAdmin, requireSelfOrAdmin } = require('../middleware/combinedAuth.js');
+const { postGoogleIdTokenLogin } = require('../controllers/googleIdTokenAuthController');
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -662,11 +652,12 @@ router.get(
         );
       }
 
-      // Generate JWT tokens for the authenticated user
-      const accessToken = generateAccessToken(req.user);
-      const refreshToken = generateRefreshToken(req.user);
-      req.user.refreshToken = refreshToken;
-      await req.user.save();
+            // Generate JWT tokens for the authenticated user (include switchToken for Switch Account feature)
+            const accessToken = generateAccessToken(req.user);
+            const refreshToken = generateRefreshToken(req.user);
+            const switchToken = generateSwitchToken(req.user);
+            req.user.refreshToken = refreshToken;
+            await req.user.save();
 
       // For Google OAuth, email is already verified by Google
       // Mark as verified if not already verified
@@ -692,19 +683,19 @@ router.get(
       } = require("../utils/onboardingValidation");
       const onboardingStatus = checkOnboardingStatus(req.user);
 
-      // Always redirect to onboarding if incomplete, regardless of flag
-      if (onboardingStatus.requiresOnboarding) {
-        res.redirect(
-          `${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}`,
-        );
-      } else {
-        res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}`);
-      }
-    } catch (err) {
-      console.error("Google OAuth callback error:", err);
-      res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
+            // Always redirect to onboarding if incomplete, regardless of flag
+            // Include switchToken so frontend can add this account to the Switch Account list
+            const switchParam = `switchToken=${encodeURIComponent(switchToken)}`;
+            if (onboardingStatus.requiresOnboarding) {
+                res.redirect(`${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}&${switchParam}`);
+            } else {
+                res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}&${switchParam}`);
+            }
+        } catch (err) {
+            console.error('Google OAuth callback error:', err);
+            res.redirect(`${getFrontendUrl()}/login?error=google_auth_failed`);
+        }
     }
-  },
 );
 
 // LOGOUT
@@ -1385,6 +1376,40 @@ router.get("/verification-status", async (req, res) => {
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 
+// JOIN SCHOOL (user provides schoolCode)
+router.post("/join-school", authenticateRequired, async (req, res) => {
+    try {
+        const { schoolCode } = req.body;
+        if (!schoolCode || !schoolCode.trim()) {
+            return res.status(400).json({ success: false, message: 'School code is required' });
+        }
+        const School = require('../models/schoolSchema');
+        const UserProfile = require('../models/userProfileSchema');
+        const code = schoolCode.trim().toUpperCase();
+        const school = await School.findOne({ schoolCode: code }).select('_id schoolName').lean();
+        if (!school) {
+            return res.status(404).json({ success: false, message: 'School not found' });
+        }
+        const userId = req.user._id;
+        let profile = await UserProfile.findOne({ userId });
+        if (!profile) {
+            profile = new UserProfile({ userId });
+        }
+        profile.schoolId = school._id;
+        profile.schoolName = school.schoolName;
+        profile.schoolRole = 'student';
+        await profile.save();
+        return res.json({
+            success: true,
+            message: 'Joined school successfully',
+            school: { _id: school._id, schoolName: school.schoolName, schoolCode: code }
+        });
+    } catch (err) {
+        console.error('join-school error:', err);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 // GET USER BY ID (for mentors who have chats with the user, or users viewing their own profile)
 router.get("/:userId", async (req, res) => {
   try {
@@ -1460,166 +1485,165 @@ router.get("/:userId", async (req, res) => {
  * POST /api/users/:targetId/follow
  * Follow a user or mentor (authenticated users and mentors can follow anyone)
  */
-router.post("/:targetId/follow", async (req, res) => {
-  try {
-    const token = req.cookies?.accessToken;
-    if (!token) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Not authenticated" });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    const targetId = req.params.targetId;
-    const Mentor = require("../models/mentorSchema.js");
-
-    // Get the follower (can be user or mentor)
-    let follower = null;
-    let followerType = null;
-
-    if (decoded.role === "mentor") {
-      follower = await Mentor.findById(decoded.id || decoded._id);
-      followerType = "mentor";
-    } else {
-      follower = await User.findById(decoded.id || decoded._id);
-      followerType = "user";
-    }
-
-    if (!follower) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Follower not found" });
-    }
-
-    // Prevent self-follow
-    if (follower._id.toString() === targetId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Cannot follow yourself" });
-    }
-
-    // Find the target (can be user or mentor)
-    let target = await User.findById(targetId);
-    let targetType = "user";
-
-    if (!target) {
-      target = await Mentor.findById(targetId);
-      targetType = "mentor";
-    }
-
-    if (!target) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Target user or mentor not found" });
-    }
-
-    // Initialize arrays if they don't exist (for existing records)
-    if (!follower.following) {
-      follower.following = [];
-    }
-    if (!target.followers) {
-      target.followers = [];
-    }
-
-    // Check if already following
-    const isFollowing = follower.following.some(
-      (id) => id.toString() === targetId,
-    );
-
-    if (isFollowing) {
-      // Unfollow
-      follower.following = follower.following.filter(
-        (id) => id.toString() !== targetId,
-      );
-      target.followers = target.followers.filter(
-        (id) => id.toString() !== follower._id.toString(),
-      );
-      await follower.save();
-      await target.save();
-
-      return res.json({
-        success: true,
-        message: "Unfollowed successfully",
-        isFollowing: false,
-        followersCount: target.followers.length,
-      });
-    } else {
-      // Follow
-      follower.following.push(target._id);
-      target.followers.push(follower._id);
-      await follower.save();
-      await target.save();
-
-      // Notify target using new notification system
-      (async () => {
-        try {
-          const NotificationManager = require("../services/notificationManager");
-          const isFollowBack =
-            target.following &&
-            target.following.some(
-              (id) => id.toString() === follower._id.toString(),
-            );
-          const followerName = follower.name || follower.username || "Someone";
-
-          // Determine notification type and message
-          const notificationType = isFollowBack ? "FOLLOW_BACK" : "FOLLOW";
-          const message = isFollowBack
-            ? `${followerName} followed you back`
-            : `${followerName} started following you`;
-
-          // Get follower username for originPath
-          const followerUsername = follower.username || follower._id.toString();
-          const originPath = `/${followerUsername}`;
-
-          // Determine recipient role
-          const recipientRole = targetType === "mentor" ? "mentor" : "user";
-          const followerRole = followerType === "mentor" ? "mentor" : "user";
-
-          await NotificationManager.createAndSend({
-            recipientId: target._id,
-            recipientRole,
-            actorId: follower._id,
-            type: notificationType,
-            entityType: "USER",
-            entityId: follower._id,
-            originPath,
-            message,
-            actorInfo: { name: followerName, username: followerUsername },
-          });
-
-          // If it's a follow-back, also notify the follower
-          if (isFollowBack) {
-            const targetName = target.name || target.username || "Someone";
-            const targetUsername = target.username || target._id.toString();
-
-            await NotificationManager.createAndSend({
-              recipientId: follower._id,
-              recipientRole: followerRole,
-              actorId: target._id,
-              type: "FOLLOW_BACK",
-              entityType: "USER",
-              entityId: target._id,
-              originPath: `/${targetUsername}`,
-              message: `${targetName} followed you back`,
-              actorInfo: { name: targetName, username: targetUsername },
-            });
-          }
-        } catch (notifyError) {
-          console.error("Error sending follow notification:", notifyError);
+router.post('/:targetId/follow', async (req, res) => {
+    try {
+        const token = req.cookies?.accessToken;
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
         }
-      })();
 
-      return res.json({
-        success: true,
-        message: "Followed successfully",
-        isFollowing: true,
-        followersCount: target.followers.length,
-      });
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const targetId = req.params.targetId;
+        const Mentor = require('../models/mentorSchema.js');
+
+        // Get the follower (can be user or mentor)
+        let follower = null;
+        let followerType = null;
+
+        if (decoded.role === 'mentor') {
+            follower = await Mentor.findById(decoded.id || decoded._id);
+            followerType = 'mentor';
+        } else {
+            follower = await User.findById(decoded.id || decoded._id);
+            followerType = 'user';
+        }
+
+        if (!follower) {
+            return res.status(404).json({ success: false, message: 'Follower not found' });
+        }
+
+        // Prevent self-follow
+        if (follower._id.toString() === targetId) {
+            return res.status(400).json({ success: false, message: 'Cannot follow yourself' });
+        }
+
+        // Find the target (can be user or mentor)
+        let target = await User.findById(targetId);
+        let targetType = 'user';
+
+        if (!target) {
+            target = await Mentor.findById(targetId);
+            targetType = 'mentor';
+        }
+
+        if (!target) {
+            return res.status(404).json({ success: false, message: 'Target user or mentor not found' });
+        }
+
+        // Initialize arrays if they don't exist (for existing records)
+        if (!follower.following) {
+            follower.following = [];
+        }
+        if (!target.followers) {
+            target.followers = [];
+        }
+
+        // Check if already following
+        const isFollowing = follower.following.some(
+            id => id.toString() === targetId
+        );
+
+        if (isFollowing) {
+            // Unfollow
+            follower.following = follower.following.filter(
+                id => id.toString() !== targetId
+            );
+            target.followers = target.followers.filter(
+                id => id.toString() !== follower._id.toString()
+            );
+            await follower.save();
+            await target.save();
+
+            return res.json({
+                success: true,
+                message: 'Unfollowed successfully',
+                isFollowing: false,
+                followersCount: target.followers.length
+            });
+        } else {
+            // Follow
+            follower.following.push(target._id);
+            target.followers.push(follower._id);
+            await follower.save();
+            await target.save();
+
+            if (followerType === 'user') {
+                trackStudentEvent({
+                    userId: follower._id,
+                    eventType: targetType === 'mentor' ? 'follow_mentor' : 'follow_user',
+                    entityId: target._id,
+                    metadata: { targetType },
+                    dedupeWindowSeconds: 20,
+                }).catch((err) => console.error('follow tracking failed:', err));
+            }
+
+
+            // Notify target using new notification system
+            (async () => {
+                try {
+                    const NotificationManager = require('../services/notificationManager');
+                    const isFollowBack = target.following && target.following.some(id => id.toString() === follower._id.toString());
+                    const followerName = follower.name || follower.username || 'Someone';
+
+                    // Determine notification type and message
+                    const notificationType = isFollowBack ? 'FOLLOW_BACK' : 'FOLLOW';
+                    const message = isFollowBack
+                        ? `${followerName} followed you back`
+                        : `${followerName} started following you`;
+
+                    // Get follower username for originPath
+                    const followerUsername = follower.username || follower._id.toString();
+                    const originPath = `/${followerUsername}`;
+
+                    // Determine recipient role
+                    const recipientRole = targetType === 'mentor' ? 'mentor' : 'user';
+                    const followerRole = followerType === 'mentor' ? 'mentor' : 'user';
+
+                    await NotificationManager.createAndSend({
+                        recipientId: target._id,
+                        recipientRole,
+                        actorId: follower._id,
+                        type: notificationType,
+                        entityType: 'USER',
+                        entityId: follower._id,
+                        originPath,
+                        message,
+                        actorInfo: { name: followerName, username: followerUsername },
+                    });
+
+                    // If it's a follow-back, also notify the follower
+                    if (isFollowBack) {
+                        const targetName = target.name || target.username || 'Someone';
+                        const targetUsername = target.username || target._id.toString();
+
+                        await NotificationManager.createAndSend({
+                            recipientId: follower._id,
+                            recipientRole: followerRole,
+                            actorId: target._id,
+                            type: 'FOLLOW_BACK',
+                            entityType: 'USER',
+                            entityId: target._id,
+                            originPath: `/${targetUsername}`,
+                            message: `${targetName} followed you back`,
+                            actorInfo: { name: targetName, username: targetUsername },
+                        });
+                    }
+                } catch (notifyError) {
+                    console.error('Error sending follow notification:', notifyError);
+                }
+            })();
+
+            return res.json({
+                success: true,
+                message: 'Followed successfully',
+                isFollowing: true,
+                followersCount: target.followers.length
+            });
+        }
+    } catch (error) {
+        console.error('Error following/unfollowing:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
-  } catch (error) {
-    console.error("Error following/unfollowing:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
 });
 
 /**

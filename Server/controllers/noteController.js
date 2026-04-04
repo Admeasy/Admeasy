@@ -5,6 +5,7 @@ const cloudinary = require('../config/cloudinary'); // or wherever your cloudina
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 const buildFilter = ({ search, university, programme, course, hashtag, uploader }) => { // Added hashtag
   const filter = { status: 'published' };
@@ -105,8 +106,58 @@ const updateCounter = async (req, res, field) => {
   }
 };
 
-exports.likeNote = (req, res) => updateCounter(req, res, 'likes');
-exports.viewNote = (req, res) => updateCounter(req, res, 'views');
+exports.likeNote = async (req, res) => {
+  await updateCounter(req, res, 'likes');
+  if (req.user?._id) {
+    const note = await Note.findById(req.params.id).select('tags hashtags title description').lean();
+    trackStudentEvent({
+      userId: req.user._id,
+      eventType: 'note_like',
+      entityId: req.params.id,
+      note,
+      dedupeWindowSeconds: 20,
+    }).catch((err) => console.error('note_like tracking failed:', err));
+  }
+};
+
+exports.viewNote = async (req, res) => {
+  await updateCounter(req, res, 'views');
+  if (req.user?._id) {
+    const note = await Note.findById(req.params.id).select('tags hashtags title description').lean();
+    trackStudentEvent({
+      userId: req.user._id,
+      eventType: 'note_open',
+      entityId: req.params.id,
+      note,
+      dedupeWindowSeconds: 20,
+    }).catch((err) => console.error('note_open tracking failed:', err));
+  }
+};
+
+exports.shareNote = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid note id.' });
+    }
+    const note = await Note.findOne({ _id: req.params.id, status: 'published' }).lean();
+    if (!note) {
+      return res.status(404).json({ success: false, message: 'Note not found.' });
+    }
+    if (req.user?._id) {
+      await trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'note_share',
+        entityId: note._id,
+        note,
+        dedupeWindowSeconds: 20,
+      });
+    }
+    return res.json({ success: true, message: 'Note share tracked' });
+  } catch (error) {
+    console.error('Error tracking note share:', error);
+    return res.status(500).json({ success: false, message: 'Unable to track share.' });
+  }
+};
 
 // Upload note with Cloudinary compression
 exports.uploadNote = async (req, res) => {

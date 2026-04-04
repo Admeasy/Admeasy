@@ -5,6 +5,7 @@ const { attachAuthorsToNotes } = require("../utils/noteAuthor");
 const College = require("../models/collegeSchema");
 const Post = require("../models/postSchema");
 const { Users } = require("../db");
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 // Helper function to shuffle array
 function shuffleArray(array) {
@@ -19,6 +20,14 @@ function shuffleArray(array) {
 exports.globalSearch = async (req, res) => {
   try {
     const { q = "", type } = req.query;
+    if (req.user?._id && q && q.trim()) {
+      trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'search_query',
+        metadata: { query: q.trim(), type: type || 'all' },
+        dedupeWindowSeconds: 10,
+      }).catch((err) => console.error('search_query tracking failed:', err));
+    }
 
     const results = {
       mentors: [],

@@ -30,8 +30,12 @@ const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
 const ActivityRoutes = require('./routes/activityRoutes');
 const { postGoogleIdTokenLogin } = require('./controllers/googleIdTokenAuthController');
+const InteractionRoutes = require('./routes/interactionRoutes');
+const SchoolRoutes = require('./routes/schoolRoutes');
+const TeacherRoutes = require('./routes/teacherRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
+const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
 const app = express();
 const server = http.createServer(app);
 
@@ -56,6 +60,9 @@ if (missing.length) {
 
 // Database connections are automatically established when db.js is required
 // The connections are created using mongoose.createConnection() which connects automatically
+ensureMasterTagsSeeded().catch((err) => {
+  console.error('Master tag seed failed:', err.message);
+});
 
 // CORS configuration
 app.use(cors({
@@ -340,6 +347,9 @@ app.use('/api/notifications', NotificationRoutes);
 app.use('/api/advertisers', AdvertiserRoutes);
 app.use('/api/ads', AdRoutes);
 app.use('/api/activity', ActivityRoutes);
+app.use('/api/interactions', InteractionRoutes);
+app.use('/api/schools', SchoolRoutes);
+app.use('/api/teachers', TeacherRoutes);
 
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {

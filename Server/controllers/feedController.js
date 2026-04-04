@@ -1,6 +1,8 @@
 const PostView = require('../models/postViewSchema');
 const UserKeywordAffinity = require('../models/userKeywordAffinitySchema');
+const Post = require('../models/postSchema');
 const { extractKeywords } = require('../utils/feedRanking');
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 /**
  * Track post view
@@ -65,6 +67,16 @@ const trackPostView = async (req, res) => {
       await postView.save();
     }
 
+    const post = await Post.findById(postId).select('hashtags content').lean();
+    await trackStudentEvent({
+      userId,
+      eventType: 'post_view',
+      entityId: postId,
+      post,
+      metadata: { viewDuration, viewportPercentage },
+      dedupeWindowSeconds: 30,
+    });
+
     res.json({
       success: true,
       state: postView.state,
@@ -116,6 +128,24 @@ const markPostAsEngaged = async (userId, postId, engagementType, post = null) =>
     // Extract keywords and update user affinity if post content is available
     if (post && post.content) {
       await updateKeywordAffinity(userId, post, engagementType);
+    }
+
+    const eventMap = {
+      like: 'post_like',
+      comment: 'post_comment',
+      share: 'post_share',
+      repost: 'post_share',
+    };
+    const mappedEvent = eventMap[engagementType];
+    if (mappedEvent) {
+      await trackStudentEvent({
+        userId,
+        eventType: mappedEvent,
+        entityId: postId,
+        post,
+        metadata: { engagementType },
+        dedupeWindowSeconds: 15,
+      });
     }
   } catch (error) {
     console.error('Error marking post as engaged:', error);

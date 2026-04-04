@@ -39,7 +39,7 @@ export default function Profile() {
   }, [location]);
 
   const { mentor: currentMentor, isLoading: mentorLoading } = useMentor();
-  const { user: currentUser, isLoading: userLoading } = useUser();
+  const { user: currentUser, isLoading: userLoading, logoutCurrentAccount, setUser } = useUser();
 
   // Redirect to /me if viewing own profile via /:username route to prevent double history entries
   // Only redirect if we have username param and we're not already on /me
@@ -97,7 +97,6 @@ export default function Profile() {
 
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
-  const { setUser } = useUser();
   const { setMentor } = useMentor();
   const postsSectionRef = useRef(null);
 
@@ -110,27 +109,30 @@ export default function Profile() {
 
   const handleLogout = async () => {
     setShowMenu(false);
-    try {
-      const isMentor = !!currentMentor;
-      const url = isMentor ? "/api/mentors/logout" : "/api/users/logout";
-
-      const res = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        if (isMentor && setMentor) setMentor(null);
-        if (!isMentor && setUser) setUser(null);
-        localStorage.clear();
-        toast.success("Logged out successfully");
-        window.location.href = "/";
-      } else {
-        toast.error("Failed to logout");
+    const isMentor = !!currentMentor;
+    if (isMentor) {
+      try {
+        const res = await fetch('/api/mentors/logout', { method: 'POST', credentials: 'include' });
+        if (res.ok) {
+          if (setMentor) setMentor(null);
+          localStorage.removeItem('admeasy:mentor');
+          toast.success('Logged out successfully');
+          window.location.href = '/';
+        } else {
+          toast.error('Failed to logout');
+        }
+      } catch (err) {
+        console.error('Logout failed:', err);
+        toast.error('Failed to logout');
       }
+      return;
+    }
+    try {
+      await logoutCurrentAccount();
+      toast.success('Logged out successfully');
     } catch (err) {
-      console.error("Logout failed:", err);
-      toast.error("Failed to logout");
+      console.error('Logout failed:', err);
+      toast.error('Failed to logout');
     }
   };
 
