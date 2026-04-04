@@ -4,20 +4,20 @@ import { enableNotifications } from "../Firebase/enableNotifications";
 
 const UserContext = createContext();
 
-const USER_STORAGE_KEY = 'admeasy:user';
-const MENTOR_STORAGE_KEY = 'admeasy:mentor';
-const AUTH_ROLE_STORAGE_KEY = 'admeasy:authRole';
-const SAVED_ACCOUNTS_KEY = 'accounts';
-const ACTIVE_ACCOUNT_ID_KEY = 'activeAccountId';
+const USER_STORAGE_KEY = "admeasy:user";
+const MENTOR_STORAGE_KEY = "admeasy:mentor";
+const AUTH_ROLE_STORAGE_KEY = "admeasy:authRole";
+const SAVED_ACCOUNTS_KEY = "accounts";
+const ACTIVE_ACCOUNT_ID_KEY = "activeAccountId";
 
 export function useUser() {
   return useContext(UserContext);
 }
 
 function getInitialUser() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   const role = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
-  if (role !== 'user') return null;
+  if (role !== "user") return null;
   try {
     const stored = localStorage.getItem(USER_STORAGE_KEY);
     const parsed = stored ? JSON.parse(stored) : null;
@@ -30,11 +30,23 @@ function getInitialUser() {
   }
 }
 
+function getInitialMentor() {
+  if (typeof window === "undefined") return null;
+  const role = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
+  if (role !== "mentor") return null;
+  try {
+    const stored = localStorage.getItem(MENTOR_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 export function UserProvider({ children }) {
   const [user, setUser] = useState(getInitialUser);
+  const [mentor, setMentor] = useState(getInitialMentor);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Multiple Accounts state
   const [savedAccounts, setSavedAccounts] = useState(() => {
     try {
       const stored = localStorage.getItem(SAVED_ACCOUNTS_KEY);
@@ -48,15 +60,20 @@ export function UserProvider({ children }) {
   const navigate = useNavigate();
 
   const addSavedAccount = (userData, switchToken) => {
-    setSavedAccounts(prevAccounts => {
-      const existingAccounts = prevAccounts.filter(acc => acc.id !== userData._id);
-      const updatedAccounts = [...existingAccounts, {
-        id: userData._id,
-        name: userData.name,
-        email: userData.email,
-        avatar: userData.imageUrl || userData.image,
-        token: switchToken
-      }];
+    setSavedAccounts((prevAccounts) => {
+      const existingAccounts = prevAccounts.filter(
+        (acc) => acc.id !== userData._id,
+      );
+      const updatedAccounts = [
+        ...existingAccounts,
+        {
+          id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.imageUrl || userData.image,
+          token: switchToken,
+        },
+      ];
       localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updatedAccounts));
       localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userData._id);
       return updatedAccounts;
@@ -64,8 +81,8 @@ export function UserProvider({ children }) {
   };
 
   const removeSavedAccount = (accountId) => {
-    setSavedAccounts(prevAccounts => {
-      const updated = prevAccounts.filter(acc => acc.id !== accountId);
+    setSavedAccounts((prevAccounts) => {
+      const updated = prevAccounts.filter((acc) => acc.id !== accountId);
       localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
       return updated;
     });
@@ -109,21 +126,26 @@ export function UserProvider({ children }) {
 
   const logoutAllAccounts = async () => {
     setUser(null);
+    setMentor(null);
     setSavedAccounts([]);
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(MENTOR_STORAGE_KEY);
     localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
     localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
     localStorage.removeItem(SAVED_ACCOUNTS_KEY);
-    navigate('/');
+    navigate("/");
     try {
-      await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+      await fetch("/api/users/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (err) {
       console.error("Logout API call failed (session ended locally):", err);
     }
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const verifyAuth = async () => {
       setIsLoading(true);
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
@@ -192,24 +214,41 @@ export function UserProvider({ children }) {
   useEffect(() => {
     if (user) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-      localStorage.setItem(AUTH_ROLE_STORAGE_KEY, 'user');
+      localStorage.setItem(AUTH_ROLE_STORAGE_KEY, "user");
       localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, user._id);
     } else {
       localStorage.removeItem(USER_STORAGE_KEY);
       localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
-      if (localStorage.getItem(AUTH_ROLE_STORAGE_KEY) === 'user') {
+      if (localStorage.getItem(AUTH_ROLE_STORAGE_KEY) === "user") {
         localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
       }
     }
   }, [user]);
 
+  useEffect(() => {
+    if (mentor) {
+      localStorage.setItem(MENTOR_STORAGE_KEY, JSON.stringify(mentor));
+      localStorage.setItem(AUTH_ROLE_STORAGE_KEY, "mentor");
+    } else {
+      localStorage.removeItem(MENTOR_STORAGE_KEY);
+      if (localStorage.getItem(AUTH_ROLE_STORAGE_KEY) === "mentor") {
+        localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+      }
+    }
+  }, [mentor]);
+
   const fetchUser = async (switchTokenToSave = null) => {
-    await fetch("/api/users/refresh", { method: "POST", credentials: "include" });
+    await fetch("/api/users/refresh", {
+      method: "POST",
+      credentials: "include",
+    });
     const res = await fetch("/api/users/me", { credentials: "include" });
     if (res.ok) {
       const data = await res.json();
       let userObj = data.user;
-      const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
+      const imageRes = await fetch("/api/users/me/pic", {
+        credentials: "include",
+      });
       if (imageRes.ok) {
         userObj.imageUrl = await imageRes.json();
       }

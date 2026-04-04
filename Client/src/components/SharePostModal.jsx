@@ -291,14 +291,14 @@ const SharePostModal = ({ isOpen, onClose, postId, postData }) => {
                     {searchQuery ? "No chats found" : "No chats available"}
                   </div>
                 ) : (
-                  filteredChats.map((chat) => {
+                  filteredChats.map((chat, idx) => {
                     const isSelected =
                       selectedChat?.chatId === chat.chatId ||
                       selectedChat?.otherPersonId === chat.otherPersonId;
 
                     return (
                       <motion.button
-                        key={chat.chatId || chat.otherPersonId}
+                        key={`${chat.chatType || "chat"}:${chat.chatId || "noChatId"}:${chat.otherPersonId || "noOtherId"}:${idx}`}
                         whileTap={{ scale: 0.98 }}
                         onClick={(e) => {
                           e.stopPropagation();

@@ -385,6 +385,15 @@ const sendUserToMentorMessage = async (req, res) => {
         .lean();
     }
 
+    let postData = null;
+    if (messageType === "post" && postId) {
+      try {
+        postData = await Post.findById(postId).lean();
+      } catch (postErr) {
+        console.error("Error fetching shared post content:", postErr);
+      }
+    }
+
     // Format response
     const formattedMessage = {
       _id: newMessage._id,
@@ -395,6 +404,7 @@ const sendUserToMentorMessage = async (req, res) => {
       message: newMessage.message,
       messageType: newMessage.messageType,
       postId: newMessage.postId,
+      post: postData,
       status: newMessage.status,
       createdAt: newMessage.createdAt,
     };
@@ -1102,6 +1112,15 @@ const sendUserToUserMessage = async (req, res) => {
       .select("name image username") // Added username so your notification logic works
       .lean();
 
+    let postData = null;
+    if (messageType === "post" && postId) {
+      try {
+        postData = await Post.findById(postId).lean();
+      } catch (postErr) {
+        console.error("Error fetching shared post content:", postErr);
+      }
+    }
+
     const formattedMessage = {
       _id: newMessage._id,
       senderId: senderId,
@@ -1110,6 +1129,7 @@ const sendUserToUserMessage = async (req, res) => {
       message: newMessage.message,
       messageType: newMessage.messageType,
       postId: newMessage.postId,
+      post: postData,
       status: newMessage.status,
       createdAt: newMessage.createdAt,
     };
@@ -1548,6 +1568,15 @@ const sendMentorToMentorMessage = async (req, res) => {
       .select("name image username")
       .lean();
 
+    let postData = null;
+    if (messageType === "post" && postId) {
+      try {
+        postData = await Post.findById(postId).lean();
+      } catch (postErr) {
+        console.error("Error fetching shared post content:", postErr);
+      }
+    }
+
     const formattedMessage = {
       _id: newMessage._id,
       senderId: senderId,
@@ -1556,6 +1585,7 @@ const sendMentorToMentorMessage = async (req, res) => {
       message: newMessage.message,
       messageType: newMessage.messageType,
       postId: newMessage.postId,
+      post: postData,
       status: newMessage.status,
       createdAt: newMessage.createdAt,
     };

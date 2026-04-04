@@ -15,4 +15,4 @@ Client/.env
 Client/.env.local
 
 Client/.env.*.local
-node_modules
+node_modules/

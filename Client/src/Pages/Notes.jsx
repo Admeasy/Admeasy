@@ -67,6 +67,7 @@ const Notes = () => {
 
         const response = await fetch("/api/notes", {
           signal: controller.signal,
+          credentials: "include",
         });
 
         if (!response.ok) {
