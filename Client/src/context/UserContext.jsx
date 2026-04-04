@@ -147,6 +147,16 @@ export function UserProvider({ children }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const verifyAuth = async () => {
+      const oauthReturn =
+        new URLSearchParams(location.search).get("oauth_success") === "true" ||
+        sessionStorage.getItem("oauth_in_progress") === "true";
+      // Parent effects run before child effects: /me would 401 before Google OAuth handler
+      // binds JWT cookies — do not clear user / storage during this return trip.
+      if (oauthReturn) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
 
@@ -209,7 +219,7 @@ export function UserProvider({ children }) {
       setIsLoading(false);
     };
     verifyAuth();
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (user) {
@@ -237,17 +247,30 @@ export function UserProvider({ children }) {
     }
   }, [mentor]);
 
-  const fetchUser = async (switchTokenToSave = null) => {
+  const fetchUser = async (switchTokenToSave = null, options = null) => {
+    const accessToken =
+      options && typeof options === "object" && options.accessToken
+        ? options.accessToken
+        : null;
+    const authHeaders = accessToken
+      ? { Authorization: `Bearer ${accessToken}` }
+      : {};
+
     await fetch("/api/users/refresh", {
       method: "POST",
       credentials: "include",
+      headers: authHeaders,
     });
-    const res = await fetch("/api/users/me", { credentials: "include" });
+    const res = await fetch("/api/users/me", {
+      credentials: "include",
+      headers: authHeaders,
+    });
     if (res.ok) {
       const data = await res.json();
       let userObj = data.user;
       const imageRes = await fetch("/api/users/me/pic", {
         credentials: "include",
+        headers: authHeaders,
       });
       if (imageRes.ok) {
         userObj.imageUrl = await imageRes.json();

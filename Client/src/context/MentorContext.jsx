@@ -35,17 +35,26 @@ export function MentorProvider({ children }) {
     }
 
     const verifyAuth = async () => {
+      const oauthReturn =
+        new URLSearchParams(window.location.search).get('oauth_success') === 'true' ||
+        sessionStorage.getItem('oauth_in_progress') === 'true';
+      if (oauthReturn) {
+        setIsLoading(false);
+        return;
+      }
+
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
       const hasStoredMentor = localStorage.getItem(MENTOR_STORAGE_KEY);
 
-      // If we are NOT a user, try to restore mentor session
-      // This allows auto-login even if localStorage is cleared but cookie exists
-      // However, to avoid conflict with UserContext which blindly tries if !mentor,
-      // We should only blindly try if !user.
-      // If no role stored, BOTH will try.
-      if (storedRole !== 'user') {
+      // Only hit mentor APIs when we already believe this tab is a mentor session.
+      // If storedRole is null but the browser has *user* JWT cookies (e.g. after Google
+      // login), /api/mentors/refresh still sends those cookies → 403 "Role mismatch"
+      // (user and mentor share cookie names). Do not call mentor refresh in that case.
+      const shouldRestoreMentor =
+        storedRole === "mentor" || Boolean(hasStoredMentor);
+
+      if (shouldRestoreMentor) {
         try {
-          // Always verify with server - localStorage is just a cache
           await fetch("/api/mentors/refresh", {
             method: "POST",
             credentials: "include",
@@ -75,8 +84,7 @@ export function MentorProvider({ children }) {
           }
         } catch (err) {
           console.error('Auth verification failed:', err);
-          // On error, clear potentially stale data only if we expected to be logged in
-          if (storedRole === 'mentor') {
+          if (storedRole === 'mentor' || hasStoredMentor) {
             setMentor(null);
             localStorage.removeItem(MENTOR_STORAGE_KEY);
             localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);

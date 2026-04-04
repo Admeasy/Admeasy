@@ -17,14 +17,7 @@ const path = require("path");
 const os = require("os");
 const https = require("https");
 const http = require("http");
-const mongoose = require('mongoose');
-const Note = require('../models/noteSchema');
-const { attachAuthorsToNotes, attachAuthorToNote } = require('../utils/noteAuthor');
-const cloudinary = require('../config/cloudinary'); // or wherever your cloudinary config is
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
-const { trackStudentEvent } = require('../services/interactionTrackingService');
+const { trackStudentEvent } = require("../services/interactionTrackingService");
 
 const buildFilter = ({
   search,
@@ -244,22 +237,10 @@ exports.uploadNote = async (req, res) => {
     if (!uploader || !uploader._id) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required. Please log in.'
-      return res.status(401).json({
-        success: false,
         message: "Authentication required. Please log in.",
       });
     }
 
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags, schoolNotes } = req.body;
-
-    // Validate required fields
-    const isSchoolNote = schoolNotes === 'true' || schoolNotes === true;
-    const missingFields = [];
-    if (!title || !title.trim()) missingFields.push('title');
-    if (!description || !description.trim()) missingFields.push('description');
-    if (!standard || !standard.trim()) missingFields.push('standard');
-    if (!course || !course.trim()) missingFields.push('course');
     const {
       title,
       description,
@@ -272,18 +253,17 @@ exports.uploadNote = async (req, res) => {
       course,
       tags,
       hashtags,
-    } = req.body; // Validate required fields
+      schoolNotes,
+    } = req.body;
+
+    const isSchoolNote = schoolNotes === "true" || schoolNotes === true;
     const missingFields = [];
     if (!title || !title.trim()) missingFields.push("title");
     if (!description || !description.trim()) missingFields.push("description");
     if (!standard || !standard.trim()) missingFields.push("standard");
     if (!course || !course.trim()) missingFields.push("course");
 
-    if (!isSchoolNote) {
-      if (!university || !university.trim()) missingFields.push('university');
-      if (!programme || !programme.trim()) missingFields.push('programme');
-    // ONLY require university and programme if it's a mentor
-    if (uploaderType === "Mentor") {
+    if (!isSchoolNote && uploaderType === "Mentor") {
       if (!university || !university.trim()) missingFields.push("university");
       if (!programme || !programme.trim()) missingFields.push("programme");
     }
@@ -300,9 +280,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "No file uploaded. Please select a PDF file.",
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded. Please select a PDF file.'
       });
     }
 
@@ -311,9 +288,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "File is empty or corrupted. Please try uploading again.",
-      return res.status(400).json({
-        success: false,
-        message: 'File is empty or corrupted. Please try uploading again.'
       });
     }
 
@@ -322,9 +296,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "File size must be less than 10MB",
-      return res.status(400).json({
-        success: false,
-        message: 'File size must be less than 10MB'
       });
     }
 
@@ -333,10 +304,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Only PDF files are allowed",
-    if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only PDF files are allowed'
       });
     }
 
@@ -361,10 +328,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(500).json({
         success: false,
         message: "Failed to process file. Please try again.",
-      console.error('Error creating temporary file:', fileError);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to process file. Please try again.'
       });
     }
 
@@ -382,9 +345,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(500).json({
         success: false,
         message: "Server configuration error. Please contact support.",
-      return res.status(500).json({
-        success: false,
-        message: 'Server configuration error. Please contact support.'
       });
     }
 
@@ -396,8 +356,6 @@ exports.uploadNote = async (req, res) => {
         folder: "notes",
         access_mode: "public",
         public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, "_")}`,
-        access_mode: "public",
-        public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, '_')}`
       });
       console.log("Cloudinary upload successful:", cloudinaryResult.secure_url);
       console.log(
@@ -416,9 +374,6 @@ exports.uploadNote = async (req, res) => {
         message:
           cloudinaryError.message ||
           "Failed to upload file to storage. Please try again.",
-      return res.status(500).json({
-        success: false,
-        message: cloudinaryError.message || 'Failed to upload file to storage. Please try again.'
       });
     }
 
@@ -437,9 +392,6 @@ exports.uploadNote = async (req, res) => {
         success: false,
         message:
           "File upload completed but failed to get file URL. Please try again.",
-      return res.status(500).json({
-        success: false,
-        message: 'File upload completed but failed to get file URL. Please try again.'
       });
     }
 
@@ -451,13 +403,19 @@ exports.uploadNote = async (req, res) => {
         description: description.trim(),
         standard: standard.trim(),
         pages: pages && pages.trim() ? parseInt(pages) : undefined,
-        isFree: isFree === "true" || isFree === true || isFree === "true",
+        isFree: isFree === "true" || isFree === true,
         price: price && price.trim() ? parseFloat(price) : undefined,
         schoolNotes: isSchoolNote,
-        university: isSchoolNote ? undefined : (university ? university.trim().toLowerCase() : undefined),
-        programme: isSchoolNote ? undefined : (programme ? programme.trim().toLowerCase() : undefined),
-        university: university ? university.trim().toLowerCase() : "general",
-        programme: programme ? programme.trim().toLowerCase() : "general",
+        university: isSchoolNote
+          ? undefined
+          : university
+            ? university.trim().toLowerCase()
+            : "general",
+        programme: isSchoolNote
+          ? undefined
+          : programme
+            ? programme.trim().toLowerCase()
+            : "general",
         course: course.trim().toLowerCase(),
         tags: tags && tags.trim() ? tags.trim() : undefined,
         hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse the incoming stringified array
@@ -490,9 +448,6 @@ exports.uploadNote = async (req, res) => {
       return res.status(500).json({
         success: false,
         message: dbError.message || "Failed to save note. Please try again.",
-      return res.status(500).json({
-        success: false,
-        message: dbError.message || 'Failed to save note. Please try again.'
       });
     }
 
@@ -520,7 +475,11 @@ exports.uploadNote = async (req, res) => {
     console.error("Unexpected error uploading note:", {
       error: error.message,
       stack: error.stack,
-      uploaderId: req.mentor ? req.mentor._id : (req.user ? req.user._id : 'not authenticated')
+      uploaderId: req.mentor
+        ? req.mentor._id
+        : req.user
+          ? req.user._id
+          : "not authenticated",
       mentor: req.mentor ? req.mentor._id : "not authenticated",
     });
 
@@ -542,9 +501,6 @@ exports.uploadNote = async (req, res) => {
       }
     }
 
-    res.status(500).json({
-      success: false,
-      message: errorMessage
     res.status(500).json({
       success: false,
       message: errorMessage,
@@ -579,12 +535,10 @@ exports.getAllNotes = async (req, res) => {
     res.json({ success: true, data: notes });
   } catch (error) {
     console.error("Error fetching all notes:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch notes" });
-    console.error('Error fetching all notes:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch notes',
-      error: error.message
+      message: "Failed to fetch notes",
+      error: error.message,
     });
   }
 };

@@ -628,7 +628,7 @@ router.get("/auth/google", (req, res, next) => {
     scope: ["profile", "email"],
     accessType: "offline",
     prompt: "consent",
-    session: false, // Disable sessions, use JWT instead
+    session: false, // No express-session; JWT cookies only (Passport only attaches req.user on this request)
   })(req, res, next);
 });
 
@@ -640,11 +640,11 @@ router.get(
   "/auth/google/callback",
   passport.authenticate("google", {
     failureRedirect: `${getFrontendUrl()}/login?error=google_auth_failed`,
-    session: false, // Disable sessions, use JWT instead
+    session: false, // No express-session store — only JWT httpOnly cookies after this handler
   }),
   async (req, res) => {
     try {
-      // Safety check: ensure user is authenticated
+      // Passport strategy populated req.user for this request only (not a server session)
       if (!req.user) {
         console.error("Google OAuth callback: req.user is undefined");
         return res.redirect(
@@ -686,10 +686,15 @@ router.get(
             // Always redirect to onboarding if incomplete, regardless of flag
             // Include switchToken so frontend can add this account to the Switch Account list
             const switchParam = `switchToken=${encodeURIComponent(switchToken)}`;
+            const tokenParam = `token=${encodeURIComponent(accessToken)}`;
             if (onboardingStatus.requiresOnboarding) {
-                res.redirect(`${frontendUrl}/onboarding?oauth_success=true&token=${accessToken}&${switchParam}`);
+                res.redirect(
+                  `${frontendUrl}/onboarding/${req.user._id}?oauth_success=true&${tokenParam}&${switchParam}`,
+                );
             } else {
-                res.redirect(`${frontendUrl}/?oauth_success=true&token=${accessToken}&${switchParam}`);
+                res.redirect(
+                  `${frontendUrl}/?oauth_success=true&${tokenParam}&${switchParam}`,
+                );
             }
         } catch (err) {
             console.error('Google OAuth callback error:', err);
@@ -802,20 +807,67 @@ router.post("/refresh", async (req, res) => {
   }
 });
 
-// GET CURRENT USER (supports both session and JWT)
+/**
+ * JWT-only auth: no Express/session store. After Google OAuth redirect, the SPA may run on
+ * a different host/port than the API callback; httpOnly JWT cookies set on the callback
+ * response may not be sent with fetches from the SPA origin. This route verifies the
+ * short-lived access JWT from the redirect URL and re-issues access+refresh JWTs as
+ * httpOnly cookies on this response (same origin as the caller’s /api requests).
+ */
+router.post("/oauth-bind-jwt-cookies", async (req, res) => {
+  try {
+    const accessToken =
+      req.body?.accessToken ||
+      req.body?.token ||
+      (typeof req.body?.access_token === "string"
+        ? req.body.access_token
+        : null);
+    if (!accessToken || typeof accessToken !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "accessToken is required",
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    user.refreshToken = newRefreshToken;
+    await user.save();
+    setTokenCookies(res, newAccessToken, newRefreshToken);
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("oauth-bind-jwt-cookies error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET CURRENT USER (JWT: Bearer or accessToken cookie)
 router.get("/me", async (req, res) => {
   try {
     let user = null;
-    if (req.user) {
-      // Passport session user
-      user = await User.findById(req.user.id || req.user._id).select(
-        "-password -refreshToken",
-      );
-    } else if (
+    if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer ")
     ) {
-      // JWT fallback
       const token = req.headers.authorization.split(" ")[1];
       try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -823,14 +875,12 @@ router.get("/me", async (req, res) => {
           "-password -refreshToken",
         );
       } catch (jwtErr) {
-        // Token is invalid or expired, clear it
         clearTokenCookies(res);
         return res
           .status(401)
           .json({ success: false, message: "Invalid or expired token" });
       }
     } else if (req.cookies["accessToken"]) {
-      // JWT in cookie fallback
       const token = req.cookies["accessToken"];
       try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -904,18 +954,14 @@ router.get("/me/verification-status", async (req, res) => {
   }
 });
 
-// UPDATE CURRENT USER (supports both session and JWT)
+// UPDATE CURRENT USER (JWT: Bearer or accessToken cookie)
 router.put("/me", upload.single("image"), async (req, res) => {
   try {
     let user = null;
-    if (req.user) {
-      // Passport session user
-      user = await User.findById(req.user.id || req.user._id);
-    } else if (
+    if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer ")
     ) {
-      // JWT fallback
       const token = req.headers.authorization.split(" ")[1];
       try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -928,13 +974,11 @@ router.put("/me", upload.single("image"), async (req, res) => {
           .json({ success: false, message: "Invalid or expired token" });
       }
     } else if (req.cookies["accessToken"]) {
-      // JWT in cookie fallback
       const token = req.cookies["accessToken"];
       try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         user = await User.findById(decoded.id);
       } catch (jwtErr) {
-        // Token is invalid or expired, clear it
         clearTokenCookies(res);
         return res
           .status(401)
@@ -1116,18 +1160,14 @@ router.put("/me", upload.single("image"), async (req, res) => {
   }
 });
 
-// GET USER PROFILE PICTURE (supports both session and JWT)
+// GET USER PROFILE PICTURE (JWT: Bearer or accessToken cookie)
 router.get("/me/pic", async (req, res) => {
   try {
     let user = null;
-    if (req.user) {
-      // Passport session user
-      user = await User.findById(req.user.id || req.user._id);
-    } else if (
+    if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer ")
     ) {
-      // JWT fallback
       const token = req.headers.authorization.split(" ")[1];
       try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
@@ -1140,13 +1180,11 @@ router.get("/me/pic", async (req, res) => {
           .json({ success: false, message: "Invalid or expired token" });
       }
     } else if (req.cookies["accessToken"]) {
-      // JWT in cookie fallback
       const token = req.cookies["accessToken"];
       try {
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
         user = await User.findById(decoded.id);
       } catch (jwtErr) {
-        // Token is invalid or expired, clear it
         clearTokenCookies(res);
         return res
           .status(401)

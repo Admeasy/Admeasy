@@ -69,7 +69,8 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://admeasy.in",
-    "https://www.admeasy.in"
+    "https://www.admeasy.in",
+    "https://development.admeasy.in",
   ],
   credentials: true
 }));
@@ -78,11 +79,9 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Session configuration - MUST be before Socket.io setup
-// Session configuration removed - using JWT only
+// Auth is JWT-only (httpOnly cookies + optional Bearer); no express-session.
 
-
-// Socket.io setup with session integration
+// Socket.io (JWT handshake below, not session-based)
 // Make io available to controllers
 global.io = null;
 
@@ -99,7 +98,6 @@ const io = socketIo(server, {
   transports: ['websocket', 'polling'], // Ensure both transports are available
 });
 
-// Share session with Socket.io - CRITICAL FIX
 // Socket.io JWT auth is handled below
 
 

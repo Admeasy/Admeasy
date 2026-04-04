@@ -107,7 +107,7 @@ function App() {
   const [randomBanner, SetRandomBanner] = useState(null);
   const isAdminRoute = location.pathname.startsWith('/admin');
   const { user, setUser, fetchUser } = useUser();
-  const { mentor } = useMentor();
+  const { mentor, setMentor } = useMentor();
   const navigate = useNavigate();
   const lastBackPressRef = useRef(0);
 
@@ -139,24 +139,69 @@ function App() {
     };
   }, []);
 
-  // After Google OAuth redirect: add account to Switch Account list using switchToken from URL
+  // After Google OAuth redirect: re-set JWT httpOnly cookies on this origin (JWT-only auth;
+  // fixes dev API port vs Vite / split hosting). Then load user + switchToken for saved accounts.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('oauth_success') !== 'true' || !params.get('switchToken')) return;
     const switchToken = params.get('switchToken');
+    const urlAccessToken = params.get('token');
     let cancelled = false;
-    fetchUser(switchToken).then((loggedInUser) => {
-      if (cancelled || !loggedInUser) return;
-      const cleanPath = location.pathname || '/';
-      window.history.replaceState({}, '', cleanPath);
+
+    const finish = () => {
       sessionStorage.removeItem('oauth_in_progress');
       sessionStorage.removeItem('oauth_intended_path');
-    }).catch(() => {
-      const cleanPath = location.pathname || '/';
-      window.history.replaceState({}, '', cleanPath);
-    });
-    return () => { cancelled = true; };
-  }, [location.search, location.pathname]);
+      navigate(
+        {
+          pathname: location.pathname || '/',
+          search: '',
+          ...(location.hash ? { hash: location.hash } : {}),
+        },
+        { replace: true },
+      );
+    };
+
+    (async () => {
+      try {
+        if (urlAccessToken) {
+          const jwtCookieRes = await fetch('/api/users/oauth-bind-jwt-cookies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken: urlAccessToken }),
+            credentials: 'include',
+          });
+          if (!jwtCookieRes.ok) {
+            toast.error('Could not complete Google sign-in. Try again or use email login.');
+            finish();
+            return;
+          }
+        }
+        if (cancelled) return;
+        setMentor(null);
+        const loggedInUser = await fetchUser(
+          switchToken,
+          urlAccessToken ? { accessToken: urlAccessToken } : null,
+        );
+        if (cancelled || !loggedInUser) {
+          if (!cancelled && !urlAccessToken) {
+            toast.error('Could not complete Google sign-in. Try again.');
+          }
+          finish();
+          return;
+        }
+        finish();
+      } catch {
+        if (!cancelled) {
+          toast.error('Could not complete Google sign-in. Try again.');
+          finish();
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.search, location.pathname, location.hash, fetchUser, navigate, setMentor]);
 
   // Username warning toast
   useEffect(() => {
