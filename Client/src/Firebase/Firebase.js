@@ -55,6 +55,7 @@ if (hasConfig) {
   app = initializeApp(firebaseConfig);
   messaging = getMessaging(app);
 } else {
+  console.log(firebaseConfig)
   // Log a warning instead of THROWING an error
   console.warn(
     "Project is running without Firebase. Notifications will not work.",
