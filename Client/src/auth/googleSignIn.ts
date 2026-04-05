@@ -9,13 +9,22 @@ import { Capacitor } from '@capacitor/core';
 import { toast } from 'react-toastify';
 import type { NavigateFunction } from 'react-router-dom';
 import { enableNotifications } from '../Firebase/enableNotifications';
+import { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
 
 import { ensureGoogleSignInInitialized, GOOGLE_SIGN_IN_SCOPES } from './googleSignInInit';
 
 export { ensureGoogleSignInInitialized, GOOGLE_SIGN_IN_SCOPES };
 
+/**
+ * Get Web OAuth client ID (public).
+ * Can be overridden via VITE_GOOGLE_CLIENT_ID env var.
+ */
 export function getWebClientId(): string {
-  return import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const envClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+  if (envClientId) {
+    return envClientId;
+  }
+  return GOOGLE_WEB_CLIENT_ID;
 }
 
 /** True on Android & iOS — native account picker + POST idToken. */
@@ -50,10 +59,9 @@ interface UserLike {
  */
 export async function completeGoogleSessionFromIdToken(
   idToken: string,
-  deps: GoogleLoginDeps,
-  meta?: { email?: string | null }
+  deps: GoogleLoginDeps
 ): Promise<void> {
-  console.log('[GoogleSignIn] POST /api/auth/google …', meta?.email ?? '(no email yet)');
+  console.log('[GoogleSignIn] Exchanging token with backend');
 
   const res = await fetch('/api/auth/google', {
     method: 'POST',
@@ -64,9 +72,12 @@ export async function completeGoogleSessionFromIdToken(
 
   const data = (await res.json().catch(() => ({}))) as BackendLoginResponse;
   if (!res.ok) {
+    console.error('[GoogleSignIn] Backend exchange failed: ' + (data.message || 'unknown error'));
     toast.error(data.message || 'Google sign-in failed');
     return;
   }
+
+  console.log('[GoogleSignIn] Backend exchange OK, loading user data');
 
   deps.setMentor(null);
 
@@ -95,11 +106,12 @@ async function completeGoogleSessionFromSignInResult(
 ): Promise<void> {
   const idToken = result.idToken ?? null;
   if (!idToken) {
+    console.error('[GoogleSignIn] completeGoogleSessionFromSignInResult - missing idToken');
     toast.error('Could not get Google credentials. Please try again.');
     return;
   }
-  console.log('[GoogleSignIn] idToken received, userId=', result.userId, 'email=', result.email);
-  await completeGoogleSessionFromIdToken(idToken, deps, { email: result.email });
+  console.log('[GoogleSignIn] signIn complete, exchanging token with backend');
+  await completeGoogleSessionFromIdToken(idToken, deps);
 }
 
 /** Web flow is server-redirect based; no plugin redirect callback to consume. */
@@ -114,15 +126,22 @@ export async function tryConsumeGoogleWebRedirect(deps: GoogleLoginDeps): Promis
  */
 export async function runCapacitorGoogleSignIn(deps: GoogleLoginDeps): Promise<void> {
   try {
-    console.log('[GoogleSignIn] runCapacitorGoogleSignIn: awaiting prior initialize…');
-    await ensureGoogleSignInInitialized();
     console.log('[GoogleSignIn] signIn() starting (native)');
+    
+    // Ensure initialization completed first
+    await ensureGoogleSignInInitialized();
+    console.log('[GoogleSignIn] signIn() - initialization verified');
 
     const nativeUser = await GoogleAuth.signIn();
     const idToken = nativeUser?.authentication?.idToken ?? null;
     const email = nativeUser?.email ?? null;
 
-    console.log('[GoogleSignIn] signIn() resolved, has idToken:', !!idToken);
+    if (!idToken) {
+      console.warn('[GoogleSignIn] signIn() - no idToken received');
+      throw new Error('No ID token received from Google Sign-In');
+    }
+
+    console.log('[GoogleSignIn] signIn() success, email=' + (email || 'unknown'));
     await completeGoogleSessionFromSignInResult(
       {
         idToken,
@@ -133,14 +152,21 @@ export async function runCapacitorGoogleSignIn(deps: GoogleLoginDeps): Promise<v
     );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error('[GoogleSignIn] signIn error:', error);
-    console.log('[GoogleSignIn] clientId:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
-    console.log('[GoogleSignIn] platform:', Capacitor.getPlatform());
+    console.error('[GoogleSignIn] signIn() failed: ' + msg);
+    console.log('[GoogleSignIn] platform: ' + Capacitor.getPlatform());
 
+    // Silent user cancellation
     if (/cancel|dismiss|user denied|12501|16|Canceled|abort/i.test(msg)) {
+      console.log('[GoogleSignIn] User cancelled');
       return;
     }
-    toast.error(msg || 'Google sign-in failed. Please try again.');
+
+    // User-facing error
+    const userFriendlyMsg = msg.includes('client')
+      ? 'Google Sign-In is not properly configured. Please contact support.'
+      : msg || 'Google sign-in failed. Please try again.';
+    
+    toast.error(userFriendlyMsg);
   }
 }
 
