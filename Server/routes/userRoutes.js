@@ -230,13 +230,24 @@ router.post('/signup', async (req, res) => {
             // Continue even if email sending fails - user can request resend later
         }
 
-        // DO NOT auto-login unverified users
-        // Return success but user must verify email before accessing protected routes
+        // Generate tokens even if unverified so polling can work
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        // Update user refresh token (optional but good practice)
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+        setTokenCookies(res, accessToken, refreshToken);
+
+        // Return success with user data
         return res.status(201).json({
             id: user._id,
             success: true,
             message: 'User registered successfully. Please check your email to verify your account.',
-            requiresVerification: true
+            requiresVerification: true,
+            username: user.username,
+            email: user.email
         });
 
     } catch (err) {
