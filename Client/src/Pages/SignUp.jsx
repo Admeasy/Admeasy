@@ -15,7 +15,7 @@ import { useRef } from "react";
 import {
   runCapacitorGoogleSignIn,
   shouldUseCapacitorGooglePlugin,
-  WEB_GOOGLE_OAUTH_PATH,
+  getWebGoogleOAuthUrl,
 } from "../auth/googleSignIn";
 
 const fadeUpVariant = {
@@ -36,12 +36,31 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
   const recaptchaRef = useRef(null);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralStatus, setReferralStatus] = useState("idle"); // idle, valid, invalid
 
   const navigate = useNavigate();
   const { fetchUser, setUser } = useUser();
   const { setMentor } = useMentor();
 
   const validateEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
+  const validateReferralCode = async (code) => {
+    if (!code.trim()) {
+      setReferralStatus("idle");
+      return;
+    }
+    try {
+      const res = await fetch("/api/referrals/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referralCode: code.toUpperCase().trim() }),
+      });
+      const data = await res.json();
+      setReferralStatus(data.valid ? "valid" : "invalid");
+    } catch {
+      setReferralStatus("idle");
+    }
+  };
   const validateUsername = (username) => /^[a-z0-9_]{3,20}$/.test(username);
   const validatePassword = (password) =>
     password.length >= 8 &&
@@ -120,7 +139,13 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
       const res = await fetch("/api/users/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, username, captchaToken }),
+        body: JSON.stringify({
+          email,
+          password,
+          username,
+          captchaToken,
+          referralCode: referralCode.trim() || undefined, // ← only send if filled
+        }),
         credentials: "include",
       });
       const data = await res.json();
@@ -184,7 +209,10 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
     if (googleLoading) return;
     setGoogleLoading(true);
     try {
-      await runCapacitorGoogleSignIn({ fetchUser, setMentor, navigate });
+      await runCapacitorGoogleSignIn(
+        { fetchUser, setMentor, navigate },
+        { referralCode: referralCode.trim() || undefined }, // ← pass referral code
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -293,6 +321,45 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
             </button>
           </div>
 
+          {/* Referral Code Input — optional */}
+          <div className="relative mb-4">
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-gray-400 font-bold text-sm">
+                🎁
+              </span>
+              <input
+                type="text"
+                placeholder="Referral code (optional)"
+                className={`pl-10 pr-4 py-4 rounded-full w-full border-none outline-none font-bold text-gray-700 shadow-md bg-gray-100 focus:ring-2 transition-all uppercase ${
+                  referralStatus === "valid"
+                    ? "focus:ring-green-400"
+                    : referralStatus === "invalid"
+                      ? "focus:ring-red-400"
+                      : "focus:ring-brand-light/30"
+                }`}
+                value={referralCode}
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase().replace(/\s/g, "");
+                  setReferralCode(val);
+                  setReferralStatus("idle");
+                }}
+                onBlur={() => validateReferralCode(referralCode)}
+                maxLength={10}
+                disabled={isSubmitting}
+              />
+            </div>
+            {referralStatus === "valid" && (
+              <p className="mt-1 ml-4 text-xs font-semibold text-green-600">
+                ✅ Valid code! You'll earn 10 coins on your first purchase.
+              </p>
+            )}
+            {referralStatus === "invalid" && (
+              <p className="mt-1 ml-4 text-xs font-semibold text-red-600">
+                ❌ Invalid referral code. Please check and try again.
+              </p>
+            )}
+          </div>
+
           {/* Captcha */}
           <div className="flex justify-center mb-4">
             <ReCAPTCHA
@@ -358,7 +425,10 @@ const Signup = ({ setAuthMode, onNotVerified }) => {
               {googleLoading ? "Connecting…" : "Continue with Google"}
             </button>
           ) : (
-            <a href={WEB_GOOGLE_OAUTH_PATH} className={googleButtonClass}>
+            <a
+              href={getWebGoogleOAuthUrl(referralCode)}
+              className={googleButtonClass}
+            >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
                 <path
                   fill="#4285F4"

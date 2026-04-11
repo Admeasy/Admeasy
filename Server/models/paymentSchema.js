@@ -1,72 +1,96 @@
-const mongoose = require('mongoose');
-const { Admeasy } = require('../db');
+const mongoose = require("mongoose");
+const { Admeasy } = require("../db");
 
-const paymentSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users',
-    required: true
+const paymentSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Users",
+      required: true,
+    },
+    note: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Note",
+      required: false,
+    },
+    // Subscription payment fields
+    subscriptionPlan: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subscription plans",
+      required: false,
+    },
+    mentor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Mentor",
+      required: false,
+    },
+    billingPeriod: {
+      type: String,
+      enum: ["monthly", "yearly"],
+      required: false,
+    },
+    paymentType: {
+      type: String,
+      enum: ["note", "subscription"],
+      required: true,
+      default: "note",
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: "INR",
+    },
+    razorpayOrderId: {
+      type: String,
+      required: false,
+    },
+    razorpayPaymentId: {
+      type: String,
+      required: false,
+    },
+    razorpaySignature: {
+      type: String,
+      required: false,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "completed", "failed", "refunded"],
+      default: "pending",
+    },
+    paymentDate: {
+      type: Date,
+      default: Date.now,
+    },
+    //Coins fields
+    coinsApplied: {
+      type: Number,
+      default: 0, // number of coins user chose to apply
+    },
+    coinsDiscountInr: {
+      type: Number,
+      default: 0, // rupee value deducted (coinsApplied / 10)
+    },
+    originalAmount: {
+      type: Number,
+      default: 0, // full price before coin discount
+    },
+    razorpayAmount: {
+      type: Number,
+      default: 0, // final amount sent to Razorpay after coin discount
+    },
+    coinDeducted: {
+      type: Boolean,
+      default: false, // TRUE only after Razorpay payment success
+    },
   },
-  note: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Note',
-    required: false
+  {
+    timestamps: true,
   },
-  // Subscription payment fields
-  subscriptionPlan: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subscription plans',
-    required: false
-  },
-  mentor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mentor',
-    required: false
-  },
-  billingPeriod: {
-    type: String,
-    enum: ['monthly', 'yearly'],
-    required: false
-  },
-  paymentType: {
-    type: String,
-    enum: ['note', 'subscription'],
-    required: true,
-    default: 'note'
-  },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  currency: {
-    type: String,
-    default: 'INR'
-  },
-  razorpayOrderId: {
-  type: String,
-  required: false
-  },
-  razorpayPaymentId: {
-    type: String,
-    required: false
-  },
-  razorpaySignature: {
-    type: String,
-    required: false
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
-    default: 'pending'
-  },
-  paymentDate: {
-    type: Date,
-    default: Date.now
-  }
-}, {
-  timestamps: true
-});
+);
 
 // Compound index to ensure one purchase per user per note
 // paymentSchema.index({ user: 1, note: 1 }, { unique: true });
@@ -75,9 +99,12 @@ const paymentSchema = new mongoose.Schema({
 paymentSchema.index({ user: 1, note: 1, status: 1 });
 
 // Add a unique index on razorpayOrderId when it exists
-paymentSchema.index({ razorpayOrderId: 1 }, { 
-  unique: true, 
-  sparse: true // Only enforce uniqueness when the field exists
-});
+paymentSchema.index(
+  { razorpayOrderId: 1 },
+  {
+    unique: true,
+    sparse: true, // Only enforce uniqueness when the field exists
+  },
+);
 
-module.exports = Admeasy.model('Payment', paymentSchema);
+module.exports = Admeasy.model("Payment", paymentSchema);

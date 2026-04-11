@@ -4,21 +4,20 @@ const Note = require("../models/noteSchema");
 const SubscriptionPlan = require("../models/subscriptionPlanSchema");
 const Subscription = require("../models/subscriptionSchema");
 const crypto = require("crypto");
+const User = require("../models/userSchema");
+const Referral = require("../models/referralSchema");
+const CoinTransaction = require("../models/CoinTransaction");
+const {
+  COINS_PER_REFERRAL,
+  getAwardableCoins,
+  coinsToRupees,
+  rupeesToCoins,
+} = require("../utils/coinHelper");
 
-// Razorpay must work in development too when keys are set (subscriptions / note purchases).
 let razorpay = null;
 const razorpayKeysPresent =
   process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET;
 
-<<<<<<< Updated upstream
-/**
- * code to run server locally withput env variables(changes from line 17 to line 24)
- */
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder",
-});
-=======
 if (razorpayKeysPresent) {
   try {
     razorpay = new Razorpay({
@@ -29,30 +28,156 @@ if (razorpayKeysPresent) {
     console.error("Failed to initialize Razorpay:", err);
   }
 } else {
-  console.warn(
-    "Razorpay not configured: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Server/.env",
-  );
+  console.warn("Razorpay not configured");
 }
 
 function paymentGatewayUnavailable(res) {
   return res.status(503).json({
     success: false,
-    message:
-      "Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to the server environment.",
+    message: "Payment gateway is not configured.",
   });
 }
->>>>>>> Stashed changes
+
+// ── HELPER: Get current month key e.g. "2024-03" ──────────────────────────
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// ── HELPER: Reset monthly counter if month has changed ────────────────────
+async function ensureMonthlyCounterFresh(user) {
+  const currentMonthKey = getCurrentMonthKey();
+  if (user.coinMonthKey !== currentMonthKey) {
+    user.coinsEarnedThisMonth = 0;
+    user.coinMonthKey = currentMonthKey;
+    await user.save({ validateBeforeSave: false });
+  }
+}
+
+// ── HELPER: Award coins to a user (respects monthly cap) ──────────────────
+async function awardCoins(
+  userId,
+  coinsToAward,
+  type,
+  description,
+  referenceId,
+) {
+  const user = await User.findById(userId);
+  if (!user) return 0;
+
+  await ensureMonthlyCounterFresh(user);
+
+  const awardable = getAwardableCoins(user.coinsEarnedThisMonth, coinsToAward);
+  if (awardable <= 0) return 0;
+
+  user.coinBalance += awardable;
+  user.coinsEarnedThisMonth += awardable;
+  await user.save({ validateBeforeSave: false });
+
+  await CoinTransaction.create({
+    user: userId,
+    type,
+    coins: awardable,
+    balanceAfter: user.coinBalance,
+    description,
+    referenceId,
+    referenceModel: "Referral",
+  });
+
+  return awardable;
+}
+
+// ── HELPER: Handle first purchase coin logic ───────────────────────────────
+async function handleFirstPurchaseCoinLogic(userId) {
+  const user = await User.findById(userId);
+  if (!user || user.hasCompletedFirstPurchase) return;
+
+  // Mark first purchase done
+  user.hasCompletedFirstPurchase = true;
+
+  // Check if this user was referred
+  const referral = await Referral.findOne({
+    referred: userId,
+    status: "pending",
+  });
+
+  if (referral) {
+    // Award coins to referred user (this user)
+    const coinsForReferred = await awardCoins(
+      userId,
+      COINS_PER_REFERRAL,
+      "earned_referred",
+      "Welcome bonus — coins earned on first purchase",
+      referral._id,
+    );
+
+    // Award coins to referrer
+    const referrerUser = await User.findById(referral.referrer);
+    const referrerName =
+      referrerUser?.name || referrerUser?.username || "Someone";
+
+    const coinsForReferrer = await awardCoins(
+      referral.referrer,
+      COINS_PER_REFERRAL,
+      "earned_referral",
+      `Referral bonus — ${user.name || user.username || "A user"} made their first purchase`,
+      referral._id,
+    );
+
+    // Mark referral as completed
+    referral.status = "completed";
+    referral.completedAt = new Date();
+    referral.coinsAwardedToReferred = coinsForReferred;
+    referral.coinsAwardedToReferrer = coinsForReferrer;
+    await referral.save();
+
+    // Set popup flags on both users
+    // Referred user popup
+    user.showFirstCoinPopup = true;
+
+    // Referrer popup — reload referrer to set flag
+    if (coinsForReferrer > 0) {
+      await User.findByIdAndUpdate(referral.referrer, {
+        showFirstCoinPopup: true,
+      });
+    }
+  }
+
+  await user.save({ validateBeforeSave: false });
+}
+
+// ── HELPER: Deduct coins after successful payment ─────────────────────────
+async function deductCoins(payment, itemType) {
+  if (payment.coinDeducted || payment.coinsApplied <= 0) return;
+
+  const user = await User.findById(payment.user);
+  if (!user) return;
+
+  user.coinBalance = Math.max(0, user.coinBalance - payment.coinsApplied);
+  await user.save({ validateBeforeSave: false });
+
+  await CoinTransaction.create({
+    user: payment.user,
+    type: itemType === "subscription" ? "spent_mentorship" : "spent_notes",
+    coins: -payment.coinsApplied,
+    balanceAfter: user.coinBalance,
+    description: `Coins used for ${itemType === "subscription" ? "mentorship" : "notes"} purchase`,
+    referenceId: payment._id,
+    referenceModel: "Order",
+  });
+
+  payment.coinDeducted = true;
+  await payment.save();
+}
 
 // -------------------------------------------------------
-// 1️⃣ CREATE ORDER
+// 1️⃣ CREATE ORDER (notes)
 // -------------------------------------------------------
 exports.createOrder = async (req, res) => {
   try {
-    if (!razorpay) {
-      return paymentGatewayUnavailable(res);
-    }
+    if (!razorpay) return paymentGatewayUnavailable(res);
 
-    const { noteId } = req.body;
+    const { noteId, applyCoins = false } = req.body; // ← added applyCoins
     const userId = req.user?._id || req.mentor?._id;
     if (!userId)
       return res
@@ -60,16 +185,14 @@ exports.createOrder = async (req, res) => {
         .json({ success: false, message: "Authentication required" });
 
     const note = await Note.findById(noteId);
-    if (!note || note.isFree) {
+    if (!note || note.isFree)
       return res.status(400).json({ success: false, message: "Invalid note" });
-    }
 
-    // ✅ Check for ANY non-failed payment (completed OR pending)
     const existing = await Payment.findOne({
       user: userId,
       note: noteId,
       paymentType: "note",
-      status: { $in: ["completed", "pending"] }, // ← KEY CHANGE
+      status: { $in: ["completed", "pending"] },
     });
 
     if (existing) {
@@ -82,27 +205,87 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // ── COIN DISCOUNT LOGIC ──────────────────────────────
+    const originalAmount = Number(note.price);
+    let coinsApplied = 0;
+    let coinsDiscountInr = 0;
+    let finalAmount = originalAmount;
+
+    if (applyCoins) {
+      // Only users (not mentors) can use coins
+      const user = await User.findById(userId);
+      if (user && user.coinBalance > 0) {
+        // Max coins usable = min(user balance, price in coins)
+        const maxCoinsUsable = Math.min(
+          user.coinBalance,
+          rupeesToCoins(originalAmount), // e.g. ₹99 = 990 coins max
+        );
+        coinsApplied = maxCoinsUsable;
+        coinsDiscountInr = coinsToRupees(coinsApplied); // coins / 10
+        finalAmount = Math.max(0, originalAmount - coinsDiscountInr);
+      }
+    }
+    // ────────────────────────────────────────────────────
+
+    // If coins cover full price, no Razorpay order needed
+    if (finalAmount === 0) {
+      const payment = await Payment.create({
+        user: userId,
+        note: noteId,
+        paymentType: "note",
+        amount: originalAmount,
+        originalAmount,
+        coinsApplied,
+        coinsDiscountInr,
+        razorpayAmount: 0,
+        status: "completed", // ← fully paid by coins
+        coinDeducted: false, // deducted below
+        paymentDate: new Date(),
+      });
+
+      await deductCoins(payment, "note");
+      await handleFirstPurchaseCoinLogic(userId.toString());
+
+      return res.json({
+        success: true,
+        fullyPaidWithCoins: true,
+        message: "Purchase completed using coins",
+        noteId: note._id,
+      });
+    }
+
     const order = await razorpay.orders.create({
-      amount: Math.round(Number(note.price) * 100),
+      amount: Math.round(finalAmount * 100), // ← discounted amount in paise
       currency: "INR",
       receipt: `note_${noteId.toString().slice(-8)}_${Date.now().toString().slice(-8)}`,
       payment_capture: 1,
     });
 
-    // ✅ Create pending payment record IMMEDIATELY
     await Payment.create({
       user: userId,
       note: noteId,
       paymentType: "note",
-      amount: note.price,
+      amount: finalAmount,
+      originalAmount,
+      coinsApplied,
+      coinsDiscountInr,
+      razorpayAmount: Math.round(finalAmount * 100),
       razorpayOrderId: order.id,
-      status: "pending", // ← Prevents duplicate orders
+      status: "pending",
+      coinDeducted: false,
     });
 
     return res.json({
       success: true,
       order: { ...order, key: process.env.RAZORPAY_KEY_ID },
       note: { id: note._id, title: note.title, price: note.price },
+      // ← send coin info to frontend for display
+      coinSummary: {
+        originalAmount,
+        coinsApplied,
+        coinsDiscountInr,
+        finalAmount,
+      },
     });
   } catch (error) {
     console.error("Order creation error:", error);
@@ -113,7 +296,7 @@ exports.createOrder = async (req, res) => {
 };
 
 // -------------------------------------------------------
-// 2️⃣ VERIFY PAYMENT (IDEMPOTENT & SAFE)
+// 2️⃣ VERIFY PAYMENT (notes)
 // -------------------------------------------------------
 exports.verifyPayment = async (req, res) => {
   try {
@@ -123,37 +306,32 @@ exports.verifyPayment = async (req, res) => {
       razorpay_signature,
       noteId,
     } = req.body;
-    // const userId = req.user._id;
     const userId = req.user?._id || req.mentor?._id;
     if (!userId)
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
 
-    // Verify signature
     const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expected = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign)
       .digest("hex");
 
-    if (expected !== razorpay_signature) {
+    if (expected !== razorpay_signature)
       return res
         .status(400)
         .json({ success: false, message: "Invalid signature" });
-    }
 
     const note = await Note.findById(noteId);
-    if (!note || note.isFree) {
+    if (!note || note.isFree)
       return res.status(400).json({ success: false, message: "Invalid note" });
-    }
 
-    // ✅ ATOMIC UPDATE - Only ONE request will succeed
     const payment = await Payment.findOneAndUpdate(
       {
         razorpayOrderId: razorpay_order_id,
         paymentType: "note",
-        status: "pending", // ← Only update if still pending
+        status: "pending",
       },
       {
         $set: {
@@ -167,19 +345,14 @@ exports.verifyPayment = async (req, res) => {
     );
 
     if (!payment) {
-      // Either doesn't exist or already completed
       const existing = await Payment.findOne({
         razorpayOrderId: razorpay_order_id,
       });
-
-      if (!existing) {
+      if (!existing)
         return res
           .status(404)
           .json({ success: false, message: "Payment record not found" });
-      }
-
       if (existing.status === "completed") {
-        // Already processed - return success (idempotent)
         return res.json({
           success: true,
           message: "Payment already verified",
@@ -189,6 +362,14 @@ exports.verifyPayment = async (req, res) => {
       }
     }
 
+    // ── COIN LOGIC AFTER PAYMENT SUCCESS ──────────────────
+    // 1. Deduct coins from user balance (NOW, after payment confirmed)
+    await deductCoins(payment, "note");
+
+    // 2. Handle first purchase — award referral coins if applicable
+    await handleFirstPurchaseCoinLogic(userId.toString());
+    // ──────────────────────────────────────────────────────
+
     return res.json({
       success: true,
       message: "Payment verified",
@@ -197,20 +378,18 @@ exports.verifyPayment = async (req, res) => {
     });
   } catch (error) {
     console.error("Verify payment error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Payment verification failed",
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: "Payment verification failed" });
   }
 };
 
 // -------------------------------------------------------
-// 3️⃣ CHECK PURCHASE
+// 3️⃣ CHECK PURCHASE — unchanged
 // -------------------------------------------------------
 exports.checkPurchase = async (req, res) => {
   try {
     const { noteId } = req.params;
-    // const userId = req.user._id;
     const userId = req.user?._id || req.mentor?._id;
     if (!userId)
       return res
@@ -224,10 +403,7 @@ exports.checkPurchase = async (req, res) => {
       paymentType: "note",
     });
 
-    return res.json({
-      success: true,
-      hasPurchased: !!payment,
-    });
+    return res.json({ success: true, hasPurchased: !!payment });
   } catch (error) {
     console.error("Check purchase error:", error);
     return res
@@ -237,28 +413,21 @@ exports.checkPurchase = async (req, res) => {
 };
 
 // -------------------------------------------------------
-// 4️⃣ GET USER PURCHASE HISTORY
+// 4️⃣ GET USER PURCHASE HISTORY — unchanged
 // -------------------------------------------------------
 exports.getUserPurchases = async (req, res) => {
   try {
-    // const userId = req.user._id;
     const userId = req.user?._id || req.mentor?._id;
     if (!userId)
       return res
         .status(401)
         .json({ success: false, message: "Authentication required" });
 
-    const payments = await Payment.find({
-      user: userId,
-      status: "completed",
-    })
+    const payments = await Payment.find({ user: userId, status: "completed" })
       .populate("note", "title description price isFree standard course")
       .sort({ paymentDate: -1 });
 
-    return res.json({
-      success: true,
-      purchases: payments,
-    });
+    return res.json({ success: true, purchases: payments });
   } catch (error) {
     console.error("Fetch history error:", error);
     return res
@@ -272,27 +441,22 @@ exports.getUserPurchases = async (req, res) => {
 // -------------------------------------------------------
 exports.createSubscriptionOrder = async (req, res) => {
   try {
-    if (!razorpay) {
-      return paymentGatewayUnavailable(res);
-    }
+    if (!razorpay) return paymentGatewayUnavailable(res);
 
-    const { planId, mentorId, billingPeriod } = req.body;
+    const { planId, mentorId, billingPeriod, applyCoins = false } = req.body; // ← added applyCoins
     const userId = req.user._id;
 
-    if (!planId || !mentorId || !billingPeriod) {
+    if (!planId || !mentorId || !billingPeriod)
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
-    }
 
     const plan = await SubscriptionPlan.findById(planId);
-    if (!plan) {
+    if (!plan)
       return res
         .status(400)
         .json({ success: false, message: "Invalid subscription plan" });
-    }
 
-    // Check if user already has an active subscription to this mentor
     const existingSubscription = await Subscription.findOne({
       user: userId,
       mentor: mentorId,
@@ -300,58 +464,140 @@ exports.createSubscriptionOrder = async (req, res) => {
       endDate: { $gt: new Date() },
     });
 
-    if (existingSubscription) {
-      return res.status(400).json({
-        success: false,
-        message: "You already have an active subscription to this mentor",
-      });
-    }
+    if (existingSubscription)
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "You already have an active subscription to this mentor",
+        });
 
     const price = plan.price[billingPeriod];
-    if (!price) {
+    if (!price)
       return res
         .status(400)
         .json({ success: false, message: "Invalid billing period" });
+
+    // ── COIN DISCOUNT LOGIC ──────────────────────────────
+    const originalAmount = Number(price);
+    let coinsApplied = 0;
+    let coinsDiscountInr = 0;
+    let finalAmount = originalAmount;
+
+    if (applyCoins) {
+      const user = await User.findById(userId);
+      if (user && user.coinBalance > 0) {
+        const maxCoinsUsable = Math.min(
+          user.coinBalance,
+          rupeesToCoins(originalAmount),
+        );
+        coinsApplied = maxCoinsUsable;
+        coinsDiscountInr = coinsToRupees(coinsApplied);
+        finalAmount = Math.max(0, originalAmount - coinsDiscountInr);
+      }
+    }
+    // ────────────────────────────────────────────────────
+
+    // If coins cover full price
+    if (finalAmount === 0) {
+      const payment = await Payment.create({
+        user: userId,
+        subscriptionPlan: planId,
+        mentor: mentorId,
+        billingPeriod,
+        paymentType: "subscription",
+        amount: originalAmount,
+        originalAmount,
+        coinsApplied,
+        coinsDiscountInr,
+        razorpayAmount: 0,
+        status: "completed",
+        coinDeducted: false,
+        paymentDate: new Date(),
+      });
+
+      await deductCoins(payment, "subscription");
+      await handleFirstPurchaseCoinLogic(userId.toString());
+
+      // Create subscription directly
+      const startDate = new Date();
+      const endDate = new Date();
+      if (billingPeriod === "monthly") {
+        endDate.setMonth(endDate.getMonth() + 1);
+      } else {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+
+      const subscription = await Subscription.create({
+        user: userId,
+        mentor: mentorId,
+        plan: planId,
+        billingPeriod,
+        status: "active",
+        startDate,
+        endDate,
+        payment: payment._id,
+      });
+
+      return res.json({
+        success: true,
+        fullyPaidWithCoins: true,
+        message: "Subscription activated using coins",
+        subscription,
+      });
     }
 
-    // Generate short receipt (max 40 chars for Razorpay)
-    // Format: sub_<last6chars>_<timestamp>
     const shortPlanId = planId.toString().slice(-6);
     const timestamp = Date.now().toString().slice(-10);
     const receipt = `sub_${shortPlanId}_${timestamp}`;
 
     const order = await razorpay.orders.create({
-      amount: Math.round(Number(price) * 100),
+      amount: Math.round(finalAmount * 100), // ← discounted amount
       currency: "INR",
       receipt: receipt.length > 40 ? receipt.slice(0, 40) : receipt,
       payment_capture: 1,
     });
 
-    // Create pending payment record
     const payment = await Payment.create({
       user: userId,
       subscriptionPlan: planId,
       mentor: mentorId,
-      billingPeriod: billingPeriod,
+      billingPeriod,
       paymentType: "subscription",
-      amount: price,
+      amount: finalAmount,
+      originalAmount,
+      coinsApplied,
+      coinsDiscountInr,
+      razorpayAmount: Math.round(finalAmount * 100),
       razorpayOrderId: order.id,
       status: "pending",
+      coinDeducted: false,
     });
 
     return res.json({
       success: true,
       order: { ...order, key: process.env.RAZORPAY_KEY_ID },
-      plan: { id: plan._id, name: plan.name, price: price },
+      plan: { id: plan._id, name: plan.name, price },
       paymentId: payment._id,
+      // ← send coin info to frontend
+      coinSummary: {
+        originalAmount,
+        coinsApplied,
+        coinsDiscountInr,
+        finalAmount,
+      },
     });
   } catch (error) {
     console.error("Subscription order creation error:", error);
-    const message =
-      error?.error?.description ||
-      error?.message ||
-      "Failed to create subscription order";
-    return res.status(500).json({ success: false, message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message:
+          error?.error?.description ||
+          error?.message ||
+          "Failed to create subscription order",
+      });
   }
 };
 
@@ -368,20 +614,17 @@ exports.verifySubscriptionPayment = async (req, res) => {
     } = req.body;
     const userId = req.user._id;
 
-    // Verify signature
     const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expected = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign)
       .digest("hex");
 
-    if (expected !== razorpay_signature) {
+    if (expected !== razorpay_signature)
       return res
         .status(400)
         .json({ success: false, message: "Invalid signature" });
-    }
 
-    // Find and update payment
     const payment = await Payment.findOneAndUpdate(
       {
         _id: paymentId,
@@ -405,15 +648,11 @@ exports.verifySubscriptionPayment = async (req, res) => {
       const existing = await Payment.findOne({
         razorpayOrderId: razorpay_order_id,
       });
-
-      if (!existing) {
+      if (!existing)
         return res
           .status(404)
           .json({ success: false, message: "Payment record not found" });
-      }
-
       if (existing.status === "completed") {
-        // Already processed - return success (idempotent)
         const existingSub = await Subscription.findOne({
           payment: existing._id,
         });
@@ -425,11 +664,13 @@ exports.verifySubscriptionPayment = async (req, res) => {
       }
     }
 
-    // Create subscription
-    const plan = await SubscriptionPlan.findById(payment.subscriptionPlan);
+    // ── COIN LOGIC AFTER PAYMENT SUCCESS ──────────────────
+    await deductCoins(payment, "subscription");
+    await handleFirstPurchaseCoinLogic(userId.toString());
+    // ──────────────────────────────────────────────────────
+
     const startDate = new Date();
     const endDate = new Date();
-
     if (payment.billingPeriod === "monthly") {
       endDate.setMonth(endDate.getMonth() + 1);
     } else {
@@ -442,27 +683,29 @@ exports.verifySubscriptionPayment = async (req, res) => {
       plan: payment.subscriptionPlan,
       billingPeriod: payment.billingPeriod,
       status: "active",
-      startDate: startDate,
-      endDate: endDate,
+      startDate,
+      endDate,
       payment: payment._id,
     });
 
     return res.json({
       success: true,
       message: "Subscription activated successfully",
-      subscription: subscription,
+      subscription,
     });
   } catch (error) {
     console.error("Verify subscription payment error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Subscription payment verification failed",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Subscription payment verification failed",
+      });
   }
 };
 
 // -------------------------------------------------------
-// 7️⃣ GET ALL PAYMENTS (ADMIN)
+// 7️⃣ GET ALL PAYMENTS (ADMIN) — unchanged
 // -------------------------------------------------------
 exports.getAllPayments = async (req, res) => {
   try {
@@ -473,10 +716,7 @@ exports.getAllPayments = async (req, res) => {
       .populate("mentor", "name username email")
       .sort({ createdAt: -1 });
 
-    return res.json({
-      success: true,
-      payments: payments,
-    });
+    return res.json({ success: true, payments });
   } catch (error) {
     console.error("Fetch all payments error:", error);
     return res
