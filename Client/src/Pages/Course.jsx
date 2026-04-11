@@ -1,347 +1,347 @@
-import React, { useState, useEffect } from 'react'
-import { FaCircleDot, FaLocationDot } from "react-icons/fa6";
-import { FaClock } from "react-icons/fa";
-import { LuDock } from "react-icons/lu";
-import { FaStar } from "react-icons/fa";
-import Section from '../components/Section'
-import { motion } from 'framer-motion';
-import { useParams, useLocation } from 'react-router-dom';
-import SEO from '../components/SEO';
+import React, { useState, useEffect } from'react'
+import { FaCircleDot, FaLocationDot } from"react-icons/fa6";
+import { FaClock } from"react-icons/fa";
+import { LuDock } from"react-icons/lu";
+import { FaStar } from"react-icons/fa";
+import Section from'../components/Section'
+import { motion } from'framer-motion';
+import { useParams, useLocation } from'react-router-dom';
+import SEO from'../components/SEO';
 
 const fadeUpVariant = {
-  hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0 },
+ hidden: { opacity: 0, y: 60 },
+ visible: { opacity: 1, y: 0 },
 }
 
 const Course = () => {
-  const { collegeId, courseId } = useParams();
-  const location = useLocation();
-  const [college, setCollege] = useState(null);
-  const [course, setCourse] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+ const { collegeId, courseId } = useParams();
+ const location = useLocation();
+ const [college, setCollege] = useState(null);
+ const [course, setCourse] = useState(null);
+ const [loading, setLoading] = useState(true);
+ const [error, setError] = useState(null);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+ useEffect(() => {
+ window.scrollTo(0, 0);
+ }, []);
 
-  useEffect(() => {
-    if (!collegeId || !courseId) {
-      setError('Missing required parameters: collegeId or courseId');
-      setLoading(false);
-      return;
-    }
+ useEffect(() => {
+ if (!collegeId || !courseId) {
+ setError('Missing required parameters: collegeId or courseId');
+ setLoading(false);
+ return;
+ }
 
-    const fetchData = async () => {
-      try {
-        const collegeResponse = await fetch(`/api/colleges/${collegeId}`);
-        if (!collegeResponse.ok) {
-          throw new Error(`Failed to fetch college data (${collegeResponse.status})`);
-        }
-        const collegeData = await collegeResponse.json();
-        setCollege(collegeData);
+ const fetchData = async () => {
+ try {
+ const collegeResponse = await fetch(`/api/colleges/${collegeId}`);
+ if (!collegeResponse.ok) {
+ throw new Error(`Failed to fetch college data (${collegeResponse.status})`);
+ }
+ const collegeData = await collegeResponse.json();
+ setCollege(collegeData);
 
-        const courseResponse = await fetch(`/api/colleges/${collegeId}/courses/${courseId}`);
-        if (!courseResponse.ok) {
-          throw new Error(`Failed to fetch course data (${courseResponse.status})`);
-        }
-        const courseData = await courseResponse.json();
-        setCourse(courseData);
+ const courseResponse = await fetch(`/api/colleges/${collegeId}/courses/${courseId}`);
+ if (!courseResponse.ok) {
+ throw new Error(`Failed to fetch course data (${courseResponse.status})`);
+ }
+ const courseData = await courseResponse.json();
+ setCourse(courseData);
 
-      } catch (err) {
-        console.error('Error details:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+ } catch (err) {
+ console.error('Error details:', err);
+ setError(err.message);
+ } finally {
+ setLoading(false);
+ }
+ };
 
-    fetchData();
-  }, [collegeId, courseId, location]);
+ fetchData();
+ }, [collegeId, courseId, location]);
 
-  // Moved structured data setup before returns!
-  useEffect(() => {
-    if (college && course) {
-      const structuredData = {
-        "@context": "https://schema.org",
-        "@type": "Course",
-        "name": course.title,
-        "description": course.desc || course.introDesc || `Learn ${course.title} at ${college.name}`,
-        "provider": {
-          "@type": "EducationalOrganization",
-          "name": college.name,
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": college.location
-          },
-          "url": college.website
-        },
-        "courseCode": courseId,
-        "educationalLevel": course.title,
-        "timeRequired": `P${course.duration}Y`,
-        "aggregateRating": course.rating ? {
-          "@type": "AggregateRating",
-          "ratingValue": course.rating,
-          "bestRating": "5",
-          "worstRating": "0"
-        } : undefined,
-        "offers": {
-          "@type": "Offer",
-          "price": (course.feeStructure?.feePerSemester * 2 * course.duration) || 0,
-          "priceCurrency": "INR",
-          "availability": "https://schema.org/InStock"
-        }
-      };
+ // Moved structured data setup before returns!
+ useEffect(() => {
+ if (college && course) {
+ const structuredData = {
+"@context":"https://schema.org",
+"@type":"Course",
+"name": course.title,
+"description": course.desc || course.introDesc ||`Learn ${course.title} at ${college.name}`,
+"provider": {
+"@type":"EducationalOrganization",
+"name": college.name,
+"address": {
+"@type":"PostalAddress",
+"addressLocality": college.location
+ },
+"url": college.website
+ },
+"courseCode": courseId,
+"educationalLevel": course.title,
+"timeRequired":`P${course.duration}Y`,
+"aggregateRating": course.rating ? {
+"@type":"AggregateRating",
+"ratingValue": course.rating,
+"bestRating":"5",
+"worstRating":"0"
+ } : undefined,
+"offers": {
+"@type":"Offer",
+"price": (course.feeStructure?.feePerSemester * 2 * course.duration) || 0,
+"priceCurrency":"INR",
+"availability":"https://schema.org/InStock"
+ }
+ };
 
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.text = JSON.stringify(structuredData);
-      script.id = 'course-structured-data';
-      document.head.appendChild(script);
+ const script = document.createElement('script');
+ script.type ='application/ld+json';
+ script.text = JSON.stringify(structuredData);
+ script.id ='course-structured-data';
+ document.head.appendChild(script);
 
-      return () => {
-        const existingScript = document.getElementById('course-structured-data');
-        if (existingScript) {
-          document.head.removeChild(existingScript);
-        }
-      };
-    }
-  }, [college, course, courseId]);
+ return () => {
+ const existingScript = document.getElementById('course-structured-data');
+ if (existingScript) {
+ document.head.removeChild(existingScript);
+ }
+ };
+ }
+ }, [college, course, courseId]);
 
-  // Early returns below, after all hooks.
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-light/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="relative z-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
-        </div>
-      </div>
-    );
-  }
+ // Early returns below, after all hooks.
+ if (loading) {
+ return (
+ <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 flex items-center justify-center relative overflow-hidden">
+ <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-light/5 rounded-full blur-3xl animate-pulse"/>
+ <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse"style={{ animationDelay:'1s'}} />
+ <div className="relative z-10">
+ <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9f3562]"></div>
+ </div>
+ </div>
+ );
+ }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 p-8 relative overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-light/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="relative z-10 max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Error Loading Data</h1>
-          <p className="text-gray-700">{error}</p>
-        </div>
-      </div>
-    );
-  }
+ if (error) {
+ return (
+ <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 p-8 relative overflow-hidden">
+ <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-light/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"style={{ animationDuration:'8s'}} />
+ <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse"style={{ animationDuration:'10s'}} />
+ <div className="relative z-10 max-w-2xl mx-auto text-center">
+ <h1 className="text-2xl font-bold text-red-500 mb-4">Error Loading Data</h1>
+ <p className="text-gray-700">{error}</p>
+ </div>
+ </div>
+ );
+ }
 
-  if (!college || !course) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 p-8 relative overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-light/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="relative z-10 max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-700">No Data Available</h1>
-          <p className="text-gray-600">The requested college or course information could not be found.</p>
-        </div>
-      </div>
-    );
-  }
+ if (!college || !course) {
+ return (
+ <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 p-8 relative overflow-hidden">
+ <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-light/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"style={{ animationDuration:'8s'}} />
+ <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse"style={{ animationDuration:'10s'}} />
+ <div className="relative z-10 max-w-2xl mx-auto text-center">
+ <h1 className="text-2xl font-bold text-gray-700">No Data Available</h1>
+ <p className="text-gray-600">The requested college or course information could not be found.</p>
+ </div>
+ </div>
+ );
+ }
 
-  return (
-    <main className='w-full min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden'>
-      <SEO
-        title={`${course?.title || 'Course'} at ${college?.name || 'College'} - Course Details | Admeasy`}
-        description={course?.desc || course?.introDesc || `Complete information about ${course?.title || 'this course'} at ${college?.name || 'this college'} including eligibility, fees, scholarships, and more.`}
-        keywords={`${course?.title || ''}, ${college?.name || ''}, ${college?.location || ''}, course, ${college?.type || ''} college, admissions, eligibility, fees, scholarships, ${college?.keywords?.join(', ') || ''}`}
-        image={college?.logo || 'https://admeasy.in/LOGO.webp'}
-        url={`https://admeasy.in/colleges/${collegeId}/courses/${courseId}`}
-      />
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-light/8 to-pink-300/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]" />
-      </div>
-      <motion.header
-        variants={fadeUpVariant}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
-        className='p-2 sm:p-3 mt-2 sm:mt-4 mx-auto flex justify-center rounded-lg sm:rounded-2xl flex-col shadow-3d w-4/5 relative z-10'>
-        <div className='w-full h-fit mt-3 sm:mt-0 rounded-lg sm:rounded-2xl overflow-hidden'>
-          <div className="!h-fit !w-4/5 sm:!w-full mx-auto flex flex-row items-center justify-center gap-2 sm:gap-6 p-2 sm:p-6 rounded-xl bg-white/60 backdrop-blur-xs shadow-md">
-            {/* Logo */}
-            <img
-              draggable="false"
-              src={college.logo}
-              alt="College Logo"
-              className="size-14 sm:size-16 md:size-24 lg:size-28 rounded-lg sm:rounded-2xl object-cover"
-            />
+ return (
+ <main className='w-full min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/40 relative overflow-x-hidden'>
+ <SEO
+ title={`${course?.title ||'Course'} at ${college?.name ||'College'} - Course Details | Admeasy`}
+ description={course?.desc || course?.introDesc ||`Complete information about ${course?.title ||'this course'} at ${college?.name ||'this college'} including eligibility, fees, scholarships, and more.`}
+ keywords={`${course?.title ||''}, ${college?.name ||''}, ${college?.location ||''}, course, ${college?.type ||''} college, admissions, eligibility, fees, scholarships, ${college?.keywords?.join(',') ||''}`}
+ image={college?.logo ||'https://admeasy.in/LOGO.webp'}
+ url={`https://admeasy.in/colleges/${collegeId}/courses/${courseId}`}
+ />
+ <div className="fixed inset-0 pointer-events-none overflow-hidden">
+ <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-light/8 to-pink-300/8 rounded-full blur-3xl animate-pulse"style={{ animationDuration:'8s'}} />
+ <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-purple-300/8 to-pink-200/8 rounded-full blur-3xl animate-pulse"style={{ animationDuration:'10s'}} />
+ <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]"/>
+ </div>
+ <motion.header
+ variants={fadeUpVariant}
+ initial="hidden"
+ whileInView="visible"
+ viewport={{ once: true, amount: 0.3 }}
+ transition={{ duration: 0.7, ease:'easeOut'}}
+ className='p-2 sm:p-3 mt-2 sm:mt-4 mx-auto flex justify-center rounded-lg sm:rounded-2xl flex-col shadow-3d w-4/5 relative z-10'>
+ <div className='w-full h-fit mt-3 sm:mt-0 rounded-lg sm:rounded-2xl overflow-hidden'>
+ <div className="!h-fit !w-4/5 sm:!w-full mx-auto flex flex-row items-center justify-center gap-2 sm:gap-6 p-2 sm:p-6 rounded-xl bg-white/60 backdrop-blur-xs shadow-md">
+ {/* Logo */}
+ <img
+ draggable="false"
+ src={college.logo}
+ alt="College Logo"
+ className="size-14 sm:size-16 md:size-24 lg:size-28 rounded-lg sm:rounded-2xl object-cover"
+ />
 
-            {/* Text Content */}
-            <div className="w-fit !text-center max-[400px]:text-left sm:text-left">
-              <h1 className="!w-fit !mx-auto max-[400px]:!text-sm !text-xl md:!text-2xl lg:!text-3xl !font-admeasy-bold sm:!font-admeasy-extrabold text-tprimary !mb-1 sm:!mb-2 md:!mb-3">
-                {course.title}
-              </h1>
-              <h2 className="!w-fit !mx-auto !text-base md:!text-xl lg:!text-2xl text-tsecondary font-admeasy">
-                {college.name}
-              </h2>
-            </div>
-          </div>
-        </div>
+ {/* Text Content */}
+ <div className="w-fit !text-center max-[400px]:text-left sm:text-left">
+ <h1 className="!w-fit !mx-auto max-[400px]:!text-sm !text-xl md:!text-2xl lg:!text-3xl !font-admeasy-bold sm:!font-admeasy-extrabold text-tprimary !mb-1 sm:!mb-2 md:!mb-3">
+ {course.title}
+ </h1>
+ <h2 className="!w-fit !mx-auto !text-base md:!text-xl lg:!text-2xl text-tsecondary font-admeasy">
+ {college.name}
+ </h2>
+ </div>
+ </div>
+ </div>
 
-        {/* Info Cards */}
-        <div className="flex flex-wrap gap-2 sm:gap-4 justify-center sm:justify-around bg-primary mt-2 p-2 sm:p-4 rounded-lg sm:rounded-xl">
-          {/* Location */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
-            <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><FaLocationDot /></span>
-            <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-nowrap'>{college.location}</span>
-          </div>
+ {/* Info Cards */}
+ <div className="flex flex-wrap gap-2 sm:gap-4 justify-center sm:justify-around bg-primary mt-2 p-2 sm:p-4 rounded-lg sm:rounded-xl">
+ {/* Location */}
+ <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
+ <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><FaLocationDot /></span>
+ <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700 whitespace-nowrap'>{college.location}</span>
+ </div>
 
-          {/* Duration */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
-            <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><FaClock /></span>
-            <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700'>{course.duration} Years</span>
-          </div>
+ {/* Duration */}
+ <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
+ <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><FaClock /></span>
+ <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700'>{course.duration} Years</span>
+ </div>
 
-          {/* Type */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
-            <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><LuDock /></span>
-            <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700'>{college.type}</span>
-          </div>
+ {/* Type */}
+ <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
+ <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><LuDock /></span>
+ <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700'>{college.type}</span>
+ </div>
 
-          {/* Rating */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
-            <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><FaStar /></span>
-            <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700'>{typeof course.rating === 'number' ? course.rating.toFixed(1) : "N/A"}</span>
-          </div>
-        </div>
-      </motion.header>
+ {/* Rating */}
+ <div className="flex items-center gap-1 sm:gap-2 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-3d">
+ <span className="text-thead1 text-[10px] sm:text-[12px] md:text-[16px]"><FaStar /></span>
+ <span className='text-[10px] sm:text-[12px] md:text-[16px] text-gray-700'>{typeof course.rating ==='number'? course.rating.toFixed(1) :"N/A"}</span>
+ </div>
+ </div>
+ </motion.header>
 
-      {/* Main Content */}
-      <main className="w-full !mt-10 px-3 sm:px-6 md:px-12 lg:px-28 py-5 sm:py-10 flex flex-col items-center gap-10 sm:gap-20 relative z-10">
-        {/* About Section */}
-        <Section>
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">About {course.title}</h2>
-          <p className="text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
-            {course.desc || "Description not available"}
-          </p>
-        </Section>
+ {/* Main Content */}
+ <main className="w-full !mt-10 px-3 sm:px-6 md:px-12 lg:px-28 py-5 sm:py-10 flex flex-col items-center gap-10 sm:gap-20 relative z-10">
+ {/* About Section */}
+ <Section>
+ <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">About {course.title}</h2>
+ <p className="text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
+ {course.desc ||"Description not available"}
+ </p>
+ </Section>
 
-        {/* Eligibility */}
-        <Section>
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Eligibility</h2>
-          <ul className="space-y-3 text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
-            {course.eligibility.map((eligibility, index) => (
-              <li key={index} className="flex gap-3 items-sart md:items-center text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
-                <FaCircleDot className='text-thead2 min-w-3 min-h-3 md:min-w-4 md:min-h-4 mt-1 md:mt-0' />
-                <h6 className='m-0 p-0'>{eligibility}</h6>
-              </li>
-            ))}
-          </ul>
-        </Section>
+ {/* Eligibility */}
+ <Section>
+ <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Eligibility</h2>
+ <ul className="space-y-3 text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
+ {course.eligibility.map((eligibility, index) => (
+ <li key={index} className="flex gap-3 items-sart md:items-center text-sm sm:text-base md:text-xl text-gray-700 px-2 sm:px-4">
+ <FaCircleDot className='text-thead2 min-w-3 min-h-3 md:min-w-4 md:min-h-4 mt-1 md:mt-0'/>
+ <h6 className='m-0 p-0'>{eligibility}</h6>
+ </li>
+ ))}
+ </ul>
+ </Section>
 
-        {/* Fee Structure */}
-        <Section>
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Fee Structure</h2>
-          <div className="w-full overflow-x-auto rounded-lg sm:rounded-2xl shadow-3d bg-white">
-            <table className="w-full text-xs sm:text-sm text-center border-separate border-spacing-0">
-              <thead className="bg-gray-300 text-gray-700 font-semibold">
-                <tr>
-                  <th scope="col" className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Fee Type</th>
-                  <th scope="col" className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Per Year</th>
-                  <th scope="col" className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Total</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-800 bg-white">
-                <tr className="hover:bg-gray-50 transition">
-                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">Tuition Fee</td>
-                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2)?.toLocaleString()}</td>
-                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2 * course.duration)?.toLocaleString()}</td>
-                </tr>
-                {course.feeStructure?.additionals && course.feeStructure.additionals.length > 0 ? (
-                  course.feeStructure.additionals.map((feeObj, index) => {
-                    const title = feeObj.title || Object.values(feeObj)[0];
-                    const amount = feeObj.amount || Object.values(feeObj)[1];
+ {/* Fee Structure */}
+ <Section>
+ <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Fee Structure</h2>
+ <div className="w-full overflow-x-auto rounded-lg sm:rounded-2xl shadow-3d bg-white">
+ <table className="w-full text-xs sm:text-sm text-center border-separate border-spacing-0">
+ <thead className="bg-gray-300 text-gray-700 font-semibold">
+ <tr>
+ <th scope="col"className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Fee Type</th>
+ <th scope="col"className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Per Year</th>
+ <th scope="col"className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Total</th>
+ </tr>
+ </thead>
+ <tbody className="text-gray-800 bg-white">
+ <tr className="hover:bg-gray-50 transition">
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">Tuition Fee</td>
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2)?.toLocaleString()}</td>
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">₹{(course.feeStructure?.feePerSemester * 2 * course.duration)?.toLocaleString()}</td>
+ </tr>
+ {course.feeStructure?.additionals && course.feeStructure.additionals.length > 0 ? (
+ course.feeStructure.additionals.map((feeObj, index) => {
+ const title = feeObj.title || Object.values(feeObj)[0];
+ const amount = feeObj.amount || Object.values(feeObj)[1];
 
-                    // Convert value to number and handle invalid cases
-                    const feeValue = parseFloat(amount);
-                    if (!feeValue || isNaN(feeValue)) return null;
+ // Convert value to number and handle invalid cases
+ const feeValue = parseFloat(amount);
+ if (!feeValue || isNaN(feeValue)) return null;
 
-                    const isOneTime = title.toLowerCase().includes('one time');
-                    return (
-                      <tr key={index} className="hover:bg-gray-50 transition">
-                        <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">{title}</td>
-                        <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
-                          {isOneTime ? '-' : `₹${feeValue.toLocaleString()}`}
-                        </td>
-                        <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
-                          ₹{isOneTime ? feeValue.toLocaleString() : (feeValue * course.duration).toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : ('')}
-              </tbody>
-              <tfoot className='bg-gray-300 text-gray-700 font-semibold'>
-                <tr>
-                  <td colSpan={2} className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">Total</td>
-                  <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
-                    ₹{(() => {
-                      const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
-                      const additionalsTotal = course.feeStructure?.additionals
-                        ? course.feeStructure.additionals.reduce((sum, feeObj) => {
-                          const amount = feeObj.amount || Object.values(feeObj)[1];
-                          const feeValue = parseFloat(amount);
-                          if (!feeValue || isNaN(feeValue)) return sum;
+ const isOneTime = title.toLowerCase().includes('one time');
+ return (
+ <tr key={index} className="hover:bg-gray-50 transition">
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">{title}</td>
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+ {isOneTime ?'-':`₹${feeValue.toLocaleString()}`}
+ </td>
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+ ₹{isOneTime ? feeValue.toLocaleString() : (feeValue * course.duration).toLocaleString()}
+ </td>
+ </tr>
+ );
+ })
+ ) : ('')}
+ </tbody>
+ <tfoot className='bg-gray-300 text-gray-700 font-semibold'>
+ <tr>
+ <td colSpan={2} className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">Total</td>
+ <td className="px-2 sm:px-6 py-2 sm:py-4 border-b border-gray-200 text-center">
+ ₹{(() => {
+ const tuitionTotal = (course.feeStructure?.feePerSemester * 2 * course.duration) || 0;
+ const additionalsTotal = course.feeStructure?.additionals
+ ? course.feeStructure.additionals.reduce((sum, feeObj) => {
+ const amount = feeObj.amount || Object.values(feeObj)[1];
+ const feeValue = parseFloat(amount);
+ if (!feeValue || isNaN(feeValue)) return sum;
 
-                          const title = feeObj.title || Object.values(feeObj)[0];
-                          const isOneTime = title.toLowerCase().includes('one time');
-                          return sum + (isOneTime ? feeValue : feeValue * course.duration);
-                        }, 0)
-                        : 0;
-                      return (tuitionTotal + additionalsTotal).toLocaleString();
-                    })()}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </Section>
+ const title = feeObj.title || Object.values(feeObj)[0];
+ const isOneTime = title.toLowerCase().includes('one time');
+ return sum + (isOneTime ? feeValue : feeValue * course.duration);
+ }, 0)
+ : 0;
+ return (tuitionTotal + additionalsTotal).toLocaleString();
+ })()}
+ </td>
+ </tr>
+ </tfoot>
+ </table>
+ </div>
+ </Section>
 
-        {/* Scholarships */}
-        <Section>
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Scholarships</h2>
-          <div className="w-full overflow-x-auto rounded-lg sm:rounded-2xl shadow-3d bg-white">
-            <table className="w-full min-w-[300px] text-xs sm:text-sm md:text-base text-center border-separate border-spacing-0">
-              <thead className="bg-gray-300 text-gray-700 font-semibold">
-                <tr>
-                  <th scope="col" className="px1 text-[12px] sm:px-6 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Scholarship</th>
-                  <th scope="col" className="px-1 text-[12px] sm:px-6 py-1 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Eligibility</th>
-                  <th scope="col" className="px-1 text-[12px] sm:px-6 py-1 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Benefit</th>
-                  <th scope="col" className="px-1 text-[12px] sm:px-6 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">How to Apply</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white text-gray-800">
-                {course.scholarships?.map((scholarship, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition">
-                    <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.name}</td>
-                    <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.eligibilityCriteria}</td>
-                    <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.benefit}</td>
-                    <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.howToApply}</td>
-                  </tr>
-                )) || (
-                    <tr>
-                      <td colSpan="4" className="px-2 sm:px-6 py-4 text-center text-gray-500">No scholarship information available</td>
-                    </tr>
-                  )}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-      </main>
-    </main>
-  )
+ {/* Scholarships */}
+ <Section>
+ <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Scholarships</h2>
+ <div className="w-full overflow-x-auto rounded-lg sm:rounded-2xl shadow-3d bg-white">
+ <table className="w-full min-w-[300px] text-xs sm:text-sm md:text-base text-center border-separate border-spacing-0">
+ <thead className="bg-gray-300 text-gray-700 font-semibold">
+ <tr>
+ <th scope="col"className="px1 text-[12px] sm:px-6 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Scholarship</th>
+ <th scope="col"className="px-1 text-[12px] sm:px-6 py-1 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Eligibility</th>
+ <th scope="col"className="px-1 text-[12px] sm:px-6 py-1 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">Benefit</th>
+ <th scope="col"className="px-1 text-[12px] sm:px-6 sm:py-4 border-b border-gray-200 whitespace-nowrap text-center">How to Apply</th>
+ </tr>
+ </thead>
+ <tbody className="bg-white text-gray-800">
+ {course.scholarships?.map((scholarship, index) => (
+ <tr key={index} className="hover:bg-gray-50 transition">
+ <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.name}</td>
+ <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.eligibilityCriteria}</td>
+ <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.benefit}</td>
+ <td className="px-2 sm:px-6 py-1 text-[12px] sm:text-[14px] md:text-[16px] sm:py-4 border-b border-gray-200 text-center">{scholarship.howToApply}</td>
+ </tr>
+ )) || (
+ <tr>
+ <td colSpan="4"className="px-2 sm:px-6 py-4 text-center text-gray-500">No scholarship information available</td>
+ </tr>
+ )}
+ </tbody>
+ </table>
+ </div>
+ </Section>
+ </main>
+ </main>
+ )
 }
 
 export default Course
