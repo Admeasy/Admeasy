@@ -24,7 +24,7 @@ const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const NotificationRoutes = require('./routes/notificationRoutes');
-const Db = require('./db');
+const { Admeasy } = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
@@ -58,11 +58,20 @@ if (missing.length) {
   process.exit(1);
 }
 
-// Database connections are automatically established when db.js is required
-// The connections are created using mongoose.createConnection() which connects automatically
-ensureMasterTagsSeeded().catch((err) => {
-  console.error('Master tag seed failed:', err.message);
-});
+// Seed master tags only after Admeasy DB connection is ready.
+const seedMasterTagsSafely = async () => {
+  try {
+    await ensureMasterTagsSeeded();
+  } catch (err) {
+    console.error('Master tag seed failed:', err.message);
+  }
+};
+
+if (Admeasy.readyState === 1) {
+  seedMasterTagsSafely();
+} else {
+  Admeasy.once('connected', seedMasterTagsSafely);
+}
 
 // CORS configuration
 app.use(cors({

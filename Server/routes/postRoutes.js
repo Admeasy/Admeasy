@@ -2409,6 +2409,9 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
 
     await post.save();
 
+    // Grab the newly created comment once and reuse it below.
+    const newComment = post.comments[post.comments.length - 1];
+
     // Mark as engaged when user comments (only for users, not mentors)
     if (req.user) {
       feedController.markPostAsEngaged(req.user._id, post._id, 'comment', post).catch(err => {
@@ -2427,7 +2430,6 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     }
 
     // Manually populate user data for the new comment (cross-connection population)
-    const newComment = post.comments[post.comments.length - 1];
     const user = req.user
       ? await populateUser(newComment.userId)
       : await populateMentor(newComment.userId);

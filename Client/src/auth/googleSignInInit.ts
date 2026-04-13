@@ -11,7 +11,6 @@ export const ensureGoogleSignInInitialized = async (): Promise<void> => {
   try {
     const platform = Capacitor.getPlatform();
     console.log('[GoogleSignIn] initialize() starting, platform=', platform);
-    console.log('[GoogleSignIn] clientId:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
     if (platform === 'web') {
       console.log('[GoogleSignIn] initialize() skipped on web');
