@@ -1,17 +1,17 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { enableNotifications } from "../Firebase/enableNotifications";
+import { createContext, useContext, useState, useEffect } from"react";
+import { useLocation, useNavigate } from"react-router-dom";
+import { enableNotifications } from"../Firebase/enableNotifications";
 
 const UserContext = createContext();
 
-const USER_STORAGE_KEY = "admeasy:user";
-const MENTOR_STORAGE_KEY = "admeasy:mentor";
-const AUTH_ROLE_STORAGE_KEY = "admeasy:authRole";
-const SAVED_ACCOUNTS_KEY = "accounts";
-const ACTIVE_ACCOUNT_ID_KEY = "activeAccountId";
+const USER_STORAGE_KEY ='admeasy:user';
+const MENTOR_STORAGE_KEY ='admeasy:mentor';
+const AUTH_ROLE_STORAGE_KEY ='admeasy:authRole';
+const SAVED_ACCOUNTS_KEY ='accounts';
+const ACTIVE_ACCOUNT_ID_KEY ='activeAccountId';
 
 export function useUser() {
-  return useContext(UserContext);
+ return useContext(UserContext);
 }
 
 function getInitialUser() {
@@ -56,8 +56,8 @@ export function UserProvider({ children }) {
     }
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
+ const location = useLocation();
+ const navigate = useNavigate();
 
   const addSavedAccount = (userData, switchToken) => {
     setSavedAccounts((prevAccounts) => {
@@ -88,41 +88,41 @@ export function UserProvider({ children }) {
     });
   };
 
-  /** Log out only the current account. Invalidates current session, removes it from saved list.
-   *  If other saved accounts exist, switches to the first one. Otherwise redirects to login. */
-  const logoutCurrentAccount = async () => {
-    const currentId = user?._id;
-    try {
-      await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
-    } catch (err) {
-      console.error("Logout API call failed:", err);
-    }
-    removeSavedAccount(currentId);
-    const remaining = savedAccounts.filter(acc => acc.id !== currentId);
-    if (remaining.length > 0) {
-      try {
-        const res = await fetch("/api/users/switch-account", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ switchToken: remaining[0].token }),
-          credentials: "include",
-        });
-        if (res.ok) {
-          await fetchUser();
-          navigate("/");
-          return;
-        }
-        removeSavedAccount(remaining[0].id);
-      } catch (err) {
-        console.error("Switch account after logout failed:", err);
-      }
-    }
-    setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
-    localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
-    navigate('/login');
-  };
+ /** Log out only the current account. Invalidates current session, removes it from saved list.
+ * If other saved accounts exist, switches to the first one. Otherwise redirects to login. */
+ const logoutCurrentAccount = async () => {
+ const currentId = user?._id;
+ try {
+ await fetch('/api/users/logout', { method:'POST', credentials:'include'});
+ } catch (err) {
+ console.error("Logout API call failed:", err);
+ }
+ removeSavedAccount(currentId);
+ const remaining = savedAccounts.filter(acc => acc.id !== currentId);
+ if (remaining.length > 0) {
+ try {
+ const res = await fetch("/api/users/switch-account", {
+ method:"POST",
+ headers: {"Content-Type":"application/json"},
+ body: JSON.stringify({ switchToken: remaining[0].token }),
+ credentials:"include",
+ });
+ if (res.ok) {
+ await fetchUser();
+ navigate("/");
+ return;
+ }
+ removeSavedAccount(remaining[0].id);
+ } catch (err) {
+ console.error("Switch account after logout failed:", err);
+ }
+ }
+ setUser(null);
+ localStorage.removeItem(USER_STORAGE_KEY);
+ localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+ localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+ navigate('/login');
+ };
 
   const logoutAllAccounts = async () => {
     setUser(null);
