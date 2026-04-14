@@ -287,35 +287,27 @@ const NotesPage = () => {
       })
     : "Recently";
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      <SEO
-        title={
-          note
-            ? `${note.title} - Study Notes | Admeasy`
-            : "Study Notes | Admeasy"
-        }
-        description={
-          note?.description || "Access premium study notes for your courses"
-        }
-        keywords={`${note?.title || ""}, ${
-          note?.standard || ""
-        }, study notes, ${note?.course || ""}, ${note?.university || ""}`}
-        url={`https://admeasy.in/notes/${id}`}
-      />
-
-      {/* Back Button */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <button
-            onClick={() => navigate("/notes")}
-            className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Notes</span>
-          </button>
-        </div>
-      </div>
+ return (
+ <div className="min-h-screen bg-gray-50 pb-10">
+ <SEO
+ title={note ?`${note.title} - Study Notes | Admeasy`:'Study Notes | Admeasy'}
+ description={note?.description ||'Access premium study notes for your courses'}
+ keywords={`${note?.title ||''}, ${note?.standard ||''}, study notes, ${note?.course ||''}, ${note?.university ||''}`}
+ url={`https://admeasy.in/notes/${id}`}
+ />
+ 
+ {/* Back Button */}
+ <div className="bg-white border-b border-gray-200">
+ <div className="max-w-7xl mx-auto px-4 py-4">
+ <button
+ onClick={() => navigate(-1)}
+ className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors"
+ >
+ <ArrowLeft className="w-5 h-5"/>
+ <span className="font-medium">Back</span>
+ </button>
+ </div>
+ </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {loading ? (

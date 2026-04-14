@@ -1,20 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Search,
-  // Plus,
-  FileText,
-  Filter,
-  TrendingUp,
-  BookOpen,
-  Sparkles,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-// import { useMentor } from "../context/MentorContext";
-// import { useUser } from "../context/UserContext";
-import CourseSearchDropdown from "../components/CourseSearchDropdown";
-import FilterSection from "../components/FilterSection";
-import NotesCard from "../components/NotesCard";
-import SEO from "../components/SEO";
+ Search,
+ Plus,
+ FileText,
+ Filter,
+ TrendingUp,
+ BookOpen,
+ Sparkles,
+ ArrowLeft,
+} from"lucide-react";
+import { useNavigate } from"react-router-dom";
+import { useMentor } from"../context/MentorContext";
+import { useUser } from"../context/UserContext";
+import CourseSearchDropdown from"../components/CourseSearchDropdown";
+import FilterSection from"../components/FilterSection";
+import NotesCard from"../components/NotesCard";
+import SEO from"../components/SEO";
 
 const Notes = () => {
   const navigate = useNavigate();
@@ -168,22 +169,31 @@ const Notes = () => {
         url="https://admeasy.in/notes"
       />
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        {/* Modern Header */}
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#9f3562] to-[#b8447a] rounded-2xl flex items-center justify-center shadow-lg">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
-              Notes Library
-            </h1>
-          </div>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Access premium study notes from verified mentors and excel in your
-            exams
-          </p>
-        </div>
+ <div className="max-w-7xl mx-auto relative z-10 pt-4">
+ <div className="mb-6">
+ <button
+ onClick={() => navigate(-1)}
+ className="flex items-center gap-2 text-gray-600 hover:text-gray-900 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl shadow-sm border border-gray-100 hover:shadow transition-all w-fit font-medium text-sm"
+ >
+ <ArrowLeft className="w-4 h-4" />
+ Back
+ </button>
+ </div>
+ {/* Modern Header */}
+ <div className="text-center mb-10">
+ <div className="flex items-center justify-center gap-3 mb-4">
+ <div className="w-12 h-12 bg-gradient-to-br from-[#9f3562] to-[#b8447a] rounded-2xl flex items-center justify-center shadow-lg">
+ <BookOpen className="w-6 h-6 text-white"/>
+ </div>
+ <h1 className="text-4xl sm:text-5xl font-bold text-gray-900">
+ Notes Library
+ </h1>
+ </div>
+ <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+ Access premium study notes from verified mentors and excel in your
+ exams
+ </p>
+ </div>
 
         {/* Search & Add Note Section */}
         <div className="mb-8">

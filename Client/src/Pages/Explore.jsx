@@ -62,8 +62,8 @@ const Explore = () => {
   const tagParam = searchParams.get("tag") || ""; // Read tag from URL
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("all");
-  const [loading, setLoading] = useState(false);
+ const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "all");
+ const [loading, setLoading] = useState(false);
 
   // Initialize input based on query or tag
   const [searchInput, setSearchInput] = useState(tagParam ? `#${tagParam}` : query);
@@ -77,40 +77,52 @@ const Explore = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
 
-  // Sync searchInput with URL changes (Back button support)
-  useEffect(() => {
-    if (tagParam) {
-      setSearchInput(`#${tagParam}`);
-    } else {
-      setSearchInput(query);
-    }
-  }, [query, tagParam]);
+ // Sync searchInput and activeTab with URL changes (Back button support)
+ useEffect(() => {
+   if (tagParam) {
+     setSearchInput(`#${tagParam}`);
+   } else {
+     setSearchInput(query);
+   }
 
-  // Debounced search: Handles both ?q= and ?tag=
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const newParams = new URLSearchParams(searchParams);
-      const trimmedInput = searchInput.trim();
+   const tabParam = searchParams.get("tab");
+   if (tabParam && tabParam !== activeTab) {
+     setActiveTab(tabParam);
+   }
+ }, [query, tagParam, searchParams]);
 
-      if (trimmedInput) {
-        if (trimmedInput.startsWith('#')) {
-          // If input is #tag, set tag param and clear q
-          newParams.set("tag", trimmedInput.replace('#', ''));
-          newParams.delete("q");
-        } else {
-          // Normal query
-          newParams.set("q", trimmedInput);
-          newParams.delete("tag");
-        }
-      } else {
-        newParams.delete("q");
-        newParams.delete("tag");
-      }
-      setSearchParams(newParams, { replace: true });
-    }, 500);
+ // Debounced search: Handles q, tag, and tab sync
+ useEffect(() => {
+   const timer = setTimeout(() => {
+     const newParams = new URLSearchParams(searchParams);
+     const trimmedInput = searchInput.trim();
 
-    return () => clearTimeout(timer);
-  }, [searchInput, setSearchParams]);
+     // Handle Tab
+     if (activeTab && activeTab !== "all") {
+       newParams.set("tab", activeTab);
+     } else {
+       newParams.delete("tab");
+     }
+
+     // Handle Query/Tag
+     if (trimmedInput) {
+       if (trimmedInput.startsWith('#')) {
+         newParams.set("tag", trimmedInput.replace('#', ''));
+         newParams.delete("q");
+       } else {
+         newParams.set("q", trimmedInput);
+         newParams.delete("tag");
+       }
+     } else {
+       newParams.delete("q");
+       newParams.delete("tag");
+     }
+     
+     setSearchParams(newParams, { replace: true });
+   }, 500);
+
+   return () => clearTimeout(timer);
+ }, [searchInput, activeTab, setSearchParams]);
 
   useEffect(() => {
     if (activeTab !== "spaces" && !(activeTab === "all" && query)) {
@@ -257,31 +269,36 @@ const Explore = () => {
           </div>
         </div>
 
-        {/* ================= TABS ================= */}
-        <div className="mb-8 overflow-x-auto pb-2">
-          <div className="flex items-center gap-3 min-w-max">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  onClick={() => {
-                    if (tab.value === "notes") {
-                      navigate("/notes");
-                    } else {
-                      setActiveTab(tab.value);
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap cursor-pointer border ${isActive ? "bg-[#9f3562] text-white border-transparent shadow-md shadow-pink-200" : "bg-white text-gray-600 hover:bg-gray-200 border-gray-200"}`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-gray-500"}`} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+ {/* ================= TABS ================= */}
+ <div className="mb-8 overflow-x-auto pb-2">
+ <div className="flex items-center gap-3 min-w-max">
+ {TABS.map((tab) => {
+ const Icon = tab.icon;
+ const isActive = activeTab === tab.value;
+ return (
+ <button
+ key={tab.value}
+ onClick={() => {
+ if (tab.value === "notes") {
+ // Reset tab in URL state before navigating away
+ const newParams = new URLSearchParams(searchParams);
+ newParams.delete("tab");
+ setSearchParams(newParams, { replace: true });
+ setActiveTab("all");
+ navigate("/notes");
+ } else {
+ setActiveTab(tab.value);
+ }
+ }}
+ className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap cursor-pointer border ${isActive ?"bg-[#9f3562] text-white border-transparent shadow-md shadow-pink-200":"bg-white text-gray-600 hover:bg-gray-200 border-gray-200"}`}
+ >
+ <Icon className={`w-4 h-4 ${isActive ?"text-white":"text-gray-500"}`} />
+ {tab.label}
+ </button>
+ );
+ })}
+ </div>
+ </div>
 
         {/* ================= RESULTS SECTION ================= */}
         {loading ? (
@@ -305,91 +322,91 @@ const Explore = () => {
         ) : (
           <div className="space-y-8">
 
-            {/* ================= MENTORS SECTION (First - with IIT badge) ================= */}
-            {filteredResults.mentors && filteredResults.mentors.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
-                  <span onClick={() => navigate(`/mentors`)} className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold hover:bg-[#9f3562]/20 transition-colors">View More</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.mentors.map((mentorItem) => {
-                    const mentorName = renderText(mentorItem.name) || "Anonymous";
-                    const mentorIsIIT = isIITMentor(mentorItem);
-                    return (
-                      <div key={mentorItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
-                        <div className="p-6">
-                          <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl">
-                            <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
-                              <Award className="w-4 h-4 text-amber-600" />
-                              {mentorIsIIT ? "This mentor cleared IIT, Chat Now!" : "Connect with this mentor"}
-                            </p>
-                          </div>
-                          <div className="flex items-start gap-4 mb-4">
-                            <img src={mentorItem.image || mentorItem.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`} alt={mentorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20" />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-gray-900 text-lg mb-1">{mentorName}</h3>
-                              {mentorItem.college && <p className="text-sm text-gray-500 truncate">{renderText(mentorItem.college?.name || mentorItem.college)}</p>}
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm">
-                              <Eye className="w-4 h-4" /> View Profile
-                            </button>
-                            <button onClick={() => navigate(mentorItem.username ? `/mentors/${mentorItem.username}` : `/mentors`)} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-sm">
-                              <MessageCircle className="w-4 h-4" /> Chat
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+ {/* ================= MENTORS SECTION (First - with IIT badge) ================= */}
+ {filteredResults.mentors && filteredResults.mentors.length > 0 && (
+ <section>
+ <div className="flex items-center gap-3 mb-4">
+ <Users className="w-6 h-6 text-[#9f3562]"/>
+ <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
+ <span onClick={() => navigate(`/mentors`)} className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold hover:bg-[#9f3562]/20 transition-colors">View More</span>
+ </div>
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+ {filteredResults.mentors.map((mentorItem) => {
+ const mentorName = renderText(mentorItem.name) ||"Anonymous";
+ const mentorIsIIT = isIITMentor(mentorItem);
+ return (
+ <div key={mentorItem._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+ <div className="p-6">
+ <div className="mb-3 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-xl">
+ <p className="text-xs font-semibold text-amber-800 flex items-center gap-2">
+ <Award className="w-4 h-4 text-amber-600"/>
+ {mentorIsIIT ?"This mentor cleared IIT, Chat Now!":"Connect with this mentor"}
+ </p>
+ </div>
+ <div className="flex items-start gap-4 mb-4">
+ <img src={mentorItem.image || mentorItem.imageUrl ||`https://api.dicebear.com/7.x/avataaars/svg?seed=${mentorName}`} alt={mentorName} className="w-16 h-16 rounded-full object-cover ring-2 ring-[#9f3562]/20"/>
+ <div className="flex-1 min-w-0">
+ <h3 className="font-bold text-gray-900 text-lg mb-1">{mentorName}</h3>
+ {mentorItem.college && <p className="text-sm text-gray-500 truncate">{renderText(mentorItem.college?.name || mentorItem.college)}</p>}
+ </div>
+ </div>
+ <div className="flex gap-2">
+ <button onClick={() => navigate(mentorItem.username ?`/mentors/${mentorItem.username}`:`/mentors`)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm">
+ <Eye className="w-4 h-4"/> View Profile
+ </button>
+ <button onClick={() => navigate(mentorItem.username ?`/mentors/${mentorItem.username}`:`/mentors`)} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-sm">
+ <MessageCircle className="w-4 h-4"/> Chat
+ </button>
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ </section>
+ )}
 
-            {/* ================= POSTS SECTION ================= */}
-            {filteredResults.posts && filteredResults.posts.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <MessageSquare className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Posts</h2>
-                  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
-                    {filteredResults.posts.length}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.posts.map((post) => (
-                    <div key={post._id} className="relative z-10 w-full h-full max-w-[450px] mx-auto">
-                      <PostCard post={post} />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+ {/* ================= POSTS SECTION ================= */}
+ {filteredResults.posts && filteredResults.posts.length > 0 && (
+ <section>
+ <div className="flex items-center gap-3 mb-4">
+ <MessageSquare className="w-6 h-6 text-[#9f3562]"/>
+ <h2 className="text-2xl font-bold text-gray-900">Posts</h2>
+ <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">
+ {filteredResults.posts.length}
+ </span>
+ </div>
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+ {filteredResults.posts.map((post) => (
+              <div key={post._id} className="relative z-10 w-full flex h-full">
+ <PostCard post={post} compact={true} />
+ </div>
+ ))}
+ </div>
+ </section>
+ )}
 
-            {/* ================= NOTES SECTION ================= */}
-            {filteredResults.notes && filteredResults.notes.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <FileText className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
-                  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">{filteredResults.notes.length}</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.notes.map((note) => (
-                    <div key={note._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
-                      <div className="p-6 pb-4">
-                        <div className="flex items-start gap-4 mb-4">
-                          <div className="w-14 h-14 bg-gradient-to-br from-[#9f3562]/10 to-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <FileText className="w-7 h-7 text-[#9f3562]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2 group-hover:text-[#9f3562] transition-colors">{renderText(note.title) || "Untitled Note"}</h3>
-                          </div>
-                        </div>
-                        {note.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{renderText(note.description)}</p>}
+ {/* ================= NOTES SECTION ================= */}
+ {filteredResults.notes && filteredResults.notes.length > 0 && (
+ <section>
+ <div className="flex items-center gap-3 mb-4">
+ <FileText className="w-6 h-6 text-[#9f3562]"/>
+ <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
+ <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">{filteredResults.notes.length}</span>
+ </div>
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+ {filteredResults.notes.map((note) => (
+ <div key={note._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+ <div className="p-6 pb-4">
+ <div className="flex items-start gap-4 mb-4">
+ <div className="w-14 h-14 bg-gradient-to-br from-[#9f3562]/10 to-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+ <FileText className="w-7 h-7 text-[#9f3562]"/>
+ </div>
+ <div className="flex-1 min-w-0">
+ <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-2 group-hover:text-[#9f3562] transition-colors">{renderText(note.title) ||"Untitled Note"}</h3>
+ </div>
+ </div>
+ {note.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{renderText(note.description)}</p>}
 
                         {note.hashtags && note.hashtags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-3">
@@ -485,32 +502,34 @@ const Explore = () => {
                 </section>
               )}
 
-            {/* ================= COLLEGES SECTION ================= */}
-            {filteredResults.colleges && filteredResults.colleges.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-4">
-                  <GraduationCap className="w-6 h-6 text-[#9f3562]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Colleges</h2>
-                  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">{filteredResults.colleges.length}</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredResults.colleges.map((college) => {
-                    const collegeName = renderText(college.name) || "Unknown College";
-                    return (
-                      <div key={college._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all">
-                        <div className="h-40 bg-gradient-to-br from-[#9f3562]/10 via-purple-50 to-blue-50 flex items-center justify-center p-6">
-                          {college.logo ? <img src={college.logo} alt={collegeName} className="max-h-full max-w-full object-contain" /> : <GraduationCap className="w-16 h-16 text-[#9f3562]/30" />}
-                        </div>
-                        <div className="p-6">
-                          <h3 className="font-bold text-gray-900 text-lg mb-3">{collegeName}</h3>
-                          <button onClick={() => navigate(`/colleges/${college._id}`)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"><Eye className="w-4 h-4" /> View Details</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+ {/* ================= COLLEGES SECTION ================= */}
+ {filteredResults.colleges && filteredResults.colleges.length > 0 && (
+ <section>
+ <div className="flex items-center gap-3 mb-4">
+ <GraduationCap className="w-6 h-6 text-[#9f3562]"/>
+ <h2 className="text-2xl font-bold text-gray-900">Colleges</h2>
+ <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">{filteredResults.colleges.length}</span>
+ </div>
+ <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 items-stretch">
+ {filteredResults.colleges.map((college) => {
+ const collegeName = renderText(college.name) ||"Unknown College";
+ return (
+ <div key={college._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all flex flex-col h-full">
+ <div className="h-28 bg-gradient-to-br from-[#9f3562]/5 via-purple-50/50 to-blue-50/50 flex items-center justify-center p-3">
+ {college.logo ? <img src={college.logo} alt={collegeName} className="max-h-full max-w-full object-contain"/> : <GraduationCap className="w-12 h-12 text-[#9f3562]/30"/>}
+ </div>
+ <div className="p-3 flex flex-col flex-1">
+ <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-1">{collegeName}</h3>
+ <button onClick={() => navigate(`/colleges/${college._id}`)} className="mt-auto w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-xs">
+ <Eye className="w-3.5 h-3.5"/> View
+ </button>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ </section>
+ )}
 
             {/* ================= BLOGS SECTION ================= */}
             {filteredResults.blogs && filteredResults.blogs.length > 0 && (

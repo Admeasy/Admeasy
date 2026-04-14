@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from'react';
-import { useParams } from'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from'framer-motion';
 import { FaCalendarAlt } from"react-icons/fa";
 import { FaBriefcase, FaBuilding, FaLocationDot, FaStar } from"react-icons/fa6";
+import { ArrowLeft } from 'lucide-react';
 import Tabs from'../components/Tabs';
 import SEO from'../components/SEO';
 
@@ -33,6 +34,7 @@ const CollegeDetailed = () => {
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState(null);
  const { id } = useParams();
+ const navigate = useNavigate();
  const [tabs,SetTabs] = useState(0)
  
  useEffect(() => {
@@ -182,7 +184,16 @@ const CollegeDetailed = () => {
  whileInView="visible"
  viewport={{ once: true, amount: 0.3 }}
  transition={{ duration: 0.9, ease:'easeOut'}}
- className="relative z-10">
+ className="relative z-10 pt-4">
+ <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+ <button
+ onClick={() => navigate(-1)}
+ className="flex items-center gap-2 text-gray-600 hover:text-gray-900 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl shadow-sm border border-gray-100 hover:shadow transition-all w-fit font-medium text-sm"
+ >
+ <ArrowLeft className="w-4 h-4" />
+ Back
+ </button>
+ </div>
  <div className="w-full h-fit relative">
  <div
  className="w-fit h-fit mx-auto py-10 sm:py-20 bg-cover bg-center transition-transform duration-300"
