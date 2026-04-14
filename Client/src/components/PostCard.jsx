@@ -27,7 +27,7 @@ import { processMentions } from"../utils/processMentions";
 import { truncateHtml } from"../utils/textUtils";
 import SharePostModal from"./SharePostModal";
 
-const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
+const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
  const navigate = useNavigate();
  const location = useLocation();
  const { user } = useUser();
@@ -56,8 +56,8 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
  );
 
  const truncatedContent = useMemo(
- () => truncateHtml(processedContent, 30),
- [processedContent],
+ () => truncateHtml(processedContent, compact ? 18 : 30),
+ [processedContent, compact],
  );
 
  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
@@ -537,15 +537,15 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
  };
 
  return (
- <motion.div
- initial={{ opacity: 0, y: 20 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ duration: 0.4, ease:"easeOut"}}
- onClick={() => {
- navigate(`/posts/${post._id}`);
- }}
- className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative"
- >
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      onClick={() => {
+        navigate(`/posts/${post._id}`);
+      }}
+      className={`bg-white/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md hover:shadow-gray-200/30 transition-all duration-500 cursor-pointer overflow-hidden border border-gray-100 hover:border-[#9f3562]/10 group relative w-full ${compact ? 'flex flex-col h-full' : ''}`}
+    >
  <style>{`
  .post-content h1, .post-content h2, .post-content h3 {
  font-weight: 700;
@@ -588,9 +588,9 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
  <div className="absolute inset-0 bg-gradient-to-br from-[#9f3562]/0 via-pink-500/0 to-purple-500/0 group-hover:from-[#9f3562]/2 group-hover:via-pink-500/2 group-hover:to-purple-500/2 transition-all duration-500 pointer-events-none"/>
 
  {/* Content */}
- <div className="relative z-10">
+    <div className={`relative z-10 flex-1 ${compact ? 'flex flex-col' : ''}`}>
  {/* Post Header */}
- <div className="flex items-center gap-2.5 sm:gap-3 p-3.5 sm:p-6 pb-2 sm:pb-6">
+      <div className={`flex items-center gap-2.5 sm:gap-3 ${compact ? 'p-3.5 sm:p-4 pb-1 sm:pb-2' : 'p-3.5 sm:p-6 pb-2 sm:pb-6'}`}>
  <motion.div
  whileHover={{ scale: 1.05, rotate: 3 }}
  className="relative"
@@ -708,7 +708,7 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
  </div>
 
  {/* Post Content */}
- <div className="px-3.5 sm:px-5 pb-2 sm:pb-3">
+      <div className={`${compact ? 'px-3.5 sm:px-4 pb-1 sm:pb-2 flex-1' : 'px-3.5 sm:px-5 pb-2 sm:pb-3'}`}>
  {/* Headline (new posts only — null for old posts) */}
  {postState.headline && (
  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 leading-snug">
@@ -788,13 +788,13 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
 
  {/* Post Image */}
  {post.image && (
- <div className="relative w-full group/image overflow-hidden bg-gray-50/50">
+ <div className={`relative w-full group/image overflow-hidden bg-gray-50/50 ${compact ? 'aspect-video' : ''}`}>
  <motion.img
  whileHover={{ scale: 1.02 }}
  transition={{ duration: 0.4 }}
  src={post.image}
  alt="Post"
- className="w-full h-auto max-h-[250px] sm:max-h-[500px] object-cover sm:object-contain"
+              className={`w-full ${compact ? 'h-full' : 'h-auto'} object-cover ${compact ? '' : 'max-h-[250px] sm:max-h-[500px]'}`}
  loading="lazy"
  onDoubleClick={handleImageDoubleClick}
  />

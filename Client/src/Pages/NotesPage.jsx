@@ -250,11 +250,11 @@ const NotesPage = () => {
  <div className="bg-white border-b border-gray-200">
  <div className="max-w-7xl mx-auto px-4 py-4">
  <button
- onClick={() => navigate("/notes")}
- className="flex items-center gap-2 text-gray-700 hover:text-[#6C63FF] transition-colors"
+ onClick={() => navigate(-1)}
+ className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors"
  >
  <ArrowLeft className="w-5 h-5"/>
- <span className="font-medium">Back to Notes</span>
+ <span className="font-medium">Back</span>
  </button>
  </div>
  </div>
