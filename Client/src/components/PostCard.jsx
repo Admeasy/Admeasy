@@ -21,8 +21,7 @@ import { useMentor } from "../context/MentorContext";
 import EditPostModal from "./EditPostModal";
 import ConfirmModal from "./ConfirmModal";
 import { processMentions } from "../utils/processMentions";
-import PollCard from "./PollCard";
-import McqCard from "./McqCard";
+import { hasVisiblePostText } from "../utils/postContent";
 import { truncateHtml } from "../utils/textUtils";
 import SharePostModal from "./SharePostModal";
 
@@ -45,6 +44,8 @@ const PostCard = ({ post, onPostUpdate }) => {
     () => processMentions(postState.content || post.content || ""),
     [postState.content, post.content],
   );
+
+  const showTextBody = hasVisiblePostText(processedContent);
 
   const truncatedContent = useMemo(
     () => truncateHtml(processedContent, 30),
@@ -662,124 +663,70 @@ const PostCard = ({ post, onPostUpdate }) => {
           )}
         </div>
 
-        {/* Post Content */}
-        <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
-          {postState.type === "poll" ? (
-            <PollCard
-              post={postState}
-              onVote={(updatedPost) => {
-                setPostState(updatedPost);
-                if (onPostUpdate) onPostUpdate(updatedPost);
-              }}
-            />
-          ) : postState.type === "mcq" ? (
-            <McqCard
-              post={postState}
-              onAnswer={(updatedPost) => {
-                setPostState(updatedPost);
-                if (onPostUpdate) onPostUpdate(updatedPost);
-              }}
-            />
-          ) : (
-            <>
-              <div
-                className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
-                dangerouslySetInnerHTML={{
-                  __html: isExpanded
-                    ? processedContent
-                    : truncatedContent.hasMore
+        {/* Post Content — hide block when HTML has no visible text (legacy empty rich-text bodies) */}
+        {showTextBody && (
+          <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
+            <div
+              className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
+              dangerouslySetInnerHTML={{
+                __html: isExpanded
+                  ? processedContent
+                  : truncatedContent.hasMore
                     ? truncatedContent.html
                     : processedContent,
-                }}
-                onClick={(e) => {
-                  const mentionLink = e.target.closest("a.mention-link");
-                  if (mentionLink) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const username = mentionLink.getAttribute("data-username");
-                    if (username) navigate(`/${username}`);
-                    return;
-                  }
-                  const link = e.target.closest("a");
-                  if (link && link.href) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    let cleanUrl = link.href;
-                    cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                    cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                    cleanUrl = cleanUrl.replace(/[<>]/g, "");
-                    cleanUrl = cleanUrl.trim();
-                    window.open(cleanUrl, "_blank", "noopener,noreferrer");
-                  }
-                }}
-              />
-              {truncatedContent.hasMore && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                  }}
-                  className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
-                >
-                  {isExpanded ? "Show less" : "Read more"}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-        {/* <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
-          <div
-            className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
-            dangerouslySetInnerHTML={{
-              __html: isExpanded
-                ? processedContent
-                : truncatedContent.hasMore
-                  ? truncatedContent.html
-                  : processedContent,
-            }}
-            onClick={(e) => {
-              // Handle mention link clicks
-              const mentionLink = e.target.closest("a.mention-link");
-              if (mentionLink) {
-                e.preventDefault();
-                e.stopPropagation();
-                const username = mentionLink.getAttribute("data-username");
-                if (username) {
-                  navigate(`/${username}`);
-                }
-                return;
-              }
-
-              // Intercept clicks on other links within post content
-              const link = e.target.closest("a");
-              if (link && link.href) {
-                e.preventDefault();
-                e.stopPropagation();
-                let cleanUrl = link.href;
-                // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-                cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                // Remove any HTML tags (decoded)
-                cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                // Remove any remaining angle brackets
-                cleanUrl = cleanUrl.replace(/[<>]/g, "");
-                // Trim whitespace
-                cleanUrl = cleanUrl.trim();
-                window.open(cleanUrl, "_blank", "noopener,noreferrer");
-              }
-            }}
-          />
-          {truncatedContent.hasMore && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
               }}
-              className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
-            >
-              {isExpanded ? "Show less" : "Read more"}
-            </button>
+              onClick={(e) => {
+                // Handle mention link clicks
+                const mentionLink = e.target.closest("a.mention-link");
+                if (mentionLink) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const username = mentionLink.getAttribute("data-username");
+                  if (username) {
+                    navigate(`/${username}`);
+                  }
+                  return;
+                }
+
+                // Intercept clicks on other links within post content
+                const link = e.target.closest("a");
+                if (link && link.href) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  let cleanUrl = link.href;
+                  // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+                  cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
+                  // Remove any HTML tags (decoded)
+                  cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
+                  // Remove any remaining angle brackets
+                  cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                  // Trim whitespace
+                  cleanUrl = cleanUrl.trim();
+                  window.open(cleanUrl, "_blank", "noopener,noreferrer");
+                }
+              }}
+            />
+            {truncatedContent.hasMore && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
+              >
+                {isExpanded ? "Show less" : "Read more"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {!showTextBody &&
+          !post.image &&
+          !(post.externalLink && post.externalLink.url) && (
+            <div className="px-3.5 sm:px-6 pb-2 text-xs text-gray-400">
+              This post has no text.
+            </div>
           )}
-        </div> */}
 
         {/* NEW: Clickable Hashtags Display */}
         {postState.hashtags && postState.hashtags.length > 0 && (

@@ -1,5 +1,5 @@
-const router = require('express').Router();
-const multer = require('multer');
+const router = require("express").Router();
+const multer = require("multer");
 const {
   getNotes,
   getNoteById,
@@ -9,10 +9,13 @@ const {
   getAllNotes,
   updateNote,
   deleteNote,
-  proxyPdf
-} = require('../controllers/noteController');
-const { authenticateRequired } = require('../middleware/combinedAuth');
-const { verifyAdminToken } = require('../middleware/adminAuth');
+  proxyPdf,
+} = require("../controllers/noteController");
+const {
+  authenticateRequired,
+  authenticateOptional,
+} = require("../middleware/combinedAuth");
+const { verifyAdminToken } = require("../middleware/adminAuth");
 
 // Configure multer for file uploads
 const upload = multer({
@@ -22,50 +25,56 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Only accept PDFs
-    if (file.mimetype === 'application/pdf') {
+    if (file.mimetype === "application/pdf") {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF files are allowed'), false);
+      cb(new Error("Only PDF files are allowed"), false);
     }
-  }
+  },
 });
 
 // Multer error handling middleware
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'File size must be less than 10MB' 
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        success: false,
+        message: "File size must be less than 10MB",
       });
     }
-    return res.status(400).json({ 
-      success: false, 
-      message: err.message || 'File upload error' 
+    return res.status(400).json({
+      success: false,
+      message: err.message || "File upload error",
     });
   }
   if (err) {
-    return res.status(400).json({ 
-      success: false, 
-      message: err.message || 'File upload error' 
+    return res.status(400).json({
+      success: false,
+      message: err.message || "File upload error",
     });
   }
   next();
 };
 
-// Public routes
-router.get('/', getNotes);
-router.get('/:id/pdf', proxyPdf); // PDF proxy route with proper headers (must be before /:id)
-router.get('/:id', getNoteById);
-router.post('/:id/like', likeNote);
-router.post('/:id/view', viewNote);
+// Public metadata routes — optional auth so paid access flags + fileUrl stripping work
+router.get("/", authenticateOptional, getNotes);
+router.get("/:id/pdf", authenticateOptional, proxyPdf); // PDF proxy — purchase enforced in controller
+router.get("/:id", authenticateOptional, getNoteById);
+router.post("/:id/like", authenticateOptional, likeNote);
+router.post("/:id/view", authenticateOptional, viewNote);
 
 // Mentor routes
-router.post('/', authenticateRequired, upload.single('noteFile'), handleMulterError, uploadNote);
+router.post(
+  "/",
+  authenticateRequired,
+  upload.single("noteFile"),
+  handleMulterError,
+  uploadNote,
+);
 
 // Admin routes
-router.get('/admin/all', verifyAdminToken, getAllNotes);
-router.put('/admin/:id', verifyAdminToken, updateNote);
-router.delete('/admin/:id', verifyAdminToken, deleteNote);
+router.get("/admin/all", verifyAdminToken, getAllNotes);
+router.put("/admin/:id", verifyAdminToken, updateNote);
+router.delete("/admin/:id", verifyAdminToken, deleteNote);
 
 module.exports = router;

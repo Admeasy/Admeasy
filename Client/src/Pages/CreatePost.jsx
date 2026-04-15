@@ -20,11 +20,7 @@ import "quill-table-ui/dist/index.css";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import { processMentions } from "../utils/processMentions";
-import CreateNoteTab from "../components/CreateNoteTab";
-import CreatePollTab from "../components/CreatePollTab";
-import CreateMcqTab from "../components/CreateMcqTab";
-import PollCard from "../components/PollCard";
-import McqCard from "../components/McqCard";
+import { hasVisiblePostText } from "../utils/postContent";
 
 // Registration stays the same...
 Quill.register("modules/tableUI", TableUI, true);
@@ -350,8 +346,8 @@ const MentorPost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!content.trim() || content === "<p><br></p>") {
-      toast.error("Post content is required");
+    if (!hasVisiblePostText(content) && !image) {
+      toast.error("Add some text or an image to your post");
       return;
     }
 

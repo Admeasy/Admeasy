@@ -442,7 +442,9 @@ export default function Profile() {
         setNotesLoading(true);
         try {
           // Backend URL me uploader query pass kar rahe hain
-          const res = await fetch(`/api/notes?uploader=${profile._id}`);
+          const res = await fetch(`/api/notes?uploader=${profile._id}`, {
+            credentials: "include",
+          });
           const data = await res.json();
           if (data.success) {
             setNotes(data.data);

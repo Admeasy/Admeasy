@@ -1,4 +1,6 @@
 const express = require("express");
+const generateUniqueReferralCode = require("../utils/generateReferralCode.js");
+const Referral = require("../models/referralSchema.js");
 const {
   resetPassword,
   forgotPassword,
@@ -103,7 +105,7 @@ router.get("/", verifyAdminToken, async (req, res) => {
 // SIGN UP
 router.post("/signup", async (req, res) => {
   try {
-    const { email, password, username, captchaToken } = req.body;
+    const { email, password, username, captchaToken, referralCode } = req.body;
 
     //verify captch token with googe
     if (!captchaToken) {
@@ -177,18 +179,47 @@ router.post("/signup", async (req, res) => {
         .json({ success: false, message: "Username is already taken" });
     }
 
+    // REFERRAL CODE VALIDATION
+    let referrer = null;
+    if (referralCode) {
+      referrer = await User.findOne({
+        referralCode: referralCode.toUpperCase().trim(),
+      });
+      if (!referrer) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid referral code. Please check and try again.",
+        });
+      }
+    }
+
     // Hash password & create user (isVerified defaults to false)
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    //generate referral code
+    const newUserReferralCode = await generateUniqueReferralCode();
+
     const user = new User({
       email,
       password: hashedPassword,
       username: normalizedUsername,
       isVerified: false, // Explicitly set to false
+      referralCode: newUserReferralCode,
+      referredBy: referrer ? referrer._id : null,
     });
 
     // Save user first
     await user.save();
 
+    // ── CREATE PENDING REFERRAL RECORD ─
+    if (referrer) {
+      await Referral.create({
+        referrer: referrer._id,
+        referred: user._id,
+        status: "pending",
+        // coins will be awarded later when first purchase is made
+      });
+    }
     // Send verification email immediately after signup
     try {
       const crypto = require("crypto");
@@ -301,6 +332,7 @@ router.post("/signup", async (req, res) => {
       message:
         "User registered successfully. Please check your email to verify your account.",
       requiresVerification: true,
+      referralCode: user.referralCode,
     });
   } catch (err) {
     console.error("Signup error:", err);
@@ -633,12 +665,14 @@ router.get("/auth/google", (req, res, next) => {
         "Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
     });
   }
+  const { referralCode } = req.query; // get referral code from query params
   // Store the original URL or any state if needed
   passport.authenticate("google", {
     scope: ["profile", "email"],
     accessType: "offline",
     prompt: "consent",
     session: false, // Disable sessions, use JWT instead
+    state: referralCode || "", //carried through the entire 0auth redirect process
   })(req, res, next);
 });
 

@@ -1,22 +1,42 @@
-const mongoose = require('mongoose');
-const Note = require('../models/noteSchema');
-const { attachAuthorsToNotes, attachAuthorToNote } = require('../utils/noteAuthor');
-const cloudinary = require('../config/cloudinary'); // or wherever your cloudinary config is
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
+const mongoose = require("mongoose");
+const Note = require("../models/noteSchema");
+const {
+  attachAuthorsToNotes,
+  attachAuthorToNote,
+} = require("../utils/noteAuthor");
+const {
+  batchPurchasedNoteIds,
+  requiresPurchaseForNote,
+  computeNoteAccess,
+  computeNoteAccessSync,
+  sanitizeNoteForClient,
+} = require("../utils/noteAccess");
+const cloudinary = require("../config/cloudinary"); // or wherever your cloudinary config is
+const fs = require("fs").promises;
+const path = require("path");
+const os = require("os");
+const https = require("https");
+const http = require("http");
 
-const buildFilter = ({ search, university, programme, course, hashtag, uploader }) => { // Added hashtag
-  const filter = { status: 'published' };
+const buildFilter = ({
+  search,
+  university,
+  programme,
+  course,
+  hashtag,
+  uploader,
+}) => {
+  // Added hashtag
+  const filter = { status: "published" };
 
   if (search) {
-    const regex = new RegExp(search.trim(), 'i');
+    const regex = new RegExp(search.trim(), "i");
     filter.$or = [
       { title: regex },
       { description: regex },
       { uploaderName: regex },
       { tags: regex },
-      { hashtags: regex } // NEW
+      { hashtags: regex }, // NEW
     ];
   }
 
@@ -25,13 +45,13 @@ const buildFilter = ({ search, university, programme, course, hashtag, uploader 
     filter.hashtags = { $in: [hashtag] };
   }
 
-  if (university && university !== 'all') {
+  if (university && university !== "all") {
     filter.university = university.toLowerCase();
   }
-  if (programme && programme !== 'all') {
+  if (programme && programme !== "all") {
     filter.programme = programme.toLowerCase();
   }
-  if (course && course !== 'all') {
+  if (course && course !== "all") {
     filter.course = course.toLowerCase();
   }
   if (uploader) {
@@ -44,7 +64,10 @@ const buildFilter = ({ search, university, programme, course, hashtag, uploader 
 // Helper function to write buffer to temporary file
 const bufferToTempFile = async (buffer, originalFilename) => {
   const tempDir = os.tmpdir();
-  const tempPath = path.join(tempDir, `upload-${Date.now()}-${originalFilename}`);
+  const tempPath = path.join(
+    tempDir,
+    `upload-${Date.now()}-${originalFilename}`,
+  );
   await fs.writeFile(tempPath, buffer);
   return tempPath;
 };
@@ -52,61 +75,100 @@ const bufferToTempFile = async (buffer, originalFilename) => {
 exports.getNotes = async (req, res) => {
   try {
     const filter = buildFilter(req.query);
-    const notes = await Note.find(filter).sort({ isFeatured: -1, likes: -1, createdAt: -1 });
+    const notes = await Note.find(filter).sort({
+      isFeatured: -1,
+      likes: -1,
+      createdAt: -1,
+    });
     const data = await attachAuthorsToNotes(notes);
-    res.json({ success: true, data });
+
+    const paidIds = data
+      .filter((n) => requiresPurchaseForNote(n))
+      .map((n) => n._id);
+    let purchaseSet = new Set();
+    if (req.user && paidIds.length) {
+      purchaseSet = await batchPurchasedNoteIds(
+        req.user._id || req.user.id,
+        paidIds,
+      );
+    }
+
+    const sanitized = data.map((note) => {
+      const access = computeNoteAccessSync(note, req, purchaseSet);
+      return sanitizeNoteForClient(note, access);
+    });
+
+    res.json({ success: true, data: sanitized });
   } catch (error) {
-    console.error('Error fetching notes:', error);
-    res.status(500).json({ success: false, message: 'Unable to fetch notes right now.' });
+    console.error("Error fetching notes:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Unable to fetch notes right now." });
   }
 };
 
 exports.getNoteById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid note id." });
     }
 
     const note = await Note.findById(req.params.id);
 
-    if (!note || note.status !== 'published') {
-      return res.status(404).json({ success: false, message: 'Note not found.' });
+    if (!note || note.status !== "published") {
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found." });
     }
 
     const data = await attachAuthorToNote(note);
-    res.json({ success: true, data });
+    const access = await computeNoteAccess(data, req, null);
+    const out = sanitizeNoteForClient(data, access);
+    res.json({ success: true, data: out });
   } catch (error) {
-    console.error('Error fetching note:', error);
-    res.status(500).json({ success: false, message: 'Unable to fetch note right now.' });
+    console.error("Error fetching note:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Unable to fetch note right now." });
   }
 };
 
 const updateCounter = async (req, res, field) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid note id." });
     }
 
     const note = await Note.findOneAndUpdate(
-      { _id: req.params.id, status: 'published' },
+      { _id: req.params.id, status: "published" },
       { $inc: { [field]: 1 } },
-      { new: true }
+      { new: true },
     );
 
     if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found." });
     }
 
     const data = await attachAuthorToNote(note);
-    res.json({ success: true, data });
+    const access = await computeNoteAccess(data, req, null);
+    const out = sanitizeNoteForClient(data, access);
+    res.json({ success: true, data: out });
   } catch (error) {
     console.error(`Error updating note ${field}:`, error);
-    res.status(500).json({ success: false, message: `Unable to update ${field}.` });
+    res
+      .status(500)
+      .json({ success: false, message: `Unable to update ${field}.` });
   }
 };
 
-exports.likeNote = (req, res) => updateCounter(req, res, 'likes');
-exports.viewNote = (req, res) => updateCounter(req, res, 'views');
+exports.likeNote = (req, res) => updateCounter(req, res, "likes");
+exports.viewNote = (req, res) => updateCounter(req, res, "views");
 
 // Upload note with Cloudinary compression
 exports.uploadNote = async (req, res) => {
@@ -115,34 +177,44 @@ exports.uploadNote = async (req, res) => {
   try {
     // Check for either a Mentor or a User
     const uploader = req.mentor || req.user;
-    const uploaderType = req.mentor ? 'Mentor' : 'User';
+    const uploaderType = req.mentor ? "Mentor" : "User";
 
     if (!uploader || !uploader._id) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required. Please log in.'
+        message: "Authentication required. Please log in.",
       });
     }
 
-    const { title, description, standard, pages, isFree, price, university, programme, course, tags, hashtags, schoolNotes } = req.body;
-
-    // Validate required fields
-    const isSchoolNote = schoolNotes === 'true' || schoolNotes === true;
+    const {
+      title,
+      description,
+      standard,
+      pages,
+      isFree,
+      price,
+      university,
+      programme,
+      course,
+      tags,
+      hashtags,
+    } = req.body; // Validate required fields
     const missingFields = [];
-    if (!title || !title.trim()) missingFields.push('title');
-    if (!description || !description.trim()) missingFields.push('description');
-    if (!standard || !standard.trim()) missingFields.push('standard');
-    if (!course || !course.trim()) missingFields.push('course');
+    if (!title || !title.trim()) missingFields.push("title");
+    if (!description || !description.trim()) missingFields.push("description");
+    if (!standard || !standard.trim()) missingFields.push("standard");
+    if (!course || !course.trim()) missingFields.push("course");
 
-    if (!isSchoolNote) {
-      if (!university || !university.trim()) missingFields.push('university');
-      if (!programme || !programme.trim()) missingFields.push('programme');
+    // ONLY require university and programme if it's a mentor
+    if (uploaderType === "Mentor") {
+      if (!university || !university.trim()) missingFields.push("university");
+      if (!programme || !programme.trim()) missingFields.push("programme");
     }
 
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Missing required fields: ${missingFields.join(', ')}`
+        message: `Missing required fields: ${missingFields.join(", ")}`,
       });
     }
 
@@ -150,7 +222,7 @@ exports.uploadNote = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded. Please select a PDF file.'
+        message: "No file uploaded. Please select a PDF file.",
       });
     }
 
@@ -158,7 +230,7 @@ exports.uploadNote = async (req, res) => {
     if (!req.file.buffer || req.file.buffer.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'File is empty or corrupted. Please try uploading again.'
+        message: "File is empty or corrupted. Please try uploading again.",
       });
     }
 
@@ -166,49 +238,56 @@ exports.uploadNote = async (req, res) => {
     if (req.file.size > 10 * 1024 * 1024) {
       return res.status(400).json({
         success: false,
-        message: 'File size must be less than 10MB'
+        message: "File size must be less than 10MB",
       });
     }
 
     // Validate file type
-    if (req.file.mimetype !== 'application/pdf') {
+    if (req.file.mimetype !== "application/pdf") {
       return res.status(400).json({
         success: false,
-        message: 'Only PDF files are allowed'
+        message: "Only PDF files are allowed",
       });
     }
 
-    console.log('Uploading note:', {
+    console.log("Uploading note:", {
       title: title.trim(),
       uploaderId: uploader._id,
-      uploaderName: uploader.name || 'Unknown',
+      uploaderName: uploader.name || "Unknown",
       uploaderType: uploaderType,
       fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
-      fileName: req.file.originalname
+      fileName: req.file.originalname,
     });
 
     // Write buffer to temporary file for Cloudinary upload
     try {
-      tempFilePath = await bufferToTempFile(req.file.buffer, req.file.originalname);
-      console.log('Temporary file created:', tempFilePath);
+      tempFilePath = await bufferToTempFile(
+        req.file.buffer,
+        req.file.originalname,
+      );
+      console.log("Temporary file created:", tempFilePath);
     } catch (fileError) {
-      console.error('Error creating temporary file:', fileError);
+      console.error("Error creating temporary file:", fileError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to process file. Please try again.'
+        message: "Failed to process file. Please try again.",
       });
     }
 
     // Validate Cloudinary configuration
-    if (!process.env.CLOUD_NAME || !process.env.CLOUD_KEY || !process.env.CLOUD_SECRET) {
-      console.error('Cloudinary configuration missing');
+    if (
+      !process.env.CLOUD_NAME ||
+      !process.env.CLOUD_KEY ||
+      !process.env.CLOUD_SECRET
+    ) {
+      console.error("Cloudinary configuration missing");
       // Clean up temp file
       if (tempFilePath) {
-        await fs.unlink(tempFilePath).catch(() => { });
+        await fs.unlink(tempFilePath).catch(() => {});
       }
       return res.status(500).json({
         success: false,
-        message: 'Server configuration error. Please contact support.'
+        message: "Server configuration error. Please contact support.",
       });
     }
 
@@ -219,19 +298,25 @@ exports.uploadNote = async (req, res) => {
         resource_type: "auto",
         folder: "notes",
         access_mode: "public",
-        public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, '_')}`
+        public_id: `${Date.now()}-${path.parse(req.file.originalname).name.replace(/[^a-zA-Z0-9]/g, "_")}`,
       });
-      console.log('Cloudinary upload successful:', cloudinaryResult.secure_url);
-      console.log('Cloudinary file size:', (cloudinaryResult.bytes / 1024 / 1024).toFixed(2), 'MB');
+      console.log("Cloudinary upload successful:", cloudinaryResult.secure_url);
+      console.log(
+        "Cloudinary file size:",
+        (cloudinaryResult.bytes / 1024 / 1024).toFixed(2),
+        "MB",
+      );
     } catch (cloudinaryError) {
-      console.error('Cloudinary upload error:', cloudinaryError);
+      console.error("Cloudinary upload error:", cloudinaryError);
       // Clean up temp file
       if (tempFilePath) {
-        await fs.unlink(tempFilePath).catch(() => { });
+        await fs.unlink(tempFilePath).catch(() => {});
       }
       return res.status(500).json({
         success: false,
-        message: cloudinaryError.message || 'Failed to upload file to storage. Please try again.'
+        message:
+          cloudinaryError.message ||
+          "Failed to upload file to storage. Please try again.",
       });
     }
 
@@ -240,7 +325,7 @@ exports.uploadNote = async (req, res) => {
       await fs.unlink(tempFilePath);
       tempFilePath = null;
     } catch (unlinkError) {
-      console.error('Error deleting temp file:', unlinkError);
+      console.error("Error deleting temp file:", unlinkError);
       // Continue even if cleanup fails
     }
 
@@ -248,7 +333,8 @@ exports.uploadNote = async (req, res) => {
     if (!cloudinaryResult || !cloudinaryResult.secure_url) {
       return res.status(500).json({
         success: false,
-        message: 'File upload completed but failed to get file URL. Please try again.'
+        message:
+          "File upload completed but failed to get file URL. Please try again.",
       });
     }
 
@@ -260,51 +346,55 @@ exports.uploadNote = async (req, res) => {
         description: description.trim(),
         standard: standard.trim(),
         pages: pages && pages.trim() ? parseInt(pages) : undefined,
-        isFree: isFree === 'true' || isFree === true || isFree === 'true',
+        isFree: isFree === "true" || isFree === true || isFree === "true",
         price: price && price.trim() ? parseFloat(price) : undefined,
-        schoolNotes: isSchoolNote,
-        university: isSchoolNote ? undefined : (university ? university.trim().toLowerCase() : undefined),
-        programme: isSchoolNote ? undefined : (programme ? programme.trim().toLowerCase() : undefined),
+        university: university ? university.trim().toLowerCase() : "general",
+        programme: programme ? programme.trim().toLowerCase() : "general",
         course: course.trim().toLowerCase(),
         tags: tags && tags.trim() ? tags.trim() : undefined,
         hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse the incoming stringified array
         fileUrl: cloudinaryResult.secure_url,
         fileSize: cloudinaryResult.bytes,
         cloudinaryPublicId: cloudinaryResult.public_id,
-        uploader: uploader._id,              // CHANGED
-        uploaderModel: uploaderType,         // NEW
-        uploaderName: uploader.name || 'Unknown', // CHANGED
-        status: 'pending'
+        uploader: uploader._id, // CHANGED
+        uploaderModel: uploaderType, // NEW
+        uploaderName: uploader.name || "Unknown", // CHANGED
+        status: "pending",
       });
 
       await note.save();
-      console.log('Note saved successfully:', note._id);
+      console.log("Note saved successfully:", note._id);
     } catch (dbError) {
-      console.error('Database error saving note:', dbError);
+      console.error("Database error saving note:", dbError);
       // Try to delete from Cloudinary if database save fails
       if (cloudinaryResult && cloudinaryResult.public_id) {
         try {
-          await cloudinary.uploader.destroy(cloudinaryResult.public_id, { resource_type: 'raw' });
+          await cloudinary.uploader.destroy(cloudinaryResult.public_id, {
+            resource_type: "raw",
+          });
         } catch (deleteError) {
-          console.error('Error deleting from Cloudinary after DB failure:', deleteError);
+          console.error(
+            "Error deleting from Cloudinary after DB failure:",
+            deleteError,
+          );
         }
       }
       return res.status(500).json({
         success: false,
-        message: dbError.message || 'Failed to save note. Please try again.'
+        message: dbError.message || "Failed to save note. Please try again.",
       });
     }
 
     res.status(201).json({
       success: true,
-      message: 'Note uploaded successfully and is pending review',
+      message: "Note uploaded successfully and is pending review",
       data: note,
       uploadInfo: {
         originalSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
         cloudinarySize: `${(cloudinaryResult.bytes / 1024 / 1024).toFixed(2)} MB`,
         savings: `${((1 - cloudinaryResult.bytes / req.file.size) * 100).toFixed(2)}%`,
-        url: cloudinaryResult.secure_url
-      }
+        url: cloudinaryResult.secure_url,
+      },
     });
   } catch (error) {
     // Clean up temporary file on error
@@ -312,25 +402,32 @@ exports.uploadNote = async (req, res) => {
       try {
         await fs.unlink(tempFilePath);
       } catch (unlinkError) {
-        console.error('Error deleting temp file in catch block:', unlinkError);
+        console.error("Error deleting temp file in catch block:", unlinkError);
       }
     }
 
-    console.error('Unexpected error uploading note:', {
+    console.error("Unexpected error uploading note:", {
       error: error.message,
       stack: error.stack,
-      uploaderId: req.mentor ? req.mentor._id : (req.user ? req.user._id : 'not authenticated')
+      mentor: req.mentor ? req.mentor._id : "not authenticated",
     });
 
     // Provide more specific error messages
-    let errorMessage = 'Failed to upload note. Please try again.';
-    if (error.name === 'ValidationError') {
-      errorMessage = 'Invalid data provided. Please check all fields.';
-    } else if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-      errorMessage = 'Database error. Please try again in a moment.';
+    let errorMessage = "Failed to upload note. Please try again.";
+    if (error.name === "ValidationError") {
+      errorMessage = "Invalid data provided. Please check all fields.";
+    } else if (
+      error.name === "MongoError" ||
+      error.name === "MongoServerError"
+    ) {
+      errorMessage = "Database error. Please try again in a moment.";
     } else if (error.message) {
-      if (error.message.includes('Cannot read properties') || error.message.includes('undefined')) {
-        errorMessage = 'An internal system error occurred during upload. Please try again.';
+      if (
+        error.message.includes("Cannot read properties") ||
+        error.message.includes("undefined")
+      ) {
+        errorMessage =
+          "An internal system error occurred during upload. Please try again.";
       } else {
         errorMessage = error.message;
       }
@@ -338,7 +435,7 @@ exports.uploadNote = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: errorMessage
+      message: errorMessage,
     });
   }
 };
@@ -350,7 +447,7 @@ exports.getAllNotes = async (req, res) => {
     const filter = {};
 
     if (search) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(search.trim(), "i");
       filter.$or = [
         { title: regex },
         { description: regex },
@@ -359,12 +456,13 @@ exports.getAllNotes = async (req, res) => {
       ];
     }
 
-    if (status && status !== 'all') {
+    if (status && status !== "all") {
       filter.status = status;
     }
 
-    // Step 1: Query notes using .lean() directly
-    const notes = await Note.find(filter).sort({ createdAt: -1 }).lean();
+    const notes = await Note.find(filter)
+      .populate("uploader", "email")
+      .sort({ createdAt: -1 });
 
     // Step 2: Manually populate the uploader email across DB connections
     const UserModel = require('../models/userSchema');
@@ -404,12 +502,8 @@ exports.getAllNotes = async (req, res) => {
 
     return res.status(200).json({ success: true, count: notes.length, data: notes });
   } catch (error) {
-    console.error('Error fetching all notes:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch notes',
-      error: error.message
-    });
+    console.error("Error fetching all notes:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch notes" });
   }
 };
 
@@ -420,29 +514,34 @@ exports.updateNote = async (req, res) => {
     const { status, rejectionReason, isFeatured } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid note id" });
     }
 
     const updateData = {};
     if (status) updateData.status = status;
-    if (rejectionReason !== undefined) updateData.rejectionReason = rejectionReason;
+    if (rejectionReason !== undefined)
+      updateData.rejectionReason = rejectionReason;
     if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
 
     // If publishing, set publishedAt
-    if (status === 'published') {
+    if (status === "published") {
       updateData.publishedAt = new Date();
     }
 
     const note = await Note.findByIdAndUpdate(id, updateData, { new: true });
 
     if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found" });
     }
 
     res.json({ success: true, data: note });
   } catch (error) {
-    console.error('Error updating note:', error);
-    res.status(500).json({ success: false, message: 'Failed to update note' });
+    console.error("Error updating note:", error);
+    res.status(500).json({ success: false, message: "Failed to update note" });
   }
 };
 
@@ -452,22 +551,28 @@ exports.deleteNote = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid note id" });
     }
 
     const note = await Note.findById(id);
 
     if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found" });
     }
 
     // Delete from Cloudinary if cloudinaryPublicId exists
     if (note.cloudinaryPublicId) {
       try {
-        await cloudinary.uploader.destroy(note.cloudinaryPublicId, { resource_type: 'raw' });
-        console.log('File deleted from Cloudinary:', note.cloudinaryPublicId);
+        await cloudinary.uploader.destroy(note.cloudinaryPublicId, {
+          resource_type: "raw",
+        });
+        console.log("File deleted from Cloudinary:", note.cloudinaryPublicId);
       } catch (cloudinaryError) {
-        console.error('Error deleting from Cloudinary:', cloudinaryError);
+        console.error("Error deleting from Cloudinary:", cloudinaryError);
         // Continue with database deletion even if Cloudinary deletion fails
       }
     }
@@ -475,10 +580,10 @@ exports.deleteNote = async (req, res) => {
     // Delete from database
     await Note.findByIdAndDelete(id);
 
-    res.json({ success: true, message: 'Note deleted successfully' });
+    res.json({ success: true, message: "Note deleted successfully" });
   } catch (error) {
-    console.error('Error deleting note:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete note' });
+    console.error("Error deleting note:", error);
+    res.status(500).json({ success: false, message: "Failed to delete note" });
   }
 };
 
@@ -491,33 +596,79 @@ exports.proxyPdf = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid note id.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid note id." });
     }
 
     const note = await Note.findById(id);
 
-    if (!note || note.status !== 'published') {
-      return res.status(404).json({ success: false, message: 'Note not found.' });
+    if (!note || note.status !== "published") {
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found." });
+    }
+
+    const access = await computeNoteAccess(
+      note.toObject ? note.toObject() : note,
+      req,
+      null,
+    );
+
+    if (!access.hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: "Purchase required to access this note.",
+        requiresPurchase: true,
+      });
     }
 
     if (!note.fileUrl) {
-      return res.status(404).json({ success: false, message: 'PDF file not found.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "PDF file not found." });
     }
 
-    let finalUrl = note.fileUrl;
+    // Set correct headers so browser renders inline
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
 
-    // Browser ke andar open karne ke liye (Download rokne ke liye) fl_inline add karein
-    if (finalUrl.includes('cloudinary.com') && !finalUrl.includes('/fl_inline/')) {
-      finalUrl = finalUrl.replace('/upload/', '/upload/fl_inline/');
-    }
+    // Fetch from Cloudinary and stream directly to client
+    const fileUrl = note.fileUrl;
+    const protocol = fileUrl.startsWith("https") ? https : http;
 
-    // Node Server RAM bachane ke liye seedha Cloudinary par redirect karein
-    return res.redirect(302, finalUrl);
-
+    protocol
+      .get(fileUrl, (cloudinaryRes) => {
+        // If Cloudinary itself redirects, follow it
+        if (
+          cloudinaryRes.statusCode === 301 ||
+          cloudinaryRes.statusCode === 302
+        ) {
+          const redirectUrl = cloudinaryRes.headers.location;
+          const redirectProtocol = redirectUrl.startsWith("https")
+            ? https
+            : http;
+          redirectProtocol.get(redirectUrl, (redirectedRes) => {
+            redirectedRes.pipe(res);
+          });
+          return;
+        }
+        cloudinaryRes.pipe(res);
+      })
+      .on("error", (err) => {
+        console.error("Error fetching PDF from Cloudinary:", err);
+        if (!res.headersSent) {
+          res
+            .status(500)
+            .json({ success: false, message: "Error fetching PDF." });
+        }
+      });
   } catch (error) {
-    console.error('Error proxying PDF:', error);
+    console.error("Error proxying PDF:", error);
     if (!res.headersSent) {
-      res.status(500).json({ success: false, message: 'Error proxying PDF' });
+      res.status(500).json({ success: false, message: "Error proxying PDF" });
     }
   }
 };

@@ -75,9 +75,11 @@ const handlePayment = async () => {
             const verifyData = await verifyRes.json();
             
             if (verifyRes.ok || verifyRes.status === 409) {
-              // Success or already verified
+              // Success or already verified — do not expose raw file URLs; access via /api/notes/:id/pdf
               verified = true;
-              onPaymentSuccess(verifyData.downloadUrl);
+              if (typeof onPaymentSuccess === "function") {
+                onPaymentSuccess(verifyData);
+              }
               onClose();
               break;
             }
@@ -186,7 +188,7 @@ const handlePayment = async () => {
             <button
               onClick={handlePayment}
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-[#6C63FF] text-white rounded-xl font-semibold hover:bg-[#5A52E8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-[#9f3562] text-white rounded-xl font-semibold hover:bg-[#b14270] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
