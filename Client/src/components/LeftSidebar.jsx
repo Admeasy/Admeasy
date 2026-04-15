@@ -12,12 +12,14 @@ import {
   Repeat,
   LogOut,
   PlusCircle,
+  Coins,
+  Gift,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import { useUnreadMessages } from "../hooks/useUnreadMessages";
 import { useUnreadSpaceMessages } from "../hooks/useUnreadSpaceMessages";
-const logo = '/favicon.ico';
+const logo = "/favicon.ico";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 
@@ -86,6 +88,13 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
         : [{ icon: MessagesSquare, label: "Chats", path: "/mentor/chats" }]
       : []),
     { icon: Newspaper, label: "Blogs", path: "/blogs" },
+    // ── Wallet & Referral — users only ──────────────
+    ...(isUserAccount
+      ? [
+          { icon: Coins, label: "Wallet", path: "/wallet" },
+          { icon: Gift, label: "Refer & Earn", path: "/referrals" },
+        ]
+      : []),
     ...(!loggedInAccount
       ? [{ icon: UserPlus, label: "Sign Up/Log In", path: "/login" }]
       : []),
@@ -172,7 +181,9 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
         </motion.button>
 
         <div
-          className={`flex items-center gap-3 mt-0 mb-8 px-5 ${isCollapsed ? "justify-center" : ""} h-12`}
+          className={`flex items-center gap-3 mt-0 mb-8 px-5 ${
+            isCollapsed ? "justify-center" : ""
+          } h-12`}
         >
           <motion.div
             onClick={() => navigate("/")}
@@ -213,7 +224,13 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                 key={item.path}
                 to={item.path}
                 className={() =>
-                  `relative flex items-center py-3 rounded-xl transition-all duration-300 group overflow-hidden ${isCollapsed ? "justify-center px-0" : "px-4 gap-3.5"} ${isActive ? "text-white shadow-md shadow-[#9f3562]/30" : "text-gray-700 hover:bg-gray-50 hover:text-[#9f3562]"}`
+                  `relative flex items-center py-3 rounded-xl transition-all duration-300 group overflow-hidden ${
+                    isCollapsed ? "justify-center px-0" : "px-4 gap-3.5"
+                  } ${
+                    isActive
+                      ? "text-white shadow-md shadow-[#9f3562]/30"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-[#9f3562]"
+                  }`
                 }
               >
                 {isActive && (
@@ -251,8 +268,10 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
 
         {/* User Profile and Switch Account Trigger */}
         {loggedInAccount && (
-          <div className="relative mt-auto pt-6 border-t border-gray-100 px-3 mb-4" ref={popupRef}>
-
+          <div
+            className="relative mt-auto pt-6 border-t border-gray-100 px-3 mb-4"
+            ref={popupRef}
+          >
             {/* Accounts Switcher Popup */}
             <AnimatePresence>
               {showAccountsPopup && (
@@ -260,32 +279,63 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className={`absolute bottom-full left-3 mb-2 bg-white rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50 overflow-hidden ${isCollapsed ? 'w-48' : 'w-[calc(100%-24px)]'}`}
+                  className={`absolute bottom-full left-3 mb-2 bg-white rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50 overflow-hidden ${
+                    isCollapsed ? "w-48" : "w-[calc(100%-24px)]"
+                  }`}
                 >
-                  <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">Switch Account</p>
+                  <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">
+                    Switch Account
+                  </p>
 
                   <div className="max-h-[200px] overflow-y-auto scrollbar-thin">
                     {savedAccounts?.map((acc) => (
                       <button
                         key={acc.id}
                         onClick={() => handleAccountSwitch(acc)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${user?._id === acc.id ? 'bg-[#9f3562]/5' : ''}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
+                          user?._id === acc.id ? "bg-[#9f3562]/5" : ""
+                        }`}
                       >
-                        <img src={acc.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'} alt={acc.name} className="w-8 h-8 rounded-full object-cover" />
+                        <img
+                          src={
+                            acc.avatar ||
+                            "https://api.dicebear.com/7.x/avataaars/svg?seed=User"
+                          }
+                          alt={acc.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
                         <div className="flex flex-col text-left overflow-hidden">
-                          <span className="text-sm font-semibold text-gray-900 truncate">{acc.name}</span>
-                          <span className="text-xs text-gray-500 truncate">{acc.email}</span>
+                          <span className="text-sm font-semibold text-gray-900 truncate">
+                            {acc.name}
+                          </span>
+                          <span className="text-xs text-gray-500 truncate">
+                            {acc.email}
+                          </span>
                         </div>
-                        {user?._id === acc.id && <div className="ml-auto w-2 h-2 rounded-full bg-[#9f3562]"></div>}
+                        {user?._id === acc.id && (
+                          <div className="ml-auto w-2 h-2 rounded-full bg-[#9f3562]"></div>
+                        )}
                       </button>
                     ))}
                   </div>
 
                   <div className="border-t border-gray-100 mt-1">
-                    <button onClick={() => { setShowAccountsPopup(false); navigate('/login'); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#9f3562] transition-colors">
+                    <button
+                      onClick={() => {
+                        setShowAccountsPopup(false);
+                        navigate("/login");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#9f3562] transition-colors"
+                    >
                       <PlusCircle className="w-4 h-4" /> Add an existing account
                     </button>
-                    <button onClick={() => { setShowAccountsPopup(false); logoutAllAccounts(); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                    <button
+                      onClick={() => {
+                        setShowAccountsPopup(false);
+                        logoutAllAccounts();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    >
                       <LogOut className="w-4 h-4" /> Log out all accounts
                     </button>
                   </div>
@@ -293,19 +343,48 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
               )}
             </AnimatePresence>
 
-            <div className={`flex flex-col rounded-xl hover:bg-gray-50 transition-colors duration-300 group py-2.5 ${isCollapsed ? 'items-center px-0' : 'px-3'}`}>
-
+            <div
+              className={`flex flex-col rounded-xl hover:bg-gray-50 transition-colors duration-300 group py-2.5 ${
+                isCollapsed ? "items-center px-0" : "px-3"
+              }`}
+            >
               {/* Top Row: Avatar + Name */}
-              <div onClick={() => navigate('/me')} className={`flex items-center w-full cursor-pointer z-10 ${isCollapsed ? 'justify-center' : 'gap-3 mb-3'}`}>
+              <div
+                onClick={() => navigate("/me")}
+                className={`flex items-center w-full cursor-pointer z-10 ${
+                  isCollapsed ? "justify-center" : "gap-3 mb-3"
+                }`}
+              >
                 <div className="relative flex-shrink-0">
-                  <img src={loggedInAccount.imageUrl || loggedInAccount.image || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'} alt={loggedInAccount.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-[#9f3562]/30 group-hover:ring-[#9f3562]/60 transition-all" />
+                  <img
+                    src={
+                      loggedInAccount.imageUrl ||
+                      loggedInAccount.image ||
+                      "https://api.dicebear.com/7.x/avataaars/svg?seed=User"
+                    }
+                    alt={loggedInAccount.name}
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-[#9f3562]/30 group-hover:ring-[#9f3562]/60 transition-all"
+                  />
                 </div>
 
                 <AnimatePresence>
                   {!isCollapsed && (
-                    <motion.div variants={textVariants} initial="hidden" animate="visible" exit="hidden" className="flex flex-1 flex-col min-w-0">
-                      <p className="font-semibold text-sm text-gray-900 truncate w-full" title={loggedInAccount.name}>{loggedInAccount.name}</p>
-                      <p className="text-xs text-gray-500 group-hover:text-[#9f3562] transition-colors whitespace-nowrap">View Profile</p>
+                    <motion.div
+                      variants={textVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      className="flex flex-1 flex-col min-w-0"
+                    >
+                      <p
+                        className="font-semibold text-sm text-gray-900 truncate w-full"
+                        title={loggedInAccount.name}
+                      >
+                        {loggedInAccount.name}
+                      </p>
+                      <p className="text-xs text-gray-500 group-hover:text-[#9f3562] transition-colors whitespace-nowrap">
+                        View Profile
+                      </p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -319,7 +398,10 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
-                    onClick={(e) => { e.stopPropagation(); setShowAccountsPopup(!showAccountsPopup); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAccountsPopup(!showAccountsPopup);
+                    }}
                     className="w-full text-xs font-bold px-3 py-2 bg-white border border-[#9f3562] rounded-lg text-[#9f3562] hover:bg-[#9f3562] hover:text-white transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md whitespace-nowrap text-center z-10"
                     title="Switch Account"
                   >
@@ -327,7 +409,10 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                   </motion.button>
                 ) : (
                   <motion.button
-                    onClick={(e) => { e.stopPropagation(); setShowAccountsPopup(!showAccountsPopup); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAccountsPopup(!showAccountsPopup);
+                    }}
                     className="mt-2 p-2 rounded-full text-gray-400 hover:text-[#9f3562] hover:bg-[#9f3562]/10 transition-colors"
                     title="Switch Account"
                   >
@@ -335,7 +420,6 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                   </motion.button>
                 )}
               </AnimatePresence>
-
             </div>
           </div>
         )}

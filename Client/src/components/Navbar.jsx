@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, Coins } from "lucide-react";
 import AnimatedSearchPlaceholder from "./AnimatedSearchPlaceholder";
-const logo = '/favicon.ico';
+const logo = "/favicon.ico";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import LoginButton from "./LoginButton";
@@ -24,9 +24,32 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
 
+  // ── Coin balance state ─────────────────────────────────
+  const [coinBalance, setCoinBalance] = useState(null);
+
   useEffect(() => {
     setImageError(false);
   }, [user, mentor]);
+
+  // Fetch coin balance when user logs in
+  useEffect(() => {
+    if (!user) {
+      setCoinBalance(null);
+      return;
+    }
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch("/api/wallet/balance", {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) setCoinBalance(data.wallet.coinBalance);
+      } catch (err) {
+        console.error("Coin balance fetch error:", err);
+      }
+    };
+    fetchBalance();
+  }, [user]);
 
   // Scroll hide/show logic (mobile only)
   useEffect(() => {
@@ -38,10 +61,8 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
 
           if (isMobile) {
             if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
-              // Scrolling down
               setIsVisible(false);
             } else {
-              // Scrolling up
               setIsVisible(true);
             }
           } else {
@@ -59,10 +80,9 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const profileImage =
-    imageError
-      ? fallbackProfilePic
-      : (isUserAccount
+  const profileImage = imageError
+    ? fallbackProfilePic
+    : (isUserAccount
         ? user?.imageUrl || user?.image
         : mentor?.imageUrl || mentor?.image) || fallbackProfilePic;
 
@@ -73,13 +93,12 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
       }`}
     >
       <div className="h-full px-4 flex items-center justify-between gap-3">
-
         {/* ===== LEFT: LOGO ===== */}
         <Link to="/" className="flex items-center gap-1.5 shrink-0">
           <img src={logo} alt="logo" className="w-8 h-8 object-contain" />
         </Link>
 
-        {/* ===== CENTER: SEARCH / EXPLORE BUTTON ===== */}
+        {/* ===== CENTER: SEARCH ===== */}
         <button
           onClick={() => navigate("/explore")}
           className="flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors text-sm flex-1 mx-3 min-w-0"
@@ -88,14 +107,32 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
           <AnimatedSearchPlaceholder className="text-xs" />
         </button>
 
-        {/* ===== RIGHT: BELL ===== */}
-        <button
-          onClick={() => loggedInAccount ? navigate("/notifications") : navigate("/login")}
-          className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600 shrink-0"
-        >
-          <Bell className="w-5 h-5" />
-        </button>
+        {/* ===== RIGHT: COINS + BELL ===== */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Coin balance — only for logged in users, not mentors */}
+          {user && coinBalance !== null && (
+            <button
+              onClick={() => navigate("/wallet")}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200"
+              title={`${coinBalance} coins = ₹${(coinBalance / 10).toFixed(0)}`}
+            >
+              <Coins className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="text-xs font-bold text-amber-700">
+                {coinBalance}
+              </span>
+            </button>
+          )}
 
+          {/* Bell */}
+          <button
+            onClick={() =>
+              loggedInAccount ? navigate("/notifications") : navigate("/login")
+            }
+            className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-600"
+          >
+            <Bell className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </nav>
   );

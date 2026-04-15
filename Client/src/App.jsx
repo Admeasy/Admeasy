@@ -1,105 +1,114 @@
-import './App.css'
+import "./App.css";
 import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
-import { useNavigate, Route, Routes, useLocation, useParams, Link } from 'react-router-dom'
-import Navbar from './components/Navbar'
-import Home from './Pages/Home'
-import ScrollUpButton from './components/ScrollUpButton';
-import Footer from './components/Footer'
-import MentorRegistration from './Pages/MentorRegistration'
-import MentorsLogin from './Pages/MentorsLogin';
-import EditProfile from './Pages/EditProfile';
-import EditMentorProfile from './Pages/EditMentorProfile';
-import MentorProfile from './Pages/MentorProfile';
-import LoginModal from './components/LoginModal';
-import LoginEncouragementModal from './components/LoginEncouragementModal';
-import Contact from './Pages/Contact'
-import About from './Pages/About'
-import Mentors from './Pages/Mentors'
-import Colleges from './Pages/Colleges'
-import CollegeDetailed from './Pages/CollegeDetailed'
-import PrivacyPolicy from './Pages/PrivacyPolicy'
-import TermsAndConditions from './Pages/TermsAndConditions'
-import ResetPassword from './Pages/ResetPassword';
-import Course from './Pages/Course'
-import Notes from './Pages/Notes';
-import NotesSearch from './Pages/NotesSearch';
-import AddNote from './Pages/AddNote';
-import SignUp from './Pages/SignUp'
-import LogIn from './Pages/LogIn'
-import Profile from './Pages/Profile'
-import Admin from './Pages/Admin'
-import ForgotPassword from './Pages/ForgotPassword';
-import Onboarding from './Pages/Onboarding';
-import ManageColleges from './Pages/ManageColleges'
-import ManageUsers from './Pages/ManageUsers'
-import ManageApplications from './Pages/ManageApplications'
-import JobApplications from './Pages/JobApplications'
-import MentorshipForm from './Pages/MentorshipForm'
-import Blogs from './Pages/Blogs'
-import Messages from './Pages/Messages'
-import Enrollments from './Pages/Enrollments';
-import NotesPage from './Pages/NotesPage';
-import Chatpage from './Pages/Chatpage';
-import Chats from './Pages/Chats';
-import MentorChats from './Pages/MentorChats';
-import MentorChat from './Pages/MentorChat';
-import ManageMentors from './Pages/ManageMentors';
-import { useEffect, useRef, useState } from 'react';
-import { useUser } from './context/UserContext';
-import { useMentor } from './context/MentorContext';
-import { SocketProvider } from './context/SocketContext';
-import TextPressure from "../ReactBits/TextPressure/TextPressure"
-import { NotFound } from './Pages/NotFound';
-import ProtectedRoute from './components/ProtectedRoute';
-import ManageBlogs from './Pages/ManageBlogs';
-import ManageNotes from './Pages/ManageNotes';
-import BlogDetail from './Pages/BlogDetail';
-import ManageAdvertisers from './Pages/ManageAdvertisers';
-import ManageAds from './Pages/ManageAds';
-import Notification from './Pages/Notification';
-import { AnimatePresence, motion } from 'framer-motion';
-import AuthPage from './components/AuthPage';
-import Feed from './Pages/Feed';
-import PostDetail from './Pages/PostDetail';
-import CreatePost from './Pages/CreatePost';
-import Layout from './components/Layout';
-import Explore from "./Pages/Explore"
-import BottomNavBar from './components/BottomNavBar';
-import VerifyEmail from './Pages/VerifyEmail';
-import { enableNotifications } from './Firebase/enableNotifications';
-import { onMessage } from 'firebase/messaging';
-import { messaging } from './Firebase/Firebase';
-import SubscriptionPlans from './Pages/SubscriptionPlans';
-import MySubscriptions from './Pages/MySubscriptions';
-import CheckPayments from './Pages/CheckPayments';
-import Spaces from './Pages/Spaces';
-import SpacesExplore from './Pages/SpacesExplore';
-import Space from './Pages/Space';
-import AdvertiseLanding from './Pages/AdvertiseLanding';
-import AdvertiserSignup from './Pages/AdvertiserSignup';
-import AdvertiserLogin from './Pages/AdvertiserLogin';
-import AdvertiserLayout from './components/AdvertiserLayout';
-import AdvertiserDashboard from './Pages/AdvertiserDashboard';
-import AdvertiserProfile from './Pages/AdvertiserProfile';
-import EditAdvertiserProfile from './Pages/EditAdvertiserProfile';
-import CreateAd from './Pages/CreateAd';
-import EditAd from './Pages/EditAd';
-import MyAds from './Pages/MyAds';
-import OnboardingReminderBanner from './components/OnboardingReminderBanner';
-import ManagePosts from './Pages/ManagePosts';
-import ManageSpaces from './Pages/ManageSpaces';
-import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans';
-import MentorForgotPassword from './Pages/MentorForgotPassword';
-import MentorResetPassword from './Pages/MentorResetPassword';
-import { App as CapacitorApp } from '@capacitor/app';
-import { Capacitor } from '@capacitor/core';
-import GoogleSignInBootstrap from './components/GoogleSignInBootstrap';
+import "react-toastify/dist/ReactToastify.css";
+import {
+  useNavigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+  Link,
+} from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Home from "./Pages/Home";
+import ScrollUpButton from "./components/ScrollUpButton";
+import Footer from "./components/Footer";
+import MentorRegistration from "./Pages/MentorRegistration";
+import MentorsLogin from "./Pages/MentorsLogin";
+import EditProfile from "./Pages/EditProfile";
+import EditMentorProfile from "./Pages/EditMentorProfile";
+import MentorProfile from "./Pages/MentorProfile";
+import LoginModal from "./components/LoginModal";
+import LoginEncouragementModal from "./components/LoginEncouragementModal";
+import Contact from "./Pages/Contact";
+import About from "./Pages/About";
+import Mentors from "./Pages/Mentors";
+import Colleges from "./Pages/Colleges";
+import CollegeDetailed from "./Pages/CollegeDetailed";
+import PrivacyPolicy from "./Pages/PrivacyPolicy";
+import TermsAndConditions from "./Pages/TermsAndConditions";
+import ResetPassword from "./Pages/ResetPassword";
+import Course from "./Pages/Course";
+import Notes from "./Pages/Notes";
+import NotesSearch from "./Pages/NotesSearch";
+import AddNote from "./Pages/AddNote";
+import SignUp from "./Pages/SignUp";
+import LogIn from "./Pages/LogIn";
+import Profile from "./Pages/Profile";
+import Admin from "./Pages/Admin";
+import ForgotPassword from "./Pages/ForgotPassword";
+import Onboarding from "./Pages/Onboarding";
+import ManageColleges from "./Pages/ManageColleges";
+import ManageUsers from "./Pages/ManageUsers";
+import ManageApplications from "./Pages/ManageApplications";
+import JobApplications from "./Pages/JobApplications";
+import MentorshipForm from "./Pages/MentorshipForm";
+import Blogs from "./Pages/Blogs";
+import Messages from "./Pages/Messages";
+import Enrollments from "./Pages/Enrollments";
+import NotesPage from "./Pages/NotesPage";
+import Chatpage from "./Pages/Chatpage";
+import Chats from "./Pages/Chats";
+import MentorChats from "./Pages/MentorChats";
+import MentorChat from "./Pages/MentorChat";
+import ManageMentors from "./Pages/ManageMentors";
+import { useEffect, useRef, useState } from "react";
+import { useUser } from "./context/UserContext";
+import { useMentor } from "./context/MentorContext";
+import { SocketProvider } from "./context/SocketContext";
+import TextPressure from "../ReactBits/TextPressure/TextPressure";
+import { NotFound } from "./Pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ManageBlogs from "./Pages/ManageBlogs";
+import ManageNotes from "./Pages/ManageNotes";
+import BlogDetail from "./Pages/BlogDetail";
+import ManageAdvertisers from "./Pages/ManageAdvertisers";
+import ManageAds from "./Pages/ManageAds";
+import Notification from "./Pages/Notification";
+import { AnimatePresence, motion } from "framer-motion";
+import AuthPage from "./components/AuthPage";
+import Feed from "./Pages/Feed";
+import PostDetail from "./Pages/PostDetail";
+import CreatePost from "./Pages/CreatePost";
+import Layout from "./components/Layout";
+import Explore from "./Pages/Explore";
+import BottomNavBar from "./components/BottomNavBar";
+import VerifyEmail from "./Pages/VerifyEmail";
+import { enableNotifications } from "./Firebase/enableNotifications";
+import { onMessage } from "firebase/messaging";
+import { messaging } from "./Firebase/Firebase";
+import SubscriptionPlans from "./Pages/SubscriptionPlans";
+import MySubscriptions from "./Pages/MySubscriptions";
+import CheckPayments from "./Pages/CheckPayments";
+import Spaces from "./Pages/Spaces";
+import SpacesExplore from "./Pages/SpacesExplore";
+import Space from "./Pages/Space";
+import AdvertiseLanding from "./Pages/AdvertiseLanding";
+import AdvertiserSignup from "./Pages/AdvertiserSignup";
+import AdvertiserLogin from "./Pages/AdvertiserLogin";
+import AdvertiserLayout from "./components/AdvertiserLayout";
+import AdvertiserDashboard from "./Pages/AdvertiserDashboard";
+import AdvertiserProfile from "./Pages/AdvertiserProfile";
+import EditAdvertiserProfile from "./Pages/EditAdvertiserProfile";
+import CreateAd from "./Pages/CreateAd";
+import EditAd from "./Pages/EditAd";
+import MyAds from "./Pages/MyAds";
+import OnboardingReminderBanner from "./components/OnboardingReminderBanner";
+import ManagePosts from "./Pages/ManagePosts";
+import ManageSpaces from "./Pages/ManageSpaces";
+import ManageSubscriptionPlans from "./Pages/ManageSubscriptionPlans";
+import MentorForgotPassword from "./Pages/MentorForgotPassword";
+import MentorResetPassword from "./Pages/MentorResetPassword";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
+import GoogleSignInBootstrap from "./components/GoogleSignInBootstrap";
+import Wallet from "./Pages/Wallet";
+import Referral from "./Pages/Referral";
 
 function App() {
   const location = useLocation();
   const [randomBanner, SetRandomBanner] = useState(null);
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith("/admin");
   const { user, setUser, fetchUser } = useUser();
   const { mentor } = useMentor();
   const navigate = useNavigate();
@@ -107,9 +116,9 @@ function App() {
 
   // Android hardware back button: history back or double-tap to exit
   useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
+    if (Capacitor.getPlatform() !== "android") return;
 
-    const backHandler = CapacitorApp.addListener('backButton', () => {
+    const backHandler = CapacitorApp.addListener("backButton", () => {
       if (window.history.length > 1) {
         window.history.back();
         return;
@@ -120,10 +129,10 @@ function App() {
         CapacitorApp.exitApp();
       } else {
         lastBackPressRef.current = now;
-        toast.info('Press back again to exit', {
-          position: 'bottom-center',
+        toast.info("Press back again to exit", {
+          position: "bottom-center",
           autoClose: 2000,
-          toastId: 'back-to-exit',
+          toastId: "back-to-exit",
         });
       }
     });
@@ -135,48 +144,67 @@ function App() {
 
   // Username warning toast
   useEffect(() => {
-    const isDismissed = sessionStorage.getItem('usernameWarningDismissed');
+    const isDismissed = sessionStorage.getItem("usernameWarningDismissed");
     const loggedInAccount = user || mentor;
     const hasNoUsername = loggedInAccount && !loggedInAccount.username;
 
     // Don't show on auth pages or if already dismissed
-    const authPages = ['/login', '/mentors/login', '/mentors/register', '/mentors/forgot-password', '/mentors/reset-password', '/onboarding', '/forgot-password', '/reset-password'];
-    const isAuthPage = authPages.some(path => location.pathname.startsWith(path));
+    const authPages = [
+      "/login",
+      "/mentors/login",
+      "/mentors/register",
+      "/mentors/forgot-password",
+      "/mentors/reset-password",
+      "/onboarding",
+      "/forgot-password",
+      "/reset-password",
+    ];
+    const isAuthPage = authPages.some((path) =>
+      location.pathname.startsWith(path),
+    );
 
     if (hasNoUsername && !isDismissed && !isAuthPage) {
       toast.info(
         <div className="flex flex-col gap-1">
-          <p className="font-medium text-sm">Add username to make yourself visible</p>
+          <p className="font-medium text-sm">
+            Add username to make yourself visible
+          </p>
           <Link
             to="/me"
             className="text-xs underline font-bold hover:text-white transition-colors"
-            onClick={() => toast.dismiss('username-warning')}
+            onClick={() => toast.dismiss("username-warning")}
           >
             Go to Profile
           </Link>
         </div>,
         {
-          toastId: 'username-warning',
+          toastId: "username-warning",
           autoClose: false,
           closeOnClick: false,
           draggable: false,
           position: "top-center",
           className: "bg-[#9f3562] text-white",
           progressClassName: "bg-white",
-          onClose: () => sessionStorage.setItem('usernameWarningDismissed', 'true'),
-        }
+          onClose: () =>
+            sessionStorage.setItem("usernameWarningDismissed", "true"),
+        },
       );
     } else if (!hasNoUsername || isAuthPage) {
-      toast.dismiss('username-warning');
+      toast.dismiss("username-warning");
     }
   }, [user, mentor, location.pathname]);
 
   // Notification Permission Trigger
   useEffect(() => {
     const loggedInAccount = user || mentor;
-    const role = mentor ? 'mentor' : 'user';
+    const role = mentor ? "mentor" : "user";
 
-    if (loggedInAccount && typeof window !== 'undefined' && 'Notification' in window && window.Notification.permission !== 'granted') {
+    if (
+      loggedInAccount &&
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      window.Notification.permission !== "granted"
+    ) {
       // Small delay to not interfere with initial page load
       const timer = setTimeout(() => {
         enableNotifications(loggedInAccount._id, role);
@@ -190,21 +218,23 @@ function App() {
     if (!messaging) return;
 
     const unsubscribe = onMessage(messaging, (payload) => {
-      console.log('Foreground notification received:', payload);
+      console.log("Foreground notification received:", payload);
 
       // Show a toast notification
       toast.info(
         <div
-          onClick={() => navigate('/notifications')}
-          style={{ cursor: 'pointer' }}
+          onClick={() => navigate("/notifications")}
+          style={{ cursor: "pointer" }}
         >
-          <div style={{ fontWeight: 'bold' }}>{payload.notification?.title}</div>
-          <div style={{ fontSize: '0.9em' }}>{payload.notification?.body}</div>
+          <div style={{ fontWeight: "bold" }}>
+            {payload.notification?.title}
+          </div>
+          <div style={{ fontSize: "0.9em" }}>{payload.notification?.body}</div>
         </div>,
         {
-          onClick: () => navigate('/notifications'),
+          onClick: () => navigate("/notifications"),
           autoClose: 5000,
-        }
+        },
       );
     });
 
@@ -213,89 +243,102 @@ function App() {
 
   // Listen for navigation messages from service worker (when notification is clicked)
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if ("serviceWorker" in navigator) {
       const handleMessage = (event) => {
-        if (event.data && event.data.type === 'NAVIGATE_TO_NOTIFICATIONS') {
-          navigate('/notifications');
+        if (event.data && event.data.type === "NAVIGATE_TO_NOTIFICATIONS") {
+          navigate("/notifications");
         }
       };
 
-      navigator.serviceWorker.addEventListener('message', handleMessage);
+      navigator.serviceWorker.addEventListener("message", handleMessage);
 
       return () => {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
+        navigator.serviceWorker.removeEventListener("message", handleMessage);
       };
     }
   }, [navigate]);
 
-
   // Routes that use Layout component (Layout already includes Navbar and Sidebar)
   const layoutRoutes = [
-    '/',
-    '/subscription-plans',
-    '/my-subscriptions',
-    '/:username',
-    '/explore',
-    '/spaces',
-    '/spaces/:id',
-    '/mentors',
-    '/colleges',
-    '/blog',
-    '/blogs',
-    '/notes',
-    '/chats',
-    '/mentor/chats',
-    '/posts',
-    '/home-classic'
+    "/",
+    "/subscription-plans",
+    "/my-subscriptions",
+    "/:username",
+    "/explore",
+    "/spaces",
+    "/spaces/:id",
+    "/mentors",
+    "/colleges",
+    "/blog",
+    "/blogs",
+    "/notes",
+    "/chats",
+    "/mentor/chats",
+    "/posts",
+    "/home-classic",
   ];
 
   // Known single-segment routes that are NOT username routes
-  const knownSingleSegmentRoutes = ['/about', '/contact', '/login', '/signup', '/policies', '/t&c'];
+  const knownSingleSegmentRoutes = [
+    "/about",
+    "/contact",
+    "/login",
+    "/signup",
+    "/policies",
+    "/t&c",
+  ];
 
   // Check if current route uses Layout
-  const usesLayout = layoutRoutes.some(path => {
-    if (path === '/') {
-      return location.pathname === '/';
+  const usesLayout = layoutRoutes.some((path) => {
+    if (path === "/") {
+      return location.pathname === "/";
     }
-    if (path === '/:username') {
+    if (path === "/:username") {
       // Check if pathname is a single segment and not a known route
       const isSingleSegment = /^\/[^\/]+$/.test(location.pathname);
-      const isKnownRoute = knownSingleSegmentRoutes.includes(location.pathname) ||
-        location.pathname.startsWith('/admin') ||
-        location.pathname.startsWith('/mentors/') ||
-        location.pathname.startsWith('/reset-password') ||
-        location.pathname.startsWith('/verify-email') ||
-        location.pathname.startsWith('/onboarding') ||
-        location.pathname.startsWith('/forgot-password');
+      const isKnownRoute =
+        knownSingleSegmentRoutes.includes(location.pathname) ||
+        location.pathname.startsWith("/admin") ||
+        location.pathname.startsWith("/mentors/") ||
+        location.pathname.startsWith("/reset-password") ||
+        location.pathname.startsWith("/verify-email") ||
+        location.pathname.startsWith("/onboarding") ||
+        location.pathname.startsWith("/forgot-password");
       return isSingleSegment && !isKnownRoute;
     }
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return (
+      location.pathname === path || location.pathname.startsWith(path + "/")
+    );
   });
 
   // Auth pages that should hide navbar
   const authPages = [
-    '/login',
-    '/mentors/login',
-    '/mentors/register',
-    '/mentors/forgot-password',
-    '/mentors/reset-password',
-    '/onboarding',
-    '/forgot-password',
-    '/reset-password',
-    '/verify-email'
+    "/login",
+    "/mentors/login",
+    "/mentors/register",
+    "/mentors/forgot-password",
+    "/mentors/reset-password",
+    "/onboarding",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
   ];
 
-  const isAuthPage = authPages.some(path =>
-    location.pathname.startsWith(path)
+  const isAuthPage = authPages.some((path) =>
+    location.pathname.startsWith(path),
   );
 
   // Show old Navbar only on non-Layout, non-admin, non-auth routes
-  const shouldShowOldNavbar = !isAdminRoute && !usesLayout && !isAuthPage && !location.pathname.startsWith('/advertiser') && location.pathname !== '/me/edit';
+  const shouldShowOldNavbar =
+    !isAdminRoute &&
+    !usesLayout &&
+    !isAuthPage &&
+    !location.pathname.startsWith("/advertiser") &&
+    location.pathname !== "/me/edit";
 
   return (
     <>
       {shouldShowOldNavbar && <Navbar />}
-
 
       {!isAuthPage && <OnboardingReminderBanner />}
       {!isAuthPage && <LoginEncouragementModal />}
@@ -313,16 +356,22 @@ function App() {
       />
       <GoogleSignInBootstrap />
       <Routes>
-        <Route path='/contact' element={<Contact />}></Route>
+        <Route path="/contact" element={<Contact />}></Route>
         {/* <Route path='/modal' element={<LoginModal />}></Route> */}
-        <Route path='/about' element={<About />}></Route>
-        <Route path='/mentors' element={<Mentors />}></Route>
-        <Route path='/colleges' element={<Colleges />}></Route>
-        <Route path='/colleges/:id' element={<CollegeDetailed />}></Route>
-        <Route path='/colleges/:collegeId/courses/:courseId' element={<Course />}></Route>
-        <Route path='/mentors/register' element={<MentorRegistration />}></Route>
-        <Route path='/mentors/login' element={<MentorsLogin />}></Route>
-        <Route path='/mentors/:username' element={<MentorProfile />}></Route>
+        <Route path="/about" element={<About />}></Route>
+        <Route path="/mentors" element={<Mentors />}></Route>
+        <Route path="/colleges" element={<Colleges />}></Route>
+        <Route path="/colleges/:id" element={<CollegeDetailed />}></Route>
+        <Route
+          path="/colleges/:collegeId/courses/:courseId"
+          element={<Course />}
+        ></Route>
+        <Route
+          path="/mentors/register"
+          element={<MentorRegistration />}
+        ></Route>
+        <Route path="/mentors/login" element={<MentorsLogin />}></Route>
+        <Route path="/mentors/:username" element={<MentorProfile />}></Route>
 
         {/* ================= SIDEBAR LAYOUT ROUTES ================= */}
         <Route element={<Layout />}>
@@ -360,7 +409,10 @@ function App() {
 
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/colleges/:id" element={<CollegeDetailed />} />
-          <Route path="/colleges/:collegeId/courses/:courseId" element={<Course />} />
+          <Route
+            path="/colleges/:collegeId/courses/:courseId"
+            element={<Course />}
+          />
 
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:id" element={<BlogDetail />} />
@@ -407,6 +459,24 @@ function App() {
           <Route path="/spaces" element={<Spaces />} />
           <Route path="/spaces/explore" element={<SpacesExplore />} />
           <Route path="/spaces/:id" element={<Space />} />
+
+          {/* Wallet & Referral */}
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute user={user}>
+                <Wallet />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/referrals"
+            element={
+              <ProtectedRoute user={user}>
+                <Referral />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* ================= NO SIDEBAR ROUTES ================= */}
@@ -417,8 +487,14 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/onboarding/:id" element={<Onboarding />} />
         <Route path="/mentors/login" element={<MentorsLogin />} />
-        <Route path="/mentors/forgot-password" element={<MentorForgotPassword />} />
-        <Route path="/mentors/reset-password/:token" element={<MentorResetPassword />} />
+        <Route
+          path="/mentors/forgot-password"
+          element={<MentorForgotPassword />}
+        />
+        <Route
+          path="/mentors/reset-password/:token"
+          element={<MentorResetPassword />}
+        />
         <Route path="/mentors/register" element={<MentorRegistration />} />
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
@@ -440,13 +516,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path='/policies' element={<PrivacyPolicy />}></Route>
-        <Route path='/t&c' element={<TermsAndConditions />}></Route>
-        <Route path='/reset-password/:token' element={<ResetPassword />}></Route>
-        <Route path='/reset-password' element={<ResetPassword />}></Route>
-        <Route path='/forgot-password' element={<ForgotPassword />}></Route>
+        <Route path="/policies" element={<PrivacyPolicy />}></Route>
+        <Route path="/t&c" element={<TermsAndConditions />}></Route>
+        <Route
+          path="/reset-password/:token"
+          element={<ResetPassword />}
+        ></Route>
+        <Route path="/reset-password" element={<ResetPassword />}></Route>
+        <Route path="/forgot-password" element={<ForgotPassword />}></Route>
         {/* We don't need Signup route */}
-        <Route path='/login' element={<AuthPage />}></Route>
+        <Route path="/login" element={<AuthPage />}></Route>
 
         {/* If user Only then /me accessible */}
         <Route
@@ -483,7 +562,10 @@ function App() {
         <Route path="/admin/notes" element={<ManageNotes />} />
         <Route path="/admin/posts" element={<ManagePosts />} />
         <Route path="/admin/spaces" element={<ManageSpaces />} />
-        <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
+        <Route
+          path="/admin/subscription-plans"
+          element={<ManageSubscriptionPlans />}
+        />
         <Route path="/admin/payments" element={<CheckPayments />} />
         <Route path="/admin/advertisers" element={<ManageAdvertisers />} />
         <Route path="/admin/ads" element={<ManageAds />} />
@@ -495,12 +577,18 @@ function App() {
 
         <Route element={<AdvertiserLayout />}>
           <Route path="/advertiser" element={<AdvertiserDashboard />} />
-          <Route path="/advertiser/dashboard" element={<AdvertiserDashboard />} />
+          <Route
+            path="/advertiser/dashboard"
+            element={<AdvertiserDashboard />}
+          />
           <Route path="/advertiser/create-ad" element={<CreateAd />} />
           <Route path="/advertiser/ads/:adId/edit" element={<EditAd />} />
           <Route path="/advertiser/myads" element={<MyAds />} />
           <Route path="/advertiser/profile" element={<AdvertiserProfile />} />
-          <Route path="/advertiser/profile/edit" element={<EditAdvertiserProfile />} />
+          <Route
+            path="/advertiser/profile/edit"
+            element={<EditAdvertiserProfile />}
+          />
         </Route>
 
         {/* 404 */}
@@ -511,9 +599,14 @@ function App() {
       {/* <ScrollUpButton /> */}
 
       {/* Footer - show on non-Layout, non-admin, non-advertiser routes (Layout pages handle their own footer) */}
-      {!isAdminRoute && !usesLayout && !isAuthPage && !location.pathname.startsWith('/advertiser') && location.pathname !== '/me' && location.pathname !== '/me/edit' && <Footer />}
+      {!isAdminRoute &&
+        !usesLayout &&
+        !isAuthPage &&
+        !location.pathname.startsWith("/advertiser") &&
+        location.pathname !== "/me" &&
+        location.pathname !== "/me/edit" && <Footer />}
     </>
-  )
+  );
 }
 
-export default App
+export default App;

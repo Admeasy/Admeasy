@@ -15,18 +15,7 @@ const NotesCard = ({ note, compact = false }) => {
   const navigate = useNavigate();
   const noteId = note?._id || note?.id;
   const isFree = note?.isFree ?? true;
-<<<<<<< Updated upstream
   const authorInfo = resolveNoteAuthor(note);
-=======
-  const pagesNum = Number(note?.pages);
-  const displayPages =
-    note?.pages != null &&
-    note.pages !== "" &&
-    Number.isFinite(pagesNum) &&
-    pagesNum > 0
-      ? Math.floor(pagesNum)
-      : null;
->>>>>>> Stashed changes
 
   return (
     <div
@@ -157,23 +146,13 @@ const NotesCard = ({ note, compact = false }) => {
               </div>
             </button>
 
-<<<<<<< Updated upstream
-            {/* Pages — only when uploader/admin provided a count (optional field) */}
-            {typeof note?.pages === "number" && note.pages > 0 && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <File className="w-4 h-4" />
-                <span className="text-xs sm:text-sm font-medium">
-                  {note.pages} {note.pages === 1 ? "page" : "pages"}
-=======
-            {displayPages != null && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <File className="w-4 h-4" />
-                <span className="text-xs sm:text-sm font-medium">
-                  {displayPages} {displayPages === 1 ? "page" : "pages"}
->>>>>>> Stashed changes
-                </span>
-              </div>
-            )}
+            {/* Pages */}
+            <div className="flex items-center gap-2 text-gray-700">
+              <File className="w-4 h-4" />
+              <span className="text-xs sm:text-sm font-medium">
+                {note?.pages ? `${note.pages} pages` : "Pages N/A"}
+              </span>
+            </div>
           </div>
 
           {/* Standard / Tag */}

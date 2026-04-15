@@ -1,15 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, CirclePlus, MessagesSquare, Users } from 'lucide-react';
-import { useUser } from '../context/UserContext';
-import { useMentor } from '../context/MentorContext';
-import { useUnreadMessages } from '../hooks/useUnreadMessages';
-import { useUnreadSpaceMessages } from '../hooks/useUnreadSpaceMessages';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-toastify';
-import { trackAdmeasyEvent } from '../utils/trackEvent';
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Home,
+  User,
+  CirclePlus,
+  MessagesSquare,
+  Users,
+  Coins,
+} from "lucide-react";
+import { useUser } from "../context/UserContext";
+import { useMentor } from "../context/MentorContext";
+import { useUnreadMessages } from "../hooks/useUnreadMessages";
+import { useUnreadSpaceMessages } from "../hooks/useUnreadSpaceMessages";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
+import { trackAdmeasyEvent } from "../utils/trackEvent";
 
-const BOTTOM_CTA_TOOLTIP_KEY = 'admeasy:bottom_cta_tooltip_done';
+const BOTTOM_CTA_TOOLTIP_KEY = "admeasy:bottom_cta_tooltip_done";
 /** Dedupe analytics if React Strict Mode runs the effect twice before hide. */
 let bottomCtaShownEventSent = false;
 
@@ -33,7 +40,7 @@ const BottomNavBar = () => {
   const [showPlusHint, setShowPlusHint] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     try {
       if (sessionStorage.getItem(BOTTOM_CTA_TOOLTIP_KEY)) return;
     } catch {
@@ -42,12 +49,12 @@ const BottomNavBar = () => {
     setShowPlusHint(true);
     if (!bottomCtaShownEventSent) {
       bottomCtaShownEventSent = true;
-      trackAdmeasyEvent('bottom_cta_shown');
+      trackAdmeasyEvent("bottom_cta_shown");
     }
     const hide = window.setTimeout(() => {
       setShowPlusHint(false);
       try {
-        sessionStorage.setItem(BOTTOM_CTA_TOOLTIP_KEY, '1');
+        sessionStorage.setItem(BOTTOM_CTA_TOOLTIP_KEY, "1");
       } catch {
         /* ignore */
       }
@@ -82,33 +89,34 @@ const BottomNavBar = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Get profile image URL
   const profileImageUrl = loggedInAccount
-    ? (isUserAccount
-      ? (user?.imageUrl || user?.image)
-      : (mentor?.imageUrl || mentor?.image))
+    ? isUserAccount
+      ? user?.imageUrl || user?.image
+      : mentor?.imageUrl || mentor?.image
     : null;
 
   const hasProfileImage = profileImageUrl && !imageError;
 
   // Pages where bottom nav should be hidden
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = location.pathname.startsWith("/admin");
   const isSpaceFeedPage = /^\/spaces\/[^/]+$/.test(location.pathname);
   const hideSidebarPages = [
-    '/login',
-    '/mentors/login',
-    '/mentors/register',
-    '/onboarding',
-    '/forgot-password',
-    '/reset-password'
+    "/login",
+    "/mentors/login",
+    "/mentors/register",
+    "/onboarding",
+    "/forgot-password",
+    "/reset-password",
   ];
-  const shouldHide = isAdminRoute || isSpaceFeedPage || hideSidebarPages.some(path =>
-    location.pathname.startsWith(path)
-  );
+  const shouldHide =
+    isAdminRoute ||
+    isSpaceFeedPage ||
+    hideSidebarPages.some((path) => location.pathname.startsWith(path));
 
   if (shouldHide) return null;
 
@@ -116,20 +124,20 @@ const BottomNavBar = () => {
   const handleProtectedRoute = (path, actionName) => {
     if (!loggedInAccount) {
       toast.error(`Please login/signup to ${actionName}`, {
-        position: 'top-center',
+        position: "top-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
         style: {
-          background: '#fff',
-          color: '#9f3562',
-          fontWeight: '600',
-          border: '1px solid #9f3562',
+          background: "#fff",
+          color: "#9f3562",
+          fontWeight: "600",
+          border: "1px solid #9f3562",
         },
       });
-      navigate('/login');
+      navigate("/login");
       return;
     }
     navigate(path);
@@ -137,63 +145,76 @@ const BottomNavBar = () => {
 
   const navItems = [
     {
-      id: 'home',
+      id: "home",
       icon: Home,
-      path: '/',
-      onClick: () => navigate('/'),
-      requiresAuth: false
+      path: "/",
+      onClick: () => navigate("/"),
+      requiresAuth: false,
     },
+    // ── Wallet — users only ──────────────────────────
+    ...(isUserAccount
+      ? [
+          {
+            id: "wallet",
+            icon: Coins,
+            path: "/wallet",
+            onClick: () => handleProtectedRoute("/wallet", "view wallet"),
+            requiresAuth: true,
+          },
+        ]
+      : []),
     {
-      id: 'upload',
+      id: "upload",
       icon: CirclePlus,
-      path: '/posts/create',
+      path: "/posts/create",
       onClick: () => {
-        trackAdmeasyEvent('bottom_cta_clicked');
-        handleProtectedRoute('/posts/create', 'create a post');
+        trackAdmeasyEvent("bottom_cta_clicked");
+        handleProtectedRoute("/posts/create", "create a post");
       },
-      requiresAuth: true
+      requiresAuth: true,
     },
     {
-      id: 'spaces',
+      id: "spaces",
       icon: Users,
-      path: '/spaces',
-      onClick: () => handleProtectedRoute('/spaces', 'view spaces'),
-      requiresAuth: true
+      path: "/spaces",
+      onClick: () => handleProtectedRoute("/spaces", "view spaces"),
+      requiresAuth: true,
     },
     {
-      id: 'chat',
+      id: "chat",
       icon: MessagesSquare,
-      path: isUserAccount ? '/chats' : '/mentor/chats',
-      onClick: () => handleProtectedRoute(
-        isUserAccount ? '/chats' : '/mentor/chats',
-        'chat with mentors'
-      ),
-      requiresAuth: true
+      path: isUserAccount ? "/chats" : "/mentor/chats",
+      onClick: () =>
+        handleProtectedRoute(
+          isUserAccount ? "/chats" : "/mentor/chats",
+          "chat with mentors",
+        ),
+      requiresAuth: true,
     },
     {
-      id: 'profile',
+      id: "profile",
       icon: User,
-      path: '/me',
+      path: "/me",
       onClick: () => {
         if (loggedInAccount) {
-          if (location.pathname === '/me') {
-            navigate('/me', { replace: true });
+          if (location.pathname === "/me") {
+            navigate("/me", { replace: true });
           } else {
-            navigate('/me');
+            navigate("/me");
           }
         } else {
-          navigate('/login');
+          navigate("/login");
         }
       },
       requiresAuth: false,
-      matchPaths: ['/me']
-    }
+      matchPaths: ["/me"],
+    },
   ];
 
   return (
     <div
       className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe pt-2 px-4 sm:px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 h-16 flex items-center justify-between transition-transform duration-300 ${
-        isVisible ? 'translate-y-0' : 'translate-y-full'
+        isVisible ? "translate-y-0" : "translate-y-full"
       }`}
     >
       {navItems.map((item) => {
@@ -202,19 +223,22 @@ const BottomNavBar = () => {
         // Determine if active
         let isActive;
         if (item.matchPaths) {
-          isActive = item.matchPaths.some(path =>
-            location.pathname === path || location.pathname.startsWith(path + '/')
+          isActive = item.matchPaths.some(
+            (path) =>
+              location.pathname === path ||
+              location.pathname.startsWith(path + "/"),
           );
         } else {
-          isActive = location.pathname === item.path ||
-            location.pathname.startsWith(item.path + '/');
+          isActive =
+            location.pathname === item.path ||
+            location.pathname.startsWith(item.path + "/");
         }
 
         // For profile item, show profile image if available
-        const isProfileItem = item.id === 'profile';
+        const isProfileItem = item.id === "profile";
         const showProfileImage = isProfileItem && hasProfileImage;
 
-        const showCreateHint = item.id === 'upload' && showPlusHint;
+        const showCreateHint = item.id === "upload" && showPlusHint;
 
         return (
           <motion.button
@@ -222,7 +246,11 @@ const BottomNavBar = () => {
             onClick={item.onClick}
             whileTap={{ scale: 0.9 }}
             className={`relative flex flex-col items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-colors duration-200
-              ${isActive ? 'text-[#9f3562]' : 'text-gray-400 hover:text-gray-600'}
+              ${
+                isActive
+                  ? "text-[#9f3562]"
+                  : "text-gray-400 hover:text-gray-600"
+              }
             `}
           >
             <AnimatePresence>
@@ -256,9 +284,10 @@ const BottomNavBar = () => {
             {showProfileImage ? (
               <img
                 src={profileImageUrl}
-                alt={loggedInAccount?.name || 'Profile'}
-                className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 transition-all ${isActive ? 'ring-[#9f3562]' : 'ring-gray-200'
-                  }`}
+                alt={loggedInAccount?.name || "Profile"}
+                className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 transition-all ${
+                  isActive ? "ring-[#9f3562]" : "ring-gray-200"
+                }`}
                 onError={() => setImageError(true)}
               />
             ) : (
@@ -268,15 +297,17 @@ const BottomNavBar = () => {
                   strokeWidth={isActive ? 3 : 2}
                 />
                 {/* Unread message notification badge for Chats */}
-                {item.id === 'chat' && unreadMessagesCount > 0 && (
+                {item.id === "chat" && unreadMessagesCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
-                    {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
                   </span>
                 )}
                 {/* Unread space message notification badge */}
-                {item.id === 'spaces' && unreadSpaceMessagesCount > 0 && (
+                {item.id === "spaces" && unreadSpaceMessagesCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">
-                    {unreadSpaceMessagesCount > 99 ? '99+' : unreadSpaceMessagesCount}
+                    {unreadSpaceMessagesCount > 99
+                      ? "99+"
+                      : unreadSpaceMessagesCount}
                   </span>
                 )}
               </div>

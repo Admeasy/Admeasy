@@ -1,5 +1,5 @@
 const express = require("express");
-const generateUniqueReferralCode = require("../utils/generateUniqueReferralCode.js");
+const generateUniqueReferralCode = require("../utils/generateReferralCode.js");
 const Referral = require("../models/referralSchema.js");
 const {
   resetPassword,

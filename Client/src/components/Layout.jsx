@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import LeftSidebar from "./LeftSidebar";
 import BottomNavBar from "./BottomNavBar";
 import Navbar from "./Navbar";
+import FirstCoinEarnedPopup from "./popups/FirstCoinEarnedPopup";
 
 const DESKTOP_BREAKPOINT = 768;
 
@@ -11,7 +12,7 @@ const Layout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(
-    window.innerWidth >= DESKTOP_BREAKPOINT
+    window.innerWidth >= DESKTOP_BREAKPOINT,
   );
 
   /* RESPONSIVE SYNC EFFECT */
@@ -41,10 +42,7 @@ const Layout = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Navbar - only on mobile (md:hidden), desktop uses LeftSidebar */}
       <div className="md:hidden">
-        <Navbar
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsed}
-        />
+        <Navbar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       </div>
 
       <LeftSidebar
@@ -62,6 +60,8 @@ const Layout = () => {
       >
         <Outlet />
       </main>
+      {/* Global popup — listens for showFirstCoinPopup flag on user */}
+      <FirstCoinEarnedPopup />
     </div>
   );
 };

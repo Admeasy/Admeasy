@@ -18,7 +18,7 @@ const getAwardableCoins = (coinsEarnedThisMonth, coinsToAward) => {
   return Math.min(remaining, coinsToAward);
 };
 
-export default {
+module.exports = {
   COINS_PER_RUPEE,
   MAX_MONTHLY_EARNINGS_INR,
   MAX_MONTHLY_COINS,
