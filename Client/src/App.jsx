@@ -1,105 +1,106 @@
-import'./App.css'
-import { toast, ToastContainer } from"react-toastify";
-import'react-toastify/dist/ReactToastify.css';
-import { useNavigate, Route, Routes, useLocation, useParams, Link } from'react-router-dom'
-import Navbar from'./components/Navbar'
-import Home from'./Pages/Home'
-import ScrollUpButton from'./components/ScrollUpButton';
-import Footer from'./components/Footer'
-import MentorRegistration from'./Pages/MentorRegistration'
-import MentorsLogin from'./Pages/MentorsLogin';
-import EditProfile from'./Pages/EditProfile';
-import EditMentorProfile from'./Pages/EditMentorProfile';
-import MentorProfile from'./Pages/MentorProfile';
-import LoginModal from'./components/LoginModal';
-import LoginEncouragementModal from'./components/LoginEncouragementModal';
-import Contact from'./Pages/Contact'
-import About from'./Pages/About'
-import Mentors from'./Pages/Mentors'
-import Colleges from'./Pages/Colleges'
-import CollegeDetailed from'./Pages/CollegeDetailed'
-import PrivacyPolicy from'./Pages/PrivacyPolicy'
-import TermsAndConditions from'./Pages/TermsAndConditions'
-import ResetPassword from'./Pages/ResetPassword';
-import Course from'./Pages/Course'
-import Notes from'./Pages/Notes';
-import NotesSearch from'./Pages/NotesSearch';
-import AddNote from'./Pages/AddNote';
-import SignUp from'./Pages/SignUp'
-import LogIn from'./Pages/LogIn'
-import Profile from'./Pages/Profile'
-import Admin from'./Pages/Admin'
-import ForgotPassword from'./Pages/ForgotPassword';
-import Onboarding from'./Pages/Onboarding';
-import ManageColleges from'./Pages/ManageColleges'
-import ManageUsers from'./Pages/ManageUsers'
-import ManageApplications from'./Pages/ManageApplications'
-import JobApplications from'./Pages/JobApplications'
-import MentorshipForm from'./Pages/MentorshipForm'
-import Blogs from'./Pages/Blogs'
-import Messages from'./Pages/Messages'
-import Enrollments from'./Pages/Enrollments';
-import NotesPage from'./Pages/NotesPage';
-import Chatpage from'./Pages/Chatpage';
-import Chats from'./Pages/Chats';
-import MentorChats from'./Pages/MentorChats';
-import MentorChat from'./Pages/MentorChat';
-import ManageMentors from'./Pages/ManageMentors';
-import { useEffect, useRef, useState } from'react';
-import { useUser } from'./context/UserContext';
-import { useMentor } from'./context/MentorContext';
-import { SocketProvider } from'./context/SocketContext';
-import TextPressure from"../ReactBits/TextPressure/TextPressure"
-import { NotFound } from'./Pages/NotFound';
-import ProtectedRoute from'./components/ProtectedRoute';
-import ManageBlogs from'./Pages/ManageBlogs';
-import ManageNotes from'./Pages/ManageNotes';
-import BlogDetail from'./Pages/BlogDetail';
-import ManageAdvertisers from'./Pages/ManageAdvertisers';
-import ManageAds from'./Pages/ManageAds';
-import Notification from'./Pages/Notification';
-import { AnimatePresence, motion } from'framer-motion';
-import AuthPage from'./components/AuthPage';
-import Feed from'./Pages/Feed';
-import PostDetail from'./Pages/PostDetail';
-import CreatePost from'./Pages/CreatePost';
-import Layout from'./components/Layout';
-import Explore from"./Pages/Explore"
-import BottomNavBar from'./components/BottomNavBar';
-import VerifyEmail from'./Pages/VerifyEmail';
-import { enableNotifications } from'./Firebase/enableNotifications';
-import { onMessage } from'firebase/messaging';
-import { messaging } from'./Firebase/Firebase';
-import SubscriptionPlans from'./Pages/SubscriptionPlans';
-import MySubscriptions from'./Pages/MySubscriptions';
-import CheckPayments from'./Pages/CheckPayments';
-import Spaces from'./Pages/Spaces';
-import SpacesExplore from'./Pages/SpacesExplore';
-import Space from'./Pages/Space';
-import AdvertiseLanding from'./Pages/AdvertiseLanding';
-import AdvertiserSignup from'./Pages/AdvertiserSignup';
-import AdvertiserLogin from'./Pages/AdvertiserLogin';
-import AdvertiserLayout from'./components/AdvertiserLayout';
-import AdvertiserDashboard from'./Pages/AdvertiserDashboard';
-import AdvertiserProfile from'./Pages/AdvertiserProfile';
-import EditAdvertiserProfile from'./Pages/EditAdvertiserProfile';
-import CreateAd from'./Pages/CreateAd';
-import EditAd from'./Pages/EditAd';
-import MyAds from'./Pages/MyAds';
-import OnboardingReminderBanner from'./components/OnboardingReminderBanner';
-import ManagePosts from'./Pages/ManagePosts';
-import ManageSpaces from'./Pages/ManageSpaces';
-import ManageSchools from'./Pages/ManageSchools';
-import SchoolLogin from'./Pages/SchoolLogin';
-import TeacherSetPassword from'./Pages/TeacherSetPassword';
-import SchoolDashboard from'./Pages/SchoolDashboard';
-import AddTeacher from'./Pages/AddTeacher';
-import TeacherDashboard from'./Pages/TeacherDashboard';
-import ManageSubscriptionPlans from'./Pages/ManageSubscriptionPlans';
-import MentorForgotPassword from'./Pages/MentorForgotPassword';
-import MentorResetPassword from'./Pages/MentorResetPassword';
-import { App as CapacitorApp } from'@capacitor/app';
-import { Capacitor } from'@capacitor/core';
+import './App.css'
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate, Route, Routes, useLocation, useParams, Link } from 'react-router-dom'
+import Navbar from './components/Navbar'
+import Home from './Pages/Home'
+import ScrollUpButton from './components/ScrollUpButton';
+import Footer from './components/Footer'
+import MentorRegistration from './Pages/MentorRegistration'
+import MentorsLogin from './Pages/MentorsLogin';
+import EditProfile from './Pages/EditProfile';
+import EditMentorProfile from './Pages/EditMentorProfile';
+import MentorProfile from './Pages/MentorProfile';
+import LoginModal from './components/LoginModal';
+import LoginEncouragementModal from './components/LoginEncouragementModal';
+import Contact from './Pages/Contact'
+import About from './Pages/About'
+import Mentors from './Pages/Mentors'
+import Colleges from './Pages/Colleges'
+import CollegeDetailed from './Pages/CollegeDetailed'
+import PrivacyPolicy from './Pages/PrivacyPolicy'
+import TermsAndConditions from './Pages/TermsAndConditions'
+import ResetPassword from './Pages/ResetPassword';
+import Course from './Pages/Course'
+import Notes from './Pages/Notes';
+import NotesSearch from './Pages/NotesSearch';
+import AddNote from './Pages/AddNote';
+import SignUp from './Pages/SignUp'
+import LogIn from './Pages/LogIn'
+import Profile from './Pages/Profile'
+import Admin from './Pages/Admin'
+import ForgotPassword from './Pages/ForgotPassword';
+import Onboarding from './Pages/Onboarding';
+import ManageColleges from './Pages/ManageColleges'
+import ManageUsers from './Pages/ManageUsers'
+import ManageApplications from './Pages/ManageApplications'
+import JobApplications from './Pages/JobApplications'
+import MentorshipForm from './Pages/MentorshipForm'
+import Blogs from './Pages/Blogs'
+import Messages from './Pages/Messages'
+import Enrollments from './Pages/Enrollments';
+import NotesPage from './Pages/NotesPage';
+import Chatpage from './Pages/Chatpage';
+import Chats from './Pages/Chats';
+import MentorChats from './Pages/MentorChats';
+import MentorChat from './Pages/MentorChat';
+import ManageMentors from './Pages/ManageMentors';
+import { useEffect, useRef, useState } from 'react';
+import { useUser } from './context/UserContext';
+import { useMentor } from './context/MentorContext';
+import { SocketProvider } from './context/SocketContext';
+import TextPressure from "../ReactBits/TextPressure/TextPressure"
+import { NotFound } from './Pages/NotFound';
+import ProtectedRoute from './components/ProtectedRoute';
+import ManageBlogs from './Pages/ManageBlogs';
+import ManageNotes from './Pages/ManageNotes';
+import BlogDetail from './Pages/BlogDetail';
+import ManageAdvertisers from './Pages/ManageAdvertisers';
+import ManageAds from './Pages/ManageAds';
+import Notification from './Pages/Notification';
+import { AnimatePresence, motion } from 'framer-motion';
+import AuthPage from './components/AuthPage';
+import Feed from './Pages/Feed';
+import PostDetail from './Pages/PostDetail';
+import CreatePost from './Pages/CreatePost';
+import Layout from './components/Layout';
+import Explore from "./Pages/Explore"
+import BottomNavBar from './components/BottomNavBar';
+import VerifyEmail from './Pages/VerifyEmail';
+import { enableNotifications } from './Firebase/enableNotifications';
+import { onMessage } from 'firebase/messaging';
+import { messaging } from './Firebase/Firebase';
+import SubscriptionPlans from './Pages/SubscriptionPlans';
+import MySubscriptions from './Pages/MySubscriptions';
+import CheckPayments from './Pages/CheckPayments';
+import Spaces from './Pages/Spaces';
+import SpacesExplore from './Pages/SpacesExplore';
+import Space from './Pages/Space';
+import AdvertiseLanding from './Pages/AdvertiseLanding';
+import AdvertiserSignup from './Pages/AdvertiserSignup';
+import AdvertiserLogin from './Pages/AdvertiserLogin';
+import AdvertiserLayout from './components/AdvertiserLayout';
+import AdvertiserDashboard from './Pages/AdvertiserDashboard';
+import AdvertiserProfile from './Pages/AdvertiserProfile';
+import EditAdvertiserProfile from './Pages/EditAdvertiserProfile';
+import CreateAd from './Pages/CreateAd';
+import EditAd from './Pages/EditAd';
+import MyAds from './Pages/MyAds';
+import OnboardingReminderBanner from './components/OnboardingReminderBanner';
+import ManagePosts from './Pages/ManagePosts';
+import ManageSpaces from './Pages/ManageSpaces';
+import ManageSchools from './Pages/ManageSchools';
+import SchoolLogin from './Pages/SchoolLogin';
+import TeacherSetPassword from './Pages/TeacherSetPassword';
+import SchoolDashboard from './Pages/SchoolDashboard';
+import AddTeacher from './Pages/AddTeacher';
+import TeacherDashboard from './Pages/TeacherDashboard';
+import ManageSubscriptionPlans from './Pages/ManageSubscriptionPlans';
+import MentorForgotPassword from './Pages/MentorForgotPassword';
+import MentorResetPassword from './Pages/MentorResetPassword';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import GoogleSignInBootstrap from './components/GoogleSignInBootstrap';
 
 function App() {
  const location = useLocation();
@@ -133,29 +134,29 @@ function App() {
  }
  });
 
- return () => {
- backHandler.remove();
- };
- }, []);
+    return () => {
+      backHandler.remove();
+    };
+  }, []);
 
- // After Google OAuth redirect: add account to Switch Account list using switchToken from URL
- useEffect(() => {
- const params = new URLSearchParams(location.search);
- if (params.get('oauth_success') !=='true'|| !params.get('switchToken')) return;
- const switchToken = params.get('switchToken');
- let cancelled = false;
- fetchUser(switchToken).then((loggedInUser) => {
- if (cancelled || !loggedInUser) return;
- const cleanPath = location.pathname ||'/';
- window.history.replaceState({},'', cleanPath);
- sessionStorage.removeItem('oauth_in_progress');
- sessionStorage.removeItem('oauth_intended_path');
- }).catch(() => {
- const cleanPath = location.pathname ||'/';
- window.history.replaceState({},'', cleanPath);
- });
- return () => { cancelled = true; };
- }, [location.search, location.pathname]);
+  // After Google OAuth redirect: add account to Switch Account list using switchToken from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('oauth_success') !== 'true' || !params.get('switchToken')) return;
+    const switchToken = params.get('switchToken');
+    let cancelled = false;
+    fetchUser(switchToken).then((loggedInUser) => {
+      if (cancelled || !loggedInUser) return;
+      const cleanPath = location.pathname || '/';
+      window.history.replaceState({}, '', cleanPath);
+      sessionStorage.removeItem('oauth_in_progress');
+      sessionStorage.removeItem('oauth_intended_path');
+    }).catch(() => {
+      const cleanPath = location.pathname || '/';
+      window.history.replaceState({}, '', cleanPath);
+    });
+    return () => { cancelled = true; };
+  }, [location.search, location.pathname]);
 
  // Username warning toast
  useEffect(() => {
@@ -493,31 +494,31 @@ function App() {
  <Route path="/t&c"element={<TermsAndConditions />} />
  <Route path="/careers/mentorship/apply"element={<MentorshipForm />} />
 
- {/* ================= ADMIN (NO SIDEBAR) ================= */}
- <Route path="/admin"element={<Admin />} />
- <Route path="/admin/colleges"element={<ManageColleges />} />
- <Route path="/admin/blogs"element={<ManageBlogs />} />
- <Route path="/admin/users"element={<ManageUsers />} />
- <Route path="/admin/mentors"element={<ManageMentors />} />
- <Route path="/admin/messages"element={<Messages />} />
- <Route path="/admin/enrollments"element={<Enrollments />} />
- <Route path="/admin/applications"element={<ManageApplications />} />
- <Route path="/admin/applications/:job"element={<JobApplications />} />
- <Route path="/admin/notes"element={<ManageNotes />} />
- <Route path="/admin/posts"element={<ManagePosts />} />
- <Route path="/admin/schools"element={<ManageSchools />} />
- <Route path="/admin/spaces"element={<ManageSpaces />} />
- <Route path="/admin/subscription-plans"element={<ManageSubscriptionPlans />} />
- <Route path="/admin/payments"element={<CheckPayments />} />
- <Route path="/admin/advertisers"element={<ManageAdvertisers />} />
- <Route path="/admin/ads"element={<ManageAds />} />
+        {/* ================= ADMIN (NO SIDEBAR) ================= */}
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/colleges" element={<ManageColleges />} />
+        <Route path="/admin/blogs" element={<ManageBlogs />} />
+        <Route path="/admin/users" element={<ManageUsers />} />
+        <Route path="/admin/mentors" element={<ManageMentors />} />
+        <Route path="/admin/messages" element={<Messages />} />
+        <Route path="/admin/enrollments" element={<Enrollments />} />
+        <Route path="/admin/applications" element={<ManageApplications />} />
+        <Route path="/admin/applications/:job" element={<JobApplications />} />
+        <Route path="/admin/notes" element={<ManageNotes />} />
+        <Route path="/admin/posts" element={<ManagePosts />} />
+        <Route path="/admin/schools" element={<ManageSchools />} />
+        <Route path="/admin/spaces" element={<ManageSpaces />} />
+        <Route path="/admin/subscription-plans" element={<ManageSubscriptionPlans />} />
+        <Route path="/admin/payments" element={<CheckPayments />} />
+        <Route path="/admin/advertisers" element={<ManageAdvertisers />} />
+        <Route path="/admin/ads" element={<ManageAds />} />
 
- {/* ================= SCHOOL ROUTES ================= */}
- <Route path="/school-login"element={<SchoolLogin />} />
- <Route path="/school/teacher/set-password"element={<TeacherSetPassword />} />
- <Route path="/school/dashboard"element={<SchoolDashboard />} />
- <Route path="/school/add-teacher"element={<AddTeacher />} />
- <Route path="/school/teacher/dashboard"element={<TeacherDashboard />} />
+        {/* ================= SCHOOL ROUTES ================= */}
+        <Route path="/school-login" element={<SchoolLogin />} />
+        <Route path="/school/teacher/set-password" element={<TeacherSetPassword />} />
+        <Route path="/school/dashboard" element={<SchoolDashboard />} />
+        <Route path="/school/add-teacher" element={<AddTeacher />} />
+        <Route path="/school/teacher/dashboard" element={<TeacherDashboard />} />
 
  {/* ================= ADVERTISER ROUTES ================= */}
  <Route path="/advertise"element={<AdvertiseLanding />} />

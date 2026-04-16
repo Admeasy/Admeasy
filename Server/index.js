@@ -330,9 +330,6 @@ app.get('/api/profile/:username', async (req, res) => {
   }
 });
 
-// Google ID token login (Capacitor native / SPA) — same handler as /api/users/auth/google/native
-app.post('/api/auth/google', postGoogleIdTokenLogin);
-
 // API Routes
 app.use('/api/colleges', CollegesRoutes);
 app.use('/api/users', UsersRoutes);

@@ -7,6 +7,8 @@ import"react-quill-new/dist/quill.snow.css";
 import TableUI from"quill-table-ui";
 import"quill-table-ui/dist/index.css";
 
+import { hasVisiblePostText } from "../utils/postContent";
+
 Quill.register('modules/tableUI', TableUI, true);
 
 const EditPostModal = ({ isOpen, onClose, post, onPostUpdated }) => {
@@ -246,6 +248,11 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated }) => {
  const handleSubmit = async (e) => {
  e.preventDefault();
 
+    const willHaveImage = Boolean(image || preview);
+    if (!hasVisiblePostText(content) && !willHaveImage) {
+      toast.error("Add some text or keep an image on your post");
+      return;
+    }
  if (!content.trim() || content ==='<p><br></p>') {
  toast.error("Post content is required");
  return;

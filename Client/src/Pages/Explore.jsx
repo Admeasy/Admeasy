@@ -50,8 +50,8 @@ const setCachedResults = (query, tab, data) => {
 
 // Helper: detect IIT mentor from college name only
 const isIITMentor = (mentor) => {
- const collegeStr = (mentor.college?.name || mentor.college ||"").toString().toLowerCase();
- return collegeStr.includes("indian institute of technology") || collegeStr.includes("iit");
+  const collegeStr = (mentor.college?.name || mentor.college || "").toString().toLowerCase();
+  return collegeStr.includes("indian institute of technology") || collegeStr.includes("iit");
 };
 
 /* ================= COMPONENT ================= */
@@ -61,7 +61,7 @@ const Explore = () => {
  const tagParam = searchParams.get("tag") ||""; // Read tag from URL
  const navigate = useNavigate();
 
- const [activeTab, setActiveTab] = useState("all");
+ const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "all");
  const [loading, setLoading] = useState(false);
 
  // Initialize input based on query or tag
@@ -76,40 +76,52 @@ const Explore = () => {
  const { user } = useUser();
  const { mentor } = useMentor();
 
- // Sync searchInput with URL changes (Back button support)
+ // Sync searchInput and activeTab with URL changes (Back button support)
  useEffect(() => {
- if (tagParam) {
- setSearchInput(`#${tagParam}`);
- } else {
- setSearchInput(query);
- }
- }, [query, tagParam]);
+   if (tagParam) {
+     setSearchInput(`#${tagParam}`);
+   } else {
+     setSearchInput(query);
+   }
 
- // Debounced search: Handles both ?q= and ?tag=
+   const tabParam = searchParams.get("tab");
+   if (tabParam && tabParam !== activeTab) {
+     setActiveTab(tabParam);
+   }
+ }, [query, tagParam, searchParams]);
+
+ // Debounced search: Handles q, tag, and tab sync
  useEffect(() => {
- const timer = setTimeout(() => {
- const newParams = new URLSearchParams(searchParams);
- const trimmedInput = searchInput.trim();
+   const timer = setTimeout(() => {
+     const newParams = new URLSearchParams(searchParams);
+     const trimmedInput = searchInput.trim();
 
- if (trimmedInput) {
- if (trimmedInput.startsWith('#')) {
- // If input is #tag, set tag param and clear q
- newParams.set("tag", trimmedInput.replace('#',''));
- newParams.delete("q");
- } else {
- // Normal query
- newParams.set("q", trimmedInput);
- newParams.delete("tag");
- }
- } else {
- newParams.delete("q");
- newParams.delete("tag");
- }
- setSearchParams(newParams, { replace: true });
- }, 500);
+     // Handle Tab
+     if (activeTab && activeTab !== "all") {
+       newParams.set("tab", activeTab);
+     } else {
+       newParams.delete("tab");
+     }
 
- return () => clearTimeout(timer);
- }, [searchInput, setSearchParams]);
+     // Handle Query/Tag
+     if (trimmedInput) {
+       if (trimmedInput.startsWith('#')) {
+         newParams.set("tag", trimmedInput.replace('#', ''));
+         newParams.delete("q");
+       } else {
+         newParams.set("q", trimmedInput);
+         newParams.delete("tag");
+       }
+     } else {
+       newParams.delete("q");
+       newParams.delete("tag");
+     }
+     
+     setSearchParams(newParams, { replace: true });
+   }, 500);
+
+   return () => clearTimeout(timer);
+ }, [searchInput, activeTab, setSearchParams]);
 
  useEffect(() => {
  if (activeTab !=="spaces"&& !(activeTab ==="all"&& query)) {
@@ -266,7 +278,12 @@ const Explore = () => {
  <button
  key={tab.value}
  onClick={() => {
- if (tab.value ==="notes") {
+ if (tab.value === "notes") {
+ // Reset tab in URL state before navigating away
+ const newParams = new URLSearchParams(searchParams);
+ newParams.delete("tab");
+ setSearchParams(newParams, { replace: true });
+ setActiveTab("all");
  navigate("/notes");
  } else {
  setActiveTab(tab.value);
@@ -312,7 +329,7 @@ const Explore = () => {
  <h2 className="text-2xl font-bold text-gray-900">Mentors</h2>
  <span onClick={() => navigate(`/mentors`)} className="cursor-pointer px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold hover:bg-[#9f3562]/20 transition-colors">View More</span>
  </div>
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
  {filteredResults.mentors.map((mentorItem) => {
  const mentorName = renderText(mentorItem.name) ||"Anonymous";
  const mentorIsIIT = isIITMentor(mentorItem);
@@ -358,10 +375,10 @@ const Explore = () => {
  {filteredResults.posts.length}
  </span>
  </div>
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
  {filteredResults.posts.map((post) => (
- <div key={post._id} className="relative z-10 w-full h-full max-w-[450px] mx-auto">
- <PostCard post={post} />
+              <div key={post._id} className="relative z-10 w-full flex h-full">
+ <PostCard post={post} compact={true} />
  </div>
  ))}
  </div>
@@ -376,7 +393,7 @@ const Explore = () => {
  <h2 className="text-2xl font-bold text-gray-900">Notes</h2>
  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">{filteredResults.notes.length}</span>
  </div>
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
  {filteredResults.notes.map((note) => (
  <div key={note._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
  <div className="p-6 pb-4">
@@ -454,17 +471,19 @@ const Explore = () => {
  <h2 className="text-2xl font-bold text-gray-900">Colleges</h2>
  <span className="px-3 py-1 bg-[#9f3562]/10 text-[#9f3562] rounded-full text-sm font-semibold">{filteredResults.colleges.length}</span>
  </div>
- <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 items-stretch">
  {filteredResults.colleges.map((college) => {
  const collegeName = renderText(college.name) ||"Unknown College";
  return (
- <div key={college._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all">
- <div className="h-40 bg-gradient-to-br from-[#9f3562]/10 via-purple-50 to-blue-50 flex items-center justify-center p-6">
- {college.logo ? <img src={college.logo} alt={collegeName} className="max-h-full max-w-full object-contain"/> : <GraduationCap className="w-16 h-16 text-[#9f3562]/30"/>}
+ <div key={college._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all flex flex-col h-full">
+ <div className="h-28 bg-gradient-to-br from-[#9f3562]/5 via-purple-50/50 to-blue-50/50 flex items-center justify-center p-3">
+ {college.logo ? <img src={college.logo} alt={collegeName} className="max-h-full max-w-full object-contain"/> : <GraduationCap className="w-12 h-12 text-[#9f3562]/30"/>}
  </div>
- <div className="p-6">
- <h3 className="font-bold text-gray-900 text-lg mb-3">{collegeName}</h3>
- <button onClick={() => navigate(`/colleges/${college._id}`)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-sm"><Eye className="w-4 h-4"/> View Details</button>
+ <div className="p-3 flex flex-col flex-1">
+ <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-1">{collegeName}</h3>
+ <button onClick={() => navigate(`/colleges/${college._id}`)} className="mt-auto w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors font-medium text-xs">
+ <Eye className="w-3.5 h-3.5"/> View
+ </button>
  </div>
  </div>
  );

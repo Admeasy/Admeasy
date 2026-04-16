@@ -88,41 +88,41 @@ export function UserProvider({ children }) {
     });
   };
 
- /** Log out only the current account. Invalidates current session, removes it from saved list.
- * If other saved accounts exist, switches to the first one. Otherwise redirects to login. */
- const logoutCurrentAccount = async () => {
- const currentId = user?._id;
- try {
- await fetch('/api/users/logout', { method:'POST', credentials:'include'});
- } catch (err) {
- console.error("Logout API call failed:", err);
- }
- removeSavedAccount(currentId);
- const remaining = savedAccounts.filter(acc => acc.id !== currentId);
- if (remaining.length > 0) {
- try {
- const res = await fetch("/api/users/switch-account", {
- method:"POST",
- headers: {"Content-Type":"application/json"},
- body: JSON.stringify({ switchToken: remaining[0].token }),
- credentials:"include",
- });
- if (res.ok) {
- await fetchUser();
- navigate("/");
- return;
- }
- removeSavedAccount(remaining[0].id);
- } catch (err) {
- console.error("Switch account after logout failed:", err);
- }
- }
- setUser(null);
- localStorage.removeItem(USER_STORAGE_KEY);
- localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
- localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
- navigate('/login');
- };
+  /** Log out only the current account. Invalidates current session, removes it from saved list.
+   *  If other saved accounts exist, switches to the first one. Otherwise redirects to login. */
+  const logoutCurrentAccount = async () => {
+    const currentId = user?._id;
+    try {
+      await fetch('/api/users/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error("Logout API call failed:", err);
+    }
+    removeSavedAccount(currentId);
+    const remaining = savedAccounts.filter(acc => acc.id !== currentId);
+    if (remaining.length > 0) {
+      try {
+        const res = await fetch("/api/users/switch-account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ switchToken: remaining[0].token }),
+          credentials: "include",
+        });
+        if (res.ok) {
+          await fetchUser();
+          navigate("/");
+          return;
+        }
+        removeSavedAccount(remaining[0].id);
+      } catch (err) {
+        console.error("Switch account after logout failed:", err);
+      }
+    }
+    setUser(null);
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+    navigate('/login');
+  };
 
   const logoutAllAccounts = async () => {
     setUser(null);
@@ -160,60 +160,83 @@ export function UserProvider({ children }) {
       setIsLoading(true);
       const storedRole = localStorage.getItem(AUTH_ROLE_STORAGE_KEY);
 
-      // Do not ping /me if we expect the user to be a mentor, admin, or completely logged out
-      if (!storedRole || storedRole !== 'user') {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const refreshRes = await fetch("/api/users/refresh", { method: "POST", credentials: "include" });
-        if (refreshRes.status === 401) {
-          setUser(null);
-          localStorage.removeItem(USER_STORAGE_KEY);
-          localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
-          localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
-          setIsLoading(false);
-          return;
-        }
-        const res = await fetch("/api/users/me", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          let userObj = data.user;
-
-          try {
-            const imageRes = await fetch('/api/users/me/pic', { credentials: 'include' });
-            if (imageRes.ok) {
-              const imageUrl = await imageRes.json();
-              userObj.imageUrl = imageUrl;
-            }
-          } catch (e) {
-            console.warn("Profile pic fetch failed", e);
-          }
-
-          setUser(userObj);
-          localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userObj._id);
-
-          // Auto update saved account details if changed
-          setSavedAccounts(prev => {
-            const updated = prev.map(acc => acc.id === userObj._id ? { ...acc, name: userObj.name, avatar: userObj.imageUrl || userObj.image } : acc);
-            localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
-            return updated;
+      if (storedRole === "mentor") {
+        try {
+          const res = await fetch("/api/mentors/me", {
+            credentials: "include",
           });
-        } else {
-          if (storedRole === 'user') {
+          if (res.ok) {
+            const data = await res.json();
+            const mentorObj = data.mentor || data;
+            setMentor(mentorObj);
+            localStorage.setItem(MENTOR_STORAGE_KEY, JSON.stringify(mentorObj));
+          } else {
+            setMentor(null);
+            localStorage.removeItem(MENTOR_STORAGE_KEY);
+            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+          }
+        } catch {
+          setMentor(null);
+        }
+      } else {
+        try {
+          const refreshRes = await fetch("/api/users/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
+          if (refreshRes.status === 401) {
+            setUser(null);
+            localStorage.removeItem(USER_STORAGE_KEY);
+            localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+            localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+            setIsLoading(false);
+            return;
+          }
+          const res = await fetch("/api/users/me", { credentials: "include" });
+          if (res.ok) {
+            const data = await res.json();
+            let userObj = data.user;
+            try {
+              const imageRes = await fetch("/api/users/me/pic", {
+                credentials: "include",
+              });
+              if (imageRes.ok) {
+                const imageUrl = await imageRes.json();
+                userObj.imageUrl = imageUrl;
+              }
+            } catch (e) {
+              console.warn("Profile pic fetch failed", e);
+            }
+            setUser(userObj);
+            localStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, userObj._id);
+            setSavedAccounts((prev) => {
+              const updated = prev.map((acc) =>
+                acc.id === userObj._id
+                  ? {
+                      ...acc,
+                      name: userObj.name,
+                      avatar: userObj.imageUrl || userObj.image,
+                    }
+                  : acc,
+              );
+              localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
+              return updated;
+            });
+          } else {
+            if (storedRole === "user") {
+              setUser(null);
+              localStorage.removeItem(USER_STORAGE_KEY);
+              localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+              localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+            }
+          }
+        } catch (err) {
+          if (storedRole === "user") {
             setUser(null);
             localStorage.removeItem(USER_STORAGE_KEY);
             localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
             localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
           }
-        }
-      } catch (err) {
-        if (storedRole === 'user') {
-          setUser(null);
-          localStorage.removeItem(USER_STORAGE_KEY);
-          localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
-          localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
         }
       }
       setIsLoading(false);

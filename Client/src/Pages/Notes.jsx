@@ -7,6 +7,7 @@ import {
  TrendingUp,
  BookOpen,
  Sparkles,
+ ArrowLeft,
 } from"lucide-react";
 import { useNavigate } from"react-router-dom";
 import { useMentor } from"../context/MentorContext";
@@ -167,7 +168,16 @@ const Notes = () => {
  url="https://admeasy.in/notes"
  />
 
- <div className="max-w-7xl mx-auto relative z-10">
+ <div className="max-w-7xl mx-auto relative z-10 pt-4">
+ <div className="mb-6">
+ <button
+ onClick={() => navigate(-1)}
+ className="flex items-center gap-2 text-gray-600 hover:text-gray-900 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl shadow-sm border border-gray-100 hover:shadow transition-all w-fit font-medium text-sm"
+ >
+ <ArrowLeft className="w-4 h-4" />
+ Back
+ </button>
+ </div>
  {/* Modern Header */}
  <div className="text-center mb-10">
  <div className="flex items-center justify-center gap-3 mb-4">

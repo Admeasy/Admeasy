@@ -11,9 +11,17 @@ const renderText = (value) => {
 };
 
 const NotesCard = ({ note, compact = false }) => {
- const navigate = useNavigate();
- const noteId = note?._id || note?.id;
- const isFree = note?.isFree ?? true;
+  const navigate = useNavigate();
+  const noteId = note?._id || note?.id;
+  const isFree = note?.isFree ?? true;
+  const pagesNum = Number(note?.pages);
+  const displayPages =
+    note?.pages != null &&
+    note.pages !== "" &&
+    Number.isFinite(pagesNum) &&
+    pagesNum > 0
+      ? Math.floor(pagesNum)
+      : null;
 
  return (
  <div
@@ -120,14 +128,15 @@ const NotesCard = ({ note, compact = false }) => {
  </span>
  </div>
 
- {/* Pages */}
- <div className="flex items-center gap-2 text-gray-700">
- <File className="w-4 h-4"/>
- <span className="text-xs sm:text-sm font-medium">
- {note?.pages ?`${note.pages} pages`:"Pages N/A"}
- </span>
- </div>
- </div>
+            {displayPages != null && (
+              <div className="flex items-center gap-2 text-gray-700">
+                <File className="w-4 h-4" />
+                <span className="text-xs sm:text-sm font-medium">
+                  {displayPages} {displayPages === 1 ? "page" : "pages"}
+                </span>
+              </div>
+            )}
+          </div>
 
  {/* Standard / Tag */}
  <span className="self-start sm:self-auto text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg bg-[#9f3562]/10 text-[#9f3562] border border-[#9f3562]/20">

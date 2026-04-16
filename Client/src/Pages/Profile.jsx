@@ -24,9 +24,8 @@ export default function Profile() {
  window.scrollTo(0, 0);
  }, [location]);
 
- const { mentor: currentMentor, isLoading: mentorLoading } = useMentor();
- const { user: currentUser, isLoading: userLoading, logoutCurrentAccount, setUser } = useUser();
-
+  const { mentor: currentMentor, isLoading: mentorLoading } = useMentor();
+  const { user: currentUser, isLoading: userLoading, logoutCurrentAccount, setUser } = useUser();
 
  // Redirect to /me if viewing own profile via /:username route to prevent double history entries
  // Only redirect if we have username param and we're not already on /me
@@ -74,50 +73,49 @@ export default function Profile() {
  const [showModal, setShowModal] = useState(false);
  const [modalType, setModalType] = useState('followers'); //'followers'or'following'
 
- const [showMenu, setShowMenu] = useState(false);
- const menuRef = useRef(null);
- const { setMentor } = useMentor();
- const postsSectionRef = useRef(null);
- const completion = useProfileCompletion();
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+  const { setMentor } = useMentor();
+  const postsSectionRef = useRef(null);
 
- const handlePostUpdate = (updatedPost) => {
- setPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
- setAllPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
- setReposts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
- };
+  const handlePostUpdate = (updatedPost) => {
+    setPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
+    setAllPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
+    setReposts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
+  };
 
  const handleScrollToPosts = () => {
  postsSectionRef.current?.scrollIntoView({ behavior:'smooth', block:'start'});
  };
 
- const handleLogout = async () => {
- setShowMenu(false);
- const isMentor = !!currentMentor;
- if (isMentor) {
- try {
- const res = await fetch('/api/mentors/logout', { method:'POST', credentials:'include'});
- if (res.ok) {
- if (setMentor) setMentor(null);
- localStorage.removeItem('admeasy:mentor');
- toast.success('Logged out successfully');
- window.location.href ='/';
- } else {
- toast.error('Failed to logout');
- }
- } catch (err) {
- console.error('Logout failed:', err);
- toast.error('Failed to logout');
- }
- return;
- }
- try {
- await logoutCurrentAccount();
- toast.success('Logged out successfully');
- } catch (err) {
- console.error('Logout failed:', err);
- toast.error('Failed to logout');
- }
- };
+  const handleLogout = async () => {
+    setShowMenu(false);
+    const isMentor = !!currentMentor;
+    if (isMentor) {
+      try {
+        const res = await fetch('/api/mentors/logout', { method: 'POST', credentials: 'include' });
+        if (res.ok) {
+          if (setMentor) setMentor(null);
+          localStorage.removeItem('admeasy:mentor');
+          toast.success('Logged out successfully');
+          window.location.href = '/';
+        } else {
+          toast.error('Failed to logout');
+        }
+      } catch (err) {
+        console.error('Logout failed:', err);
+        toast.error('Failed to logout');
+      }
+      return;
+    }
+    try {
+      await logoutCurrentAccount();
+      toast.success('Logged out successfully');
+    } catch (err) {
+      console.error("Logout failed:", err);
+      toast.error("Failed to logout");
+    }
+  };
 
  // Close menu when clicking outside
  useEffect(() => {
@@ -703,7 +701,8 @@ export default function Profile() {
  {/* Profile Image - Overlapping cover */}
  <div className="flex justify-between items-start -mt-12 sm:-mt-16 mb-4">
  <div className="relative">
- <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center">
+ <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center overflow-hidden">
+ {isOwnProfile ? (
  <ProfileCompletionCircle
  percentage={completion}
  size={window.innerWidth < 640 ? 88 : 120}
@@ -712,7 +711,7 @@ export default function Profile() {
  <div className="relative">
  <img
  src={profileImageUrl || fallbackProfilePic}
- alt={profile.name || profile.username ||'Profile'}
+ alt={profile.name || profile.username || 'Profile'}
  className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover"
  onError={(e) => {
  e.target.src = fallbackProfilePic;
@@ -726,6 +725,16 @@ export default function Profile() {
  </div>
  </div>
  </ProfileCompletionCircle>
+ ) : (
+ <img
+ src={profileImageUrl || fallbackProfilePic}
+ alt={profile.name || profile.username || 'Profile'}
+ className="w-full h-full object-cover"
+ onError={(e) => {
+ e.target.src = fallbackProfilePic;
+ }}
+ />
+ )}
  </div>
  </div>
 
@@ -1213,116 +1222,133 @@ export default function Profile() {
  </button>
  </div>
 
- {/* Tab Content */}
- <div className="p-4 sm:p-6">
- <AnimatePresence mode="wait">
- {activeTab ==='posts'? (
- <motion.div
- key="posts"
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, y: -10 }}
- transition={{ duration: 0.2 }}
- >
- {postsLoading ? (
- <div className="flex justify-center items-center py-12">
- <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
- </div>
- ) : allPosts.length > 0 ? (
- <div className="space-y-4">
- {(showAllPosts ? allPosts : allPosts.slice(0, 10)).map((post) => (
- <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
- ))}
- {!showAllPosts && totalPostsCount > 10 && (
- <div className="flex justify-center pt-4">
- <motion.button
- whileHover={{ scale: 1.02 }}
- whileTap={{ scale: 0.98 }}
- onClick={handleShowAllPosts}
- disabled={postsLoading}
- className="px-6 py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
- >
- {postsLoading ?'Loading...':`Show All Posts (${totalPostsCount} total)`}
- </motion.button>
- </div>
- )}
- </div>
- ) : (
- <div className="text-center py-12">
- <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4"/>
- <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
- <p className="text-sm text-gray-500">
- {isOwnProfile ?'Start sharing your thoughts and experiences!':'This user hasn\'t posted anything yet.'}
- </p>
- </div>
- )}
- </motion.div>
- ) : activeTab ==='reposts'? (
- <motion.div
- key="reposts"
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, y: -10 }}
- transition={{ duration: 0.2 }}
- >
- {repostsLoading ? (
- <div className="flex justify-center items-center py-12">
- <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
- </div>
- ) : reposts.length > 0 ? (
- <div className="space-y-4">
- {reposts.map((post) => (
- <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
- ))}
- </div>
- ) : (
- <div className="text-center py-12">
- <Repeat className="w-12 h-12 text-gray-300 mx-auto mb-4"/>
- <h3 className="text-lg font-semibold text-gray-900 mb-2">No reposts yet</h3>
- <p className="text-sm text-gray-500">
- {isOwnProfile ?'Reposts will appear here.':'This user hasn\'t reposted anything yet.'}
- </p>
- </div>
- )}
- </motion.div>
- ) : activeTab ==='notes'? (
- <motion.div
- key="notes"
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- exit={{ opacity: 0, y: -10 }}
- transition={{ duration: 0.2 }}
- >
- {notesLoading ? (
- <div className="flex justify-center items-center py-12">
- <div className="w-8 h-8 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
- </div>
- ) : notes.length > 0 ? (
- <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
- {notes.map((note) => (
- <NotesCard key={note._id} note={note} compact={true} />
- ))}
- </div>
- ) : (
- <div className="text-center py-12">
- <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4"/>
- <h3 className="text-lg font-semibold text-gray-900 mb-2">No notes yet</h3>
- <p className="text-sm text-gray-500">
- {isOwnProfile ?'Start sharing your knowledge by uploading notes!':'This user hasn\'t uploaded any notes yet.'}
- </p>
- {isOwnProfile && (
- <Link to="/add-note"className="mt-4 inline-block px-6 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors">
- Upload Notes
- </Link>
- )}
- </div>
- )}
- </motion.div>
- ) : null}
- </AnimatePresence>
- </div>
- </div>
- </div>
+          {/* Tab Content */}
+          <div className="p-4 sm:p-6">
+            <AnimatePresence mode="wait">
+              {activeTab === "posts" ? (
+                <motion.div
+                  key="posts"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {postsLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : allPosts.length > 0 ? (
+                    <div className="space-y-4">
+                      {(showAllPosts ? allPosts : allPosts.slice(0, 10)).map((post) => (
+                        <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
+                      ))}
+                      {!showAllPosts && totalPostsCount > 10 && (
+                        <div className="flex justify-center pt-4">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleShowAllPosts}
+                            disabled={postsLoading}
+                            className="px-6 py-3 bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white rounded-xl font-semibold text-sm sm:text-base transition-all hover:shadow-lg hover:shadow-[#9f3562]/30 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {postsLoading
+                              ? "Loading..."
+                              : `Show All Posts (${totalPostsCount} total)`}
+                          </motion.button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <MessagesSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        No posts yet
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {isOwnProfile
+                          ? "Start sharing your thoughts and experiences!"
+                          : "This user hasn't posted anything yet."}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              ) : activeTab === "reposts" ? (
+                <motion.div
+                  key="reposts"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {repostsLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : reposts.length > 0 ? (
+                    <div className="space-y-4">
+                      {reposts.map((post) => (
+                        <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Repeat className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        No reposts yet
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {isOwnProfile
+                          ? "Reposts will appear here."
+                          : "This user hasn't reposted anything yet."}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              ) : activeTab === "notes" ? (
+                <motion.div
+                  key="notes"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {notesLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="w-8 h-8 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : notes.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {notes.map((note) => (
+                        <NotesCard key={note._id} note={note} compact={true} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        No notes yet
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {isOwnProfile
+                          ? "Start sharing your knowledge by uploading notes!"
+                          : "This user hasn't uploaded any notes yet."}
+                      </p>
+                      {isOwnProfile && (
+                        <Link
+                          to="/add-note"
+                          className="mt-4 inline-block px-6 py-2 bg-[#9f3562] text-white rounded-lg hover:bg-[#b86286] transition-colors"
+                        >
+                          Upload Notes
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
 
  {/* Followers/Following Modal */}
  {showModal && (modalType ==='followers'|| modalType ==='following') && (
