@@ -24,7 +24,8 @@ import { useMentor } from "../context/MentorContext";
 import EditPostModal from "./EditPostModal";
 import ConfirmModal from "./ConfirmModal";
 import { processMentions } from "../utils/processMentions";
-import { hasVisiblePostText } from "../utils/postContent";
+import PollCard from "./PollCard";
+import McqCard from "./McqCard";
 import { truncateHtml } from "../utils/textUtils";
 import SharePostModal from "./SharePostModal";
 
@@ -55,8 +56,6 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
     () => processMentions(postState.content || post.content || ""),
     [postState.content, post.content],
   );
-
-  const showTextBody = hasVisiblePostText(processedContent);
 
   const truncatedContent = useMemo(
     () => truncateHtml(processedContent, 30),
@@ -763,14 +762,7 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
               {isExpanded ? "Show less" : "Read more"}
             </button>
           )}
-        </div>
-        {!showTextBody &&
-          !post.image &&
-          !(post.externalLink && post.externalLink.url) && (
-            <div className="px-3.5 sm:px-6 pb-2 text-xs text-gray-400">
-              This post has no text.
-            </div>
-          )}
+        </div> */}
 
         {/* NEW: Clickable Hashtags Display */}
         {postState.hashtags && postState.hashtags.length > 0 && (

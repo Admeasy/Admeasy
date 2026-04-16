@@ -1,7 +1,22 @@
-const express = require('express');
-const { resetPassword, forgotPassword, switchAccount } = require('../controllers/userController.js')
-const { sendEmailVerification, verifyEmail } = require('../controllers/emailverify.js')
-const { generateAccessToken, generateRefreshToken, generateSwitchToken, setTokenCookies, clearTokenCookies } = require('../utils/auth.js');
+const express = require("express");
+const generateUniqueReferralCode = require("../utils/generateReferralCode.js");
+const Referral = require("../models/referralSchema.js");
+const {
+  resetPassword,
+  forgotPassword,
+  switchAccount,
+} = require("../controllers/userController.js");
+const {
+  sendEmailVerification,
+  verifyEmail,
+} = require("../controllers/emailverify.js");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  generateSwitchToken,
+  setTokenCookies,
+  clearTokenCookies,
+} = require("../utils/auth.js");
 const router = express.Router();
 const User = require('../models/userSchema.js');
 const crypto = require('crypto')

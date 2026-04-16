@@ -14,7 +14,7 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/app": "^8.0.1",
     "@capacitor/cli": "^8.2.0",
-    "@capacitor/core": "^8.2.0",
+    "@capacitor/core": "^8.3.0",
     "@capacitor/splash-screen": "^8.0.1",
     "@capawesome/capacitor-google-sign-in": "^0.1.1",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",

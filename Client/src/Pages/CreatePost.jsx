@@ -20,7 +20,11 @@ import "quill-table-ui/dist/index.css";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import { processMentions } from "../utils/processMentions";
-import { hasVisiblePostText } from "../utils/postContent";
+import CreateNoteTab from "../components/CreateNoteTab";
+import CreatePollTab from "../components/CreatePollTab";
+import CreateMcqTab from "../components/CreateMcqTab";
+import PollCard from "../components/PollCard";
+import McqCard from "../components/McqCard";
 
 Quill.register("modules/tableUI", TableUI, true);
 
@@ -365,23 +369,8 @@ const MentorPost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!hasVisiblePostText(content) && !image) {
-      toast.error("Add some text or an image to your post");
-      return;
-    }
-
-    if (!headline.trim()) {
-      toast.error("Headline is required");
-      return;
-    }
-
     if (!content.trim() || content === "<p><br></p>") {
       toast.error("Post content is required");
-      return;
-    }
-
-    if (!spaceId) {
-      toast.error("Please select a Space for this post");
       return;
     }
 

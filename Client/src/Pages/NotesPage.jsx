@@ -3,6 +3,7 @@ import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, Chevr
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import PaymentModal from "../components/PaymentModal";
+import WelcomeCoinPopup from "../components/popups/WelcomeCoinPopup";
 import { useUser } from "../context/UserContext";
 import { Document, Page, pdfjs } from "react-pdf";
 
@@ -29,6 +30,7 @@ const NotesPage = () => {
 
   const [note, setNote] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showWelcomeCoinPopup, setShowWelcomeCoinPopup] = useState(false);
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -239,8 +241,18 @@ const NotesPage = () => {
               {/* Note Info Card */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${note.isFree ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"}`}>
-                    {note.isFree ? "FREE" : `₹${note.price || ''}`}
+                  <span
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                      (note.isFree ?? true)
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-blue-50 text-blue-700 border border-blue-200"
+                    }`}
+                  >
+                    {(note.isFree ?? true)
+                      ? "FREE"
+                      : note.price
+                        ? `₹${note.price}`
+                        : "Paid"}
                   </span>
                   {note.standard && (
                     <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700">
@@ -353,9 +365,22 @@ const NotesPage = () => {
           note={note}
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
-          onPaymentSuccess={() => window.location.reload()}   // simple refresh for now
+          onPaymentSuccess={(data) => {
+            refetchNote();
+            //show welcome coin popup only once every
+            const alreadyShown = localStorage.getItem(
+              "admeasy:welcomeCoinsShown",
+            );
+            if (!alreadyShown) {
+              setShowWelcomeCoinPopup(true);
+            }
+          }}
         />
       )}
+      <WelcomeCoinPopup
+        isOpen={showWelcomeCoinPopup}
+        onClose={() => setShowWelcomeCoinPopup}
+      />
     </div>
   );
 };
