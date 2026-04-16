@@ -152,7 +152,6 @@ const NoteSuggestionSwiper = () => {
                                         {note.title || "Untitled"}
                                     </h4>
 
-<<<<<<< HEAD
                                     <p className="text-xs text-gray-500 line-clamp-2 mb-3 flex-grow leading-relaxed">
                                         {note.description || "No description provided for this note. Explore it to learn more."}
                                     </p>
@@ -195,12 +194,6 @@ const NoteSuggestionSwiper = () => {
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-1">
                                                 <Heart className="w-3.5 h-3.5 text-gray-400" />
-=======
-                                    <div className="flex items-center justify-between text-[8px] font-medium text-gray-400 mt-1 pt-1.5 border-t border-gray-50">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="flex items-center gap-0.5 text-blue-500">
-                                                <Heart className="w-2 h-2" />
->>>>>>> 32930030 (Implemented Study and Masti mode)
                                                 <span>{note.likes || 0}</span>
                                             </div>
                                         </div>

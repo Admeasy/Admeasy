@@ -15,13 +15,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 axios.defaults.withCredentials = true;
 
-<<<<<<< HEAD
 const isNative = Capacitor.isNativePlatform();
 
 if (isNative) {
   const splash = document.getElementById("mobile-splash");
   if (splash) splash.classList.add("visible");
-=======
+}
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -41,7 +40,6 @@ const hideNativeSplash = async () => {
   } catch (err) {
     console.error('Failed to hide splash screen', err)
   }
->>>>>>> 32930030 (Implemented Study and Masti mode)
 }
 
 // Hide native splash and web overlay once React loads (native only)

@@ -13,12 +13,9 @@ import NotificationBell from '../components/NotificationBell';
 import AskDoubtCTA from '../components/AskDoubtCTA';
 import AddExamInfoCTA from '../components/AddExamInfoCTA';
 import AdCard from '../components/AdCard';
-<<<<<<< HEAD
 import HeroActivityTicker from '../components/HeroActivityTicker';
-import { Loader2, X, ChevronRight } from 'lucide-react';
-=======
+import { ChevronRight } from 'lucide-react';
 import { Loader2, X, BookOpen, Smile } from 'lucide-react';
->>>>>>> 32930030 (Implemented Study and Masti mode)
 import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -250,11 +247,6 @@ const Feed = () => {
             </div>
           </div>
 
-<<<<<<< HEAD
-          <HeroActivityTicker variant="feed" />
-
-          {/* Active Hashtag Filter Banner */}
-=======
           {/* ── Dual-Channel Toggle (Custom Animated Switch) ──────────────── */}
           <div className="mb-8 flex justify-center items-center gap-4">
             <span className={`text-sm font-bold transition-opacity duration-300 ${!isMasti ? 'text-[#9f3562] opacity-100' : 'text-gray-400 opacity-60'}`}>
@@ -281,7 +273,6 @@ const Feed = () => {
           </div>
 
           {/* ── Hashtag Filter Banner ──────────────────────────── */}
->>>>>>> 32930030 (Implemented Study and Masti mode)
           {tagFilter && (
             <motion.div
               initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}

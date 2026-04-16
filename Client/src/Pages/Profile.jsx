@@ -1433,17 +1433,9 @@ export default function Profile() {
                     </div>
                   ) : allPosts.length > 0 ? (
                     <div className="space-y-4">
-<<<<<<< HEAD
-                      {(showAllPosts ? allPosts : allPosts.slice(0, 10)).map(
-                        (post) => (
-                          <PostCard key={post._id} post={post} />
-                        ),
-                      )}
-=======
                       {(showAllPosts ? allPosts : allPosts.slice(0, 10)).map((post) => (
                         <PostCard key={post._id} post={post} onPostUpdate={handlePostUpdate} />
                       ))}
->>>>>>> 32930030 (Implemented Study and Masti mode)
                       {!showAllPosts && totalPostsCount > 10 && (
                         <div className="flex justify-center pt-4">
                           <motion.button

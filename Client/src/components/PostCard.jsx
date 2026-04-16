@@ -91,12 +91,7 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
           prev.isReposted !== post.isReposted ||
           prev.repostCount !== post.repostCount ||
           prev.commentsCount !== post.commentsCount ||
-<<<<<<< HEAD
-          JSON.stringify(prev.commentPreview) !==
-            JSON.stringify(post.commentPreview)
-=======
           JSON.stringify(prev.commentPreview) !== JSON.stringify(post.commentPreview)
->>>>>>> 32930030 (Implemented Study and Masti mode)
         ) {
           // If it's a completely new post (e.g. navigation), take the full prop object
           if (prev._id !== post._id) return { ...post };
@@ -715,27 +710,14 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
           )}
         </div>
 
-<<<<<<< HEAD
-        {/* Post Content — hide block when HTML has no visible text (legacy empty rich-text bodies) */}
-        {showTextBody && (
-          <div className="px-3.5 sm:px-6 pb-2.5 sm:pb-4">
-            <div
-              className="text-gray-800 break-words leading-snug sm:leading-relaxed text-[13px] sm:text-[15px] post-content"
-              dangerouslySetInnerHTML={{
-                __html: isExpanded
-                  ? processedContent
-                  : truncatedContent.hasMore
-                    ? truncatedContent.html
-                    : processedContent,
-=======
         {/* Post Content */}
         <div className="px-3.5 sm:px-5 pb-2 sm:pb-3">
-          {/* Headline (new posts only — null for old posts) */}
           {postState.headline && (
             <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1 leading-snug">
               {postState.headline}
             </h2>
           )}
+
           <div
             className="text-gray-700 break-words leading-snug text-[13px] sm:text-[14px] post-content"
             dangerouslySetInnerHTML={{
@@ -746,88 +728,42 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
                   : processedContent,
             }}
             onClick={(e) => {
-              // Handle mention link clicks
               const mentionLink = e.target.closest("a.mention-link");
               if (mentionLink) {
                 e.preventDefault();
                 e.stopPropagation();
                 const username = mentionLink.getAttribute("data-username");
-                if (username) {
-                  navigate(`/${username}`);
-                }
+                if (username) navigate(`/${username}`);
                 return;
               }
 
-              // Intercept clicks on other links within post content
               const link = e.target.closest("a");
               if (link && link.href) {
                 e.preventDefault();
                 e.stopPropagation();
-                let cleanUrl = link.href;
-                // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-                cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                // Remove any HTML tags (decoded)
-                cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                // Remove any remaining angle brackets
-                cleanUrl = cleanUrl.replace(/[<>]/g, "");
-                // Trim whitespace
-                cleanUrl = cleanUrl.trim();
+                let cleanUrl = link.href
+                  .replace(/%3C\/[^>]*%3E$/i, "")
+                  .replace(/<[^>]*>/g, "")
+                  .replace(/[<>]/g, "")
+                  .trim();
+
                 window.open(cleanUrl, "_blank", "noopener,noreferrer");
               }
             }}
           />
+
           {truncatedContent.hasMore && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
->>>>>>> 32930030 (Implemented Study and Masti mode)
               }}
-              onClick={(e) => {
-                // Handle mention link clicks
-                const mentionLink = e.target.closest("a.mention-link");
-                if (mentionLink) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const username = mentionLink.getAttribute("data-username");
-                  if (username) {
-                    navigate(`/${username}`);
-                  }
-                  return;
-                }
-
-                // Intercept clicks on other links within post content
-                const link = e.target.closest("a");
-                if (link && link.href) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  let cleanUrl = link.href;
-                  // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
-                  cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                  // Remove any HTML tags (decoded)
-                  cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                  // Remove any remaining angle brackets
-                  cleanUrl = cleanUrl.replace(/[<>]/g, "");
-                  // Trim whitespace
-                  cleanUrl = cleanUrl.trim();
-                  window.open(cleanUrl, "_blank", "noopener,noreferrer");
-                }
-              }}
-            />
-            {truncatedContent.hasMore && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsExpanded(!isExpanded);
-                }}
-                className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
-              >
-                {isExpanded ? "Show less" : "Read more"}
-              </button>
-            )}
-          </div>
-        )}
-
+              className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
+            >
+              {isExpanded ? "Show less" : "Read more"}
+            </button>
+          )}
+        </div>
         {!showTextBody &&
           !post.image &&
           !(post.externalLink && post.externalLink.url) && (
@@ -943,20 +879,6 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
             className="flex items-center gap-2 group/like"
           >
             <Heart
-<<<<<<< HEAD
-              className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${
-                postState.isLiked
-                  ? "fill-red-500 text-red-500"
-                  : "text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110"
-              }`}
-            />
-            <span
-              className={`text-sm sm:text-base font-bold transition-colors ${
-                postState.isLiked
-                  ? "text-red-500"
-                  : "text-gray-600 group-hover/like:text-red-500"
-              }`}
-=======
               className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 ${postState.isLiked
                 ? "fill-red-500 text-red-500"
                 : "text-gray-500 group-hover/like:text-red-500 group-hover/like:scale-110"
@@ -967,7 +889,6 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
                 ? "text-red-500"
                 : "text-gray-600 group-hover/like:text-red-500"
                 }`}
->>>>>>> 32930030 (Implemented Study and Masti mode)
             >
               {postState.likesCount}
             </span>
@@ -992,18 +913,10 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleRepost}
-<<<<<<< HEAD
-            className={`flex items-center gap-2 transition-colors ${
-              postState.isReposted
-                ? "text-[#9f3562]"
-                : "text-gray-500 hover:text-[#9f3562]"
-            }`}
-=======
             className={`flex items-center gap-2 transition-colors ${postState.isReposted
               ? "text-[#9f3562]"
               : "text-gray-500 hover:text-[#9f3562]"
               }`}
->>>>>>> 32930030 (Implemented Study and Masti mode)
           >
             <Repeat2
               className={`w-5 h-5 sm:w-6 sm:h-6 ${
@@ -1194,5 +1107,5 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
     </motion.div>
   );
 };
-
+  
 export default PostCard;
