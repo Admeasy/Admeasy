@@ -5,7 +5,7 @@ const Mentor = require("../models/mentorSchema");
 const User = require("../models/userSchema");
 const { Users } = require("../db");
 
-const apiCache = require("../middleware/apiCache");
+const apiCache = require('../middleware/apiCache');
 const authenticateMentorJWT = require("../middleware/mentorAuth");
 const authenticateJWT = require("../middleware/userAuth");
 const { authenticateRequired } = require("../middleware/combinedAuth");
@@ -27,7 +27,7 @@ const { extractPublicId } = require("../utils/cloudinary");
 const { hasVisiblePostText } = require("../utils/postContent");
 
 const getPublicIdFromUrl = (imageUrl) => {
-  if (!imageUrl || typeof imageUrl !== "string") return null;
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
   try {
     return extractPublicId(imageUrl);
   } catch (error) {
@@ -40,20 +40,16 @@ const getPublicIdFromUrl = (imageUrl) => {
 async function populateUser(userId) {
   if (!userId) return null;
   try {
-    const UserModel = Users.model("Users");
-    const user = await UserModel.findById(userId)
-      .select("name image _id username")
-      .lean();
-    return user
-      ? {
-          _id: user._id,
-          name: user.name,
-          image: user.image,
-          username: user.username || null,
-        }
-      : null;
+    const UserModel = Users.model('Users');
+    const user = await UserModel.findById(userId).select('name image _id username').lean();
+    return user ? {
+      _id: user._id,
+      name: user.name,
+      image: user.image,
+      username: user.username || null,
+    } : null;
   } catch (error) {
-    console.error("Error populating user:", error);
+    console.error('Error populating user:', error);
     return null;
   }
 }
@@ -61,10 +57,10 @@ async function populateUser(userId) {
 // Helper function to extract mentions from post content
 // Extracts @username patterns from HTML content
 function extractMentions(content) {
-  if (!content || typeof content !== "string") return [];
+  if (!content || typeof content !== 'string') return [];
 
   // Remove HTML tags and get plain text
-  const plainText = content.replace(/<[^>]*>/g, " ");
+  const plainText = content.replace(/<[^>]*>/g, ' ');
 
   // Match @username patterns (alphanumeric and underscore)
   const mentionRegex = /@([a-zA-Z0-9_]+)/g;
@@ -73,38 +69,28 @@ function extractMentions(content) {
   if (!matches) return [];
 
   // Extract unique usernames (remove @ symbol)
-  const usernames = [...new Set(matches.map((match) => match.substring(1)))];
+  const usernames = [...new Set(matches.map(match => match.substring(1)))];
   return usernames;
 }
 
 // Helper function to create mention notifications
-async function createMentionNotifications(
-  postContent,
-  postId,
-  actorId,
-  actorRole,
-  actorName,
-) {
+async function createMentionNotifications(postContent, postId, actorId, actorRole, actorName) {
   try {
     const mentionedUsernames = extractMentions(postContent);
     if (mentionedUsernames.length === 0) return;
 
     // Find all mentioned users and mentors
-    const mentionedUsers = await User.find({
-      username: { $in: mentionedUsernames },
-    })
-      .select("_id username name")
+    const mentionedUsers = await User.find({ username: { $in: mentionedUsernames } })
+      .select('_id username name')
       .lean();
-    const mentionedMentors = await Mentor.find({
-      username: { $in: mentionedUsernames },
-    })
-      .select("_id username name")
+    const mentionedMentors = await Mentor.find({ username: { $in: mentionedUsernames } })
+      .select('_id username name')
       .lean();
 
     // Combine and create notifications
     const allMentioned = [
-      ...mentionedUsers.map((u) => ({ ...u, role: "user" })),
-      ...mentionedMentors.map((m) => ({ ...m, role: "mentor" })),
+      ...mentionedUsers.map(u => ({ ...u, role: 'user' })),
+      ...mentionedMentors.map(m => ({ ...m, role: 'mentor' }))
     ];
 
     // Create notifications for each mentioned user/mentor
@@ -116,8 +102,8 @@ async function createMentionNotifications(
         recipientId: mentioned._id,
         recipientRole: mentioned.role,
         actorId: actorId,
-        type: "MENTION",
-        entityType: "POST",
+        type: 'MENTION',
+        entityType: 'POST',
         entityId: postId,
         originPath: `/posts/${postId}`,
         message: `${actorName} mentioned you in a post`,
@@ -125,7 +111,7 @@ async function createMentionNotifications(
       });
     }
   } catch (error) {
-    console.error("Error creating mention notifications:", error);
+    console.error('Error creating mention notifications:', error);
     // Don't throw - mention notifications are not critical
   }
 }
@@ -133,19 +119,15 @@ async function createMentionNotifications(
 async function populateMentor(mentorId) {
   if (!mentorId) return null;
   try {
-    const mentor = await Mentor.findById(mentorId)
-      .select("name image _id username")
-      .lean();
-    return mentor
-      ? {
-          _id: mentor._id,
-          name: mentor.name,
-          image: mentor.image,
-          username: mentor.username || null,
-        }
-      : null;
+    const mentor = await Mentor.findById(mentorId).select('name image _id username').lean();
+    return mentor ? {
+      _id: mentor._id,
+      name: mentor.name,
+      image: mentor.image,
+      username: mentor.username || null,
+    } : null;
   } catch (error) {
-    console.error("Error populating mentor:", error);
+    console.error('Error populating mentor:', error);
     return null;
   }
 }
@@ -154,20 +136,20 @@ async function populateMentor(mentorId) {
 async function populateUsers(userIds) {
   if (!userIds || userIds.length === 0) return {};
   try {
-    const UserModel = Users.model("Users");
-    const uniqueIds = [...new Set(userIds.filter((id) => id != null))];
+    const UserModel = Users.model('Users');
+    const uniqueIds = [...new Set(userIds.filter(id => id != null))];
     const users = await UserModel.find({ _id: { $in: uniqueIds } })
-      .select("name image")
+      .select('name image')
       .lean();
 
     // Create a map for quick lookup
     const userMap = {};
-    users.forEach((user) => {
+    users.forEach(user => {
       userMap[user._id.toString()] = user;
     });
     return userMap;
   } catch (error) {
-    console.error("Error batch populating users:", error);
+    console.error('Error batch populating users:', error);
     return {};
   }
 }
@@ -178,72 +160,28 @@ async function getOptionalUser(req) {
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    const Mentor = require("../models/mentorSchema");
+    const Mentor = require('../models/mentorSchema');
 
     // Support both users and mentors
-    if (decoded.role === "mentor") {
+    if (decoded.role === 'mentor') {
       const mentor = await Mentor.findById(decoded.id || decoded._id)
-        .select("following reposts _id")
+        .select('following reposts _id')
         .lean();
       return mentor || null;
     } else {
       const user = await User.findById(decoded.id || decoded._id)
-        .select("following reposts _id")
+        .select('following reposts _id')
         .lean();
       return user || null;
     }
   } catch (err) {
     // Token invalid/expired - silently return null for public access
     // Only log in development to reduce noise
-    if (process.env.NODE_ENV === "development") {
-      console.log("Token validation failed (optional user):", err.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Token validation failed (optional user):', err.message);
     }
     return null;
   }
-}
-
-/**
- * MCQ payload for API: hides correct answer until the viewer has submitted an answer
- * (same for author and everyone — avoids spoiling the question in the feed).
- */
-function formatMcqForResponse(post, currentUser, _author) {
-  if (post.type !== "mcq" || !post.mcq) return null;
-  const options = post.mcq.options || [];
-  const viewerId = currentUser?._id;
-  const userSelectedOpt =
-    viewerId &&
-    options.find((opt) =>
-      (opt.answeredBy || []).some(
-        (id) => id.toString() === viewerId.toString(),
-      ),
-    );
-  const hasAnswered = !!userSelectedOpt;
-  const totalAnswers = post.mcq.totalAnswers || 0;
-  const reveal = hasAnswered;
-
-  return {
-    question: post.mcq.question,
-    options: options.map((opt) => {
-      const base = {
-        _id: opt._id,
-        text: opt.text,
-      };
-      if (!reveal) return base;
-      const ac = (opt.answeredBy || []).length;
-      return {
-        ...base,
-        isCorrect: !!opt.isCorrect,
-        answerCount: ac,
-        percentage:
-          totalAnswers > 0 ? Math.round((ac / totalAnswers) * 100) : 0,
-      };
-    }),
-    totalAnswers,
-    hasAnswered,
-    userSelectedOptionId: userSelectedOpt?._id?.toString() || null,
-    isUserCorrect:
-      hasAnswered && userSelectedOpt ? !!userSelectedOpt.isCorrect : null,
-  };
 }
 
 // Get full user context for feed ranking (includes exam and academic context)
@@ -252,25 +190,23 @@ async function getUserForRanking(req) {
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    const Mentor = require("../models/mentorSchema");
+    const Mentor = require('../models/mentorSchema');
 
     // Only users have exam/academic context, mentors don't need ranking
-    if (decoded.role === "mentor") {
+    if (decoded.role === 'mentor') {
       const mentor = await Mentor.findById(decoded.id || decoded._id)
-        .select("following reposts _id competitiveExamsCleared")
+        .select('following reposts _id competitiveExamsCleared')
         .lean();
       return mentor || null;
     } else {
       const user = await User.findById(decoded.id || decoded._id)
-        .select(
-          "following reposts _id examsPreparingFor class board educationType stream",
-        )
+        .select('following reposts _id examsPreparingFor class board educationType stream')
         .lean();
       return user || null;
     }
   } catch (err) {
-    if (process.env.NODE_ENV === "development") {
-      console.log("Token validation failed (user for ranking):", err.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Token validation failed (user for ranking):', err.message);
     }
     return null;
   }
@@ -283,7 +219,7 @@ async function getUserForRanking(req) {
 router.get("/admin", verifyAdminToken, async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate("mentorId", "name username image")
+      .populate('mentorId', 'name username image')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -297,19 +233,19 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
             name: post.mentorId.name,
             username: post.mentorId.username,
             image: post.mentorId.image,
-            role: "mentor",
+            role: 'mentor',
           };
         } else if (post.userId) {
           const user = await populateUser(post.userId);
           author = user
-            ? { ...user, role: "user" }
+            ? { ...user, role: 'user' }
             : {
-                _id: post.userId,
-                name: null,
-                username: null,
-                image: null,
-                role: "user",
-              };
+              _id: post.userId,
+              name: null,
+              username: null,
+              image: null,
+              role: 'user',
+            };
         }
 
         return {
@@ -323,7 +259,7 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
           isEdited: post.isEdited || false,
           editedAt: post.editedAt || null,
         };
-      }),
+      })
     );
 
     res.json({
@@ -336,17 +272,18 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
   }
 });
 
+
 /**
  * GET /api/posts
  * Public: list posts (from both mentors and users)
  * Uses relevance-based ranking algorithm (V1)
- *
+ * 
  * Feed Ranking Logic:
  * 1. Prioritizes UNSEEN posts first
  * 2. Then SEEN but not ENGAGED posts
  * 3. ENGAGED posts are heavily deprioritized
  * 4. Posts are scored by: Exam relevance, Following, Keyword affinity, Academic context, Recency
- *
+ * 
  * Note: Pagination does NOT mark posts as seen. Only explicit view tracking does.
  */
 router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
@@ -356,8 +293,14 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
 
-    // NEW: Extract hashtag from query
+    // NEW: Extract hashtag and feed type (study/masti) from query
     const hashtag = req.query.hashtag;
+    const category = ['study', 'masti'].includes(req.query.type) ? req.query.type : 'study';
+
+    // Build category filter (backward safe: old posts with no category → treated as 'study')
+    const categoryFilter = category === 'study'
+      ? { $or: [{ category: 'study' }, { category: { $exists: false } }, { category: null }] }
+      : { category: 'masti' };
 
     // Use ranking algorithm to get personalized feed
     let feedResult;
@@ -365,11 +308,12 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     // NEW: If a hashtag is searched, bypass ranking and filter directly
     if (hashtag) {
       const skip = (page - 1) * limit;
-      // Case-insensitive regex match for the hashtag
-      const filter = { hashtags: new RegExp(`^${hashtag}$`, "i") };
+      // Case-insensitive regex match for the hashtag — also respect category
+      const filter = { hashtags: new RegExp(`^${hashtag}$`, 'i'), ...categoryFilter };
 
       const filteredPosts = await Post.find(filter)
-        .populate("mentorId", "name username image")
+        .populate('mentorId', 'name username image')
+        .populate('spaceId', 'name logo')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -387,24 +331,22 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         },
       };
     } else {
-      // Normal behavior: Use ranking algorithm
+      // Normal behavior: Use ranking algorithm with category filter
       try {
-        feedResult = await getRankedFeed(currentUser, page, limit);
+        feedResult = await getRankedFeed(currentUser, page, limit, category);
       } catch (rankingError) {
-        console.error(
-          "Error in feed ranking algorithm, falling back to simple sort:",
-          rankingError,
-        );
+        console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
         // Fallback to simple date-based sorting if ranking fails
         const skip = (page - 1) * limit;
-        const fallbackPosts = await Post.find()
-          .populate("mentorId", "name username image")
+        const fallbackPosts = await Post.find(categoryFilter)
+          .populate('mentorId', 'name username image')
+          .populate('spaceId', 'name logo')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
           .lean();
 
-        const total = await Post.countDocuments();
+        const total = await Post.countDocuments(categoryFilter);
         feedResult = {
           posts: fallbackPosts,
           pagination: {
@@ -428,18 +370,18 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     const allCommentAuthorIds = new Set();
     const postAuthorUserIds = [];
 
-    posts.forEach((post) => {
+    posts.forEach(post => {
       // Collect post author user IDs
       if (post.userId) {
         allUserIds.add(post.userId.toString());
         postAuthorUserIds.push(post.userId.toString());
       }
       // Collect like user IDs
-      (post.likes || []).forEach((like) => {
+      (post.likes || []).forEach(like => {
         if (like.userId) allUserIds.add(like.userId.toString());
       });
       // Collect comment author IDs (can be users or mentors)
-      (post.comments || []).forEach((comment) => {
+      (post.comments || []).forEach(comment => {
         if (comment.userId && !comment.deleted) {
           allCommentAuthorIds.add(comment.userId.toString());
         }
@@ -450,11 +392,10 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     const userIdsArray = Array.from(allUserIds);
     const usersMap = new Map();
     if (userIdsArray.length > 0) {
-      const UserModel = Users.model("Users");
-      const users = await UserModel.find({ _id: { $in: userIdsArray } })
-        .select("name image _id username")
+      const users = await User.find({ _id: { $in: userIdsArray } })
+        .select('name image _id username')
         .lean();
-      users.forEach((user) => {
+      users.forEach(user => {
         usersMap.set(user._id.toString(), {
           _id: user._id,
           name: user.name,
@@ -462,8 +403,6 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
           username: user.username || null,
         });
       });
-      // console.log("UsersMap size:", usersMap.size); // ← add this
-      // console.log("UsersMap data:", [...usersMap.entries()]); // ← add this
     }
 
     // Batch fetch all comment authors (both users and mentors)
@@ -471,13 +410,10 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     const commentAuthorsMap = new Map();
     if (commentAuthorIdsArray.length > 0) {
       // Fetch users
-      const UserModel2 = Users.model("Users");
-      const commentUsers = await UserModel2.find({
-        _id: { $in: commentAuthorIdsArray },
-      })
-        .select("name image _id username")
+      const commentUsers = await User.find({ _id: { $in: commentAuthorIdsArray } })
+        .select('name image _id username')
         .lean();
-      commentUsers.forEach((user) => {
+      commentUsers.forEach(user => {
         commentAuthorsMap.set(user._id.toString(), {
           _id: user._id,
           name: user.name,
@@ -488,12 +424,10 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
       });
 
       // Fetch mentors (check which IDs are mentors)
-      const commentMentors = await Mentor.find({
-        _id: { $in: commentAuthorIdsArray },
-      })
-        .select("name image _id username")
+      const commentMentors = await Mentor.find({ _id: { $in: commentAuthorIdsArray } })
+        .select('name image _id username')
         .lean();
-      commentMentors.forEach((mentor) => {
+      commentMentors.forEach(mentor => {
         commentAuthorsMap.set(mentor._id.toString(), {
           _id: mentor._id,
           name: mentor.name,
@@ -507,7 +441,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     // Format posts using the pre-fetched user data
     const formattedPosts = posts.map((post) => {
       // Map likes using pre-fetched users
-      const populatedLikes = (post.likes || []).map((like) => {
+      const populatedLikes = (post.likes || []).map(like => {
         if (like.userId) {
           const user = usersMap.get(like.userId.toString());
           return {
@@ -541,51 +475,41 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
       let isFollowing = false;
       if (currentUser && currentUser.following) {
         if (post.mentorId) {
-          isFollowing = currentUser.following.some(
-            (id) => id.toString() === post.mentorId._id.toString(),
-          );
+          isFollowing = currentUser.following.some(id => id.toString() === post.mentorId._id.toString());
         } else if (post.userId) {
-          isFollowing = currentUser.following.some(
-            (id) => id.toString() === post.userId.toString(),
-          );
+          isFollowing = currentUser.following.some(id => id.toString() === post.userId.toString());
         }
       }
 
       // Check if user has reposted this
-      const isReposted =
-        currentUser && currentUser.reposts
-          ? currentUser.reposts.some(
-              (id) => id.toString() === post._id.toString(),
-            )
-          : false;
+      const isReposted = currentUser && currentUser.reposts
+        ? currentUser.reposts.some(id => id.toString() === post._id.toString())
+        : false;
 
       // Check if current user/mentor liked this post
       // Handle both ObjectId directly or populated user object
       let isLiked = false;
       if (currentUser) {
-        isLiked = (post.likes || []).some((like) => {
+        isLiked = (post.likes || []).some(like => {
           if (!like.userId) return false;
           // like.userId can be ObjectId directly (when using .lean()) or populated
-          const likeUserId = like.userId._id
-            ? like.userId._id.toString()
-            : like.userId.toString();
+          const likeUserId = like.userId._id ? like.userId._id.toString() : like.userId.toString();
           return likeUserId === currentUser._id.toString();
         });
       }
 
       // Find best comment preview: prioritize mentor comments, then user comments
       let commentPreview = null;
-      const allComments = (post.comments || []).filter((c) => !c.deleted);
+      const allComments = (post.comments || []).filter(c => !c.deleted);
       if (allComments.length > 0) {
         // Separate mentor and user comments
         const mentorComments = [];
         const userComments = [];
 
-        allComments.forEach((comment) => {
+        allComments.forEach(comment => {
           // Skip comments that engage in "self-replying" with identical content
           // This prevents the "double vision" effect where post content appears as a comment
-          const stripHtml = (html) =>
-            (html || "").replace(/<[^>]*>/g, "").trim();
+          const stripHtml = (html) => (html || '').replace(/<[^>]*>/g, '').trim();
           if (stripHtml(comment.content) === stripHtml(post.content)) {
             return;
           }
@@ -606,20 +530,11 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         });
 
         // Sort by createdAt (latest first)
-        mentorComments.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-        );
-        userComments.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-        );
+        mentorComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        userComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         // Prioritize mentor comments
-        const selectedComment =
-          mentorComments.length > 0
-            ? mentorComments[0]
-            : userComments.length > 0
-              ? userComments[0]
-              : null;
+        const selectedComment = mentorComments.length > 0 ? mentorComments[0] : (userComments.length > 0 ? userComments[0] : null);
 
         if (selectedComment && selectedComment.userId) {
           // Handle both ObjectId (from .lean()) and populated objects
@@ -646,10 +561,12 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
 
       return {
         _id: post._id,
-        type: post.type || "post",
         mentor: author, // Keep 'mentor' key for backward compatibility
         author: author, // Add 'author' key for clarity
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
@@ -663,42 +580,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
-        commentPreview, // Add comment preview,
-        poll:
-          post.type === "poll"
-            ? {
-                question: post.poll?.question,
-                options: (post.poll?.options || []).map((opt) => ({
-                  _id: opt._id,
-                  text: opt.text,
-                  votes: opt.votes,
-                  percentage:
-                    post.poll.totalVotes > 0
-                      ? Math.round((opt.votes / post.poll.totalVotes) * 100)
-                      : 0,
-                })),
-                totalVotes: post.poll?.totalVotes || 0,
-              }
-            : null, // Add poll data if type is poll
-        hasVoted:
-          post.type === "poll" && currentUser
-            ? (post.poll?.options || []).some((opt) =>
-                (opt.votedBy || []).some(
-                  (id) => id.toString() === currentUser._id.toString(),
-                ),
-              )
-            : false,
-        userVotedOption:
-          post.type === "poll" && currentUser
-            ? (post.poll?.options || [])
-                .find((opt) =>
-                  (opt.votedBy || []).some(
-                    (id) => id.toString() === currentUser._id.toString(),
-                  ),
-                )
-                ?._id?.toString() || null
-            : null,
-        mcq: formatMcqForResponse(post, currentUser, author),
+        commentPreview, // Add comment preview
       };
     });
 
@@ -733,11 +615,11 @@ router.get("/user/:userId", async (req, res) => {
 
     // Batch fetch all users
     const allUserIds = new Set();
-    posts.forEach((post) => {
+    posts.forEach(post => {
       if (post.userId) {
         allUserIds.add(post.userId.toString());
       }
-      (post.likes || []).forEach((like) => {
+      (post.likes || []).forEach(like => {
         if (like.userId) allUserIds.add(like.userId.toString());
       });
     });
@@ -745,11 +627,10 @@ router.get("/user/:userId", async (req, res) => {
     const userIdsArray = Array.from(allUserIds);
     const usersMap = new Map();
     if (userIdsArray.length > 0) {
-      const UserModel = Users.model("Users");
-      const users = await UserModel.find({ _id: { $in: userIdsArray } })
-        .select("name image _id username")
+      const users = await User.find({ _id: { $in: userIdsArray } })
+        .select('name image _id username')
         .lean();
-      users.forEach((user) => {
+      users.forEach(user => {
         usersMap.set(user._id.toString(), {
           _id: user._id,
           name: user.name,
@@ -760,7 +641,7 @@ router.get("/user/:userId", async (req, res) => {
     }
 
     const formattedPosts = posts.map((post) => {
-      const populatedLikes = (post.likes || []).map((like) => {
+      const populatedLikes = (post.likes || []).map(like => {
         if (like.userId) {
           const user = usersMap.get(like.userId.toString());
           return {
@@ -779,19 +660,18 @@ router.get("/user/:userId", async (req, res) => {
         image: null,
       };
 
-      const isReposted =
-        currentUser && currentUser.reposts
-          ? currentUser.reposts.some(
-              (id) => id.toString() === post._id.toString(),
-            )
-          : false;
+      const isReposted = currentUser && currentUser.reposts
+        ? currentUser.reposts.some(id => id.toString() === post._id.toString())
+        : false;
 
       return {
         _id: post._id,
-        type: post.type || "post",
         mentor: author,
         author: author,
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
@@ -800,11 +680,8 @@ router.get("/user/:userId", async (req, res) => {
         repostCount: post.repostCount || 0,
         isLiked: currentUser
           ? populatedLikes.some(
-              (like) =>
-                like.userId &&
-                like.userId._id &&
-                like.userId._id.toString() === currentUser._id.toString(),
-            )
+            like => like.userId && like.userId._id && like.userId._id.toString() === currentUser._id.toString()
+          )
           : false,
         isFollowing: false,
         isReposted,
@@ -812,41 +689,6 @@ router.get("/user/:userId", async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
-        poll:
-          post.type === "poll"
-            ? {
-                question: post.poll?.question,
-                options: (post.poll?.options || []).map((opt) => ({
-                  _id: opt._id,
-                  text: opt.text,
-                  votes: opt.votes,
-                  percentage:
-                    post.poll.totalVotes > 0
-                      ? Math.round((opt.votes / post.poll.totalVotes) * 100)
-                      : 0,
-                })),
-                totalVotes: post.poll?.totalVotes || 0,
-              }
-            : null,
-        hasVoted:
-          post.type === "poll" && currentUser
-            ? (post.poll?.options || []).some((opt) =>
-                (opt.votedBy || []).some(
-                  (id) => id.toString() === currentUser._id.toString(),
-                ),
-              )
-            : false,
-        userVotedOption:
-          post.type === "poll" && currentUser
-            ? (post.poll?.options || [])
-                .find((opt) =>
-                  (opt.votedBy || []).some(
-                    (id) => id.toString() === currentUser._id.toString(),
-                  ),
-                )
-                ?._id?.toString() || null
-            : null,
-        mcq: formatMcqForResponse(post, currentUser, author),
       };
     });
 
@@ -880,7 +722,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
     const skip = (page - 1) * limit;
 
     const posts = await Post.find({ mentorId: req.params.mentorId })
-      .populate("mentorId", "name username image")
+      .populate('mentorId', 'name username image')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -888,8 +730,8 @@ router.get("/mentor/:mentorId", async (req, res) => {
 
     // Batch fetch all users
     const allUserIds = new Set();
-    posts.forEach((post) => {
-      (post.likes || []).forEach((like) => {
+    posts.forEach(post => {
+      (post.likes || []).forEach(like => {
         if (like.userId) allUserIds.add(like.userId.toString());
       });
     });
@@ -897,11 +739,10 @@ router.get("/mentor/:mentorId", async (req, res) => {
     const userIdsArray = Array.from(allUserIds);
     const usersMap = new Map();
     if (userIdsArray.length > 0) {
-      const UserModel = Users.model("Users");
-      const users = await UserModel.find({ _id: { $in: userIdsArray } })
-        .select("name image _id username")
+      const users = await User.find({ _id: { $in: userIdsArray } })
+        .select('name image _id username')
         .lean();
-      users.forEach((user) => {
+      users.forEach(user => {
         usersMap.set(user._id.toString(), {
           _id: user._id,
           name: user.name,
@@ -912,7 +753,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
     }
 
     const formattedPosts = posts.map((post) => {
-      const populatedLikes = (post.likes || []).map((like) => {
+      const populatedLikes = (post.likes || []).map(like => {
         if (like.userId) {
           const user = usersMap.get(like.userId.toString());
           return {
@@ -923,50 +764,43 @@ router.get("/mentor/:mentorId", async (req, res) => {
         return like;
       });
 
-      const author = post.mentorId
-        ? {
-            _id: post.mentorId._id,
-            name: post.mentorId.name,
-            username: post.mentorId.username,
-            image: post.mentorId.image,
-          }
-        : null;
+      const author = post.mentorId ? {
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
+      } : null;
 
       // Check if current user/mentor is following the author (can be user or mentor)
       let isFollowing = false;
       if (currentUser && currentUser.following && post.mentorId) {
-        isFollowing = currentUser.following.some(
-          (id) => id.toString() === post.mentorId._id.toString(),
-        );
+        isFollowing = currentUser.following.some(id => id.toString() === post.mentorId._id.toString());
       }
 
-      const isReposted =
-        currentUser && currentUser.reposts
-          ? currentUser.reposts.some(
-              (id) => id.toString() === post._id.toString(),
-            )
-          : false;
+      const isReposted = currentUser && currentUser.reposts
+        ? currentUser.reposts.some(id => id.toString() === post._id.toString())
+        : false;
 
       // Check if current user/mentor liked this post
       // Handle both ObjectId directly or populated user object
       let isLiked = false;
       if (currentUser) {
-        isLiked = (post.likes || []).some((like) => {
+        isLiked = (post.likes || []).some(like => {
           if (!like.userId) return false;
           // like.userId can be ObjectId directly (when using .lean()) or populated
-          const likeUserId = like.userId._id
-            ? like.userId._id.toString()
-            : like.userId.toString();
+          const likeUserId = like.userId._id ? like.userId._id.toString() : like.userId.toString();
           return likeUserId === currentUser._id.toString();
         });
       }
 
       return {
         _id: post._id,
-        type: post.type || "post",
         mentor: author,
         author: author,
+        headline: post.headline || null,
         content: post.content,
+        category: post.category || 'study',
+        space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
@@ -980,41 +814,6 @@ router.get("/mentor/:mentorId", async (req, res) => {
         updatedAt: post.updatedAt,
         isEdited: post.isEdited || false,
         editedAt: post.editedAt || null,
-        poll:
-          post.type === "poll"
-            ? {
-                question: post.poll?.question,
-                options: (post.poll?.options || []).map((opt) => ({
-                  _id: opt._id,
-                  text: opt.text,
-                  votes: opt.votes,
-                  percentage:
-                    post.poll.totalVotes > 0
-                      ? Math.round((opt.votes / post.poll.totalVotes) * 100)
-                      : 0,
-                })),
-                totalVotes: post.poll?.totalVotes || 0,
-              }
-            : null,
-        hasVoted:
-          post.type === "poll" && currentUser
-            ? (post.poll?.options || []).some((opt) =>
-                (opt.votedBy || []).some(
-                  (id) => id.toString() === currentUser._id.toString(),
-                ),
-              )
-            : false,
-        userVotedOption:
-          post.type === "poll" && currentUser
-            ? (post.poll?.options || [])
-                .find((opt) =>
-                  (opt.votedBy || []).some(
-                    (id) => id.toString() === currentUser._id.toString(),
-                  ),
-                )
-                ?._id?.toString() || null
-            : null,
-        mcq: formatMcqForResponse(post, currentUser, author),
       };
     });
 
@@ -1040,28 +839,20 @@ router.get("/mentor/:mentorId", async (req, res) => {
  * POST /api/posts/:postId/view
  * Track post view (authenticated users only)
  * Marks post as SEEN when visibility conditions are met
- *
+ * 
  * IMPORTANT: This route must be defined BEFORE the generic /:postId route
  * to ensure proper route matching
  */
-router.post(
-  "/:postId/view",
-  authenticateRequired,
-  feedController.trackPostView,
-);
+router.post("/:postId/view", authenticateRequired, feedController.trackPostView);
 
 /**
  * GET /api/posts/:postId/view-state
  * Get post view state for current user
- *
+ * 
  * IMPORTANT: This route must be defined BEFORE the generic /:postId route
  * to ensure proper route matching
  */
-router.get(
-  "/:postId/view-state",
-  authenticateRequired,
-  feedController.getPostViewState,
-);
+router.get("/:postId/view-state", authenticateRequired, feedController.getPostViewState);
 
 /**
  * GET /api/posts/:postId
@@ -1072,13 +863,11 @@ router.get("/:postId", async (req, res) => {
     const currentUser = await getOptionalUser(req);
 
     const post = await Post.findById(req.params.postId)
-      .populate("mentorId", "name username image bio tagline")
+      .populate('mentorId', 'name username image bio tagline')
       .lean();
 
     if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
 
     // OPTIMIZED: Batch all user lookups to avoid N+1 queries
@@ -1094,13 +883,13 @@ router.get("/:postId", async (req, res) => {
     }
 
     // Collect from likes
-    (post.likes || []).forEach((like) => {
+    (post.likes || []).forEach(like => {
       if (like.userId) allUserIds.add(like.userId.toString());
     });
 
     // Collect from comments and replies
-    const allComments = (post.comments || []).filter((c) => !c.deleted);
-    allComments.forEach((comment) => {
+    const allComments = (post.comments || []).filter(c => !c.deleted);
+    allComments.forEach(comment => {
       if (comment.userId) allUserIds.add(comment.userId.toString());
     });
 
@@ -1110,18 +899,18 @@ router.get("/:postId", async (req, res) => {
     const usersMap = new Map();
     if (userIdsArray.length > 0) {
       // Query both User and Mentor models since comment.userId can be either
-      const UserModel = Users.model("Users");
+      const UserModel = Users.model('Users');
       const [users, mentors] = await Promise.all([
         UserModel.find({ _id: { $in: userIdsArray } })
-          .select("name image _id username")
+          .select('name image _id username')
           .lean(),
         Mentor.find({ _id: { $in: userIdsArray } })
-          .select("name image _id username")
-          .lean(),
+          .select('name image _id username')
+          .lean()
       ]);
 
       // Add users to map
-      users.forEach((user) => {
+      users.forEach(user => {
         usersMap.set(user._id.toString(), {
           _id: user._id,
           name: user.name,
@@ -1131,7 +920,7 @@ router.get("/:postId", async (req, res) => {
       });
 
       // Add mentors to map (will override users if same ID, but shouldn't happen)
-      mentors.forEach((mentor) => {
+      mentors.forEach(mentor => {
         usersMap.set(mentor._id.toString(), {
           _id: mentor._id,
           name: mentor.name,
@@ -1142,7 +931,7 @@ router.get("/:postId", async (req, res) => {
     }
 
     // Populate likes using pre-fetched users
-    const populatedLikes = (post.likes || []).map((like) => {
+    const populatedLikes = (post.likes || []).map(like => {
       if (like.userId) {
         const user = usersMap.get(like.userId.toString());
         return {
@@ -1155,34 +944,29 @@ router.get("/:postId", async (req, res) => {
     });
 
     // Organize comments by parent/child
-    const topLevelComments = allComments.filter((c) => !c.parentCommentId);
+    const topLevelComments = allComments.filter(c => !c.parentCommentId);
 
     // Populate comments using pre-fetched users
-    const populatedComments = topLevelComments.map((comment) => {
+    const populatedComments = topLevelComments.map(comment => {
       const populatedUser = comment.userId
-        ? usersMap.get(comment.userId.toString()) || { _id: comment.userId }
+        ? (usersMap.get(comment.userId.toString()) || { _id: comment.userId })
         : null;
 
       // Get replies for this comment
-      const replies = allComments.filter(
-        (c) =>
-          c.parentCommentId &&
-          c.parentCommentId.toString() === comment._id.toString(),
+      const replies = allComments.filter(c =>
+        c.parentCommentId && c.parentCommentId.toString() === comment._id.toString()
       );
 
-      const populatedReplies = replies.map((reply) => {
+      const populatedReplies = replies.map(reply => {
         const replyUser = reply.userId
-          ? usersMap.get(reply.userId.toString()) || { _id: reply.userId }
+          ? (usersMap.get(reply.userId.toString()) || { _id: reply.userId })
           : null;
 
-        const isLiked =
-          currentUser && reply.likes
-            ? reply.likes.some(
-                (like) =>
-                  like.userId &&
-                  like.userId.toString() === currentUser._id.toString(),
-              )
-            : false;
+        const isLiked = currentUser && reply.likes
+          ? reply.likes.some(like =>
+            like.userId && like.userId.toString() === currentUser._id.toString()
+          )
+          : false;
 
         return {
           _id: reply._id,
@@ -1195,14 +979,11 @@ router.get("/:postId", async (req, res) => {
         };
       });
 
-      const isLiked =
-        currentUser && comment.likes
-          ? comment.likes.some(
-              (like) =>
-                like.userId &&
-                like.userId.toString() === currentUser._id.toString(),
-            )
-          : false;
+      const isLiked = currentUser && comment.likes
+        ? comment.likes.some(like =>
+          like.userId && like.userId.toString() === currentUser._id.toString()
+        )
+        : false;
 
       return {
         _id: comment._id,
@@ -1241,25 +1022,22 @@ router.get("/:postId", async (req, res) => {
     // Check if current user/mentor is following the author (can be user or mentor)
     let isFollowing = false;
     if (currentUser && currentUser.following && author) {
-      isFollowing = currentUser.following.some(
-        (id) => id.toString() === author._id.toString(),
-      );
+      isFollowing = currentUser.following.some(id => id.toString() === author._id.toString());
     }
 
     // Check if user has reposted this
-    const isReposted =
-      currentUser && currentUser.reposts
-        ? currentUser.reposts.some(
-            (id) => id.toString() === post._id.toString(),
-          )
-        : false;
+    const isReposted = currentUser && currentUser.reposts
+      ? currentUser.reposts.some(id => id.toString() === post._id.toString())
+      : false;
 
     const formattedPost = {
       _id: post._id,
-      type: post.type || "post",
       mentor: author, // Keep 'mentor' key for backward compatibility
       author: author, // Add 'author' key for clarity
+      headline: post.headline || null,
       content: post.content,
+      category: post.category || 'study',
+      space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
       image: post.image,
       hashtags: post.hashtags || [],
       externalLink: post.externalLink,
@@ -1270,11 +1048,8 @@ router.get("/:postId", async (req, res) => {
       repostCount: post.repostCount || 0,
       isLiked: currentUser
         ? populatedLikes.some(
-            (like) =>
-              like.user &&
-              like.user._id &&
-              like.user._id.toString() === currentUser._id.toString(),
-          )
+          like => like.user && like.user._id && like.user._id.toString() === currentUser._id.toString()
+        )
         : false,
       isFollowing,
       isReposted,
@@ -1282,41 +1057,6 @@ router.get("/:postId", async (req, res) => {
       updatedAt: post.updatedAt,
       isEdited: post.isEdited || false,
       editedAt: post.editedAt || null,
-      poll:
-        post.type === "poll" // ← add this
-          ? {
-              question: post.poll?.question,
-              options: (post.poll?.options || []).map((opt) => ({
-                _id: opt._id,
-                text: opt.text,
-                votes: opt.votes,
-                percentage:
-                  post.poll.totalVotes > 0
-                    ? Math.round((opt.votes / post.poll.totalVotes) * 100)
-                    : 0,
-              })),
-              totalVotes: post.poll?.totalVotes || 0,
-            }
-          : null,
-      hasVoted:
-        post.type === "poll" && currentUser // ← add this
-          ? (post.poll?.options || []).some((opt) =>
-              (opt.votedBy || []).some(
-                (id) => id.toString() === currentUser._id.toString(),
-              ),
-            )
-          : false,
-      userVotedOption:
-        post.type === "poll" && currentUser // ← add this
-          ? (post.poll?.options || [])
-              .find((opt) =>
-                (opt.votedBy || []).some(
-                  (id) => id.toString() === currentUser._id.toString(),
-                ),
-              )
-              ?._id?.toString() || null
-          : null,
-      mcq: formatMcqForResponse(post, currentUser, author),
     };
 
     res.json({ success: true, post: formattedPost });
@@ -1528,327 +1268,280 @@ router.post(
           });
         }
 
-        if (!question || !question.trim()) {
-          return res.status(400).json({
-            success: false,
-            message: "Poll question is required",
-          });
-        }
+    if (!content || !content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Content is required"
+      });
+    }
 
-        if (!options || options.length < 2 || options.length > 4) {
-          return res.status(400).json({
-            success: false,
-            message: "Poll must have between 2 and 4 options",
-          });
-        }
+    // Detect URL in content
+    const detectedUrl = detectUrl(content);
+    let linkPreview = null;
 
-        const postData = {
-          type: "poll",
-          poll: {
-            question: question.trim(),
-            options: options.map((opt) => ({
-              text: opt.text.trim(),
-              votes: 0,
-              votedBy: [],
-            })),
-            totalVotes: 0,
-          },
-        };
-
-        if (req.mentor) postData.mentorId = req.mentor._id;
-        else if (req.user) postData.userId = req.user._id;
-
-        const post = new Post(postData);
-        await post.save();
-
-        // Populate author
-        let author = null;
-        if (post.mentorId) {
-          await post.populate("mentorId", "name username image");
-          author = {
-            _id: post.mentorId._id,
-            name: post.mentorId.name,
-            username: post.mentorId.username,
-            image: post.mentorId.image,
-          };
-        } else if (post.userId) {
-          const user = await populateUser(post.userId);
-          author = user;
-        }
-
-        return res.status(201).json({
-          success: true,
-          message: "Poll created successfully",
-          post: {
-            _id: post._id,
-            type: "poll",
-            author,
-            mentor: author,
-            poll: {
-              question: post.poll.question,
-              options: post.poll.options.map((opt) => ({
-                _id: opt._id,
-                text: opt.text,
-                votes: 0,
-              })),
-              totalVotes: 0,
-            },
-            hasVoted: false,
-            userVotedOption: null,
-            createdAt: post.createdAt,
-          },
-        });
+    if (detectedUrl) {
+      try {
+        linkPreview = await generateLinkPreview(detectedUrl);
+      } catch (previewError) {
+        console.log('Link preview generation failed:', previewError.message);
+        // Continue without preview
       }
-      // ── END POLL branch ──────────────────────────────────────────────────
+    }
 
-      // ── MCQ branch ───────────────────────────────────────────────────────
-      if (type === "mcq") {
-        const { question, options: rawOptions } = req.body;
-
-        let options;
-        try {
-          options =
-            typeof rawOptions === "string"
-              ? JSON.parse(rawOptions)
-              : rawOptions;
-        } catch {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid options format",
-          });
-        }
-
-        if (!question || !question.trim()) {
-          return res.status(400).json({
-            success: false,
-            message: "Question is required",
-          });
-        }
-
-        if (!options || !Array.isArray(options) || options.length !== 4) {
-          return res.status(400).json({
-            success: false,
-            message: "MCQ must have exactly 4 options",
-          });
-        }
-
-        const trimmed = options.map((opt) => ({
-          text: (opt.text || "").trim(),
-          isCorrect: !!opt.isCorrect,
-        }));
-
-        if (trimmed.some((o) => !o.text)) {
-          return res.status(400).json({
-            success: false,
-            message: "All MCQ options must have text",
-          });
-        }
-
-        const correctCount = trimmed.filter((o) => o.isCorrect).length;
-        if (correctCount !== 1) {
-          return res.status(400).json({
-            success: false,
-            message: "Select exactly one correct answer",
-          });
-        }
-
-        const postData = {
-          type: "mcq",
-          mcq: {
-            question: question.trim(),
-            options: trimmed.map((opt) => ({
-              text: opt.text,
-              isCorrect: opt.isCorrect,
-              answeredBy: [],
-            })),
-            totalAnswers: 0,
-          },
-        };
-
-        if (req.mentor) postData.mentorId = req.mentor._id;
-        else if (req.user) postData.userId = req.user._id;
-
-        const post = new Post(postData);
-        await post.save();
-
-        let author = null;
-        if (post.mentorId) {
-          await post.populate("mentorId", "name username image");
-          author = {
-            _id: post.mentorId._id,
-            name: post.mentorId.name,
-            username: post.mentorId.username,
-            image: post.mentorId.image,
-          };
-        } else if (post.userId) {
-          author = await populateUser(post.userId);
-        }
-
-        const viewer =
-          req.mentor && req.mentor._id ? req.mentor : req.user || null;
-        const mcqPayload = formatMcqForResponse(post, viewer, author);
-
-        return res.status(201).json({
-          success: true,
-          message: "Q&A published successfully",
-          post: {
-            _id: post._id,
-            type: "mcq",
-            author,
-            mentor: author,
-            mcq: mcqPayload,
-            createdAt: post.createdAt,
-          },
-        });
-      }
-      // ── END MCQ branch ─────────────────────────────────────────────────────
-
-      // ── Original POST branch (no changes below this line) ────────────────
-      const { content } = req.body;
-
-      if (!content || !content.trim()) {
-        return res.status(400).json({
+    // Handle image upload
+    let imageUrl = null;
+    if (req.file) {
+      try {
+        imageUrl = await uploadToCloudinary(req.file.path, 'posts');
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return res.status(500).json({
           success: false,
-          message: "Content is required",
+          message: 'Error uploading image'
         });
       }
+    }
+
+    // Create post - support both mentors and users
+    const postData = {
+      content: content.trim(),
+      headline: headline ? headline.trim() : null,
+      category: ['study', 'masti'].includes(category) ? category : 'study',
+      spaceId: spaceId || null,
+      image: imageUrl,
+      hashtags: hashtags ? JSON.parse(hashtags) : [],
+    };
+
+    if (req.mentor) {
+      postData.mentorId = req.mentor._id;
+    } else if (req.user) {
+      postData.userId = req.user._id;
+    }
+
+    if (linkPreview) {
+      postData.externalLink = {
+        url: linkPreview.url,
+        preview: {
+          title: linkPreview.title,
+          description: linkPreview.description,
+          image: linkPreview.image,
+          domain: linkPreview.domain,
+          platform: linkPreview.platform,
+          favicon: linkPreview.favicon,
+        },
+      };
+    }
+
+    const post = new Post(postData);
+    await post.save();
+
+    // Populate the appropriate author (mentor or user)
+    if (post.mentorId) {
+      await post.populate('mentorId', 'name username image');
+    } else if (post.userId) {
+      // Manually populate user since it's on a different connection
+      const user = await populateUser(post.userId);
+      post.userId = user;
+    }
+
+    // Format response based on author type
+    const author = post.mentorId
+      ? {
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
+      }
+      : post.userId
+        ? {
+          _id: post.userId._id,
+          name: post.userId.name,
+          username: post.userId.username || null,
+          image: post.userId.image,
+        }
+        : null;
+
+    res.status(201).json({
+      success: true,
+      message: "Post created successfully",
+      post: {
+        _id: post._id,
+        mentor: author,
+        author: author,
+        headline: post.headline || null,
+        content: post.content,
+        category: post.category || 'study',
+        space: null, // space lookup can be done on feed refresh
+        image: post.image,
+        hashtags: post.hashtags || [],
+        externalLink: post.externalLink,
+        likesCount: post.likesCount,
+        commentsCount: post.commentsCount,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        isEdited: post.isEdited || false,
+        editedAt: post.editedAt || null,
+      },
+    });
+
+    // Create mention notifications (async, don't block response)
+    (async () => {
+      try {
+        const actorId = req.mentor ? req.mentor._id : req.user._id;
+        const actorRole = req.mentor ? 'mentor' : 'user';
+        const actorName = author?.name || 'Someone';
+        await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
+      } catch (err) {
+        console.error('Error creating mention notifications (create):', err);
+      }
+    })();
+
+    // Notify followers using new notification system
+    (async () => {
+      try {
+        const authorDoc = req.mentor || req.user;
+        const authorId = authorDoc._id;
+        const authorName = author ? author.name : (authorDoc.name || 'Someone');
+        const authorRole = req.mentor ? 'mentor' : 'user';
+        const followers = authorDoc.followers || [];
+
+        if (followers.length > 0) {
+          // Determine recipient role (assume users for now, but could be mixed)
+          // For simplicity, we'll use 'user' as default, but this could be enhanced
+          await NotificationManager.createAndSendMultiple({
+            recipientIds: followers,
+            recipientRole: 'user', // Could be enhanced to check actual role
+            actorId: authorId,
+            type: 'FOLLOWING_POST',
+            entityType: 'POST',
+            entityId: post._id,
+            originPath: `/posts/${post._id}`,
+            message: `${authorName} posted something new`,
+            actorInfo: { name: authorName, username: author?.username },
+          });
+        }
+      } catch (err) {
+        console.error('Error sending new post notification:', err);
+      }
+    })();
+
+
+  } catch (error) {
+    console.error("Error creating post:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+/**
+ * PUT /api/posts/:postId
+ * Update a post (only the creator - mentor or user)
+ */
+router.put("/:postId", authenticateRequired, upload.single("image"), async (req, res) => {
+  try {
+    // NEW: Also extract hashtags in case the edit form sends them
+    const { content, hashtags } = req.body;
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Check authorization: user must be the creator
+    const isAuthorized =
+      (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
+      (req.user && post.userId && post.userId.toString() === req.user._id.toString());
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own posts"
+      });
+    }
+
+    if (content && content.trim()) {
+      post.content = content.trim();
+      post.isEdited = true;
+      post.editedAt = new Date();
 
       const detectedUrl = detectUrl(content);
-      let linkPreview = null;
-
+      // ... (Keep your existing linkPreview logic here)
       if (detectedUrl) {
         try {
-          linkPreview = await generateLinkPreview(detectedUrl);
+          const linkPreview = await generateLinkPreview(detectedUrl);
+          if (linkPreview) {
+            post.externalLink = {
+              url: linkPreview.url,
+              preview: {
+                title: linkPreview.title,
+                description: linkPreview.description,
+                image: linkPreview.image,
+                domain: linkPreview.domain,
+                platform: linkPreview.platform,
+                favicon: linkPreview.favicon,
+              },
+            };
+          }
         } catch (previewError) {
-          console.log("Link preview generation failed:", previewError.message);
+          console.log('Link preview update failed:', previewError.message);
         }
+      } else {
+        post.externalLink = null;
       }
+    }
 
-      let imageUrl = null;
-      if (req.file) {
+    // NEW: Update hashtags if they are provided during edit
+    if (hashtags) {
+      post.hashtags = JSON.parse(hashtags);
+    }
+
+    if (req.file) {
+      // ... (Keep your existing image upload logic here)
+      if (post.image) {
         try {
-          imageUrl = await uploadToCloudinary(req.file.path, "posts");
-        } catch (uploadError) {
-          console.error("Error uploading image:", uploadError);
-          return res.status(500).json({
-            success: false,
-            message: "Error uploading image",
-          });
+          const publicId = getPublicIdFromUrl(post.image);
+          if (publicId) {
+            await deleteFromCloudinary(publicId);
+          }
+        } catch (deleteError) {
+          console.error('Error deleting old image:', deleteError);
         }
       }
 
-      const postData = {
-        type: "post",
-        content: content.trim(),
-        image: imageUrl,
-        hashtags: hashtags ? JSON.parse(hashtags) : [],
-      };
-
-      if (req.mentor) postData.mentorId = req.mentor._id;
-      else if (req.user) postData.userId = req.user._id;
-
-      if (linkPreview) {
-        postData.externalLink = {
-          url: linkPreview.url,
-          preview: {
-            title: linkPreview.title,
-            description: linkPreview.description,
-            image: linkPreview.image,
-            domain: linkPreview.domain,
-            platform: linkPreview.platform,
-            favicon: linkPreview.favicon,
-          },
-        };
+      try {
+        post.image = await uploadToCloudinary(req.file.path, 'posts');
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading image'
+        });
       }
+    }
 
-      const post = new Post(postData);
-      await post.save();
+    await post.save();
 
-      if (post.mentorId) {
-        await post.populate("mentorId", "name username image");
-      } else if (post.userId) {
-        const user = await populateUser(post.userId);
-        post.userId = user;
+    // ... (Keep your existing populate and author logic here)
+    if (post.mentorId) {
+      await post.populate('mentorId', 'name username image');
+    } else if (post.userId) {
+      const user = await populateUser(post.userId);
+      post.userId = user;
+    }
+
+    const author = post.mentorId
+      ? {
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
       }
-
-      const author = post.mentorId
+      : post.userId
         ? {
-            _id: post.mentorId._id,
-            name: post.mentorId.name,
-            username: post.mentorId.username,
-            image: post.mentorId.image,
-          }
-        : post.userId
-          ? {
-              _id: post.userId._id,
-              name: post.userId.name,
-              username: post.userId.username || null,
-              image: post.userId.image,
-            }
-          : null;
-
-      res.status(201).json({
-        success: true,
-        message: "Post created successfully",
-        post: {
-          _id: post._id,
-          type: "post",
-          mentor: author,
-          author: author,
-          content: post.content,
-          image: post.image,
-          hashtags: post.hashtags || [],
-          externalLink: post.externalLink,
-          likesCount: post.likesCount,
-          commentsCount: post.commentsCount,
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          isEdited: false,
-          editedAt: null,
-        },
-      });
-
-      // Mention notifications (unchanged)
-      (async () => {
-        try {
-          const actorId = req.mentor ? req.mentor._id : req.user._id;
-          const actorRole = req.mentor ? "mentor" : "user";
-          const actorName = author?.name || "Someone";
-          await createMentionNotifications(
-            content,
-            post._id,
-            actorId,
-            actorRole,
-            actorName,
-          );
-        } catch (err) {
-          console.error("Error creating mention notifications (create):", err);
-        }
-      })();
-
-      // Follower notifications (unchanged)
-      (async () => {
-        try {
-          const authorDoc = req.mentor || req.user;
-          const authorId = authorDoc._id;
-          const authorName = author ? author.name : authorDoc.name || "Someone";
-          const followers = authorDoc.followers || [];
-
-          if (followers.length > 0) {
-            await NotificationManager.createAndSendMultiple({
-              recipientIds: followers,
-              recipientRole: "user",
-              actorId: authorId,
-              type: "FOLLOWING_POST",
-              entityType: "POST",
-              entityId: post._id,
-              originPath: `/posts/${post._id}`,
-              message: `${authorName} posted something new`,
-              actorInfo: { name: authorName, username: author?.username },
-            });
-          }
-        } catch (err) {
-          console.error("Error sending new post notification:", err);
+          _id: post.userId._id,
+          name: post.userId.name,
+          username: post.userId.username || null,
+          image: post.userId.image,
         }
       })();
     } catch (error) {
@@ -1926,63 +1619,47 @@ router.post("/:postId/vote", authenticateRequired, async (req, res) => {
     // Find the target option
     const targetOption = post.poll.options.id(optionId);
 
-    if (!targetOption) {
-      return res.status(404).json({
-        success: false,
-        message: "Option not found",
+    if (content && content.trim()) {
+      const actorId = req.mentor ? req.mentor._id : req.user._id;
+      const actorRole = req.mentor ? 'mentor' : 'user';
+      const actorName = author?.name || 'Someone';
+      createMentionNotifications(content, post._id, actorId, actorRole, actorName).catch(err => {
+        console.error('Error creating mention notifications (update):', err);
       });
     }
 
-    // Cast the vote
-    targetOption.votes += 1;
-    targetOption.votedBy.push(voterId);
-    post.poll.totalVotes += 1;
-
-    await post.save();
-
-    // Return updated options (with vote counts, but WITHOUT votedBy arrays)
-    // We only reveal results after voting
-    const updatedOptions = post.poll.options.map((opt) => ({
-      _id: opt._id,
-      text: opt.text,
-      votes: opt.votes,
-      // Calculate percentage for frontend display
-      percentage:
-        post.poll.totalVotes > 0
-          ? Math.round((opt.votes / post.poll.totalVotes) * 100)
-          : 0,
-    }));
-
-    return res.json({
+    // NEW: Add hashtags to the response!
+    res.json({
       success: true,
-      message: "Vote cast successfully",
-      poll: {
-        options: updatedOptions,
-        totalVotes: post.poll.totalVotes,
-        userVotedOption: optionId, // Tell frontend which option this user picked
+      message: "Post updated successfully",
+      post: {
+        _id: post._id,
+        mentor: author,
+        author: author,
+        content: post.content,
+        image: post.image,
+        hashtags: post.hashtags || [], // <--- THIS IS THE CRUCIAL FIX
+        externalLink: post.externalLink,
+        likesCount: post.likesCount,
+        commentsCount: post.commentsCount,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        isEdited: post.isEdited,
+        editedAt: post.editedAt,
       },
     });
   } catch (error) {
-    console.error("Error casting vote:", error);
+    console.error("Error updating post:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
 /**
- * POST /api/posts/:postId/mcq-answer
- * Submit one answer on an MCQ (one attempt per user; correct answer revealed after submit)
+ * DELETE /api/posts/:postId
+ * Delete a post (only the creator - mentor or user)
  */
-router.post("/:postId/mcq-answer", authenticateRequired, async (req, res) => {
+router.delete("/:postId", authenticateRequired, async (req, res) => {
   try {
-    const { optionId } = req.body;
-
-    if (!optionId) {
-      return res.status(400).json({
-        success: false,
-        message: "optionId is required",
-      });
-    }
-
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
@@ -2163,36 +1840,21 @@ router.put(
         post.userId = user;
       }
 
-      const author = post.mentorId
-        ? {
-            _id: post.mentorId._id,
-            name: post.mentorId.name,
-            username: post.mentorId.username,
-            image: post.mentorId.image,
-          }
-        : post.userId
-          ? {
-              _id: post.userId._id,
-              name: post.userId.name,
-              username: post.userId.username || null,
-              image: post.userId.image,
-            }
-          : null;
+    res.json({ success: true, message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting mentor post:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
-      if (content && content.trim()) {
-        const actorId = req.mentor ? req.mentor._id : req.user._id;
-        const actorRole = req.mentor ? "mentor" : "user";
-        const actorName = author?.name || "Someone";
-        createMentionNotifications(
-          content,
-          post._id,
-          actorId,
-          actorRole,
-          actorName,
-        ).catch((err) => {
-          console.error("Error creating mention notifications (update):", err);
-        });
-      }
+/**
+ * PATCH /api/posts/:postId/category
+ * Authenticated users OR mentors can change category on their own posts.
+ * Mentors can also change category on ANY post (moderation).
+ */
+router.patch("/:postId/category", authenticateRequired, async (req, res) => {
+  try {
+    const { category } = req.body;
 
       res.json({
         success: true,
@@ -2213,61 +1875,40 @@ router.put(
           editedAt: post.editedAt,
         },
       });
-    } catch (error) {
-      console.error("Error updating post:", error);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
     }
-  },
-);
 
-/**
- * DELETE /api/posts/:postId
- * Delete a post (only the creator - mentor or user)
- */
-router.delete("/:postId", authenticateRequired, async (req, res) => {
-  try {
     const post = await Post.findById(req.params.postId);
-
     if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
 
-    // Check authorization: user must be the creator
-    const isAuthorized =
-      (req.mentor &&
-        post.mentorId &&
-        post.mentorId.toString() === req.mentor._id.toString()) ||
-      (req.user &&
-        post.userId &&
-        post.userId.toString() === req.user._id.toString());
+    // Authorization: post owner OR any mentor (moderation)
+    const isOwner =
+      (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
+      (req.user && post.userId && post.userId.toString() === req.user._id.toString());
+    const isMentor = Boolean(req.mentor);
 
-    if (!isAuthorized) {
+    if (!isOwner && !isMentor) {
       return res.status(403).json({
         success: false,
-        message: "You can only delete your own posts",
+        message: "You can only change the category of your own posts"
       });
     }
 
-    if (post.image) {
-      try {
-        const publicId = getPublicIdFromUrl(post.image);
-        if (publicId) {
-          await deleteFromCloudinary(publicId);
-        }
-      } catch (deleteError) {
-        console.error("Error deleting image:", deleteError);
-      }
-    }
+    post.category = category;
+    await post.save();
 
-    await Post.findByIdAndDelete(req.params.postId);
+    // Clear cache so new feeds reflect updated category
+    apiCache.clear('/api/posts');
 
-    res.json({ success: true, message: "Post deleted successfully" });
+    res.json({
+      success: true,
+      message: `Post moved to '${category}' feed`,
+      postId: post._id,
+      category: post.category,
+    });
   } catch (error) {
-    console.error("Error deleting mentor post:", error);
+    console.error("Error updating post category:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
@@ -2281,9 +1922,7 @@ router.delete("/admin/:postId", verifyAdminToken, async (req, res) => {
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
 
     if (post.image) {
@@ -2293,7 +1932,7 @@ router.delete("/admin/:postId", verifyAdminToken, async (req, res) => {
           await deleteFromCloudinary(publicId);
         }
       } catch (deleteError) {
-        console.error("Error deleting image (admin):", deleteError);
+        console.error('Error deleting image (admin):', deleteError);
       }
     }
 
@@ -2315,15 +1954,13 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
 
     // Support both user and mentor authentication
     const userId = req.user ? req.user._id : req.mentor._id;
     const existingLikeIndex = post.likes.findIndex(
-      (like) => like.userId && like.userId.toString() === userId.toString(),
+      like => like.userId && like.userId.toString() === userId.toString()
     );
 
     const wasLiked = existingLikeIndex > -1;
@@ -2340,16 +1977,14 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
 
     // Mark as engaged when user likes (only for users, not mentors)
     if (!wasLiked && req.user) {
-      feedController
-        .markPostAsEngaged(req.user._id, post._id, "like", post)
-        .catch((err) => {
-          console.error("Error marking post as engaged (like):", err);
-        });
+      feedController.markPostAsEngaged(req.user._id, post._id, 'like', post).catch(err => {
+        console.error('Error marking post as engaged (like):', err);
+      });
     }
 
     // Clear cache for posts feed to ensure fresh data on next load
     // Clear all user-specific caches for /api/posts
-    apiCache.clear("/api/posts");
+    apiCache.clear('/api/posts');
 
     res.json({
       success: true,
@@ -2362,20 +1997,18 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
       (async () => {
         try {
           const actorId = req.user ? req.user._id : req.mentor._id;
-          const actorName =
-            (req.user ? req.user.name : req.mentor?.name) || "Someone";
-          const actorUsername =
-            (req.user ? req.user.username : req.mentor?.username) || null;
+          const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+          const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
           const recipientId = post.mentorId || post.userId;
-          const recipientRole = post.mentorId ? "mentor" : "user";
+          const recipientRole = post.mentorId ? 'mentor' : 'user';
 
           if (recipientId) {
             await NotificationManager.createAndSend({
               recipientId,
               recipientRole,
               actorId,
-              type: "POST_LIKE",
-              entityType: "POST",
+              type: 'POST_LIKE',
+              entityType: 'POST',
               entityId: post._id,
               originPath: `/posts/${post._id}`,
               message: `${actorName} liked your post`,
@@ -2383,10 +2016,11 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
             });
           }
         } catch (err) {
-          console.error("Error sending post like notification:", err);
+          console.error('Error sending post like notification:', err);
         }
       })();
     }
+
   } catch (error) {
     console.error("Error toggling like:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -2404,16 +2038,14 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     if (!content || !content.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Comment content is required",
+        message: "Comment content is required"
       });
     }
 
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
 
     post.comments.push({
@@ -2428,20 +2060,27 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
 
     await post.save();
 
-    // Mark as engaged when user comments (only for users, not mentors)
-    if (req.user) {
-      feedController
-        .markPostAsEngaged(req.user._id, post._id, "comment", post)
-        .catch((err) => {
-          console.error("Error marking post as engaged (comment):", err);
-        });
-    }
-
     // Manually populate user data for the new comment (cross-connection population)
     const newComment = post.comments[post.comments.length - 1];
-    const user = req.user
-      ? await populateUser(newComment.userId)
-      : await populateMentor(newComment.userId);
+
+    // Mark as engaged when user comments (only for users, not mentors)
+    if (req.user) {
+      feedController.markPostAsEngaged(req.user._id, post._id, 'comment', post).catch(err => {
+        console.error('Error marking post as engaged (comment):', err);
+      });
+      trackStudentEvent({
+        userId: req.user._id,
+        eventType: 'comment_posted',
+        entityId: newComment._id,
+        post,
+        metadata: { postId: post._id },
+        dedupeWindowSeconds: 10,
+      }).catch(err => {
+        console.error('Error tracking comment_posted:', err);
+      });
+    }
+
+    const user = req.user ? await populateUser(newComment.userId) : await populateMentor(newComment.userId);
     const userData = user || { _id: newComment.userId };
 
     res.status(201).json({
@@ -2463,20 +2102,18 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     (async () => {
       try {
         const actorId = req.user ? req.user._id : req.mentor._id;
-        const actorName =
-          (req.user ? req.user.name : req.mentor?.name) || "Someone";
-        const actorUsername =
-          (req.user ? req.user.username : req.mentor?.username) || null;
+        const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+        const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
         const recipientId = post.mentorId || post.userId;
-        const recipientRole = post.mentorId ? "mentor" : "user";
+        const recipientRole = post.mentorId ? 'mentor' : 'user';
 
         if (recipientId) {
           await NotificationManager.createAndSend({
             recipientId,
             recipientRole,
             actorId,
-            type: "COMMENT",
-            entityType: "COMMENT",
+            type: 'COMMENT',
+            entityType: 'COMMENT',
             entityId: newComment._id,
             originPath: `/posts/${post._id}#comment-${newComment._id}`,
             message: `${actorName} commented on your post`,
@@ -2484,9 +2121,10 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
           });
         }
       } catch (err) {
-        console.error("Error sending comment notification:", err);
+        console.error('Error sending comment notification:', err);
       }
     })();
+
   } catch (error) {
     console.error("Error adding comment:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -2503,30 +2141,23 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
     const originalPost = await Post.findById(req.params.postId);
 
     if (!originalPost) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
 
     // Check if user already reposted this (check user's reposts array)
     // Refresh user to get latest reposts
-    const user = req.user
-      ? await User.findById(req.user._id)
-      : await Mentor.findById(req.mentor._id);
+    const user = req.user ? await User.findById(req.user._id) : await Mentor.findById(req.mentor._id);
     const userReposts = user.reposts || [];
     const alreadyReposted = userReposts.some(
-      (repostId) => repostId.toString() === req.params.postId,
+      repostId => repostId.toString() === req.params.postId
     );
 
     if (alreadyReposted) {
       // Unrepost
       user.reposts = userReposts.filter(
-        (repostId) => repostId.toString() !== req.params.postId,
+        repostId => repostId.toString() !== req.params.postId
       );
-      originalPost.repostCount = Math.max(
-        0,
-        (originalPost.repostCount || 0) - 1,
-      );
+      originalPost.repostCount = Math.max(0, (originalPost.repostCount || 0) - 1);
       await user.save();
       await originalPost.save();
 
@@ -2553,16 +2184,9 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
 
     // Mark as engaged when user reposts (only for users, not mentors)
     if (req.user) {
-      feedController
-        .markPostAsEngaged(
-          req.user._id,
-          originalPost._id,
-          "repost",
-          originalPost,
-        )
-        .catch((err) => {
-          console.error("Error marking post as engaged (repost):", err);
-        });
+      feedController.markPostAsEngaged(req.user._id, originalPost._id, 'repost', originalPost).catch(err => {
+        console.error('Error marking post as engaged (repost):', err);
+      });
     }
 
     res.json({
@@ -2576,20 +2200,18 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
     (async () => {
       try {
         const actorId = req.user ? req.user._id : req.mentor._id;
-        const actorName =
-          (req.user ? req.user.name : req.mentor?.name) || "Someone";
-        const actorUsername =
-          (req.user ? req.user.username : req.mentor?.username) || null;
+        const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+        const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
         const recipientId = originalPost.mentorId || originalPost.userId;
-        const recipientRole = originalPost.mentorId ? "mentor" : "user";
+        const recipientRole = originalPost.mentorId ? 'mentor' : 'user';
 
         if (recipientId) {
           await NotificationManager.createAndSend({
             recipientId,
             recipientRole,
             actorId,
-            type: "REPOST",
-            entityType: "POST",
+            type: 'REPOST',
+            entityType: 'POST',
             entityId: originalPost._id,
             originPath: `/post/${originalPost._id}`,
             message: `${actorName} reposted your post`,
@@ -2597,9 +2219,10 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
           });
         }
       } catch (err) {
-        console.error("Error sending repost notification:", err);
+        console.error('Error sending repost notification:', err);
       }
     })();
+
   } catch (error) {
     console.error("Error reposting:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -2610,225 +2233,194 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
  * POST /api/mentor-posts/:postId/comments/:commentId/like
  * Like/Unlike a comment (authenticated users and mentors)
  */
-router.post(
-  "/:postId/comments/:commentId/like",
-  authenticateRequired,
-  async (req, res) => {
-    try {
-      const post = await Post.findById(req.params.postId);
+router.post("/:postId/comments/:commentId/like", authenticateRequired, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
 
-      if (!post) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Post not found" });
-      }
-
-      const comment = post.comments.id(req.params.commentId);
-      if (!comment || comment.deleted) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Comment not found" });
-      }
-
-      // Support both user and mentor authentication
-      const userId = req.user ? req.user._id : req.mentor._id;
-      const existingLikeIndex = comment.likes.findIndex(
-        (like) => like.userId && like.userId.toString() === userId.toString(),
-      );
-
-      if (existingLikeIndex > -1) {
-        // Unlike
-        comment.likes.splice(existingLikeIndex, 1);
-        comment.likesCount = Math.max(0, (comment.likesCount || 0) - 1);
-      } else {
-        // Like
-        comment.likes.push({ userId });
-        comment.likesCount = (comment.likesCount || 0) + 1;
-      }
-
-      await post.save();
-
-      res.json({
-        success: true,
-        isLiked: existingLikeIndex === -1,
-        likesCount: comment.likesCount,
-      });
-
-      // Notify comment owner if it's a new like
-      if (existingLikeIndex === -1) {
-        (async () => {
-          try {
-            const actorId = req.user ? req.user._id : req.mentor._id;
-            const actorName =
-              (req.user ? req.user.name : req.mentor?.name) || "Someone";
-            const actorUsername =
-              (req.user ? req.user.username : req.mentor?.username) || null;
-            const recipientId = comment.userId;
-
-            // Determine recipient role - need to check if it's a user or mentor
-            // For now, assume user (could be enhanced to check actual role)
-            const recipientRole = "user";
-
-            if (recipientId) {
-              await NotificationManager.createAndSend({
-                recipientId,
-                recipientRole,
-                actorId,
-                type: "COMMENT_LIKE",
-                entityType: "COMMENT",
-                entityId: comment._id,
-                originPath: `/posts/${post._id}#comment-${comment._id}`,
-                message: `${actorName} liked your comment`,
-                actorInfo: { name: actorName, username: actorUsername },
-              });
-            }
-          } catch (err) {
-            console.error("Error sending comment like notification:", err);
-          }
-        })();
-      }
-    } catch (error) {
-      console.error("Error toggling comment like:", error);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
-  },
-);
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment || comment.deleted) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    // Support both user and mentor authentication
+    const userId = req.user ? req.user._id : req.mentor._id;
+    const existingLikeIndex = comment.likes.findIndex(
+      like => like.userId && like.userId.toString() === userId.toString()
+    );
+
+    if (existingLikeIndex > -1) {
+      // Unlike
+      comment.likes.splice(existingLikeIndex, 1);
+      comment.likesCount = Math.max(0, (comment.likesCount || 0) - 1);
+    } else {
+      // Like
+      comment.likes.push({ userId });
+      comment.likesCount = (comment.likesCount || 0) + 1;
+    }
+
+    await post.save();
+
+    res.json({
+      success: true,
+      isLiked: existingLikeIndex === -1,
+      likesCount: comment.likesCount,
+    });
+
+    // Notify comment owner if it's a new like
+    if (existingLikeIndex === -1) {
+      (async () => {
+        try {
+          const actorId = req.user ? req.user._id : req.mentor._id;
+          const actorName = (req.user ? req.user.name : req.mentor?.name) || 'Someone';
+          const actorUsername = (req.user ? req.user.username : req.mentor?.username) || null;
+          const recipientId = comment.userId;
+
+          // Determine recipient role - need to check if it's a user or mentor
+          // For now, assume user (could be enhanced to check actual role)
+          const recipientRole = 'user';
+
+          if (recipientId) {
+            await NotificationManager.createAndSend({
+              recipientId,
+              recipientRole,
+              actorId,
+              type: 'COMMENT_LIKE',
+              entityType: 'COMMENT',
+              entityId: comment._id,
+              originPath: `/posts/${post._id}#comment-${comment._id}`,
+              message: `${actorName} liked your comment`,
+              actorInfo: { name: actorName, username: actorUsername },
+            });
+          }
+        } catch (err) {
+          console.error('Error sending comment like notification:', err);
+        }
+      })();
+    }
+
+  } catch (error) {
+    console.error("Error toggling comment like:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 /**
  * POST /api/mentor-posts/:postId/comments/:commentId/reply
  * Reply to a comment (authenticated users only)
  */
-router.post(
-  "/:postId/comments/:commentId/reply",
-  authenticateRequired,
-  async (req, res) => {
-    try {
-      const { content } = req.body;
+router.post("/:postId/comments/:commentId/reply", authenticateRequired, async (req, res) => {
+  try {
+    const { content } = req.body;
 
-      if (!content || !content.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: "Reply content is required",
-        });
-      }
-
-      const post = await Post.findById(req.params.postId);
-
-      if (!post) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Post not found" });
-      }
-
-      const parentComment = post.comments.id(req.params.commentId);
-      if (!parentComment || parentComment.deleted) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Parent comment not found" });
-      }
-
-      // Create reply
-      const reply = {
-        userId: req.user ? req.user._id : req.mentor._id,
-        content: content.trim(),
-        parentCommentId: req.params.commentId,
-        likes: [],
-        likesCount: 0,
-        deleted: false,
-      };
-
-      post.comments.push(reply);
-      post.commentsCount = post.commentsCount + 1;
-
-      await post.save();
-
-      // Get the newly added reply
-      const newReply = post.comments[post.comments.length - 1];
-
-      // Manually populate the reply's user data (cross-DB population)
-      const populatedUser = req.user
-        ? await populateUser(newReply.userId)
-        : await populateMentor(newReply.userId);
-
-      const userData = populatedUser || { _id: newReply.userId };
-
-      res.status(201).json({
-        success: true,
-        message: "Reply added successfully",
-        reply: {
-          _id: newReply._id,
-          user: userData,
-          content: newReply.content,
-          likesCount: newReply.likesCount,
-          isLiked: false,
-          parentCommentId: newReply.parentCommentId,
-          createdAt: newReply.createdAt,
-        },
-        commentsCount: post.commentsCount,
+    if (!content || !content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Reply content is required"
       });
-    } catch (error) {
-      console.error("Error adding reply:", error);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
     }
-  },
-);
+
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const parentComment = post.comments.id(req.params.commentId);
+    if (!parentComment || parentComment.deleted) {
+      return res.status(404).json({ success: false, message: "Parent comment not found" });
+    }
+
+    // Create reply
+    const reply = {
+      userId: req.user ? req.user._id : req.mentor._id,
+      content: content.trim(),
+      parentCommentId: req.params.commentId,
+      likes: [],
+      likesCount: 0,
+      deleted: false,
+    };
+
+    post.comments.push(reply);
+    post.commentsCount = post.commentsCount + 1;
+
+    await post.save();
+
+    // Get the newly added reply
+    const newReply = post.comments[post.comments.length - 1];
+
+    // Manually populate the reply's user data (cross-DB population)
+    const populatedUser = req.user
+      ? await populateUser(newReply.userId)
+      : await populateMentor(newReply.userId);
+
+    const userData = populatedUser || { _id: newReply.userId };
+
+    res.status(201).json({
+      success: true,
+      message: "Reply added successfully",
+      reply: {
+        _id: newReply._id,
+        user: userData,
+        content: newReply.content,
+        likesCount: newReply.likesCount,
+        isLiked: false,
+        parentCommentId: newReply.parentCommentId,
+        createdAt: newReply.createdAt,
+      },
+      commentsCount: post.commentsCount,
+    });
+  } catch (error) {
+    console.error("Error adding reply:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 /**
  * DELETE /api/mentor-posts/:postId/comments/:commentId
  * Delete a comment (only by the comment author)
  */
-router.delete(
-  "/:postId/comments/:commentId",
-  authenticateRequired,
-  async (req, res) => {
-    try {
-      const post = await Post.findById(req.params.postId);
+router.delete("/:postId/comments/:commentId", authenticateRequired, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
 
-      if (!post) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Post not found" });
-      }
-
-      const comment = post.comments.id(req.params.commentId);
-      if (!comment) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Comment not found" });
-      }
-
-      // Check if user is the author
-      const userId = req.user ? req.user._id : req.mentor._id;
-      if (comment.userId?.toString() !== userId?.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: "You can only delete your own comments",
-        });
-      }
-
-      // Soft delete the comment
-      comment.deleted = true;
-      post.commentsCount = Math.max(0, post.commentsCount - 1);
-
-      await post.save();
-
-      res.json({
-        success: true,
-        message: "Comment deleted successfully",
-        commentsCount: post.commentsCount,
-      });
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
     }
-  },
-);
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    // Check if user is the author
+    const userId = req.user ? req.user._id : req.mentor._id;
+    if (comment.userId?.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own comments"
+      });
+    }
+
+    // Soft delete the comment
+    comment.deleted = true;
+    post.commentsCount = Math.max(0, post.commentsCount - 1);
+
+    await post.save();
+
+    res.json({
+      success: true,
+      message: "Comment deleted successfully",
+      commentsCount: post.commentsCount,
+    });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 /**
  * GET /api/posts/mentions/search
@@ -2852,13 +2444,19 @@ router.get("/mentions/search", async (req, res) => {
     // Search users and mentors in parallel
     const [users, mentors] = await Promise.all([
       User.find({
-        $or: [{ username: searchRegex }, { name: searchRegex }],
+        $or: [
+          { username: searchRegex },
+          { name: searchRegex },
+        ],
       })
         .select("name username image _id")
         .limit(10)
         .lean(),
       Mentor.find({
-        $or: [{ username: searchRegex }, { name: searchRegex }],
+        $or: [
+          { username: searchRegex },
+          { name: searchRegex },
+        ],
       })
         .select("name username image _id")
         .limit(10)
@@ -2866,7 +2464,7 @@ router.get("/mentions/search", async (req, res) => {
     ]);
 
     // Format results
-    const formattedUsers = users.map((user) => ({
+    const formattedUsers = users.map(user => ({
       _id: user._id,
       name: user.name,
       username: user.username,
@@ -2874,7 +2472,7 @@ router.get("/mentions/search", async (req, res) => {
       type: "user",
     }));
 
-    const formattedMentors = mentors.map((mentor) => ({
+    const formattedMentors = mentors.map(mentor => ({
       _id: mentor._id,
       name: mentor.name,
       username: mentor.username,

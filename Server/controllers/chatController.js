@@ -12,6 +12,7 @@ const Mentor = require("../models/mentorSchema");
 // const { Users } = require("../db"); // No longer needed since we're importing User model directly
 const NotificationService = require("../services/notificationService");
 const NotificationManager = require("../services/notificationManager");
+const { trackStudentEvent } = require('../services/interactionTrackingService');
 
 const Post =
   Admeasy.models.Post ||
@@ -480,6 +481,13 @@ const createOrGetUserToMentorChat = async (req, res) => {
     );
     const mentorId = req.params.mentorId;
     const userId = req.user._id || req.user.id;
+    trackStudentEvent({
+      userId,
+      eventType: 'mentor_click_chat',
+      entityId: mentorId,
+      metadata: { mentorId },
+      dedupeWindowSeconds: 10,
+    }).catch((err) => console.error('mentor_click_chat tracking failed:', err));
     console.log(
       "createOrGetUserToMentorChat - userId:",
       userId,
@@ -512,6 +520,13 @@ const createOrGetUserToMentorChat = async (req, res) => {
         isActive: true,
       });
       await chat.save();
+      trackStudentEvent({
+        userId,
+        eventType: 'mentor_chat_started',
+        entityId: mentorId,
+        metadata: { chatId: chat._id },
+        dedupeWindowSeconds: 20,
+      }).catch((err) => console.error('mentor_chat_started tracking failed:', err));
     }
 
     res.json({

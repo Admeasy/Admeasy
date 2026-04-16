@@ -21,72 +21,75 @@ import { useUnreadMessages } from "../hooks/useUnreadMessages";
 import { useUnreadSpaceMessages } from "../hooks/useUnreadSpaceMessages";
 const logo = "/favicon.ico";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify";
+import { toast } from"react-toastify";
+import { useProfileCompletion } from"../hooks/useProfileCompletion";
+import ProfileCompletionCircle from"./ProfileCompletionCircle";
 
 export const SIDEBAR_EXPANDED_WIDTH = 288;
 export const SIDEBAR_COLLAPSED_WIDTH = 88;
 
 const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
-  const location = useLocation();
-  const {
-    user,
-    setUser,
-    savedAccounts,
-    removeSavedAccount,
-    logoutAllAccounts,
-    fetchUser,
-  } = useUser();
-  const { mentor, setMentor } = useMentor();
-  const loggedInAccount = user || mentor;
-  const isUserAccount = Boolean(user);
-  const navigate = useNavigate();
+ const location = useLocation();
+ const {
+ user,
+ setUser,
+ savedAccounts,
+ removeSavedAccount,
+ logoutCurrentAccount,
+ logoutAllAccounts,
+ fetchUser,
+ } = useUser();
+ const { mentor, setMentor } = useMentor();
+ const loggedInAccount = user || mentor;
+ const isUserAccount = Boolean(user);
+ const completion = useProfileCompletion();
 
-  const [showAccountsPopup, setShowAccountsPopup] = useState(false);
-  const popupRef = useRef(null);
+ const navigate = useNavigate();
 
-  const isAdminRoute = location.pathname.startsWith("/admin");
-  const isSpaceFeedPage = /^\/spaces\/[^/]+$/.test(location.pathname);
-  const hideSidebarPages = [
-    "/login",
-    "/mentors/login",
-    "/mentors/register",
-    "/onboarding",
-    "/forgot-password",
-    "/reset-password",
-  ];
-  const shouldHide =
-    isAdminRoute ||
-    isSpaceFeedPage ||
-    hideSidebarPages.some((path) => location.pathname.startsWith(path));
+ const [showAccountsPopup, setShowAccountsPopup] = useState(false);
+ const popupRef = useRef(null);
 
-  const { unreadCount: unreadMessagesCount } = useUnreadMessages();
-  const { unreadCount: unreadSpaceMessagesCount } = useUnreadSpaceMessages();
+ const isAdminRoute = location.pathname.startsWith("/admin");
+ const isSpaceFeedPage = /^\/spaces\/[^/]+$/.test(location.pathname);
+ const hideSidebarPages = [
+"/login",
+"/mentors/login",
+"/mentors/register",
+"/onboarding",
+"/forgot-password",
+"/reset-password",
+ ];
+ const shouldHide =
+ isAdminRoute ||
+ isSpaceFeedPage ||
+ hideSidebarPages.some((path) => location.pathname.startsWith(path));
 
-  // Close popup when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (popupRef.current && !popupRef.current.contains(event.target)) {
-        setShowAccountsPopup(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+ const { unreadCount: unreadMessagesCount } = useUnreadMessages();
+ const { unreadCount: unreadSpaceMessagesCount } = useUnreadSpaceMessages();
 
-  if (shouldHide) return null;
+ // Close popup when clicking outside
+ useEffect(() => {
+ function handleClickOutside(event) {
+ if (popupRef.current && !popupRef.current.contains(event.target)) {
+ setShowAccountsPopup(false);
+ }
+ }
+ document.addEventListener("mousedown", handleClickOutside);
+ return () => document.removeEventListener("mousedown", handleClickOutside);
+ }, []);
+
+ if (shouldHide) return null;
 
   const navItems = [
     { icon: Home, label: "Home", path: "/", exact: true },
     { icon: Compass, label: "Explore", path: "/explore" },
     { icon: CirclePlus, label: "Create", path: "/posts/create" },
-    ...(loggedInAccount
-      ? [{ icon: Users, label: "Spaces", path: "/spaces" }]
-      : []),
-    ...(loggedInAccount
-      ? isUserAccount
-        ? [{ icon: MessagesSquare, label: "Chats", path: "/chats" }]
-        : [{ icon: MessagesSquare, label: "Chats", path: "/mentor/chats" }]
-      : []),
+    { icon: Users, label: "Spaces", path: "/spaces" },
+    {
+      icon: MessagesSquare,
+      label: "Chats",
+      path: isUserAccount ? "/chats" : "/mentor/chats"
+    },
     { icon: Newspaper, label: "Blogs", path: "/blogs" },
     // ── Wallet & Referral — users only ──────────────
     ...(isUserAccount
@@ -100,85 +103,57 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
       : []),
   ];
 
-  const sidebarTransition = { duration: 0.3, ease: "easeInOut" };
-  const textVariants = {
-    hidden: { opacity: 0, width: 0, transition: { duration: 0.2 } },
-    visible: {
-      opacity: 1,
-      width: "auto",
-      transition: { duration: 0.3, delay: 0.1 },
-    },
-  };
+ const sidebarTransition = { duration: 0.3, ease:"easeInOut"};
+ const textVariants = {
+ hidden: { opacity: 0, width: 0, transition: { duration: 0.2 } },
+ visible: {
+ opacity: 1,
+ width:"auto",
+ transition: { duration: 0.3, delay: 0.1 },
+ },
+ };
 
-  const handleAccountSwitch = async (account) => {
-    if (account.id === user?._id) {
-      setShowAccountsPopup(false);
-      return;
-    }
+ const handleAccountSwitch = async (account) => {
+ if (account.id === user?._id) {
+ setShowAccountsPopup(false);
+ return;
+ }
 
-    try {
-      const toastId = toast.loading("Switching account...");
-      const res = await fetch("/api/users/switch-account", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ switchToken: account.token }),
-        credentials: "include", // CRITICAL FIX: Allows new cookies to be saved in the browser!
-      });
+ try {
+ const toastId = toast.loading("Switching account...");
+ const res = await fetch("/api/users/switch-account", {
+ method:"POST",
+ headers: {"Content-Type":"application/json"},
+ body: JSON.stringify({ switchToken: account.token }),
+ credentials:"include", // CRITICAL FIX: Allows new cookies to be saved in the browser!
+ });
 
-      const data = await res.json();
+ const data = await res.json();
 
-      if (res.ok) {
-        await fetchUser(); // reload the user info into context with the new cookies
-        setShowAccountsPopup(false);
-        toast.update(toastId, {
-          render: `Switched to ${account.name}`,
-          type: "success",
-          isLoading: false,
-          autoClose: 2000,
-        });
-        navigate("/");
-      } else {
-        toast.update(toastId, {
-          render: data.message || "Session expired. Please log in again.",
-          type: "error",
-          isLoading: false,
-          autoClose: 3000,
-        });
-        removeSavedAccount(account.id); // Remove from list if switch token expired
-        navigate("/login");
-      }
-    } catch (err) {
-      toast.error("Failed to switch account");
-    }
-  };
-
-  return (
-    <>
-      <motion.aside
-        initial="expanded"
-        animate={{
-          width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
-        }}
-        variants={{
-          expanded: { width: "18rem" },
-          collapsed: { width: "5.5rem" },
-        }}
-        transition={sidebarTransition}
-        className="hidden md:flex fixed left-0 top-0 h-screen bg-white/95 backdrop-blur-2xl border-r border-gray-100 shadow-xl z-40 flex-col py-8 overflow-y-visible"
-      >
-        <motion.button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="absolute right-6 top-1 w-5 h-5 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center cursor-pointer z-50 hover:border-[#9f3562] group"
-        >
-          <motion.div
-            animate={{ rotate: isCollapsed ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ChevronLeft className="w-4 h-4 text-gray-500 group-hover:text-[#9f3562]" />
-          </motion.div>
-        </motion.button>
+ if (res.ok) {
+ await fetchUser(); // reload the user info into context with the new cookies
+ setShowAccountsPopup(false);
+ toast.update(toastId, {
+ render:`Switched to ${account.name}`,
+ type:"success",
+ isLoading: false,
+ autoClose: 2000,
+ });
+ navigate("/");
+ } else {
+ toast.update(toastId, {
+ render: data.message ||"Session expired. Please log in again.",
+ type:"error",
+ isLoading: false,
+ autoClose: 3000,
+ });
+ removeSavedAccount(account.id); // Remove from list if switch token expired
+ navigate("/login");
+ }
+ } catch (err) {
+ toast.error("Failed to switch account");
+ }
+ };
 
         <div
           className={`flex items-center gap-3 mt-0 mb-8 px-5 ${
@@ -339,6 +314,14 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
                       <LogOut className="w-4 h-4" /> Log out all accounts
                     </button>
                   </div>
+                </div>
+              </ProfileCompletionCircle>
+            </div>
+            <AnimatePresence>
+              {!isCollapsed && (
+                <motion.div variants={textVariants} initial="hidden" animate="visible" exit="hidden" className="flex flex-1 flex-col min-w-0">
+                  <p className="font-semibold text-sm text-gray-900 truncate w-full" title={loggedInAccount.name}>{loggedInAccount.name}</p>
+                  <p className="text-xs text-gray-500 group-hover:text-[#9f3562] transition-colors whitespace-nowrap">View Profile</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -422,10 +405,54 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
               </AnimatePresence>
             </div>
           </div>
-        )}
-      </motion.aside>
-    </>
-  );
+
+          {/* Bottom Row: Switch Account Button */}
+          <AnimatePresence>
+            {!isCollapsed ? (
+              <motion.button
+                variants={textVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                onClick={(e) => { e.stopPropagation(); setShowAccountsPopup(!showAccountsPopup); }}
+                className="w-full text-xs font-bold px-3 py-2 bg-white border border-[#9f3562] rounded-lg text-[#9f3562] hover:bg-[#9f3562] hover:text-white transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md whitespace-nowrap text-center z-10"
+                title="Switch Account"
+              >
+                Switch Account
+              </motion.button>
+            ) : (
+              <motion.button
+                onClick={(e) => { e.stopPropagation(); setShowAccountsPopup(!showAccountsPopup); }}
+                className="mt-2 p-2 rounded-full text-gray-400 hover:text-[#9f3562] hover:bg-[#9f3562]/10 transition-colors"
+                title="Switch Account"
+              >
+                <Repeat className="w-5 h-5" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    ) : (
+      <div className="flex flex-col items-center">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/login')}
+          className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white font-bold text-sm shadow-md shadow-[#9f3562]/20 hover:shadow-lg hover:shadow-[#9f3562]/30 transition-all duration-300 ${isCollapsed ? 'px-0' : 'px-4'}`}
+        >
+          <UserPlus className="w-5 h-5 flex-shrink-0" />
+          {!isCollapsed && (
+            <motion.span variants={textVariants} initial="hidden" animate="visible" exit="hidden" className="whitespace-nowrap">
+              Sign Up / Log In
+            </motion.span>
+          )}
+        </motion.button>
+      </div>
+    )}
+  </div>
+ </motion.aside>
+ </>
+ );
 };
 
 export default LeftSidebar;

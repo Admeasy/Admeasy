@@ -561,6 +561,7 @@ function App() {
         <Route path="/admin/applications/:job" element={<JobApplications />} />
         <Route path="/admin/notes" element={<ManageNotes />} />
         <Route path="/admin/posts" element={<ManagePosts />} />
+        <Route path="/admin/schools" element={<ManageSchools />} />
         <Route path="/admin/spaces" element={<ManageSpaces />} />
         <Route
           path="/admin/subscription-plans"

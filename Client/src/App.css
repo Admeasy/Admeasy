@@ -1,267 +1,267 @@
 
 .container input {
 
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
-  height: 0;
-  width: 0;
+ position: absolute;
+ opacity: 0;
+ cursor: pointer;
+ height: 0;
+ width: 0;
 }
 
 .container {
-  display:flex;
-  gap:10px;
-  align-items: center;
-  position: relative;
-  cursor: pointer;
-  font-size: 20px;
-  user-select: none;
+ display:flex;
+ gap:10px;
+ align-items: center;
+ position: relative;
+ cursor: pointer;
+ font-size: 20px;
+ user-select: none;
 }
 
 /* Create a custom checkbox */
 .checkmark {
-  position: relative;
-  top: 0;
-  left: 0;
-  height: 1.3em;
-  width: 1.3em;
-  background-color: #ccc;
-  border-radius: 100%;
-  background: #e8e8e8;
-  box-shadow: 3px 3px 5px #c5c5c5,
-              -3px -3px 5px #ffffff;
-  transition-duration: 0.5s;
+ position: relative;
+ top: 0;
+ left: 0;
+ height: 1.3em;
+ width: 1.3em;
+ background-color: #ccc;
+ border-radius: 100%;
+ background: #e8e8e8;
+ box-shadow: 3px 3px 5px #c5c5c5,
+ -3px -3px 5px #ffffff;
+ transition-duration: 0.5s;
 }
 
 .container input:checked ~ .checkmark {
-  box-shadow: inset 3px 3px 5px #c5c5c5,
-              inset -3px -3px 5px #ffffff;
+ box-shadow: inset 3px 3px 5px #c5c5c5,
+ inset -3px -3px 5px #ffffff;
 }
 
 .checkmark:after {
-  content: "";
-  position: absolute;
-  opacity: 0;
+ content:"";
+ position: absolute;
+ opacity: 0;
 }
 
 .container input:checked ~ .checkmark:after {
-  opacity: 1;
+ opacity: 1;
 }
 
 .container .checkmark:after {
-  left: 0.50em;
-  top: 0.30em;
-  width: 0.30em;
-  height: 0.5em;
-  border: solid rgb(82, 82, 82);
-  border-width: 0 0.15em 0.15em 0;
-  transform: rotate(45deg);
+ left: 0.50em;
+ top: 0.30em;
+ width: 0.30em;
+ height: 0.5em;
+ border: solid rgb(82, 82, 82);
+ border-width: 0 0.15em 0.15em 0;
+ transform: rotate(45deg);
 }
 .bg {
-  width: 100%;
+ width: 100%;
 }
 /* Ensure images are responsive */
 img {
-  max-width: 100%;
-  height: auto;
+ max-width: 100%;
+ height: auto;
 }
 
 .bgcollegeshade {
-  height: 100%;
-  width: 100%;
+ height: 100%;
+ width: 100%;
 }
 .home-main{
-    padding: 50px;
+ padding: 50px;
 }
 @media(max-width:500px){
 .home-main{ 
-  padding: 40px 12px;
+ padding: 40px 12px;
 }
 
 h1{
-  font-family: 'Poppins Extrabold';
+ font-family:'Poppins Extrabold';
 }
 
 #btn-college {
-  box-shadow: 3px 4px 18px 1px var(--color-cta);
+ box-shadow: 3px 4px 18px 1px var(--color-cta);
 }
 
 .bgshade {
-  padding: 0px;
-  border-radius: 30px;
-  display: flex;
-  justify-content: center;
-  animation: float 6s ease-in-out infinite;
+ padding: 0px;
+ border-radius: 30px;
+ display: flex;
+ justify-content: center;
+ animation: float 6s ease-in-out infinite;
 }
 @keyframes float {
 
-  0%,
-  100% {
-    transform: translateY(0);
-  }
+ 0%,
+ 100% {
+ transform: translateY(0);
+ }
 
-  50% {
-    transform: translateY(-7px);
-  }
+ 50% {
+ transform: translateY(-7px);
+ }
 }
 
 #college-contain {
-  margin: 20px 0px;
-    animation: float 8s ease-in-out infinite; 
+ margin: 20px 0px;
+ animation: float 8s ease-in-out infinite; 
 }
 
 .college-Card-Container {
-  margin-top: 2rem;
+ margin-top: 2rem;
 }
 
 .c-card {
-  box-shadow: 0px 0px 3px 1px rgba(0, 0, 0, 0.521);
-  border-radius: 22px;
-  padding: 20px;
+ box-shadow: 0px 0px 3px 1px rgba(0, 0, 0, 0.521);
+ border-radius: 22px;
+ padding: 20px;
 }
 .Cards-container{
-  padding: 20px;
+ padding: 20px;
 }
 .nav-links .active{
-  color: var(--color-link);
-  padding-bottom: 0.25rem;
-  border-bottom: 3px solid var(--color-link);
+ color: var(--color-link);
+ padding-bottom: 0.25rem;
+ border-bottom: 3px solid var(--color-link);
 }
 
 /* Global responsive styles */
 @media (max-width: 768px) {
-  .bgshade {
-    padding: 0px 20px;
-    border-radius: 20px;
-  }
+ .bgshade {
+ padding: 0px 20px;
+ border-radius: 20px;
+ }
 
-  #college-contain {
-    padding: 15px;
-    width: 100% !important;
-  }
+ #college-contain {
+ padding: 15px;
+ width: 100% !important;
+ }
 
-  .college-Card-Container {
-    margin-top: 1rem;
-  }
+ .college-Card-Container {
+ margin-top: 1rem;
+ }
 
-  .c-card {
-    padding: 15px;
-  }
+ .c-card {
+ padding: 15px;
+ }
 
-  .Cards-container {
-    padding: 10px;
-  }
+ .Cards-container {
+ padding: 10px;
+ }
 }
 
 @media (max-width: 640px) {
-  .home-main {
-    padding: 20px 10px;
-  }
+ .home-main {
+ padding: 20px 10px;
+ }
 
-  .bgshade {
-    padding: 0px 15px;
-    border-radius: 15px;
-  }
+ .bgshade {
+ padding: 0px 15px;
+ border-radius: 15px;
+ }
 
-  #college-contain {
-    padding: 10px;
-  }
+ #college-contain {
+ padding: 10px;
+ }
 
-  .college-search input {
-    font-size: 14px;
-  }
+ .college-search input {
+ font-size: 14px;
+ }
 }
 /* Better container responsiveness */
 .container {
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 1rem;
+ width: 100%;
+ margin: 0 auto;
+ padding: 0 1rem;
 }
 
 @media (min-width: 640px) {
-  .container {
-    max-width: 640px;
-  }
+ .container {
+ max-width: 640px;
+ }
 }
 
 @media (min-width: 768px) {
-  .container {
-    max-width: 768px;
-  }
+ .container {
+ max-width: 768px;
+ }
 }
 
 @media (min-width: 1024px) {
-  .container {
-    max-width: 1024px;
-  }
+ .container {
+ max-width: 1024px;
+ }
 }
 
 @media (min-width: 1280px) {
-  .container {
-    max-width: 1280px;
-  }
+ .container {
+ max-width: 1280px;
+ }
 }
 }
 /* Add these styles to your App.css file */
 
 /* Ensure body doesn't have any margin/padding that might cause issues */
 body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
+ margin: 0;
+ padding: 0;
+ overflow-x: hidden;
 }
 
 /* Main app container should account for sidebar */
 #root {
-  min-height: 100vh;
-  position: relative;
+ min-height: 100vh;
+ position: relative;
 }
 
 /* Pages with sidebar should have proper left margin */
 .with-sidebar {
-  margin-left: 80px; /* 20 (5rem) = sidebar width */
-  min-height: 100vh;
+ margin-left: 80px; /* 20 (5rem) = sidebar width */
+ min-height: 100vh;
 }
 
 /* Ensure content doesn't get hidden behind sidebar */
 .page-content-with-sidebar {
-  margin-left: 80px;
-  width: calc(100% - 80px);
-  min-height: 100vh;
+ margin-left: 80px;
+ width: calc(100% - 80px);
+ min-height: 100vh;
 }
 
 /* Remove any top margin/padding from pages with sidebar */
 .no-top-spacing {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
+ margin-top: 0 !important;
+ padding-top: 0 !important;
 }
 
 /* Override old navbar styles when sidebar is active */
 .hide-old-navbar {
-  display: none !important;
+ display: none !important;
 }
 
 /* Ensure footer stays at bottom */
 .page-footer {
-  width: 100%;
-  margin-top: auto;
+ width: 100%;
+ margin-top: auto;
 }
 
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
-  .with-sidebar,
-  .page-content-with-sidebar {
-    margin-left: 60px;
-    width: calc(100% - 60px);
-  }
-  
-  /* Sidebar should be smaller on mobile */
-  aside {
-    width: 60px !important;
-  }
+ .with-sidebar,
+ .page-content-with-sidebar {
+ margin-left: 60px;
+ width: calc(100% - 60px);
+ }
+ 
+ /* Sidebar should be smaller on mobile */
+ aside {
+ width: 60px !important;
+ }
 }
 
 /* Smooth transitions for layout changes */
 * {
-  transition: margin 0.3s ease, width 0.3s ease;
+ transition: margin 0.3s ease, width 0.3s ease;
 }

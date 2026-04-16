@@ -4,11 +4,12 @@
  * Native: Codetrix plugin (GoogleAuth) + idToken exchange with backend.
  * Web: existing Passport redirect flow stays unchanged.
  */
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
-import { Capacitor } from "@capacitor/core";
-import { toast } from "react-toastify";
-import type { NavigateFunction } from "react-router-dom";
-import { enableNotifications } from "../Firebase/enableNotifications";
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
+import { toast } from 'react-toastify';
+import type { NavigateFunction } from 'react-router-dom';
+import { enableNotifications } from '../Firebase/enableNotifications';
+import { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
 
 import {
   ensureGoogleSignInInitialized,
@@ -17,8 +18,16 @@ import {
 
 export { ensureGoogleSignInInitialized, GOOGLE_SIGN_IN_SCOPES };
 
+/**
+ * Get Web OAuth client ID (public).
+ * Can be overridden via VITE_GOOGLE_CLIENT_ID env var.
+ */
 export function getWebClientId(): string {
-  return import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const envClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+  if (envClientId) {
+    return envClientId;
+  }
+  return GOOGLE_WEB_CLIENT_ID;
 }
 
 /** True on Android & iOS — native account picker + POST idToken. */
@@ -82,6 +91,8 @@ export async function completeGoogleSessionFromIdToken(
     toast.error(data.message || "Google sign-in failed");
     return;
   }
+
+  console.log('[GoogleSignIn] Backend exchange OK, loading user data');
 
   deps.setMentor(null);
 
@@ -178,7 +189,9 @@ export async function runCapacitorGoogleSignIn(
     );
     console.log("[GoogleSignIn] platform:", Capacitor.getPlatform());
 
+    // Silent user cancellation
     if (/cancel|dismiss|user denied|12501|16|Canceled|abort/i.test(msg)) {
+      console.log('[GoogleSignIn] User cancelled');
       return;
     }
     toast.error(msg || "Google sign-in failed. Please try again.");

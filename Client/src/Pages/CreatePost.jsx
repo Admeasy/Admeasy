@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import ReactQuill, { Quill } from "react-quill-new";
-import { motion, AnimatePresence } from "framer-motion"; // For animations
+import { motion, AnimatePresence } from "framer-motion";
 import "react-quill-new/dist/quill.snow.css";
 import TableUI from "quill-table-ui";
 import "quill-table-ui/dist/index.css";
@@ -26,7 +26,6 @@ import CreateMcqTab from "../components/CreateMcqTab";
 import PollCard from "../components/PollCard";
 import McqCard from "../components/McqCard";
 
-// Registration stays the same...
 Quill.register("modules/tableUI", TableUI, true);
 
 const MentorPost = () => {
@@ -41,10 +40,18 @@ const MentorPost = () => {
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState([]);
   const [fetching, setFetching] = useState(true);
+  const [activeTab, setActiveTab] = useState("post");
 
-  // NEW: Hashtag State
+  // Hashtag State
   const [hashtags, setHashtags] = useState([]);
   const [hashtagInput, setHashtagInput] = useState("");
+
+  // Headline, Category, Space
+  const [headline, setHeadline] = useState("");
+  const [category, setCategory] = useState("study");
+  const [spaceId, setSpaceId] = useState("");
+  const [spaces, setSpaces] = useState([]);
+  const [spacesLoading, setSpacesLoading] = useState(false);
 
   // Check if coming from "Ask a Doubt" CTA
   const isAskDoubt = searchParams.get("askDoubt") === "true";
@@ -60,20 +67,6 @@ const MentorPost = () => {
   const mentionTimeoutRef = useRef(null);
   const mentionPopupRef = useRef(null);
   const hasAutoFocusedRef = useRef(false);
-  const [activeTab, setActiveTab] = useState("post");
-  const quillModules = useMemo(
-    () => ({
-      toolbar: [
-        [{ header: [1, 2, false] }],
-        ["bold", "italic", "link"],
-        [{ list: "ordered" }, { list: "bullet" }],
-        ["table"],
-      ],
-      table: true,
-      tableUI: true,
-    }),
-    [],
-  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -87,7 +80,6 @@ const MentorPost = () => {
           const quill = quillRef.current?.getEditor();
           if (quill) {
             quill.focus();
-            // Move cursor to the beginning
             quill.setSelection(0, 0);
             hasAutoFocusedRef.current = true;
           }
@@ -101,7 +93,7 @@ const MentorPost = () => {
   }, [isAskDoubt]);
 
   /* ----------------------------------
-     Fetch Mentor Posts
+  Fetch Mentor Posts
   ----------------------------------- */
   const fetchPosts = async () => {
     try {
@@ -132,6 +124,27 @@ const MentorPost = () => {
     }
   }, [user, mentor, navigate]);
 
+  // Fetch spaces from API
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      setSpacesLoading(true);
+      try {
+        const res = await fetch("/api/spaces", { credentials: "include" });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.spaces)) {
+          setSpaces(data.spaces);
+        } else if (Array.isArray(data)) {
+          setSpaces(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch spaces:", err);
+      } finally {
+        setSpacesLoading(false);
+      }
+    };
+    fetchSpaces();
+  }, []);
+
   // Fetch mention suggestions
   const fetchMentionSuggestions = useCallback(async (query) => {
     if (!query.trim()) {
@@ -145,7 +158,7 @@ const MentorPost = () => {
         `/api/posts/mentions/search?q=${encodeURIComponent(query)}`,
         {
           credentials: "include",
-        },
+        }
       );
       const data = await response.json();
 
@@ -206,8 +219,7 @@ const MentorPost = () => {
 
         try {
           const bounds = quill.getBounds(selection.index);
-          const editorElement =
-            quill.root.closest(".ql-container") || quill.root;
+          const editorElement = quill.root.closest(".ql-container") || quill.root;
           const editorRect = editorElement.getBoundingClientRect();
 
           setMentionPosition({
@@ -215,8 +227,7 @@ const MentorPost = () => {
             left: editorRect.left + bounds.left,
           });
         } catch (e) {
-          const editorElement =
-            quill.root.closest(".ql-container") || quill.root;
+          const editorElement = quill.root.closest(".ql-container") || quill.root;
           const editorRect = editorElement.getBoundingClientRect();
           setMentionPosition({
             top: editorRect.bottom + 5,
@@ -245,7 +256,7 @@ const MentorPost = () => {
     if (match) {
       const startIndex = selection.index - match[0].length;
       quill.deleteText(startIndex, match[0].length);
-      const mentionText = `@${mention.username || mention.name || "user"} `;
+      const mentionText = `@${mention.username || mention.name || "user"}`;
       quill.insertText(startIndex, mentionText);
       quill.setSelection(startIndex + mentionText.length);
       setContent(quill.root.innerHTML);
@@ -262,12 +273,12 @@ const MentorPost = () => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedMentionIndex((prev) =>
-          prev < mentionSuggestions.length - 1 ? prev + 1 : 0,
+          prev < mentionSuggestions.length - 1 ? prev + 1 : 0
         );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedMentionIndex((prev) =>
-          prev > 0 ? prev - 1 : mentionSuggestions.length - 1,
+          prev > 0 ? prev - 1 : mentionSuggestions.length - 1
         );
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
@@ -284,12 +295,7 @@ const MentorPost = () => {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [
-    showMentionPopup,
-    mentionSuggestions,
-    selectedMentionIndex,
-    insertMention,
-  ]);
+  }, [showMentionPopup, mentionSuggestions, selectedMentionIndex, insertMention]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -305,13 +311,12 @@ const MentorPost = () => {
 
     if (showMentionPopup) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showMentionPopup]);
 
   /* ----------------------------------
-     Handle Image Change
+  Handle Image Change
   ----------------------------------- */
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -327,7 +332,7 @@ const MentorPost = () => {
   };
 
   /* ----------------------------------
-     NEW: Hashtag Logic
+  Hashtag Logic
   ----------------------------------- */
   const handleHashtagKeyDown = (e) => {
     if (e.key === " " || e.key === "Enter") {
@@ -344,8 +349,22 @@ const MentorPost = () => {
     setHashtags(hashtags.filter((tag) => tag !== tagToRemove));
   };
 
+  const quillModules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, false] }],
+        ["bold", "italic", "link"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["table"],
+      ],
+      table: true,
+      tableUI: true,
+    }),
+    []
+  );
+
   /* ----------------------------------
-     Create Post
+  Create Post
   ----------------------------------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -360,6 +379,9 @@ const MentorPost = () => {
 
       const formData = new FormData();
       formData.append("content", content);
+      formData.append("headline", headline.trim());
+      formData.append("category", category);
+      formData.append("spaceId", spaceId);
       if (image) formData.append("image", image);
 
       // Add hashtags to form data
@@ -380,10 +402,7 @@ const MentorPost = () => {
       }
 
       try {
-        sessionStorage.setItem(
-          "admeasy:askDoubt:lastPost",
-          Date.now().toString(),
-        );
+        sessionStorage.setItem("admeasy:askDoubt:lastPost", Date.now().toString());
         sessionStorage.removeItem("admeasy:askDoubt:dismissed");
       } catch (err) {
         console.error("Error tracking post creation:", err);
@@ -391,9 +410,12 @@ const MentorPost = () => {
 
       toast.success("Post published successfully 🚀");
       setContent("");
+      setHeadline("");
+      setCategory("study");
+      setSpaceId("");
       setImage(null);
       setPreview(null);
-      setHashtags([]); // Reset hashtags on success
+      setHashtags([]);
       fetchPosts();
 
       if (isAskDoubt) {
@@ -430,16 +452,11 @@ const MentorPost = () => {
         className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden mb-10"
       >
         <div className="p-6">
-          {/* <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-1 bg-pink-500 rounded-full" />
-            <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-              {isAskDoubt ? "Ask Your Doubt" : "Create Post"}
-            </h2>
-          </div> */}
           {/**======CREATE TABS===== */}
           {!isAskDoubt && (
             <>
-              <div className="flex items-centre gap-3 mb-6 overflow-x-auto pb-1">
+              {/* Tabs */}
+              <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1">
                 {[
                   { label: "Post", value: "post", icon: "📝" },
                   { label: "Poll", value: "poll", icon: "📊" },
@@ -448,6 +465,7 @@ const MentorPost = () => {
                 ].map((tab) => (
                   <button
                     key={tab.value}
+                    type="button"
                     onClick={() => setActiveTab(tab.value)}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap cursor-pointer border ${
                       activeTab === tab.value
@@ -460,13 +478,11 @@ const MentorPost = () => {
                   </button>
                 ))}
               </div>
-              {/* Tab content heading */}
+
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-1 bg-pink-500 rounded-full" />
                 <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-                  {isAskDoubt
-                    ? "Ask Your Doubt"
-                    : activeTab === "post"
+                  {activeTab === "post"
                     ? "Create Post"
                     : activeTab === "poll"
                     ? "Create Poll"
@@ -477,9 +493,69 @@ const MentorPost = () => {
               </div>
             </>
           )}
+
           {activeTab === "post" && (
             <>
               <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300 relative">
+                <div className="px-4 pt-4 pb-2 border-b border-slate-100">
+                  <input
+                    type="text"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    placeholder="Headline (required) — e.g. 'JEE 2025 strategy that actually works'"
+                    className="w-full text-base font-bold text-gray-900 placeholder:text-gray-300 placeholder:font-normal bg-transparent focus:outline-none"
+                    maxLength={150}
+                  />
+                  <div className="text-[10px] text-gray-300 text-right mt-0.5">
+                    {headline.length}/150
+                  </div>
+                </div>
+
+                <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-3">
+                  <span className="text-xs text-gray-500 font-semibold shrink-0">
+                    Post to:
+                  </span>
+                  <div className="inline-flex rounded-xl p-0.5 bg-gray-100 gap-0.5">
+                    {[
+                      { key: "study", label: "📚 Study" },
+                      { key: "masti", label: "😎 Masti" },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setCategory(key)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                          category === key
+                            ? "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm"
+                            : "text-gray-500 hover:text-gray-700"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="px-4 py-2 border-b border-slate-100">
+                  <select
+                    value={spaceId}
+                    onChange={(e) => setSpaceId(e.target.value)}
+                    className="w-full text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer appearance-none"
+                    disabled={spacesLoading}
+                  >
+                    <option value="">
+                      {spacesLoading
+                        ? "Loading spaces..."
+                        : "🌐 Select a Space (required)"}
+                    </option>
+                    {spaces.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <ReactQuill
                   ref={quillRef}
                   theme="snow"
@@ -655,15 +731,13 @@ const MentorPost = () => {
                 </button>
               </div>
             </>
-          )}{" "}
-          {/* closes activeTab === "post" */}
+          )}
           {/* Poll placeholder */}
           {activeTab === "poll" && <CreatePollTab />}
           {activeTab === "qa" && <CreateMcqTab />}
           {/* Notes placeholder */}
           {activeTab === "notes" && <CreateNoteTab />}
-        </div>{" "}
-        {/* closes p-6 */}
+        </div>
       </motion.div>
 
       {/* --- POSTS FEED --- */}
@@ -723,7 +797,7 @@ const MentorPost = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(
-                              `/${(post.author || post.mentor).username}`,
+                              `/${(post.author || post.mentor).username}`
                             );
                           }}
                         >
@@ -748,8 +822,8 @@ const MentorPost = () => {
                     onVote={(updatePost) =>
                       setPosts((prev) =>
                         prev.map((p) =>
-                          p._id === updatePost._id ? updatePost : p,
-                        ),
+                          p._id === updatePost._id ? updatePost : p
+                        )
                       )
                     }
                   />
@@ -759,8 +833,8 @@ const MentorPost = () => {
                     onAnswer={(updatePost) =>
                       setPosts((prev) =>
                         prev.map((p) =>
-                          p._id === updatePost._id ? updatePost : p,
-                        ),
+                          p._id === updatePost._id ? updatePost : p
+                        )
                       )
                     }
                   />
@@ -798,7 +872,7 @@ const MentorPost = () => {
                   />
                 )}
 
-                {/* Hashtags Display (Optional here, but useful) */}
+                {/* Hashtags Display */}
                 {post.hashtags && post.hashtags.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {post.hashtags.map((tag, idx) => (

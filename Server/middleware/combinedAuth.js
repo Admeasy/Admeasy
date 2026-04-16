@@ -152,10 +152,66 @@ const requireSelfOrAdmin = (req, res, next) => {
   next();
 };
 
+/**
+ * Authenticate as User, Mentor, OR Teacher (school token).
+ * For space moderation (approve requests) - teachers use schoolToken.
+ */
+const authenticateUserMentorOrTeacher = async (req, res, next) => {
+  const token = req.cookies?.accessToken;
+  const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null;
+  const accessToken = token || bearer;
+
+  if (accessToken && process.env.JWT_ACCESS_SECRET) {
+    try {
+      const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
+      if (decoded.role === 'mentor') {
+        const mentor = await Mentor.findById(decoded.id || decoded._id);
+        if (mentor) {
+          req.mentor = mentor;
+          return next();
+        }
+      } else {
+        const user = await User.findById(decoded.id || decoded._id);
+        if (user) {
+          req.user = user;
+          return next();
+        }
+      }
+    } catch (err) {
+      // Fall through to teacher auth
+    }
+  }
+
+  const schoolToken = req.cookies?.schoolToken || bearer;
+  if (schoolToken && process.env.JWT_SCHOOL_SECRET) {
+    try {
+      const decoded = jwt.verify(schoolToken, process.env.JWT_SCHOOL_SECRET);
+      if (decoded.teacherId) {
+        const Teacher = require('../models/teacherSchema');
+        const teacher = await Teacher.findById(decoded.teacherId).select('name email').lean();
+        if (teacher) {
+          req.schoolAuth = { schoolId: decoded.schoolId, teacherId: decoded.teacherId, role: decoded.role };
+          req.teacherActor = teacher;
+          req.teacherActor._id = decoded.teacherId;
+          return next();
+        }
+      }
+    } catch (err) {
+      // Fall through
+    }
+  }
+
+  return res.status(401).json({
+    success: false,
+    message: 'Authentication required',
+  });
+};
+
 module.exports = {
   authenticateOptional,
   authenticateRequired,
   authenticateUserOrAdmin,
+  authenticateUserMentorOrTeacher,
   requireSelfOrAdmin,
 };
 
