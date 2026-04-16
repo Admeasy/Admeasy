@@ -63,7 +63,7 @@ function buildMessages(online, notes, { iitMentors, iimMentors, srccMentors, hin
       ? [
           `${hinduMentor} mentor${hinduMentor === 1 ? '' : 's'} from Hindu College, DU`,
           `${hinduMentor} Hindu College guru${hinduMentor === 1 ? '' : 's'} — DU vibes`,
-          `${hinduMentor} Hindu bhaiya & didi repping North Campus`,
+          `${hinduMentor} Hindu College bhaiya & didi repping North Campus`,
         ]
       : ['Hindu College mentors — North Campus aura incoming'];
 

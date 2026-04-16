@@ -24,10 +24,12 @@ const PostRoutes = require('./routes/postRoutes');
 const SearchRoutes = require('./routes/searchRoute')
 const SubscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const NotificationRoutes = require('./routes/notificationRoutes');
-const Db = require('./db');
+const { Admeasy } = require('./db');
 const SubscriptionRoutes = require('./routes/subscriptionRoutes');
 const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
+const ActivityRoutes = require('./routes/activityRoutes');
+const { postGoogleIdTokenLogin } = require('./controllers/googleIdTokenAuthController');
 const InteractionRoutes = require('./routes/interactionRoutes');
 const SchoolRoutes = require('./routes/schoolRoutes');
 const TeacherRoutes = require('./routes/teacherRoutes');
@@ -56,18 +58,28 @@ if (missing.length) {
   process.exit(1);
 }
 
-// Database connections are automatically established when db.js is required
-// The connections are created using mongoose.createConnection() which connects automatically
-ensureMasterTagsSeeded().catch((err) => {
-  console.error('Master tag seed failed:', err.message);
-});
+// Seed master tags only after Admeasy DB connection is ready.
+const seedMasterTagsSafely = async () => {
+  try {
+    await ensureMasterTagsSeeded();
+  } catch (err) {
+    console.error('Master tag seed failed:', err.message);
+  }
+};
+
+if (Admeasy.readyState === 1) {
+  seedMasterTagsSafely();
+} else {
+  Admeasy.once('connected', seedMasterTagsSafely);
+}
 
 // CORS configuration
 app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://admeasy.in",
-    "https://www.admeasy.in"
+    "https://www.admeasy.in",
+    "https://development.admeasy.in",
   ],
   credentials: true
 }));
@@ -76,11 +88,9 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Session configuration - MUST be before Socket.io setup
-// Session configuration removed - using JWT only
+// Auth is JWT-only (httpOnly cookies + optional Bearer); no express-session.
 
-
-// Socket.io setup with session integration
+// Socket.io (JWT handshake below, not session-based)
 // Make io available to controllers
 global.io = null;
 
@@ -97,7 +107,6 @@ const io = socketIo(server, {
   transports: ['websocket', 'polling'], // Ensure both transports are available
 });
 
-// Share session with Socket.io - CRITICAL FIX
 // Socket.io JWT auth is handled below
 
 
@@ -341,6 +350,7 @@ app.use('/api/subscriptions', SubscriptionRoutes);
 app.use('/api/notifications', NotificationRoutes);
 app.use('/api/advertisers', AdvertiserRoutes);
 app.use('/api/ads', AdRoutes);
+app.use('/api/activity', ActivityRoutes);
 app.use('/api/interactions', InteractionRoutes);
 app.use('/api/schools', SchoolRoutes);
 app.use('/api/teachers', TeacherRoutes);

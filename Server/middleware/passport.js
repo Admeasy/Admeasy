@@ -68,7 +68,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
-// Session support disabled for JWT-only auth
+// No express-session / serializeUser — Google flow uses session:false; app auth is JWT-only.
 // passport.serializeUser((user, done) => {
 //   done(null, user.id);
 // });
