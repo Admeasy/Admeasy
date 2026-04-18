@@ -30,6 +30,9 @@ const AdvertiserRoutes = require('./routes/advertiserRoutes');
 const AdRoutes = require('./routes/adRoutes');
 const ActivityRoutes = require('./routes/activityRoutes');
 const { postGoogleIdTokenLogin } = require('./controllers/googleIdTokenAuthController');
+// Refferal and wallet routes
+const refferalRoutes = require('./routes/referralRoutes')
+const walletRoutes = require('./routes/walletRoutes')
 const InteractionRoutes = require('./routes/interactionRoutes');
 const SchoolRoutes = require('./routes/schoolRoutes');
 const TeacherRoutes = require('./routes/teacherRoutes');
@@ -354,7 +357,8 @@ app.use('/api/activity', ActivityRoutes);
 app.use('/api/interactions', InteractionRoutes);
 app.use('/api/schools', SchoolRoutes);
 app.use('/api/teachers', TeacherRoutes);
-
+app.use('/api/referrals',refferalRoutes)
+app.use('/api/wallet',walletRoutes)
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);

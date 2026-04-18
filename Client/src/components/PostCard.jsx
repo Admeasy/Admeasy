@@ -762,7 +762,7 @@ const PostCard = ({ post, onPostUpdate, isMastiMode }) => {
               {isExpanded ? "Show less" : "Read more"}
             </button>
           )}
-        </div> */}
+        </div> 
 
         {/* NEW: Clickable Hashtags Display */}
         {postState.hashtags && postState.hashtags.length > 0 && (

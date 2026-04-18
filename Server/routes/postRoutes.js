@@ -1070,197 +1070,27 @@ router.get("/:postId", async (req, res) => {
  * POST /api/posts
  * Create a new post (mentors and users)
  */
-// router.post(
-//   "/",
-//   authenticateRequired,
-//   upload.single("image"),
-//   async (req, res) => {
-//     try {
-//       const { content, hashtags } = req.body; // NEW: Extract hashtags from req.body
-
-//       if (!content || !content.trim()) {
-//         return res.status(400).json({
-//           success: false,
-//           message: "Content is required",
-//         });
-//       }
-
-//       // Detect URL in content
-//       const detectedUrl = detectUrl(content);
-//       let linkPreview = null;
-
-//       if (detectedUrl) {
-//         try {
-//           linkPreview = await generateLinkPreview(detectedUrl);
-//         } catch (previewError) {
-//           console.log("Link preview generation failed:", previewError.message);
-//           // Continue without preview
-//         }
-//       }
-
-//       // Handle image upload
-//       let imageUrl = null;
-//       if (req.file) {
-//         try {
-//           imageUrl = await uploadToCloudinary(req.file.path, "posts");
-//         } catch (uploadError) {
-//           console.error("Error uploading image:", uploadError);
-//           return res.status(500).json({
-//             success: false,
-//             message: "Error uploading image",
-//           });
-//         }
-//       }
-
-//       // Create post - support both mentors and users
-//       const postData = {
-//         content: content.trim(),
-//         image: imageUrl,
-//         hashtags: hashtags ? JSON.parse(hashtags) : [], // NEW: Parse and save the hashtags array
-//       };
-
-//       if (req.mentor) {
-//         postData.mentorId = req.mentor._id;
-//       } else if (req.user) {
-//         postData.userId = req.user._id;
-//       }
-
-//       if (linkPreview) {
-//         postData.externalLink = {
-//           url: linkPreview.url,
-//           preview: {
-//             title: linkPreview.title,
-//             description: linkPreview.description,
-//             image: linkPreview.image,
-//             domain: linkPreview.domain,
-//             platform: linkPreview.platform,
-//             favicon: linkPreview.favicon,
-//           },
-//         };
-//       }
-
-//       const post = new Post(postData);
-//       await post.save();
-
-//       // Populate the appropriate author (mentor or user)
-//       if (post.mentorId) {
-//         await post.populate("mentorId", "name username image");
-//       } else if (post.userId) {
-//         // Manually populate user since it's on a different connection
-//         const user = await populateUser(post.userId);
-//         post.userId = user;
-//       }
-
-//       // Format response based on author type
-//       const author = post.mentorId
-//         ? {
-//             _id: post.mentorId._id,
-//             name: post.mentorId.name,
-//             username: post.mentorId.username,
-//             image: post.mentorId.image,
-//           }
-//         : post.userId
-//           ? {
-//               _id: post.userId._id,
-//               name: post.userId.name,
-//               username: post.userId.username || null,
-//               image: post.userId.image,
-//             }
-//           : null;
-
-//       res.status(201).json({
-//         success: true,
-//         message: "Post created successfully",
-//         post: {
-//           _id: post._id,
-//           mentor: author, // Keep 'mentor' key for backward compatibility
-//           author: author, // Add 'author' key for clarity
-//           content: post.content,
-//           image: post.image,
-//           hashtags: post.hashtags || [], // NEW: Send hashtags back to the client immediately
-//           externalLink: post.externalLink,
-//           likesCount: post.likesCount,
-//           commentsCount: post.commentsCount,
-//           createdAt: post.createdAt,
-//           updatedAt: post.updatedAt,
-//           isEdited: post.isEdited || false,
-//           editedAt: post.editedAt || null,
-//         },
-//       });
-
-//       // Create mention notifications (async, don't block response)
-//       (async () => {
-//         try {
-//           const actorId = req.mentor ? req.mentor._id : req.user._id;
-//           const actorRole = req.mentor ? "mentor" : "user";
-//           const actorName = author?.name || "Someone";
-//           await createMentionNotifications(
-//             content,
-//             post._id,
-//             actorId,
-//             actorRole,
-//             actorName,
-//           );
-//         } catch (err) {
-//           console.error("Error creating mention notifications (create):", err);
-//         }
-//       })();
-
-//       // Notify followers using new notification system
-//       (async () => {
-//         try {
-//           const authorDoc = req.mentor || req.user;
-//           const authorId = authorDoc._id;
-//           const authorName = author ? author.name : authorDoc.name || "Someone";
-//           const authorRole = req.mentor ? "mentor" : "user";
-//           const followers = authorDoc.followers || [];
-
-//           if (followers.length > 0) {
-//             // Determine recipient role (assume users for now, but could be mixed)
-//             // For simplicity, we'll use 'user' as default, but this could be enhanced
-//             await NotificationManager.createAndSendMultiple({
-//               recipientIds: followers,
-//               recipientRole: "user", // Could be enhanced to check actual role
-//               actorId: authorId,
-//               type: "FOLLOWING_POST",
-//               entityType: "POST",
-//               entityId: post._id,
-//               originPath: `/posts/${post._id}`,
-//               message: `${authorName} posted something new`,
-//               actorInfo: { name: authorName, username: author?.username },
-//             });
-//           }
-//         } catch (err) {
-//           console.error("Error sending new post notification:", err);
-//         }
-//       })();
-//     } catch (error) {
-//       console.error("Error creating post:", error);
-//       res
-//         .status(500)
-//         .json({ success: false, message: "Internal Server Error" });
-//     }
-//   },
-// );
 router.post(
   "/",
   authenticateRequired,
   upload.single("image"),
   async (req, res) => {
     try {
-      const { type = "post", hashtags } = req.body;
+      const { type = "post", content, headline, category, spaceId, hashtags, question, options: rawOptions } = req.body;
 
       // ── POLL branch ──────────────────────────────────────────────────────
       if (type === "poll") {
-        const { question, options: rawOptions } = req.body;
+        if (!question || !question.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: "Question is required for polls",
+          });
+        }
 
         // Parse options — frontend sends JSON string
         let options;
         try {
-          options =
-            typeof rawOptions === "string"
-              ? JSON.parse(rawOptions)
-              : rawOptions;
+          options = typeof rawOptions === "string" ? JSON.parse(rawOptions) : rawOptions;
         } catch {
           return res.status(400).json({
             success: false,
@@ -1268,170 +1098,284 @@ router.post(
           });
         }
 
-    if (!content || !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Content is required"
-      });
-    }
-
-    // Detect URL in content
-    const detectedUrl = detectUrl(content);
-    let linkPreview = null;
-
-    if (detectedUrl) {
-      try {
-        linkPreview = await generateLinkPreview(detectedUrl);
-      } catch (previewError) {
-        console.log('Link preview generation failed:', previewError.message);
-        // Continue without preview
-      }
-    }
-
-    // Handle image upload
-    let imageUrl = null;
-    if (req.file) {
-      try {
-        imageUrl = await uploadToCloudinary(req.file.path, 'posts');
-      } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        return res.status(500).json({
-          success: false,
-          message: 'Error uploading image'
-        });
-      }
-    }
-
-    // Create post - support both mentors and users
-    const postData = {
-      content: content.trim(),
-      headline: headline ? headline.trim() : null,
-      category: ['study', 'masti'].includes(category) ? category : 'study',
-      spaceId: spaceId || null,
-      image: imageUrl,
-      hashtags: hashtags ? JSON.parse(hashtags) : [],
-    };
-
-    if (req.mentor) {
-      postData.mentorId = req.mentor._id;
-    } else if (req.user) {
-      postData.userId = req.user._id;
-    }
-
-    if (linkPreview) {
-      postData.externalLink = {
-        url: linkPreview.url,
-        preview: {
-          title: linkPreview.title,
-          description: linkPreview.description,
-          image: linkPreview.image,
-          domain: linkPreview.domain,
-          platform: linkPreview.platform,
-          favicon: linkPreview.favicon,
-        },
-      };
-    }
-
-    const post = new Post(postData);
-    await post.save();
-
-    // Populate the appropriate author (mentor or user)
-    if (post.mentorId) {
-      await post.populate('mentorId', 'name username image');
-    } else if (post.userId) {
-      // Manually populate user since it's on a different connection
-      const user = await populateUser(post.userId);
-      post.userId = user;
-    }
-
-    // Format response based on author type
-    const author = post.mentorId
-      ? {
-        _id: post.mentorId._id,
-        name: post.mentorId.name,
-        username: post.mentorId.username,
-        image: post.mentorId.image,
-      }
-      : post.userId
-        ? {
-          _id: post.userId._id,
-          name: post.userId.name,
-          username: post.userId.username || null,
-          image: post.userId.image,
-        }
-        : null;
-
-    res.status(201).json({
-      success: true,
-      message: "Post created successfully",
-      post: {
-        _id: post._id,
-        mentor: author,
-        author: author,
-        headline: post.headline || null,
-        content: post.content,
-        category: post.category || 'study',
-        space: null, // space lookup can be done on feed refresh
-        image: post.image,
-        hashtags: post.hashtags || [],
-        externalLink: post.externalLink,
-        likesCount: post.likesCount,
-        commentsCount: post.commentsCount,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
-        isEdited: post.isEdited || false,
-        editedAt: post.editedAt || null,
-      },
-    });
-
-    // Create mention notifications (async, don't block response)
-    (async () => {
-      try {
-        const actorId = req.mentor ? req.mentor._id : req.user._id;
-        const actorRole = req.mentor ? 'mentor' : 'user';
-        const actorName = author?.name || 'Someone';
-        await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
-      } catch (err) {
-        console.error('Error creating mention notifications (create):', err);
-      }
-    })();
-
-    // Notify followers using new notification system
-    (async () => {
-      try {
-        const authorDoc = req.mentor || req.user;
-        const authorId = authorDoc._id;
-        const authorName = author ? author.name : (authorDoc.name || 'Someone');
-        const authorRole = req.mentor ? 'mentor' : 'user';
-        const followers = authorDoc.followers || [];
-
-        if (followers.length > 0) {
-          // Determine recipient role (assume users for now, but could be mixed)
-          // For simplicity, we'll use 'user' as default, but this could be enhanced
-          await NotificationManager.createAndSendMultiple({
-            recipientIds: followers,
-            recipientRole: 'user', // Could be enhanced to check actual role
-            actorId: authorId,
-            type: 'FOLLOWING_POST',
-            entityType: 'POST',
-            entityId: post._id,
-            originPath: `/posts/${post._id}`,
-            message: `${authorName} posted something new`,
-            actorInfo: { name: authorName, username: author?.username },
+        if (!Array.isArray(options) || options.length < 2) {
+          return res.status(400).json({
+            success: false,
+            message: "Polls must have at least 2 options",
           });
         }
-      } catch (err) {
-        console.error('Error sending new post notification:', err);
+
+        // Create poll post
+        const postData = {
+          type: "poll",
+          poll: {
+            question: question.trim(),
+            options: options.map(opt => ({ text: opt.text || opt, votedBy: [] })),
+          },
+          category: ['study', 'masti'].includes(category) ? category : 'study',
+          spaceId: spaceId || null,
+          hashtags: hashtags ? JSON.parse(hashtags) : [],
+        };
+
+        if (req.mentor) {
+          postData.mentorId = req.mentor._id;
+        } else if (req.user) {
+          postData.userId = req.user._id;
+        }
+
+        const post = new Post(postData);
+        await post.save();
+
+        // Populate the appropriate author (mentor or user)
+        if (post.mentorId) {
+          await post.populate('mentorId', 'name username image');
+        } else if (post.userId) {
+          // Manually populate user since it's on a different connection
+          const user = await populateUser(post.userId);
+          post.userId = user;
+        }
+
+        // Format response based on author type
+        const author = post.mentorId
+          ? {
+            _id: post.mentorId._id,
+            name: post.mentorId.name,
+            username: post.mentorId.username,
+            image: post.mentorId.image,
+          }
+          : post.userId
+            ? {
+              _id: post.userId._id,
+              name: post.userId.name,
+              username: post.userId.username || null,
+              image: post.userId.image,
+            }
+            : null;
+
+        // Notify followers using new notification system
+        (async () => {
+          try {
+            const authorDoc = req.mentor || req.user;
+            const authorId = authorDoc._id;
+            const authorName = author?.name || authorDoc.name || "Someone";
+            const followers = authorDoc.followers || [];
+
+            if (followers.length > 0) {
+              await NotificationManager.createAndSendMultiple({
+                recipientIds: followers,
+                recipientRole: "user",
+                actorId: authorId,
+                type: "FOLLOWING_POST",
+                entityType: "POST",
+                entityId: post._id,
+                originPath: `/posts/${post._id}`,
+                message: `${authorName} posted a poll`,
+                actorInfo: {
+                  name: authorName,
+                  username: author?.username,
+                },
+              });
+            }
+          } catch (err) {
+            console.error("Error sending new poll notification:", err);
+          }
+        })();
+
+        return res.status(201).json({
+          success: true,
+          message: "Poll created successfully",
+          post: {
+            _id: post._id,
+            mentor: author,
+            author: author,
+            type: "poll",
+            poll: post.poll,
+            category: post.category || 'study',
+            space: null, // space lookup can be done on feed refresh
+            hashtags: post.hashtags || [],
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+            isEdited: post.isEdited || false,
+            editedAt: post.editedAt || null,
+          },
+        });
       }
-    })();
 
+      // ── REGULAR POST branch ──────────────────────────────────────────────
+      if (!content || !content.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Content is required"
+        });
+      }
 
-  } catch (error) {
-    console.error("Error creating post:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+      // Detect URL in content
+      const detectedUrl = detectUrl(content);
+      let linkPreview = null;
+
+      if (detectedUrl) {
+        try {
+          linkPreview = await generateLinkPreview(detectedUrl);
+        } catch (previewError) {
+          console.log('Link preview generation failed:', previewError.message);
+          // Continue without preview
+        }
+      }
+
+      // Handle image upload
+      let imageUrl = null;
+      if (req.file) {
+        try {
+          imageUrl = await uploadToCloudinary(req.file.path, 'posts');
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          return res.status(500).json({
+            success: false,
+            message: 'Error uploading image'
+          });
+        }
+      }
+
+      // Create post - support both mentors and users
+      const postData = {
+        content: content.trim(),
+        headline: headline ? headline.trim() : null,
+        category: ['study', 'masti'].includes(category) ? category : 'study',
+        spaceId: spaceId || null,
+        image: imageUrl,
+        hashtags: hashtags ? JSON.parse(hashtags) : [],
+      };
+
+      if (req.mentor) {
+        postData.mentorId = req.mentor._id;
+      } else if (req.user) {
+        postData.userId = req.user._id;
+      }
+
+      if (linkPreview) {
+        postData.externalLink = {
+          url: linkPreview.url,
+          preview: {
+            title: linkPreview.title,
+            description: linkPreview.description,
+            image: linkPreview.image,
+            domain: linkPreview.domain,
+            platform: linkPreview.platform,
+            favicon: linkPreview.favicon,
+          },
+        };
+      }
+
+      const post = new Post(postData);
+      await post.save();
+
+      // Populate the appropriate author (mentor or user)
+      if (post.mentorId) {
+        await post.populate('mentorId', 'name username image');
+      } else if (post.userId) {
+        // Manually populate user since it's on a different connection
+        const user = await populateUser(post.userId);
+        post.userId = user;
+      }
+
+      // Format response based on author type
+      const author = post.mentorId
+        ? {
+          _id: post.mentorId._id,
+          name: post.mentorId.name,
+          username: post.mentorId.username,
+          image: post.mentorId.image,
+        }
+        : post.userId
+          ? {
+            _id: post.userId._id,
+            name: post.userId.name,
+            username: post.userId.username || null,
+            image: post.userId.image,
+          }
+          : null;
+
+      // Create mention notifications (async, don't block response)
+      (async () => {
+        try {
+          const actorId = req.mentor ? req.mentor._id : req.user._id;
+          const actorRole = req.mentor ? "mentor" : "user";
+          const actorName = author?.name || "Someone";
+
+          await createMentionNotifications(
+            content,
+            post._id,
+            actorId,
+            actorRole,
+            actorName
+          );
+        } catch (err) {
+          console.error("Error creating mention notifications (create):", err);
+        }
+      })();
+
+      // Notify followers using new notification system
+      (async () => {
+        try {
+          const authorDoc = req.mentor || req.user;
+          const authorId = authorDoc._id;
+          const authorName = author?.name || authorDoc.name || "Someone";
+          const followers = authorDoc.followers || [];
+
+          if (followers.length > 0) {
+            await NotificationManager.createAndSendMultiple({
+              recipientIds: followers,
+              recipientRole: "user",
+              actorId: authorId,
+              type: "FOLLOWING_POST",
+              entityType: "POST",
+              entityId: post._id,
+              originPath: `/posts/${post._id}`,
+              message: `${authorName} posted something new`,
+              actorInfo: {
+                name: authorName,
+                username: author?.username,
+              },
+            });
+          }
+        } catch (err) {
+          console.error("Error sending new post notification:", err);
+        }
+      })();
+
+      return res.status(201).json({
+        success: true,
+        message: "Post created successfully",
+        post: {
+          _id: post._id,
+          mentor: author,
+          author: author,
+          headline: post.headline || null,
+          content: post.content,
+          category: post.category || 'study',
+          space: null, // space lookup can be done on feed refresh
+          image: post.image,
+          hashtags: post.hashtags || [],
+          externalLink: post.externalLink,
+          likesCount: post.likesCount,
+          commentsCount: post.commentsCount,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          isEdited: post.isEdited || false,
+          editedAt: post.editedAt || null,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating post:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+      });
+    }
   }
-});
-
+);
 
 /**
  * PUT /api/posts/:postId
@@ -1439,7 +1383,6 @@ router.post(
  */
 router.put("/:postId", authenticateRequired, upload.single("image"), async (req, res) => {
   try {
-    // NEW: Also extract hashtags in case the edit form sends them
     const { content, hashtags } = req.body;
     const post = await Post.findById(req.params.postId);
 
@@ -1460,12 +1403,18 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
     }
 
     if (content && content.trim()) {
+      const willHaveImage = Boolean(req.file || post.image);
+      if (!hasVisiblePostText(content) && !willHaveImage) {
+        return res.status(400).json({
+          success: false,
+          message: "Post cannot be empty — add text or keep your image",
+        });
+      }
       post.content = content.trim();
       post.isEdited = true;
       post.editedAt = new Date();
 
       const detectedUrl = detectUrl(content);
-      // ... (Keep your existing linkPreview logic here)
       if (detectedUrl) {
         try {
           const linkPreview = await generateLinkPreview(detectedUrl);
@@ -1490,13 +1439,13 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
       }
     }
 
-    // NEW: Update hashtags if they are provided during edit
+    // Update hashtags if provided
     if (hashtags) {
       post.hashtags = JSON.parse(hashtags);
     }
 
+    // Handle image upload
     if (req.file) {
-      // ... (Keep your existing image upload logic here)
       if (post.image) {
         try {
           const publicId = getPublicIdFromUrl(post.image);
@@ -1509,26 +1458,27 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
       }
 
       try {
-        post.image = await uploadToCloudinary(req.file.path, 'posts');
+        post.image = await uploadToCloudinary(req.file.path, "posts");
       } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
+        console.error("Error uploading image:", uploadError);
         return res.status(500).json({
           success: false,
-          message: 'Error uploading image'
+          message: "Error uploading image",
         });
       }
     }
 
     await post.save();
 
-    // ... (Keep your existing populate and author logic here)
+    // Populate author info
     if (post.mentorId) {
-      await post.populate('mentorId', 'name username image');
+      await post.populate("mentorId", "name username image");
     } else if (post.userId) {
       const user = await populateUser(post.userId);
       post.userId = user;
     }
 
+    // Build author object
     const author = post.mentorId
       ? {
         _id: post.mentorId._id,
@@ -1543,16 +1493,46 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
           username: post.userId.username || null,
           image: post.userId.image,
         }
-      })();
-    } catch (error) {
-      console.error("Error creating post:", error);
-      res
-        .status(500)
-        .json({ success: false, message: "Internal Server Error" });
-    }
-  },
-);
+        : null;
 
+    // Create mention notifications if content was updated (async, don't block response)
+    if (content && content.trim()) {
+      (async () => {
+        try {
+          const actorId = req.mentor ? req.mentor._id : req.user._id;
+          const actorRole = req.mentor ? "mentor" : "user";
+          const actorName = author?.name || "Someone";
+          await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
+        } catch (err) {
+          console.error("Error creating mention notifications (update):", err);
+        }
+      })();
+    }
+
+    return res.json({
+      success: true,
+      message: "Post updated successfully",
+      post: {
+        _id: post._id,
+        mentor: author,
+        author: author,
+        content: post.content,
+        image: post.image,
+        hashtags: post.hashtags || [],
+        externalLink: post.externalLink,
+        likesCount: post.likesCount,
+        commentsCount: post.commentsCount,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        isEdited: post.isEdited,
+        editedAt: post.editedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 /**
  * POST /api/posts/:postId/vote
  * Cast a vote on a poll option (authenticated users and mentors)
@@ -1572,19 +1552,7 @@ router.post("/:postId/vote", authenticateRequired, async (req, res) => {
         message: "optionId is required",
       });
     }
-    // Reject rich-text "empty" bodies (e.g. <p><br></p>) unless there is an image
-    if (!content || !content.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "optionId is required",
-      });
-    }
-    if (!hasVisiblePostText(content) && !req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Add some text or an image to your post",
-      });
-    }
+
 
     const post = await Post.findById(req.params.postId);
 
@@ -1619,90 +1587,12 @@ router.post("/:postId/vote", authenticateRequired, async (req, res) => {
     // Find the target option
     const targetOption = post.poll.options.id(optionId);
 
-    if (content && content.trim()) {
-      const actorId = req.mentor ? req.mentor._id : req.user._id;
-      const actorRole = req.mentor ? 'mentor' : 'user';
-      const actorName = author?.name || 'Someone';
-      createMentionNotifications(content, post._id, actorId, actorRole, actorName).catch(err => {
-        console.error('Error creating mention notifications (update):', err);
-      });
-    }
-
-    // NEW: Add hashtags to the response!
-    res.json({
-      success: true,
-      message: "Post updated successfully",
-      post: {
-        _id: post._id,
-        mentor: author,
-        author: author,
-        content: post.content,
-        image: post.image,
-        hashtags: post.hashtags || [], // <--- THIS IS THE CRUCIAL FIX
-        externalLink: post.externalLink,
-        likesCount: post.likesCount,
-        commentsCount: post.commentsCount,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
-        isEdited: post.isEdited,
-        editedAt: post.editedAt,
-      },
-    });
-  } catch (error) {
-    console.error("Error updating post:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-});
-
-/**
- * DELETE /api/posts/:postId
- * Delete a post (only the creator - mentor or user)
- */
-router.delete("/:postId", authenticateRequired, async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.postId);
-
-    if (!post) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Post not found" });
-    }
-
-    if (post.type !== "mcq") {
-      return res.status(400).json({
-        success: false,
-        message: "This post is not an MCQ",
-      });
-    }
-
-    const voterId = req.user ? req.user._id : req.mentor._id;
-
-    const alreadyAnswered = post.mcq.options.some((opt) =>
-      (opt.answeredBy || []).some((id) => id.toString() === voterId.toString()),
-    );
-
-    if (alreadyAnswered) {
-      return res.status(400).json({
-        success: false,
-        message: "You have already answered this question",
-      });
-    }
-
-    const targetOption = post.mcq.options.id(optionId);
-
-    if (!targetOption) {
-      return res.status(404).json({
-        success: false,
-        message: "Option not found",
-      });
-    }
-
-    targetOption.answeredBy.push(voterId);
-    post.mcq.totalAnswers = (post.mcq.totalAnswers || 0) + 1;
-
+    // Cast the vote
+    targetOption.votedBy.push(voterId);
+    post.poll.totalVotes = (post.poll.totalVotes || 0) + 1;
     await post.save();
 
-    const viewer = req.user || req.mentor;
+    // Populate author info
     let author = null;
     if (post.mentorId) {
       await post.populate("mentorId", "name username image");
@@ -1716,136 +1606,75 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
       author = await populateUser(post.userId);
     }
 
-    const mcqPayload = formatMcqForResponse(post, viewer, author);
-
     return res.json({
       success: true,
-      message: "Answer recorded",
-      mcq: mcqPayload,
+      message: "Vote recorded",
+      poll: {
+        _id: post._id,
+        question: post.poll.question,
+        options: post.poll.options.map(opt => ({
+          _id: opt._id,
+          text: opt.text,
+          votes: opt.votedBy.length,
+        })),
+        totalVotes: post.poll.totalVotes,
+        author,
+      },
     });
   } catch (error) {
-    console.error("Error submitting MCQ answer:", error);
+    console.error("Error casting vote:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 
 /**
- * PUT /api/posts/:postId
- * Update a post (only the creator - mentor or user)
+ * DELETE /api/posts/:postId
+ * Delete a post (only the creator - mentor or user)
  */
-router.put(
-  "/:postId",
-  authenticateRequired,
-  upload.single("image"),
-  async (req, res) => {
-    try {
-      const { content, hashtags } = req.body;
-      const post = await Post.findById(req.params.postId);
+router.delete("/:postId", authenticateRequired, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
 
-      if (!post) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Post not found" });
-      }
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
 
-      // Check authorization: user must be the creator
-      const isAuthorized =
-        (req.mentor &&
-          post.mentorId &&
-          post.mentorId.toString() === req.mentor._id.toString()) ||
-        (req.user &&
-          post.userId &&
-          post.userId.toString() === req.user._id.toString());
+    // Check authorization: user must be the creator
+    const isAuthorized =
+      (req.mentor && post.mentorId && post.mentorId.toString() === req.mentor._id.toString()) ||
+      (req.user && post.userId && post.userId.toString() === req.user._id.toString());
 
-      if (!isAuthorized) {
-        return res.status(403).json({
-          success: false,
-          message: "You can only edit your own posts",
-        });
-      }
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own posts"
+      });
+    }
 
-      if (content && content.trim()) {
-        const willHaveImage = Boolean(req.file || post.image);
-        if (!hasVisiblePostText(content) && !willHaveImage) {
-          return res.status(400).json({
-            success: false,
-            message: "Post cannot be empty — add text or keep your image",
-          });
+    // Delete image from Cloudinary if exists
+    if (post.image) {
+      try {
+        const publicId = getPublicIdFromUrl(post.image);
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
         }
-        post.content = content.trim();
-        post.isEdited = true;
-        post.editedAt = new Date();
-
-        const detectedUrl = detectUrl(content);
-        if (detectedUrl) {
-          try {
-            const linkPreview = await generateLinkPreview(detectedUrl);
-            if (linkPreview) {
-              post.externalLink = {
-                url: linkPreview.url,
-                preview: {
-                  title: linkPreview.title,
-                  description: linkPreview.description,
-                  image: linkPreview.image,
-                  domain: linkPreview.domain,
-                  platform: linkPreview.platform,
-                  favicon: linkPreview.favicon,
-                },
-              };
-            }
-          } catch (previewError) {
-            console.log("Link preview update failed:", previewError.message);
-          }
-        } else {
-          post.externalLink = null;
-        }
+      } catch (deleteError) {
+        console.error('Error deleting image:', deleteError);
+        // Continue with post deletion
       }
+    }
 
-      // Update hashtags if provided
-      if (hashtags) {
-        post.hashtags = JSON.parse(hashtags);
-      }
-
-      // Handle image upload
-      if (req.file) {
-        if (post.image) {
-          try {
-            const publicId = getPublicIdFromUrl(post.image);
-            if (publicId) {
-              await deleteFromCloudinary(publicId);
-            }
-          } catch (deleteError) {
-            console.error("Error deleting old image:", deleteError);
-          }
-        }
-
-        try {
-          post.image = await uploadToCloudinary(req.file.path, "posts");
-        } catch (uploadError) {
-          console.error("Error uploading image:", uploadError);
-          return res.status(500).json({
-            success: false,
-            message: "Error uploading image",
-          });
-        }
-      }
-
-      await post.save();
-
-      // Populate author info
-      if (post.mentorId) {
-        await post.populate("mentorId", "name username image");
-      } else if (post.userId) {
-        const user = await populateUser(post.userId);
-        post.userId = user;
-      }
+    await Post.findByIdAndDelete(req.params.postId);
 
     res.json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
-    console.error("Error deleting mentor post:", error);
+    console.error("Error deleting post:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-});
+  });
+
+
+
 
 /**
  * PATCH /api/posts/:postId/category
@@ -1855,27 +1684,6 @@ router.put(
 router.patch("/:postId/category", authenticateRequired, async (req, res) => {
   try {
     const { category } = req.body;
-
-      res.json({
-        success: true,
-        message: "Post updated successfully",
-        post: {
-          _id: post._id,
-          mentor: author,
-          author: author,
-          content: post.content,
-          image: post.image,
-          hashtags: post.hashtags || [],
-          externalLink: post.externalLink,
-          likesCount: post.likesCount,
-          commentsCount: post.commentsCount,
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          isEdited: post.isEdited,
-          editedAt: post.editedAt,
-        },
-      });
-    }
 
     const post = await Post.findById(req.params.postId);
     if (!post) {

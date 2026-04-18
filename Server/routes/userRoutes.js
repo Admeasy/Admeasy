@@ -677,6 +677,7 @@ router.post('/refresh', async (req, res) => {
         const jwt = require('jsonwebtoken'); // Ensure jwt is available
         let decoded;
         try {
+            console.log(process.env.JWT_REFRESH_SECRET)
             decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
         } catch (err) {
             // Verify failed (expired or invalid)
