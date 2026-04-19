@@ -249,6 +249,7 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
           author,
           content: post.content,
           image: post.image,
+        images: post.images || [],
           hashtags: post.hashtags || [],
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
@@ -564,6 +565,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         category: post.category || 'study',
         space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
+        images: post.images || [],
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
@@ -669,6 +671,7 @@ router.get("/user/:userId", async (req, res) => {
         category: post.category || 'study',
         space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
+        images: post.images || [],
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
@@ -798,6 +801,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
         category: post.category || 'study',
         space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
         image: post.image,
+        images: post.images || [],
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
@@ -1035,6 +1039,7 @@ router.get("/:postId", async (req, res) => {
       category: post.category || 'study',
       space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
       image: post.image,
+        images: post.images || [],
       hashtags: post.hashtags || [],
       externalLink: post.externalLink,
       likes: populatedLikes,
@@ -1066,7 +1071,7 @@ router.get("/:postId", async (req, res) => {
  * POST /api/posts
  * Create a new post (mentors and users)
  */
-router.post("/", authenticateRequired, upload.single("image"), async (req, res) => {
+router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount: 1 }, { name: "images", maxCount: 5 }]), async (req, res) => {
   try {
     const { content, hashtags, headline, category, spaceId } = req.body;
 
@@ -1092,16 +1097,27 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
 
     // Handle image upload
     let imageUrl = null;
-    if (req.file) {
-      try {
+    let imagesUrls = [];
+    try {
+      if (req.files) {
+        if (req.files.image && req.files.image.length > 0) {
+          imageUrl = await uploadToCloudinary(req.files.image[0].path, 'posts');
+        }
+        if (req.files.images && req.files.images.length > 0) {
+          for (const file of req.files.images) {
+            const uploadedUrl = await uploadToCloudinary(file.path, 'posts');
+            imagesUrls.push(uploadedUrl);
+          }
+        }
+      } else if (req.file) {
         imageUrl = await uploadToCloudinary(req.file.path, 'posts');
-      } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        return res.status(500).json({
-          success: false,
-          message: 'Error uploading image'
-        });
       }
+    } catch (uploadError) {
+      console.error('Error uploading image(s):', uploadError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error uploading image(s)'
+      });
     }
 
     // Create post - support both mentors and users
@@ -1111,6 +1127,7 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
       category: ['study', 'masti'].includes(category) ? category : 'study',
       spaceId: spaceId || null,
       image: imageUrl,
+      images: imagesUrls,
       hashtags: hashtags ? JSON.parse(hashtags) : [],
     };
 
@@ -1175,6 +1192,7 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
         category: post.category || 'study',
         space: null, // space lookup can be done on feed refresh
         image: post.image,
+        images: post.images || [],
         hashtags: post.hashtags || [],
         externalLink: post.externalLink,
         likesCount: post.likesCount,
@@ -1239,7 +1257,7 @@ router.post("/", authenticateRequired, upload.single("image"), async (req, res) 
  * PUT /api/posts/:postId
  * Update a post (only the creator - mentor or user)
  */
-router.put("/:postId", authenticateRequired, upload.single("image"), async (req, res) => {
+router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", maxCount: 1 }, { name: "images", maxCount: 5 }]), async (req, res) => {
   try {
     // NEW: Also extract hashtags in case the edit form sends them
     const { content, hashtags } = req.body;
@@ -1366,6 +1384,7 @@ router.put("/:postId", authenticateRequired, upload.single("image"), async (req,
         author: author,
         content: post.content,
         image: post.image,
+        images: post.images || [],
         hashtags: post.hashtags || [], // <--- THIS IS THE CRUCIAL FIX
         externalLink: post.externalLink,
         likesCount: post.likesCount,

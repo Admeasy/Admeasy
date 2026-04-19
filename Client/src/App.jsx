@@ -100,6 +100,7 @@ import MentorForgotPassword from'./Pages/MentorForgotPassword';
 import MentorResetPassword from'./Pages/MentorResetPassword';
 import { App as CapacitorApp } from'@capacitor/app';
 import { Capacitor } from'@capacitor/core';
+import MentorLeaderboard from'./Pages/MentorLeaderboard';
 
 function App() {
  const location = useLocation();
@@ -269,6 +270,7 @@ function App() {
 '/notes',
 '/chats',
 '/mentor/chats',
+'/mentor/leaderboard',
 '/posts',
 '/home-classic'
  ];
@@ -423,9 +425,18 @@ function App() {
  }
  />
 
+ <Route
+ path="/mentor/leaderboard"
+ element={
+ <ProtectedRoute mentor={true}>
+ <MentorLeaderboard />
+ </ProtectedRoute>
+ }
+ />
+
  {/* Posts */}
- <Route path="/posts/:postId"element={<PostDetail />} />
  <Route path="/posts/create"element={<CreatePost />} />
+ <Route path="/posts/:postId"element={<PostDetail />} />
  {/* Spaces */}
  <Route path="/spaces"element={<Spaces />} />
  <Route path="/spaces/explore"element={<SpacesExplore />} />

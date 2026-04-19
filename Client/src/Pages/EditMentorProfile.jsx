@@ -159,7 +159,7 @@ export default function MentorsProfile() {
 
  // Check file size (300KB = 307200 bytes)
  if (file.size > 307200) {
- toast.error('Image size must be less than 300KB');
+ toast.error('Image size is too big');
  return;
  }
 

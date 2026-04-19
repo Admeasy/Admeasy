@@ -12,6 +12,7 @@ import {
   Repeat,
   LogOut,
   PlusCircle,
+  Trophy,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
@@ -91,6 +92,10 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
     },
     { icon: Newspaper, label: "Blogs", path: "/blogs" },
   ];
+
+  if (mentor && !isUserAccount) {
+    navItems.push({ icon: Trophy, label: "Leaderboard", path: "/mentor/leaderboard" });
+  }
 
  const sidebarTransition = { duration: 0.3, ease:"easeInOut"};
  const textVariants = {

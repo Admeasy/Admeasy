@@ -44,6 +44,9 @@ const postSchema = new mongoose.Schema(
       type: String, // Cloudinary URL
       default: null,
     },
+    images: [{
+      type: String,
+    }],
     externalLink: {
       url: {
         type: String,

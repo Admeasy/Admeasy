@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from"react";
 import { useNavigate, useLocation } from"react-router-dom";
+import { createPortal } from "react-dom";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import {
  Heart,
  MessageCircle,
@@ -16,7 +18,13 @@ import {
  Copy,
  Link2,
  Send,
-} from"lucide-react";
+ X,
+ Download,
+ ZoomIn,
+ ZoomOut,
+  ChevronLeft,
+  ChevronRight,
+ } from"lucide-react";
 import { motion, AnimatePresence } from"framer-motion";
 import { toast } from"react-toastify";
 import { useUser } from"../context/UserContext";
@@ -41,12 +49,19 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
 
  const isAuthed = Boolean(user || mentor);
  const [showShareModal, setShowShareModal] = useState(false);
+  const scrollRef = useRef(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
  // Read More State
  const [isExpanded, setIsExpanded] = useState(false);
 
+ // Fullscreen Image State
+ const [fullscreenImageUrl, setFullscreenImageUrl] = useState(null);
+ const [zoomLevel, setZoomLevel] = useState(1);
+
  // SINGLE SOURCE OF TRUTH
  const [postState, setPostState] = useState(post);
+ const hasImages = (postState.images?.length > 0) || (post.images?.length > 0) || !!postState.image || !!post.image;
 
  // Calculate processed and truncated content
  // Must depend on postState to reflect edits immediately
@@ -56,9 +71,39 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
  );
 
  const truncatedContent = useMemo(
- () => truncateHtml(processedContent, compact ? 18 : 30),
- [processedContent, compact],
+  () => truncateHtml(processedContent, compact ? 18 : 30),
+  [processedContent, compact],
  );
+
+ // Ref and state for visual overflow detection (exactly one line)
+ const contentRef = useRef(null);
+ const [isClipped, setIsClipped] = useState(false);
+
+ useEffect(() => {
+  // Check if content overflows one line when image is present
+  if (contentRef.current && !isExpanded && hasImages) {
+   const { scrollHeight, clientHeight } = contentRef.current;
+   setIsClipped(scrollHeight > clientHeight + 2); // +2 for subpixel rounding
+
+  }
+ }, [processedContent, isExpanded, hasImages, compact]);
+
+ useEffect(() => {
+  const handleEsc = (e) => {
+   if (e.key === "Escape") { setFullscreenImageUrl(null); setZoomLevel(1); }
+  };
+  if (fullscreenImageUrl) {
+   window.addEventListener("keydown", handleEsc);
+   document.body.style.overflow = 'hidden';
+  } else {
+   document.body.style.overflow = 'unset';
+  }
+  return () => {
+   window.removeEventListener("keydown", handleEsc);
+   document.body.style.overflow = 'unset';
+  };
+ }, [fullscreenImageUrl]);
+
 
  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
  const [isFollowing, setIsFollowing] = useState(post.isFollowing || false);
@@ -715,56 +760,55 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
  {postState.headline}
  </h2>
  )}
- <div
- className="text-gray-700 break-words leading-snug text-[13px] sm:text-[14px] post-content"
- dangerouslySetInnerHTML={{
- __html: isExpanded
- ? processedContent
- : truncatedContent.hasMore
- ? truncatedContent.html
- : processedContent,
- }}
- onClick={(e) => {
- // Handle mention link clicks
- const mentionLink = e.target.closest("a.mention-link");
- if (mentionLink) {
- e.preventDefault();
- e.stopPropagation();
- const username = mentionLink.getAttribute("data-username");
- if (username) {
- navigate(`/${username}`);
- }
- return;
- }
+  <div
+  ref={contentRef}
+  className={`text-gray-700 break-words leading-snug text-[13px] sm:text-[14px] post-content ${!isExpanded && hasImages ? 'line-clamp-1' : ''}`}
+  dangerouslySetInnerHTML={{
+  __html: (isExpanded || !hasImages)
+  ? (isExpanded ? processedContent : (truncatedContent.hasMore ? truncatedContent.html : processedContent))
+  : processedContent,
+  }}
+  onClick={(e) => {
+  // Handle mention link clicks
+  const mentionLink = e.target.closest("a.mention-link");
+  if (mentionLink) {
+  e.preventDefault();
+  e.stopPropagation();
+  const username = mentionLink.getAttribute("data-username");
+  if (username) {
+  navigate(`/${username}`);
+  }
+  return;
+  }
 
- // Intercept clicks on other links within post content
- const link = e.target.closest("a");
- if (link && link.href) {
- e.preventDefault();
- e.stopPropagation();
- let cleanUrl = link.href;
- // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
- cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i,"");
- // Remove any HTML tags (decoded)
- cleanUrl = cleanUrl.replace(/<[^>]*>/g,"");
- // Remove any remaining angle brackets
- cleanUrl = cleanUrl.replace(/[<>]/g,"");
- // Trim whitespace
- cleanUrl = cleanUrl.trim();
- window.open(cleanUrl,"_blank","noopener,noreferrer");
- }
- }}
+  // Intercept clicks on other links within post content
+  const link = e.target.closest("a");
+  if (link && link.href) {
+  e.preventDefault();
+  e.stopPropagation();
+  let cleanUrl = link.href;
+  // Remove URL-encoded HTML tags at the end (like %3C/p%3E)
+  cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i,"");
+  // Remove any HTML tags (decoded)
+  cleanUrl = cleanUrl.replace(/<[^>]*>/g,"");
+  // Remove any remaining angle brackets
+  cleanUrl = cleanUrl.replace(/[<>]/g,"");
+  // Trim whitespace
+  cleanUrl = cleanUrl.trim();
+  window.open(cleanUrl,"_blank","noopener,noreferrer");
+  }
+  }}
  />
- {truncatedContent.hasMore && (
- <button
- onClick={(e) => {
- e.stopPropagation();
- setIsExpanded(!isExpanded);
- }}
- className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
- >
- {isExpanded ?"Show less":"Read more"}
- </button>
+ {(hasImages ? (isExpanded || isClipped) : truncatedContent.hasMore) && (
+  <button
+  onClick={(e) => {
+  e.stopPropagation();
+  setIsExpanded(!isExpanded);
+  }}
+  className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
+  >
+  {isExpanded ?"Show less":"Read more"}
+  </button>
  )}
  </div>
 
@@ -787,34 +831,94 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
  )}
 
  {/* Post Image */}
- {post.image && (
- <div className={`relative w-full group/image overflow-hidden bg-gray-50/50 ${compact ? 'aspect-video' : ''}`}>
- <motion.img
- whileHover={{ scale: 1.02 }}
- transition={{ duration: 0.4 }}
- src={post.image}
- alt="Post"
-              className={`w-full ${compact ? 'h-full' : 'h-auto'} object-cover ${compact ? '' : 'max-h-[250px] sm:max-h-[500px]'}`}
- loading="lazy"
- onDoubleClick={handleImageDoubleClick}
- />
+ 
+ {(() => {
+   const images = (postState.images || post.images || []).filter(img => !!img); 
+   if (images.length === 0 && (postState.image || post.image)) { images.push(postState.image || post.image); }
+   if (images.length === 0) return null;
 
- {/* Double-tap like animation */}
- <AnimatePresence>
- {showLikeAnimation && (
- <motion.div
- initial={{ scale: 0, opacity: 0 }}
- animate={{ scale: 1.5, opacity: 1 }}
- exit={{ scale: 2, opacity: 0 }}
- transition={{ duration: 0.6 }}
- className="absolute inset-0 flex items-center justify-center pointer-events-none"
- >
- <Heart className="w-20 h-20 sm:w-28 sm:h-28 text-white fill-red-500 drop-shadow-2xl"/>
- </motion.div>
- )}
- </AnimatePresence>
- </div>
- )}
+   const handleScroll = (e) => {
+     const element = e.target;
+     const index = Math.round(element.scrollLeft / element.clientWidth);
+     setCurrentImageIndex(index);
+   };
+
+   const scroll = (direction) => {
+     if (!scrollRef.current) return;
+     const scrollAmount = scrollRef.current.clientWidth;
+     scrollRef.current.scrollBy({
+       left: direction === 'left' ? -scrollAmount : scrollAmount,
+       behavior: 'smooth'
+     });
+   };
+
+   return (
+    <div className="relative w-full overflow-hidden bg-gray-50/50 group/image">
+     <div 
+       ref={scrollRef}
+       onScroll={handleScroll}
+       className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar" 
+       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+     >
+      {images.map((imgUrl, idx) => (
+        <div key={idx} className={`relative shrink-0 snap-center ${compact ? 'w-full aspect-video' : 'w-full max-h-[250px] sm:max-h-[500px]'}`} style={{ display: 'flex', justifyContent: 'center' }}>
+          <motion.img
+           whileHover={{ scale: 1.02 }}
+           transition={{ duration: 0.4 }}
+           src={imgUrl}
+           alt={`Post Image ${idx + 1}`}
+           className={`w-full h-full object-cover cursor-zoom-in`}
+           onClick={(e) => {
+            e.stopPropagation();
+            setFullscreenImageUrl(imgUrl);
+           }}
+           loading="lazy"
+           onDoubleClick={handleImageDoubleClick}
+          />
+        </div>
+      ))}
+     </div>
+     
+     {images.length > 1 && (
+       <>
+         <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none backdrop-blur-sm shadow-md z-20">
+           {currentImageIndex + 1}/{images.length}
+         </div>
+         
+         <button
+           type="button"
+           onClick={(e) => { e.stopPropagation(); scroll('left'); }}
+           className={`absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm text-gray-800 shadow-lg transition-all hover:bg-white z-20 ${currentImageIndex === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+         >
+           <ChevronLeft size={20} />
+         </button>
+         
+         <button
+           type="button"
+           onClick={(e) => { e.stopPropagation(); scroll('right'); }}
+           className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm text-gray-800 shadow-lg transition-all hover:bg-white z-20 ${currentImageIndex === images.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+         >
+           <ChevronRight size={20} />
+         </button>
+       </>
+     )}
+
+     <AnimatePresence>
+     {showLikeAnimation && (
+     <motion.div
+     initial={{ scale: 0, opacity: 0 }}
+     animate={{ scale: 1.5, opacity: 1 }}
+     exit={{ scale: 2, opacity: 0 }}
+     transition={{ duration: 0.6 }}
+     className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+     >
+     <Heart className="w-20 h-20 sm:w-28 sm:h-28 text-white fill-red-500 drop-shadow-2xl"/>
+     </motion.div>
+     )}
+     </AnimatePresence>
+    </div>
+   );
+  })()}
 
  {/* Link Preview */}
  {post.externalLink && post.externalLink.url && (
@@ -1090,7 +1194,82 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
  confirmColor="danger"
  isLoading={isDeleting}
  />
- <SharePostModal
+ 
+  {/* Fullscreen Image View uses createPortal to break out of PostCard layout */}
+  {fullscreenImageUrl && createPortal(
+  <AnimatePresence>
+   <motion.div
+   initial={{ opacity: 0 }}
+   animate={{ opacity: 1 }}
+   exit={{ opacity: 0 }}
+   className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-0"
+   onClick={(e) => {
+    e.stopPropagation();
+    setFullscreenImageUrl(null);
+    setZoomLevel(1);
+   }}
+   style={{ overflow: 'hidden' }}
+   >
+   {/* Close Button */}
+   <motion.button
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="absolute top-5 right-5 z-[1001] p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all shadow-lg"
+    onClick={(e) => {
+     e.stopPropagation();
+     setFullscreenImageUrl(null);
+     setZoomLevel(1);
+    }}
+   >
+    <X className="w-6 h-6" />
+   </motion.button>
+   
+   <div className="w-full h-full flex items-center justify-center relative cursor-move" onClick={(e) => e.stopPropagation()}>
+     <TransformWrapper initialScale={1} minScale={1} maxScale={4} centerOnInit>
+       {({ zoomIn, zoomOut, resetTransform, scale }) => (
+         <>
+           <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+             <img
+               src={fullscreenImageUrl}
+               alt="Fullscreen view"
+               className="w-full h-full object-contain"
+             />
+           </TransformComponent>
+
+           {/* Controls Overlay */}
+           <motion.div 
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 p-2 rounded-full shadow-2xl z-[1001]"
+           >
+             <button
+             onClick={() => zoomOut()}
+             className="p-2.5 bg-white/10 hover:bg-white/20 text-white flex-shrink-0 flex items-center justify-center rounded-full transition-all"
+             title="Zoom Out"
+             >
+             <ZoomOut className="w-5 h-5" />
+             </button>
+
+             <button
+             onClick={() => zoomIn()}
+             className="p-2.5 bg-white/10 hover:bg-white/20 text-white flex-shrink-0 flex items-center justify-center rounded-full transition-all"
+             title="Zoom In"
+             >
+             <ZoomIn className="w-5 h-5" />
+             </button>
+           </motion.div>
+         </>
+       )}
+     </TransformWrapper>
+   </div>
+   </motion.div>
+  </AnimatePresence>,
+  document.body
+  )}
+
+
+
+  <SharePostModal
  postId={post._id}
  postData={post}
  isOpen={showShareModal}

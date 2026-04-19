@@ -703,7 +703,7 @@ export default function Profile() {
  {/* Profile Image - Overlapping cover */}
  <div className="flex justify-between items-start -mt-12 sm:-mt-16 mb-4">
  <div className="relative">
- <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center overflow-hidden">
+ <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center">
  {isOwnProfile ? (
  <ProfileCompletionCircle
  percentage={completion}

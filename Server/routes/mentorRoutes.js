@@ -232,6 +232,47 @@ router.get('/:id/pic', async (req, res) => {
     }
 });
 
+// GET MENTOR LEADERBOARD (must be before /id/:id or /:username)
+router.get('/stats/leaderboard', authenticateMentorJWT, async (req, res) => {
+    try {
+        const Post = require('../models/postSchema');
+        
+        // Aggregate to get posts count and rating per mentor
+        const mentors = await Mentor.find({}).select('name username image rating');
+        
+        const leaderboardData = await Promise.all(mentors.map(async (m) => {
+            const postsCount = await Post.countDocuments({ mentorId: m._id });
+            const rating = (m.rating !== undefined && m.rating !== null) ? m.rating : 5.0;
+            const score = postsCount + (rating / 2);
+            return {
+                _id: m._id,
+                name: m.name,
+                username: m.username,
+                image: m.image,
+                postsCount,
+                rating,
+                score
+            };
+        }));
+        // Sort descending by score, then ascending by posts if tied
+        leaderboardData.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return b.postsCount - a.postsCount;
+        });
+        
+        // Assign rank
+        const rankedData = leaderboardData.map((data, index) => ({
+            ...data,
+            rank: index + 1
+        }));
+        
+        res.status(200).json({ success: true, leaderboard: rankedData });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 // GET MENTOR BY ID (must be before /:username route to avoid conflicts)
 router.get('/id/:id', async (req, res) => {
     try {

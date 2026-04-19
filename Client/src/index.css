@@ -61,212 +61,221 @@
 
 /* PDF Viewer Styles */
 .react-pdf__Page {
- max-width: 100%;
- height: auto;
+  max-width: 100%;
+  height: auto;
 }
 
 .react-pdf__Page__canvas {
- max-width: 100%;
- height: auto !important;
- display: block;
+  max-width: 100%;
+  height: auto !important;
+  display: block;
 }
 
 .react-pdf__Page__textContent {
- max-width: 100%;
- position: absolute;
- left: 0;
- top: 0;
- right: 0;
- bottom: 0;
- overflow: hidden;
- opacity: 0.2;
- line-height: 1;
+  max-width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1;
 }
 
 .react-pdf__Page__textContent span {
- color: transparent;
- position: absolute;
- white-space: pre;
- cursor: text;
- transform-origin: 0% 0%;
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
 }
 
 .react-pdf__Page__textContent .highlight {
- margin: -1px;
- padding: 1px;
- background-color: rgba(180, 0, 170, 0.2);
- border-radius: 4px;
+  margin: -1px;
+  padding: 1px;
+  background-color: rgba(180, 0, 170, 0.2);
+  border-radius: 4px;
 }
 
 .react-pdf__Page__textContent .highlight.selected {
- background-color: rgba(0, 100, 0, 0.2);
+  background-color: rgba(0, 100, 0, 0.2);
 }
 
 .react-pdf__Page__textContent ::selection {
- background: rgba(0, 0, 255, 0.3);
+  background: rgba(0, 0, 255, 0.3);
 }
 
 .react-pdf__Page__textContent ::-moz-selection {
- background: rgba(0, 0, 255, 0.3);
+  background: rgba(0, 0, 255, 0.3);
 }
 
 .react-pdf__Page__annotations {
- max-width: 100%;
- position: absolute;
- left: 0;
- top: 0;
- right: 0;
- bottom: 0;
+  max-width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .react-pdf__Page__annotation {
- position: absolute;
+  position: absolute;
 }
 
 .blog-content a {
- color: rgb(0, 47, 255) !important;
- text-decoration: underline;
- transition: color 0.2s ease;
+  color: rgb(0, 47, 255) !important;
+  text-decoration: underline;
+  transition: color 0.2s ease;
 }
 
 .blog-content a:hover {
- color: rgb(0, 0, 180) !important; /* optional darker hover color */
+  color: rgb(0, 0, 180) !important;
+  /* optional darker hover color */
 }
+
 .blog-content li[data-list="bullet"] {
- list-style-type: disc !important;
- margin-left: 1.5rem; /* indent */
- display: list-item !important;
+  list-style-type: disc !important;
+  margin-left: 1.5rem;
+  /* indent */
+  display: list-item !important;
 }
 
 .blog-content ol,
 .blog-content ul {
- margin-left: 1.5rem;
- padding-left: 1.5rem;
+  margin-left: 1.5rem;
+  padding-left: 1.5rem;
 }
 
 .blog-content li {
- margin-bottom: 0.5rem;
- line-height: 1.6;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
 }
+
 .blog-content table {
- border-collapse: collapse;
- width: 100%;
- margin: 1rem 0;
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
 }
 
 /* Mention links in post content */
 .post-content .mention-link {
- color: #9f3562 !important;
- text-decoration: none;
- font-weight: 500;
- cursor: pointer;
- transition: color 0.2s ease, text-decoration 0.2s ease;
+  color: #9f3562 !important;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
 }
 
 .post-content .mention-link:hover {
- color: #b14270 !important;
- text-decoration: underline;
+  color: #b14270 !important;
+  text-decoration: underline;
 }
+
 /* Fix Quill list styles */
 .ql-editor ol,
 .ql-editor ul {
- padding-left: 1.5rem; /* spacing for bullets/numbers */
- margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  /* spacing for bullets/numbers */
+  margin: 0.5rem 0;
 }
 
 /* Show numbers for ordered lists */
 .ql-editor ol {
- list-style-type: decimal !important;
+  list-style-type: decimal !important;
 }
 
 /* Show bullets for unordered lists */
 .ql-editor ul {
- list-style-type: disc !important;
+  list-style-type: disc !important;
 }
 
 /* Fix list item spacing */
 .ql-editor li {
- margin-bottom: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 /* Optional: make nested lists look cleaner */
-.ql-editor li > ol,
-.ql-editor li > ul {
- margin-top: 0.25rem;
- margin-bottom: 0.25rem;
+.ql-editor li>ol,
+.ql-editor li>ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .blog-content th,
 .blog-content td {
- border: 1px solid #ddd;
- padding: 8px;
+  border: 1px solid #ddd;
+  padding: 8px;
 }
 
 .blog-content th {
- background-color: #f8f8f8;
- font-weight: bold;
+  background-color: #f8f8f8;
+  font-weight: bold;
 }
 
 /* === Quill editor list styling with Tailwind === */
 /* Reset counter per ol so numbering starts at 1 for each list */
 .blog-content ol {
- counter-reset: ql-counter;
- margin-left: 1.25rem; /* adjust indentation */
- padding-left: 0;
+  counter-reset: ql-counter;
+  margin-left: 1.25rem;
+  /* adjust indentation */
+  padding-left: 0;
 }
 
 /* Make Quill's li behave like list items and increment counter */
 .blog-content li[data-list="ordered"] {
- counter-increment: ql-counter;
- position: relative;
- padding-left: 1.6rem; /* space for marker */
- margin-bottom: 0.35rem;
+  counter-increment: ql-counter;
+  position: relative;
+  padding-left: 1.6rem;
+  /* space for marker */
+  margin-bottom: 0.35rem;
 }
 
 /* Render the number inside Quill UI span */
-.blog-content li[data-list="ordered"] > .ql-ui::before {
- content: counter(ql-counter)".";
- position: absolute;
- left: 0;
- top: 0;
- font-weight: 600;
- color: #6b7280; /* Tailwind gray-500 look */
- line-height: 1.4;
+.blog-content li[data-list="ordered"]>.ql-ui::before {
+  content: counter(ql-counter)".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 600;
+  color: #6b7280;
+  /* Tailwind gray-500 look */
+  line-height: 1.4;
 }
 
 /* Bullet lists: show a dot if you want custom bullet style */
-.blog-content li[data-list="bullet"] > .ql-ui::before {
- content:"•";
- position: absolute;
- left: 0;
- top: 0;
- font-size: 1.05em;
- color: #6b7280;
+.blog-content li[data-list="bullet"]>.ql-ui::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 1.05em;
+  color: #6b7280;
 }
 
 /* Ensure list text aligns with the marker */
 .blog-content li {
- display: block;
- /* leave normal text flow; padding-left already applied above */
+  display: block;
+  /* leave normal text flow; padding-left already applied above */
 }
 
 /* Optional: spacing/line-height to match your prose */
 .blog-content ul,
 .blog-content ol {
- margin-top: 0.5rem;
- margin-bottom: 0.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .blog-content li {
- line-height: 1.6;
+  line-height: 1.6;
 }
 
 /* Add indentation and spacing for list items */
 [data-list="bullet"] {
- display: list-item;
- list-style-type: disc;
- margin-left: 1.5rem;
- line-height: 1.6;
+  display: list-item;
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  line-height: 1.6;
 }
 
 
@@ -319,50 +328,50 @@
 
 
 body::-webkit-scrollbar {
- width: 8px;
+  width: 8px;
 }
 
 /* Track */
 body::-webkit-scrollbar-track {
- background: transparent;
+  background: transparent;
 }
 
 /* Handle */
 body::-webkit-scrollbar-thumb {
- background: #d6d6d6;
- border-radius: 29px;
+  background: #d6d6d6;
+  border-radius: 29px;
 }
 
 /* Handle on hover */
 body::-webkit-scrollbar-thumb:hover {
- background: #acacac;
+  background: #acacac;
 }
 
 * {
- box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html,
 body {
- height: 100%;
- width: 100%;
- scroll-behavior: smooth;
- --sidebar-width: 18rem;
+  height: 100%;
+  width: 100%;
+  scroll-behavior: smooth;
+  --sidebar-width: 18rem;
 }
 
 /* Line clamp utilities */
 .line-clamp-1 {
- overflow: hidden;
- display: -webkit-box;
- -webkit-box-orient: vertical;
- -webkit-line-clamp: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
 }
 
 .line-clamp-4 {
- overflow: hidden;
- display: -webkit-box;
- -webkit-box-orient: vertical;
- -webkit-line-clamp: 4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 /* .active {
@@ -378,15 +387,15 @@ body {
 } */
 
 .admin-dashboard-card {
- @apply bg-white/95 backdrop-blur-sm p-6 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#9f3562]/30;
+  @apply bg-white/95 backdrop-blur-sm p-6 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-[#9f3562]/30;
 }
 
 .admin-back-button {
- @apply m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-white/95 backdrop-blur-sm hover:border-[#9f3562]/30 transition-all duration-300 shadow-sm border border-gray-200 hover:shadow-md z-10;
+  @apply m-0 p-1 sm:p-2 text-center text-2xl sm:text-3xl absolute top-2 sm:top-4 left-2 sm:left-4 rounded-full text-gray-700 font-semibold hover:bg-white/95 backdrop-blur-sm hover:border-[#9f3562]/30 transition-all duration-300 shadow-sm border border-gray-200 hover:shadow-md z-10;
 }
 
 .admin-heading {
- @apply w-fit h-fit m-0 p-0 mx-auto text-gray-900 font-admeasy-bold text-2xl sm:text-3xl lg:text-5xl text-center mb-6 sm:mb-8 relative z-10;
+  @apply w-fit h-fit m-0 p-0 mx-auto text-gray-900 font-admeasy-bold text-2xl sm:text-3xl lg:text-5xl text-center mb-6 sm:mb-8 relative z-10;
 }
 
 /* Sidebar*/
@@ -397,58 +406,76 @@ body {
  transition: margin-left 0.3s ease;
 } */
 
-.navbarHover:hover{
- color: #9a3f66;
+.navbarHover:hover {
+  color: #9a3f66;
 }
 
 @media (max-width: 1024px) {
- main,
- .page-wrapper,
- #root > div {
- margin-left: 0;
- }
+
+  main,
+  .page-wrapper,
+  #root>div {
+    margin-left: 0;
+  }
 }
+
 /* ===============================
  PRIMARY ACTION BUTTON (Admeasy)
  =============================== */
-.primary-color{
- color: #9f3562;
+.primary-color {
+  color: #9f3562;
 }
+
 .btn-action {
- width: 100%;
- cursor: pointer;
- padding: 0.625rem 1rem; /* py-2.5 px-4 */
- background-color: #9f3562;
- color: #ffffff;
- border-radius: 0.75rem; /* rounded-xl */
- font-weight: 500;
- font-size: 0.875rem; /* text-sm */
+  width: 100%;
+  cursor: pointer;
+  padding: 0.625rem 1rem;
+  /* py-2.5 px-4 */
+  background-color: #9f3562;
+  color: #ffffff;
+  border-radius: 0.75rem;
+  /* rounded-xl */
+  font-weight: 500;
+  font-size: 0.875rem;
+  /* text-sm */
 
- display: flex;
- align-items: center;
- justify-content: center;
- gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 
- transition:
- background-color 0.25s ease,
- transform 0.15s ease,
- box-shadow 0.15s ease;
+  transition:
+    background-color 0.25s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 /* Hover = lighter fade (important) */
 .btn-action:hover {
- background-color: #b24a78; /* lighter shade */
- box-shadow: 0 8px 20px rgba(159, 53, 98, 0.25);
+  background-color: #b24a78;
+  /* lighter shade */
+  box-shadow: 0 8px 20px rgba(159, 53, 98, 0.25);
 }
 
 
 /* Active click feedback */
 .btn-action:active {
- transform: scale(0.97);
+  transform: scale(0.97);
 }
 
 /* Disabled state (optional but pro) */
 .btn-action:disabled {
- opacity: 0.6;
- cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }

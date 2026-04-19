@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from"react-router-dom";
-import { Search, Bell } from"lucide-react";
+import { Search, Bell, Trophy } from "lucide-react";
 import AnimatedSearchPlaceholder from"./AnimatedSearchPlaceholder";
 const logo ='/favicon.ico';
 import { useUser } from"../context/UserContext";
@@ -95,6 +95,16 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
  >
  <Bell className="w-5 h-5"/>
  </button>
+
+ {/* ===== MENTOR ONLY: LEADERBOARD ===== */}
+ {!isUserAccount && mentor && (
+     <button
+         onClick={() => navigate("/mentor/leaderboard")}
+         className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#9f3562]/10 transition-colors text-[#9f3562] shrink-0 group"
+     >
+         <Trophy className="w-5 h-5 transition-transform group-hover:scale-110" />
+     </button>
+ )}
 
  </div>
  </nav>

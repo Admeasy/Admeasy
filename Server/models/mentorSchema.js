@@ -81,6 +81,12 @@ const Schema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    rating: {
+        type: Number,
+        default: 5.0,
+        min: 0,
+        max: 5
+    },
     refreshToken: {
         type: String,
         default: null
