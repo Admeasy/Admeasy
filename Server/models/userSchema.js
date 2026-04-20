@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Users } = require("../db.js");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -182,10 +183,26 @@ const userSchema = new mongoose.Schema({
   },
 
   //Tracks the date of the first coin earned
-  firstCoinEarnedPopup: {
+  showFirstCoinPopup: {
     type: Boolean,
     default: false,
   },
+});
+
+// Replace the pre-save hook with this:
+userSchema.pre("save", async function (next) {
+  if (!this.referralCode) {
+    let code;
+    let exists = true;
+    while (exists) {
+      code = crypto.randomBytes(4).toString("hex").toUpperCase();
+      // Use `this.constructor` instead of mongoose.model("Users")
+      // This always refers to the correct model on the correct connection
+      exists = await this.constructor.exists({ referralCode: code });
+    }
+    this.referralCode = code;
+  }
+  next();
 });
 
 module.exports = Users.model("Users", userSchema);

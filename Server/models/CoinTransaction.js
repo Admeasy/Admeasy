@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
+const { Users } = require("../db.js");
 
 const coinTransactionSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Users",
       required: true,
     },
 
@@ -52,4 +53,4 @@ const coinTransactionSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("CoinTransaction", coinTransactionSchema);
+module.exports = Users.model("CoinTransaction", coinTransactionSchema);
