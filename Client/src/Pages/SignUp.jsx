@@ -17,6 +17,8 @@ import {
   getWebGoogleOAuthUrl,
 } from "../auth/googleSignIn";
 
+const RECAPTCHA_SITE_KEY = "6LddeYksAAAAABRvv-_aIjHHMMsjQyYRNARvcvGN";
+
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 60 },
   visible: { opacity: 1, y: 0 },
@@ -43,9 +45,9 @@ const Signup = ({ setAuthMode }) => {
 
   const recaptchaRef = React.useRef(null);
 
-  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-  console.log("Recaptcha Key:", siteKey);
-  if (!siteKey) {
+  const hasRecaptchaKey = Boolean(RECAPTCHA_SITE_KEY && RECAPTCHA_SITE_KEY.trim());
+  console.log("Recaptcha Key:", RECAPTCHA_SITE_KEY);
+  if (!hasRecaptchaKey) {
     console.error("reCAPTCHA site key is missing");
   }
 
@@ -347,11 +349,11 @@ const Signup = ({ setAuthMode }) => {
             </div>
 
             {/* reCAPTCHA */}
-            {siteKey && (
+            {hasRecaptchaKey && (
               <div className="flex justify-center py-2">
                 <ReCAPTCHA
                   ref={recaptchaRef}
-                  sitekey={siteKey}
+                  sitekey={RECAPTCHA_SITE_KEY}
                   onChange={(token) => setCaptchaToken(token)}
                   onExpired={() => setCaptchaToken(null)}
                 />
