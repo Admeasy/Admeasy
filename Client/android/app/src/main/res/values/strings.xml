@@ -4,4 +4,6 @@
     <string name="title_activity_main">Admeasy</string>
     <string name="package_name">in.admeasy.app</string>
     <string name="custom_url_scheme">in.admeasy.app</string>
+    <string name="server_client_id">131243298453-f8l1eud7gadl0mgap85smr5le64g7k95.apps.googleusercontent.com</string>
+<string name="default_web_client_id">131243298453-f8l1eud7gadl0mgap85smr5le64g7k95.apps.googleusercontent.com</string>
 </resources>

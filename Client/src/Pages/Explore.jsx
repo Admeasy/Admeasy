@@ -50,8 +50,8 @@ const setCachedResults = (query, tab, data) => {
 
 // Helper: detect IIT mentor from college name only
 const isIITMentor = (mentor) => {
- const collegeStr = (mentor.college?.name || mentor.college ||"").toString().toLowerCase();
- return collegeStr.includes("indian institute of technology") || collegeStr.includes("iit");
+  const collegeStr = (mentor.college?.name || mentor.college || "").toString().toLowerCase();
+  return collegeStr.includes("indian institute of technology") || collegeStr.includes("iit");
 };
 
 /* ================= COMPONENT ================= */

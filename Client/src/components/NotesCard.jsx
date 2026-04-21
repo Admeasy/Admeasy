@@ -1,6 +1,7 @@
 import React from"react";
 import { FileText, User, File, Heart, Eye } from"lucide-react";
 import { useNavigate } from"react-router-dom";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 
 /* ---------- SAFE TEXT HELPER ---------- */
 const renderText = (value) => {
@@ -11,9 +12,10 @@ const renderText = (value) => {
 };
 
 const NotesCard = ({ note, compact = false }) => {
- const navigate = useNavigate();
- const noteId = note?._id || note?.id;
- const isFree = note?.isFree ?? true;
+  const navigate = useNavigate();
+  const noteId = note?._id || note?.id;
+  const isFree = note?.isFree ?? true;
+  const authorInfo = resolveNoteAuthor(note);
 
  return (
  <div
@@ -115,19 +117,18 @@ const NotesCard = ({ note, compact = false }) => {
  <div className="flex items-center gap-2 bg-gray-900 text-white px-3 py-1.5 rounded-lg">
  <User className="w-4 h-4"/>
  <span className="text-xs sm:text-sm font-medium truncate max-w-[180px]">
- {renderText(note.uploaderName || note.uploader) ||
-"Unknown uploader"}
+ {authorInfo.displayName}
  </span>
  </div>
 
- {/* Pages */}
- <div className="flex items-center gap-2 text-gray-700">
- <File className="w-4 h-4"/>
- <span className="text-xs sm:text-sm font-medium">
- {note?.pages ?`${note.pages} pages`:"Pages N/A"}
- </span>
- </div>
- </div>
+            {/* Pages */}
+            <div className="flex items-center gap-2 text-gray-700">
+              <File className="w-4 h-4" />
+              <span className="text-xs sm:text-sm font-medium">
+                {note?.pages ? `${note.pages} pages` : "Pages N/A"}
+              </span>
+            </div>
+          </div>
 
  {/* Standard / Tag */}
  <span className="self-start sm:self-auto text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg bg-[#9f3562]/10 text-[#9f3562] border border-[#9f3562]/20">

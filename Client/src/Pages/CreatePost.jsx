@@ -1,18 +1,34 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { ImagePlus, Loader2, Send, X, Globe, Calendar, AtSign, User, GraduationCap } from "lucide-react";
+import {
+  ImagePlus,
+  Loader2,
+  Send,
+  X,
+  Globe,
+  Calendar,
+  AtSign,
+  User,
+  GraduationCap,
+  BarChart2,
+  HelpCircle,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import ReactQuill, { Quill } from "react-quill-new";
-import { motion, AnimatePresence } from "framer-motion"; // For animations
+import { motion, AnimatePresence } from "framer-motion";
 import "react-quill-new/dist/quill.snow.css";
 import TableUI from "quill-table-ui";
 import "quill-table-ui/dist/index.css";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
 import { processMentions } from "../utils/processMentions";
+import CreateNoteTab from "../components/CreateNoteTab";
+import CreatePollTab from "../components/CreatePollTab";
+import CreateMcqTab from "../components/CreateMcqTab";
+import PollCard from "../components/PollCard";
+import McqCard from "../components/McqCard";
 
-// Registration stays the same...
-Quill.register('modules/tableUI', TableUI, true);
+Quill.register("modules/tableUI", TableUI, true);
 
 const MentorPost = () => {
   const navigate = useNavigate();
@@ -26,20 +42,28 @@ const MentorPost = () => {
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState([]);
   const [fetching, setFetching] = useState(true);
+  const [activeTab, setActiveTab] = useState("post");
 
-  // NEW: Hashtag State
+  const tabItems = [
+    { id: "post", label: "Post", icon: <Send size={16} /> },
+    { id: "note", label: "Note", icon: <ImagePlus size={16} /> },
+    { id: "poll", label: "Poll", icon: <BarChart2 size={16} /> },
+    { id: "mcq", label: "MCQ", icon: <HelpCircle size={16} /> },
+  ];
+
+  // Hashtag State
   const [hashtags, setHashtags] = useState([]);
-  const [hashtagInput, setHashtagInput] = useState('');
+  const [hashtagInput, setHashtagInput] = useState("");
 
-  // NEW: Headline, Category, Space
-  const [headline, setHeadline] = useState('');
-  const [category, setCategory] = useState('study'); //'study'|'masti'
-  const [spaceId, setSpaceId] = useState('');
+  // Headline, Category, Space
+  const [headline, setHeadline] = useState("");
+  const [category, setCategory] = useState("study");
+  const [spaceId, setSpaceId] = useState("");
   const [spaces, setSpaces] = useState([]);
   const [spacesLoading, setSpacesLoading] = useState(false);
 
-  // Check if coming from"Ask a Doubt"CTA
-  const isAskDoubt = searchParams.get('askDoubt') === 'true';
+  // Check if coming from "Ask a Doubt" CTA
+  const isAskDoubt = searchParams.get("askDoubt") === "true";
 
   // Mention feature state
   const [mentionQuery, setMentionQuery] = useState("");
@@ -57,7 +81,7 @@ const MentorPost = () => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
-  // Auto-focus editor when coming from"Ask a Doubt"CTA
+  // Auto-focus editor when coming from "Ask a Doubt" CTA
   useEffect(() => {
     if (isAskDoubt && quillRef.current && !hasAutoFocusedRef.current) {
       const timer = setTimeout(() => {
@@ -65,12 +89,11 @@ const MentorPost = () => {
           const quill = quillRef.current?.getEditor();
           if (quill) {
             quill.focus();
-            // Move cursor to the beginning
             quill.setSelection(0, 0);
             hasAutoFocusedRef.current = true;
           }
         } catch (error) {
-          console.error('Error focusing editor:', error);
+          console.error("Error focusing editor:", error);
         }
       }, 300);
 
@@ -115,7 +138,7 @@ const MentorPost = () => {
     const fetchSpaces = async () => {
       setSpacesLoading(true);
       try {
-        const res = await fetch('/api/spaces', { credentials: 'include' });
+        const res = await fetch("/api/spaces", { credentials: "include" });
         const data = await res.json();
         if (data.success && Array.isArray(data.spaces)) {
           setSpaces(data.spaces);
@@ -123,7 +146,7 @@ const MentorPost = () => {
           setSpaces(data);
         }
       } catch (err) {
-        console.error('Failed to fetch spaces:', err);
+        console.error("Failed to fetch spaces:", err);
       } finally {
         setSpacesLoading(false);
       }
@@ -140,9 +163,12 @@ const MentorPost = () => {
 
     try {
       setMentionSearching(true);
-      const response = await fetch(`/api/posts/mentions/search?q=${encodeURIComponent(query)}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/posts/mentions/search?q=${encodeURIComponent(query)}`,
+        {
+          credentials: "include",
+        }
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -202,7 +228,7 @@ const MentorPost = () => {
 
         try {
           const bounds = quill.getBounds(selection.index);
-          const editorElement = quill.root.closest('.ql-container') || quill.root;
+          const editorElement = quill.root.closest(".ql-container") || quill.root;
           const editorRect = editorElement.getBoundingClientRect();
 
           setMentionPosition({
@@ -210,7 +236,7 @@ const MentorPost = () => {
             left: editorRect.left + bounds.left,
           });
         } catch (e) {
-          const editorElement = quill.root.closest('.ql-container') || quill.root;
+          const editorElement = quill.root.closest(".ql-container") || quill.root;
           const editorRect = editorElement.getBoundingClientRect();
           setMentionPosition({
             top: editorRect.bottom + 5,
@@ -239,7 +265,7 @@ const MentorPost = () => {
     if (match) {
       const startIndex = selection.index - match[0].length;
       quill.deleteText(startIndex, match[0].length);
-      const mentionText = `@${mention.username || mention.name || 'user'}`;
+      const mentionText = `@${mention.username || mention.name || "user"}`;
       quill.insertText(startIndex, mentionText);
       quill.setSelection(startIndex + mentionText.length);
       setContent(quill.root.innerHTML);
@@ -313,7 +339,7 @@ const MentorPost = () => {
     const newImages = [];
     const newPreviews = [];
 
-    files.forEach(file => {
+    files.forEach((file) => {
       if (!file.type.startsWith("image/")) {
         toast.error("Only image files are allowed");
         return;
@@ -327,40 +353,53 @@ const MentorPost = () => {
       newImages.push(file);
       newPreviews.push({
         url: URL.createObjectURL(file),
-        oversized: isOversized
+        oversized: isOversized,
       });
     });
 
-    setImages(prev => [...prev, ...newImages]);
-    setPreviews(prev => [...prev, ...newPreviews]);
+    setImages((prev) => [...prev, ...newImages]);
+    setPreviews((prev) => [...prev, ...newPreviews]);
   };
 
   const removeImage = (index) => {
-    // Revoke the URL to avoid memory leaks
     if (previews[index]) {
       URL.revokeObjectURL(previews[index].url);
     }
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   /* ----------------------------------
-  NEW: Hashtag Logic
+  Hashtag Logic
   ----------------------------------- */
   const handleHashtagKeyDown = (e) => {
-    if (e.key === '' || e.key === 'Enter') {
+    if (e.key === " " || e.key === "Enter") {
       e.preventDefault();
-      const newTag = hashtagInput.trim().replace(/^#/, '');
+      const newTag = hashtagInput.trim().replace(/^#/, "");
       if (newTag && !hashtags.includes(newTag)) {
         setHashtags([...hashtags, newTag]);
       }
-      setHashtagInput('');
+      setHashtagInput("");
     }
   };
 
   const removeHashtag = (tagToRemove) => {
-    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
+    setHashtags(hashtags.filter((tag) => tag !== tagToRemove));
   };
+
+  const quillModules = useMemo(
+    () => ({
+      toolbar: [
+        [{ header: [1, 2, false] }],
+        ["bold", "italic", "link"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["table"],
+      ],
+      table: true,
+      tableUI: true,
+    }),
+    []
+  );
 
   /* ----------------------------------
   Create Post
@@ -373,14 +412,12 @@ const MentorPost = () => {
       return;
     }
 
-    if (!content.trim() || content === '<p><br></p>') {
+    if (!content.trim() || content === "<p><br></p>") {
       toast.error("Post content is required");
       return;
     }
 
-
-
-    if (images.some(file => file.size > 2 * 1024 * 1024)) {
+    if (images.some((file) => file.size > 2 * 1024 * 1024)) {
       toast.error("Please remove images that are too big");
       return;
     }
@@ -393,9 +430,8 @@ const MentorPost = () => {
       formData.append("headline", headline.trim());
       formData.append("category", category);
       if (spaceId) formData.append("spaceId", spaceId);
-      images.forEach(img => formData.append("images", img));
+      images.forEach((img) => formData.append("images", img));
 
-      // Add hashtags to form data
       if (hashtags.length > 0) {
         formData.append("hashtags", JSON.stringify(hashtags));
       }
@@ -413,10 +449,10 @@ const MentorPost = () => {
       }
 
       try {
-        sessionStorage.setItem('admeasy:askDoubt:lastPost', Date.now().toString());
-        sessionStorage.removeItem('admeasy:askDoubt:dismissed');
+        sessionStorage.setItem("admeasy:askDoubt:lastPost", Date.now().toString());
+        sessionStorage.removeItem("admeasy:askDoubt:dismissed");
       } catch (err) {
-        console.error('Error tracking post creation:', err);
+        console.error("Error tracking post creation:", err);
       }
 
       toast.success("Post published successfully 🚀");
@@ -426,11 +462,11 @@ const MentorPost = () => {
       setSpaceId("");
       setImages([]);
       setPreviews([]);
-      setHashtags([]); // Reset hashtags on success
+      setHashtags([]);
       fetchPosts();
 
       if (isAskDoubt) {
-        navigate('/posts/create', { replace: true });
+        navigate("/posts/create", { replace: true });
       }
     } catch (err) {
       console.error(err);
@@ -470,7 +506,34 @@ const MentorPost = () => {
             </h2>
           </div>
 
-          <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300 relative">
+          {/* ─── Tabs Navigation ─── */}
+          <div className="flex items-center gap-1 mb-8 p-1.5 bg-slate-50 rounded-2xl border border-slate-100 overflow-x-auto no-scrollbar">
+            {tabItems.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 shrink-0 ${
+                  activeTab === tab.id
+                    ? "bg-white text-[#9f3562] shadow-[0_4px_12px_rgba(159,53,98,0.12)] border border-[#9f3562]/5 scale-[1.02]"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+                }`}
+              >
+                <span className={activeTab === tab.id ? "text-[#9f3562]" : "text-slate-400"}>
+                  {tab.icon}
+                </span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ─── Conditionally Render Tabs ─── */}
+          {activeTab === "note" && <CreateNoteTab />}
+          {activeTab === "poll" && <CreatePollTab />}
+          {activeTab === "mcq" && <CreateMcqTab />}
+
+          {activeTab === "post" && (
+            <>
+              <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300 relative">
             {/* ─── Headline ──────────────────────────────────── */}
             <div className="px-4 pt-4 pb-2 border-b border-slate-100">
               <input
@@ -688,7 +751,9 @@ const MentorPost = () => {
                 <span>{loading ? "Publishing..." : "Publish Post"}</span>
               </div>
             </button>
-          </div>
+            </div>
+            </>
+          )}
         </div>
       </motion.div>
 
@@ -763,36 +828,60 @@ const MentorPost = () => {
                 </div>
 
                 {/* Content */}
-                <div
-                  className="text-[15px] text-slate-700 post-content leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: processMentions(post.content) }}
-                  onClick={(e) => {
-                    const mentionLink = e.target.closest('a.mention-link');
-                    if (mentionLink) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const username = mentionLink.getAttribute('data-username');
-                      if (username) {
-                        navigate(`/${username}`);
+                {post.type === "poll" ? (
+                  <PollCard
+                    post={post}
+                    onVote={(updatePost) =>
+                      setPosts((prev) =>
+                        prev.map((p) =>
+                          p._id === updatePost._id ? updatePost : p
+                        )
+                      )
+                    }
+                  />
+                ) : post.type === "mcq" ? (
+                  <McqCard
+                    post={post}
+                    onAnswer={(updatePost) =>
+                      setPosts((prev) =>
+                        prev.map((p) =>
+                          p._id === updatePost._id ? updatePost : p
+                        )
+                      )
+                    }
+                  />
+                ) : (
+                  <div
+                    className="text-[15px] text-slate-700 post-content leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: processMentions(post.content) }}
+                    onClick={(e) => {
+                      const mentionLink = e.target.closest('a.mention-link');
+                      if (mentionLink) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const username = mentionLink.getAttribute('data-username');
+                        if (username) {
+                          navigate(`/${username}`);
+                        }
+                        return;
                       }
-                      return;
-                    }
 
-                    const link = e.target.closest('a');
-                    if (link && link.href) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      let cleanUrl = link.href;
-                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
-                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
-                      cleanUrl = cleanUrl.replace(/[<>]/g, '');
-                      cleanUrl = cleanUrl.trim();
-                      window.open(cleanUrl, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                />
+                      const link = e.target.closest('a');
+                      if (link && link.href) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        let cleanUrl = link.href;
+                        cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                        cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                        cleanUrl = cleanUrl.replace(/[<>]/g, '');
+                        cleanUrl = cleanUrl.trim();
+                        window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                  />
+                )}
 
-                {/* Hashtags Display (Optional here, but useful) */}
+                {/* Hashtags Display */}
                 {post.hashtags && post.hashtags.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {post.hashtags.map((tag, idx) => (
@@ -803,6 +892,7 @@ const MentorPost = () => {
                   </div>
                 )}
 
+                {/* Image Display (Single or Multiple) */}
                 {post.image && (
                   <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
                     <img
@@ -812,8 +902,22 @@ const MentorPost = () => {
                     />
                   </div>
                 )}
+                {post.images && post.images.length > 0 && (
+                  <div className="mt-5 grid grid-cols-2 gap-2 overflow-hidden rounded-2xl border border-slate-100">
+                    {post.images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt={`Post image ${i + 1}`}
+                        className={`w-full object-cover transition-transform duration-500 hover:scale-[1.02] ${
+                          post.images.length === 1 ? 'col-span-2 h-[500px]' : 'h-64'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
 
-                {/* Footer/Link */}
+                {/* External Link Preview */}
                 {post.externalLink?.preview && post.externalLink?.url && (
                   <a
                     href={post.externalLink.url}

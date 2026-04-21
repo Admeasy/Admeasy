@@ -1,629 +1,442 @@
-import React, { useEffect, useState } from"react";
-import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ExternalLink, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, X } from"lucide-react";
-import { useParams, useNavigate } from"react-router-dom";
-import SEO from"../components/SEO";
-import { Document, Page, pdfjs } from'react-pdf';
+import React, { useEffect, useState } from "react";
+import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, X, Lock, School, GraduationCap } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
+import PaymentModal from "../components/PaymentModal";
+import WelcomeCoinPopup from "../components/popups/WelcomeCoinPopup";
+import { useUser } from "../context/UserContext";
+import { Document, Page, pdfjs } from "react-pdf";
+import { toast } from "react-toastify";
 
-// ✅ CSS imports to fix Blank/White Screen
-import'react-pdf/dist/Page/AnnotationLayer.css';
-import'react-pdf/dist/Page/TextLayer.css';
+// CSS for react-pdf
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
-// ✅ Worker URL to prevent Vite ES module error
-pdfjs.GlobalWorkerOptions.workerSrc =`https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-// ✅ Options aur Headers ko component ke bahar rakha hai
-// (Isse"sendWithPromise"aur worker crash hamesha ke liye theek ho jayega)
 const pdfOptions = {
- cMapUrl:`//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
- cMapPacked: true,
- standardFontDataUrl:`//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/standard_fonts/`,
+  cMapUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+  cMapPacked: true,
+  standardFontDataUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/standard_fonts/`,
 };
 
 const pdfHeaders = {
-'Accept':'application/pdf',
+  Accept: 'application/pdf',
 };
+
+const fallbackProfilePic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
 const NotesPage = () => {
- const { id } = useParams();
- const navigate = useNavigate();
- const [note, setNote] = useState(null);
- const [liked, setLiked] = useState(false);
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState("");
- const [isLiking, setIsLiking] = useState(false);
- const [pdfError, setPdfError] = useState(false);
- const [numPages, setNumPages] = useState(null);
- const [pageNumber, setPageNumber] = useState(1);
- const [scale, setScale] = useState(1.0);
- const [pdfLoading, setPdfLoading] = useState(true);
- const [containerWidth, setContainerWidth] = useState(null);
- const [isFullScreen, setIsFullScreen] = useState(false);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, mentor, isLoading: userLoading } = useUser();
 
- // Scroll to top when component mounts or note ID changes
- useEffect(() => {
- window.scrollTo({ top: 0, behavior:'instant'});
- }, [id]);
+  const [note, setNote] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showWelcomeCoinPopup, setShowWelcomeCoinPopup] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isLiking, setIsLiking] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
+  const [numPages, setNumPages] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [scale, setScale] = useState(1.0);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [containerWidth, setContainerWidth] = useState(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
- // Reset PDF viewer state when note changes
- useEffect(() => {
- if (note) {
- setPageNumber(1);
- setScale(1.0);
- setPdfError(false);
- setPdfLoading(true);
- setNumPages(null);
- }
- }, [note?._id]);
+  const refetchNote = () => setReloadKey(prev => prev + 1);
 
- // Escape key to exit full screen
- useEffect(() => {
- const handleEscape = (e) => {
- if (e.key ==="Escape") setIsFullScreen(false);
- };
- if (isFullScreen) {
- document.body.style.overflow ="hidden";
- window.addEventListener("keydown", handleEscape);
- }
- return () => {
- document.body.style.overflow ="";
- window.removeEventListener("keydown", handleEscape);
- };
- }, [isFullScreen]);
+  // Scroll to top
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
 
- // Calculate container width for responsive PDF rendering
- useEffect(() => {
- const updateWidth = () => {
- const container = document.querySelector('[data-pdf-container]');
- if (container) {
- setContainerWidth(container.clientWidth - 32); // Subtract padding
- }
- };
+  // Reset PDF state when note changes
+  useEffect(() => {
+    if (note) {
+      setPageNumber(1);
+      setScale(1.0);
+      setPdfError(false);
+      setPdfLoading(true);
+      setNumPages(null);
+    }
+  }, [note?._id]);
 
- updateWidth();
- window.addEventListener('resize', updateWidth);
- return () => window.removeEventListener('resize', updateWidth);
- }, [note]);
+  // Escape key for full screen
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") setIsFullScreen(false);
+    };
+    if (isFullScreen) {
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleEscape);
+    }
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isFullScreen]);
 
- useEffect(() => {
- let ignore = false;
- const controller = new AbortController();
+  // Container width for responsive PDF
+  useEffect(() => {
+    const updateWidth = () => {
+      const container = document.querySelector('[data-pdf-container]');
+      if (container) setContainerWidth(container.clientWidth - 32);
+    };
 
- const fetchNote = async () => {
- try {
- setLoading(true);
- setError("");
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [note]);
 
- const res = await fetch(`/api/notes/${id}`, { signal: controller.signal });
- if (!res.ok) {
- throw new Error("Unable to load this note right now.");
- }
- const payload = await res.json();
- if (ignore) return;
- let data = payload?.data;
- if (!data) {
- throw new Error("Note not found.");
- }
- 
- // Increment view count
- let updatedWithView = null;
- try {
- const viewRes = await fetch(`/api/notes/${data._id || id}/view`, { method:"POST"});
- if (viewRes.ok) {
- const viewPayload = await viewRes.json();
- updatedWithView = viewPayload?.data;
- }
- } catch (viewErr) {
- console.error("Error incrementing views:", viewErr);
- }
- 
- if (!ignore) {
- if (updatedWithView) {
- data = updatedWithView;
- } else {
- data = { ...data, views: (data.views ?? 0) + 1 };
- }
- }
- setNote(data);
- } catch (err) {
- if (err.name ==="AbortError") return;
- setError(err.message ||"Something went wrong.");
- } finally {
- if (!ignore) {
- setLoading(false);
- }
- }
- };
+  // Fetch Note
+  useEffect(() => {
+    const controller = new AbortController();
 
- fetchNote();
+    const fetchNote = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
- return () => {
- ignore = true;
- controller.abort();
- };
- }, [id]);
+        const response = await fetch(`/api/notes/${id}`, { signal: controller.signal });
+        const data = await response.json();
 
- // Add structured data for note
- useEffect(() => {
- if (note) {
- const structuredData = {
-"@context":"https://schema.org",
-"@type":"LearningResource",
-"name": note.title,
-"description": note.description,
-"educationalLevel": note.standard,
-"learningResourceType":"Study Notes",
-"author": {
-"@type":"Person",
-"name": note.uploaderName
- },
-"provider": {
-"@type":"Organization",
-"name":"Admeasy"
- },
-"inLanguage":"en",
-"isAccessibleForFree": note.isFree || false,
-"offers": note.isFree ? undefined : {
-"@type":"Offer",
-"price": note.price || 0,
-"priceCurrency":"INR"
- }
- };
- 
- const script = document.createElement('script');
- script.type ='application/ld+json';
- script.text = JSON.stringify(structuredData);
- script.id ='note-structured-data';
- document.head.appendChild(script);
- 
- return () => {
- const existingScript = document.getElementById('note-structured-data');
- if (existingScript) {
- document.head.removeChild(existingScript);
- }
- };
- }
- }, [note]);
+        if (data.success) {
+          setNote(data.data);
+          // Note: Backend 'likes' is currently a Number, not an array of IDs.
+          // For now, we set liked based on a local flag or similar, 
+          // but true persistence would require an array in the DB.
+          setLiked(false); 
+          // Increment view
+          fetch(`/api/notes/${id}/view`, { method: "POST" });
+        } else {
+          setError(data.message || "Note not found");
+        }
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        setError("Something went wrong while fetching the note");
+      } finally {
+        setLoading(false);
+      }
+    };
 
- const handleShare = () => {
- if (!note) return;
- const shareData = {
- title: note.title,
- text: note.description,
- url: window.location.href,
- };
+    fetchNote();
+    return () => controller.abort();
+  }, [id, reloadKey, user?._id, mentor?._id]);
 
- if (navigator.share) {
- navigator.share(shareData).catch(() => {
- // Error sharing
- });
- } else if (navigator.clipboard) {
- navigator.clipboard.writeText(shareData.url);
- alert("Link copied to clipboard!");
- }
- };
+  const handleLike = async () => {
+    if (!user && !mentor) {
+      toast.info("Please login to like notes");
+      return;
+    }
+    if (isLiking) return;
 
- const handleLike = async () => {
- if (!note || liked || isLiking) return;
+    try {
+      setIsLiking(true);
+      const response = await fetch(`/api/notes/${id}/like`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLiked(!liked);
+        setNote(prev => ({
+          ...prev,
+          likes: !liked 
+            ? (prev.likes || 0) + 1
+            : Math.max(0, (prev.likes || 0) - 1)
+        }));
+      }
+    } catch (err) {
+      toast.error("Action failed");
+    } finally {
+      setIsLiking(false);
+    }
+  };
 
- try {
- setIsLiking(true);
- const res = await fetch(`/api/notes/${note._id || id}/like`, { method:"POST"});
- if (!res.ok) {
- throw new Error("Unable to like this note right now.");
- }
- const payload = await res.json();
- setNote(payload?.data ?? { ...note, likes: (note.likes ?? 0) + 1 });
- setLiked(true);
- } catch (err) {
- console.error("Error liking note:", err);
- alert(err.message ||"Something went wrong. Please try again.");
- } finally {
- setIsLiking(false);
- }
- };
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: note?.title || "Study Note",
+        url: window.location.href
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
+    }
+  };
 
- const formatNumber = (value) => Number(value ?? 0).toLocaleString("en-IN");
- const formatLabelValue = (value) =>
- value
- ? value
- .toString()
- .split("")
- .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
- .join("")
- :"Not shared";
- const uploaderName = note?.uploaderName || note?.uploader ||"Unknown contributor";
- const uploadedAt = note?.publishedAt || note?.uploadDate;
- const uploadedOn = uploadedAt
- ? new Date(uploadedAt).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric"})
- :"Recently";
+  const formatNumber = (value) => Number(value ?? 0).toLocaleString("en-IN");
 
- return (
- <div className="min-h-screen bg-gray-50 pb-10">
- <SEO
- title={note ?`${note.title} - Study Notes | Admeasy`:'Study Notes | Admeasy'}
- description={note?.description ||'Access premium study notes for your courses'}
- keywords={`${note?.title ||''}, ${note?.standard ||''}, study notes, ${note?.course ||''}, ${note?.university ||''}`}
- url={`https://admeasy.in/notes/${id}`}
- />
- 
- {/* Back Button */}
- <div className="bg-white border-b border-gray-200">
- <div className="max-w-7xl mx-auto px-4 py-4">
- <button
- onClick={() => navigate(-1)}
- className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors"
- >
- <ArrowLeft className="w-5 h-5"/>
- <span className="font-medium">Back</span>
- </button>
- </div>
- </div>
+  const uploaderName = note?.uploaderName || note?.uploader?.name || "Unknown contributor";
+  const uploadedOn = note?.publishedAt || note?.uploadDate
+    ? new Date(note.publishedAt || note.uploadDate).toLocaleDateString("en-IN", {
+        day: "numeric", month: "short", year: "numeric"
+      })
+    : "Recently";
 
- <div className="max-w-7xl mx-auto px-4 py-8">
- {loading ? (
- <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-10 text-center text-gray-500">
- Loading note…
- </div>
- ) : error ? (
- <div className="bg-red-50 rounded-2xl border border-red-200 p-8 text-center shadow-lg text-red-700">
- <p className="font-semibold mb-2">We couldn&apos;t fetch this note.</p>
- <p className="text-sm mb-6">{error}</p>
- <button
- onClick={() => navigate("/notes")}
- className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold shadow-lg hover:bg-red-500 transition"
- >
- Back to Notes
- </button>
- </div>
- ) : !note ? (
- <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-10 text-center">
- <p className="text-gray-600 mb-4">This note is no longer available.</p>
- <button
- onClick={() => navigate("/notes")}
- className="px-4 py-2 bg-[#6C63FF] text-white rounded-xl font-semibold shadow-lg hover:bg-[#5A52E8] transition"
- >
- Explore other notes
- </button>
- </div>
- ) : (
- <>
- <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
- {/* Left Sidebar - Note Info */}
- <div className="lg:col-span-1 space-y-6">
- {/* Stats Cards */}
- <div className="bg-pink-50 rounded-2xl p-5 border border-pink-200">
- <div className="flex items-center gap-3">
- <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
- <Heart className="w-6 h-6 text-pink-600 fill-pink-500"/>
- </div>
- <div>
- <p className="text-3xl font-bold text-gray-900">{formatNumber(note.likes)}</p>
- <p className="text-base text-gray-600">likes</p>
- </div>
- </div>
- </div>
+  const canViewPdf = note?.isFree || note?.requiresPurchase === false || note?.isPurchased;
 
- <div className="bg-purple-50 rounded-2xl p-5 border border-purple-200">
- <div className="flex items-center gap-3">
- <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
- <Eye className="w-6 h-6 text-purple-600"/>
- </div>
- <div>
- <p className="text-3xl font-bold text-gray-900">{formatNumber(note.views)}</p>
- <p className="text-base text-gray-600">views</p>
- </div>
- </div>
- </div>
+  if (loading || userLoading) return (
+    <div className="min-h-screen pt-20 flex items-center justify-center bg-gray-50">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-medium">Loading notes...</p>
+      </div>
+    </div>
+  );
 
- {/* Info Card */}
- <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
- <div className="flex flex-wrap gap-2 mb-4">
- <span
- className={`px-3 py-1 rounded-lg text-xs font-semibold ${
- note.isFree ?? true
- ?"bg-green-50 text-green-700 border border-green-200"
- :"bg-blue-50 text-blue-700 border border-blue-200"
- }`}
- >
- {note.isFree ?? true ?"FREE": note.price ?`₹${note.price}`:"Paid"}
- </span>
- {note.standard && (
- <span className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-700 border border-gray-200">
- {note.standard}
- </span>
- )}
- </div>
+  if (error) return (
+    <div className="min-h-screen pt-20 flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm text-center border border-gray-100">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <FileText className="w-8 h-8 text-red-500" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">{error}</h3>
+        <button 
+          onClick={() => navigate("/notes")}
+          className="text-[#9f3562] font-semibold hover:underline flex items-center gap-2 mx-auto"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Notes
+        </button>
+      </div>
+    </div>
+  );
 
- <h1 className="text-2xl font-bold text-gray-900 mb-3">{note.title}</h1>
- <p className="text-gray-600 text-sm leading-relaxed mb-4">{note.description}</p>
+  return (
+    <div className="min-h-screen bg-gray-50 pb-10">
+      <SEO
+        title={note ? `${note.title} - Study Notes | Admeasy` : 'Study Notes | Admeasy'}
+        description={note?.description || 'Access premium study notes'}
+        keywords={`${note?.title || ''}, ${note?.standard || ''}, study notes`}
+        url={`https://admeasy.in/notes/${id}`}
+      />
 
- {/* Uploader Info */}
- <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
- <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6C63FF] to-[#3A32CF] flex items-center justify-center">
- <User className="w-5 h-5 text-white"/>
- </div>
- <div>
- <p className="font-bold text-gray-900 text-sm">{uploaderName}</p>
- <p className="text-xs text-gray-500">Uploaded • {uploadedOn}</p>
- </div>
- </div>
+      {/* Back Button Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate("/notes")}
+            className="flex items-center gap-2 text-gray-700 hover:text-[#9f3562] transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-semibold hidden sm:inline">Back to Notes</span>
+          </button>
+          
+          <div className="flex items-center gap-3">
+             <button onClick={handleShare} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+               <Share2 className="w-5 h-5 text-gray-600" />
+             </button>
+             <button onClick={handleLike} className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${liked ? "text-red-500" : "text-gray-600"}`}>
+               <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
+             </button>
+          </div>
+        </div>
+      </div>
 
- {/* Action Buttons */}
- <div className="space-y-3 mb-6">
- <button
- onClick={handleShare}
- className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all border-2 border-gray-300"
- >
- <Share2 className="w-5 h-5"/>
- Share
- </button>
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:py-10">
+        {!note ? (
+          <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
+            This note is no longer available.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Sidebar - Info */}
+            <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                   <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest ${note.isFree ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                     {note.isFree ? "FREE" : "PREMIUM"}
+                   </span>
+                   <div className="flex items-center gap-4 text-gray-500">
+                     <div className="flex items-center gap-1">
+                       <Eye className="w-4 h-4" />
+                       <span className="text-xs font-bold">{formatNumber(note.views)}</span>
+                     </div>
+                     <div className="flex items-center gap-1">
+                       <Heart className="w-4 h-4" />
+                       <span className="text-xs font-bold">{formatNumber(note.likes || 0)}</span>
+                     </div>
+                   </div>
+                </div>
 
- <button
- onClick={handleLike}
- disabled={liked || isLiking}
- className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all border-2 ${
- liked
- ?"bg-pink-100 text-pink-600 border-pink-200"
- :"bg-white text-gray-700 hover:bg-pink-50 border-gray-200"
- }`}
- >
- <Heart className={`w-5 h-5 ${liked ?"fill-pink-500 text-pink-500":"text-pink-500"}`} />
- {liked ?"Liked": isLiking ?"Liking…":"Like"}
- </button>
- </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4 leading-tight">{note.title}</h1>
+                <p className="text-gray-600 text-sm leading-relaxed mb-8">{note.description}</p>
 
- {/* Note Details */}
- <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
- {[
- { label:"University", value: note.university ? note.university.toUpperCase() :"Not shared"},
- { label:"Programme", value: formatLabelValue(note.programme) },
- { label:"Course", value: formatLabelValue(note.course) },
- { label:"Total Pages", value: note.pages ??"Not shared"},
- ].map((detail) => (
- <div key={detail.label} className="flex justify-between items-center">
- <p className="text-sm text-gray-600">{detail.label}</p>
- <p className="font-semibold text-gray-900 text-sm">{detail.value}</p>
- </div>
- ))}
- </div>
- </div>
- </div>
+                <div className="space-y-5 pt-6 border-t border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 shadow-sm">
+                      <School className="w-5 h-5 text-indigo-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">University</p>
+                      <p className="text-sm font-bold text-gray-800">{note.university || "Public Study"}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 shadow-sm">
+                      <GraduationCap className="w-5 h-5 text-[#9f3562]" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Course/Programme</p>
+                      <p className="text-sm font-bold text-gray-800">{note.course || note.programme || "General"}</p>
+                    </div>
+                  </div>
 
- {/* Right Side - PDF Viewer */}
- <div className="lg:col-span-2">
- <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden sticky top-6">
- <div className="bg-gradient-to-r from-[#6C63FF] to-[#5A52E8] px-6 py-4 flex items-center justify-between">
- <div className="flex items-center gap-3">
- <FileText className="w-6 h-6 text-white"/>
- <h2 className="text-xl font-bold text-white">Document Preview</h2>
- </div>
- </div>
+                  <div className="flex items-center gap-4 pt-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#9f3562] to-[#b14270] rounded-2xl flex items-center justify-center shadow-lg shadow-[#9f3562]/20">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Contributor</p>
+                      <p className="text-sm font-bold text-gray-900">{uploaderName}</p>
+                      <p className="text-[10px] text-gray-500 font-medium">{uploadedOn}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
- {note.fileUrl ? (
- <div className="relative">
- {!pdfError ? (
- <div className="flex flex-col h-auto lg:h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
- {/* PDF Controls */}
- <div className="bg-gray-100 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
- <div className="flex items-center gap-2">
- <button
- onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
- disabled={pageNumber <= 1}
- className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
- title="Previous page"
- >
- <ChevronLeft className="w-5 h-5"/>
- </button>
- <span className="text-sm font-medium text-gray-700 px-2">
- Page {pageNumber} of {numPages ||'...'}
- </span>
- <button
- onClick={() => setPageNumber(prev => Math.min(numPages || 1, prev + 1))}
- disabled={pageNumber >= (numPages || 1)}
- className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
- title="Next page"
- >
- <ChevronRight className="w-5 h-5"/>
- </button>
- </div>
- <div className="flex items-center gap-2">
- <button
- onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
- className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
- title="Zoom out"
- >
- <ZoomOut className="w-5 h-5"/>
- </button>
- <span className="text-sm font-medium text-gray-700 px-2 min-w-[60px] text-center">
- {Math.round(scale * 100)}%
- </span>
- <button
- onClick={() => setScale(prev => Math.min(2.5, prev + 0.25))}
- className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
- title="Zoom in"
- >
- <ZoomIn className="w-5 h-5"/>
- </button>
- <button
- onClick={() => setIsFullScreen(true)}
- className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5"
- title="Full screen preview"
- >
- <Maximize2 className="w-5 h-5"/>
- <span className="text-sm font-medium text-gray-700 hidden sm:inline">Full screen</span>
- </button>
- </div>
- </div>
+              {!canViewPdf && (
+                <div className="bg-gradient-to-br from-gray-900 to-slate-800 rounded-3xl p-8 text-white shadow-xl">
+                  <Lock className="w-12 h-12 text-[#9f3562] mb-4" />
+                  <h3 className="text-xl font-bold mb-2">Unlock Full Note</h3>
+                  <p className="text-gray-400 text-sm mb-6">Support the contributor and get complete access to this premium study resource.</p>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-[#9f3562] hover:text-white transition-all transform hover:-translate-y-1 active:scale-95"
+                  >
+                    Purchase for ₹{note.price || 49}
+                  </button>
+                </div>
+              )}
+            </div>
 
- {/* PDF Viewer */}
- <div className="flex-1 overflow-auto bg-gray-100 flex items-start justify-center p-2 sm:p-4"data-pdf-container>
- {pdfLoading && (
- <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
- <div className="flex flex-col items-center gap-3">
- <div className="w-12 h-12 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
- <p className="text-gray-600 font-medium">Loading PDF...</p>
- </div>
- </div>
- )}
- <Document
- // ✅ FINAL FIX: Direct original Cloudinary link passed. No more 400 errors!
- file={note.fileUrl}
- httpHeaders={pdfHeaders} 
- withCredentials={false}
- options={pdfOptions} 
- onLoadSuccess={({ numPages }) => {
- setNumPages(numPages);
- setPdfLoading(false);
- setPdfError(false);
- }}
- onLoadError={(error) => {
- console.error('PDF load error:', error);
- setPdfError(true);
- setPdfLoading(false);
- }}
- loading={
- <div className="flex flex-col items-center gap-3">
- <div className="w-12 h-12 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
- <p className="text-gray-600 font-medium">Loading PDF...</p>
- </div>
- }
- error={
- <div className="p-8 text-center flex flex-col items-center justify-center">
- <File className="w-20 h-20 text-gray-300 mb-4"/>
- <p className="text-gray-600 font-semibold mb-2">Unable to load PDF</p>
- <p className="text-gray-500 text-sm">The PDF file may be corrupted, inaccessible, or blocked by CORS policy.</p>
- </div>
- }
- className="flex flex-col items-center"
- >
- <div className="mb-4">
- <Page
- pageNumber={pageNumber}
- scale={scale}
- renderTextLayer={true}
- renderAnnotationLayer={true}
- className="shadow-lg"
- width={containerWidth || undefined}
- loading={
- <div className="flex items-center justify-center p-8 min-h-[400px]">
- <div className="w-8 h-8 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"></div>
- </div>
- }
- onRenderError={(error) => {
- console.error('Page render error:', error);
- }}
- />
- </div>
- </Document>
- </div>
- </div>
- ) : (
- <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
- <File className="w-20 h-20 text-gray-300 mb-4"/>
- <p className="text-gray-600 font-semibold mb-2">Unable to display PDF in browser</p>
- <p className="text-gray-500 text-sm">Some PDFs cannot be previewed directly.</p>
- </div>
- )}
- </div>
- ) : (
- <div className="p-8 text-center min-h-[600px] flex flex-col items-center justify-center bg-gray-50">
- <File className="w-20 h-20 text-gray-300 mb-4"/>
- <p className="text-gray-600 font-semibold">No preview available</p>
- <p className="text-gray-500 text-sm">The PDF file is being processed</p>
- </div>
- )}
- </div>
- </div>
- </div>
+            {/* Right Content - PDF Viewer */}
+            <div className="lg:col-span-2 order-1 lg:order-2">
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 min-h-[600px] flex flex-col">
+                {canViewPdf ? (
+                  <div className="relative flex flex-col h-full" data-pdf-container>
+                    {/* Viewer Sub-Header */}
+                    <div className="bg-slate-900 px-6 py-3 flex items-center justify-between text-white border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold bg-white/10 px-2 py-1 rounded">PDF</span>
+                          <p className="text-xs font-medium opacity-60">Page {pageNumber} of {numPages || "..."}</p>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"><ZoomOut size={14} /></button>
+                          <span className="text-[10px] font-bold w-12 text-center">{Math.round(scale * 100)}%</span>
+                          <button onClick={() => setScale(s => Math.min(2.0, s + 0.1))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"><ZoomIn size={14} /></button>
+                          <button onClick={() => setIsFullScreen(!isFullScreen)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors ml-1"><Maximize2 size={14} /></button>
+                        </div>
+                    </div>
 
- {/* Full screen PDF overlay */}
- {isFullScreen && note?.fileUrl && !pdfError && (
- <div className="fixed inset-0 z-[9999] bg-gray-900 flex flex-col">
- <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 shrink-0">
- <div className="flex items-center gap-3 text-white">
- <FileText className="w-5 h-5"/>
- <span className="font-semibold">{note.title} — Full preview</span>
- </div>
- <div className="flex items-center gap-2">
- <div className="flex items-center gap-1 mr-2">
- <button
- onClick={() => setPageNumber(prev => Math.max(1, prev - 1))}
- disabled={pageNumber <= 1}
- className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white transition-colors"
- title="Previous page"
- >
- <ChevronLeft className="w-5 h-5"/>
- </button>
- <span className="text-sm text-gray-300 px-2 min-w-[80px] text-center">
- {pageNumber} / {numPages ||"…"}
- </span>
- <button
- onClick={() => setPageNumber(prev => Math.min(numPages || 1, prev + 1))}
- disabled={pageNumber >= (numPages || 1)}
- className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white transition-colors"
- title="Next page"
- >
- <ChevronRight className="w-5 h-5"/>
- </button>
- </div>
- <div className="flex items-center gap-1 mr-2">
- <button
- onClick={() => setScale(prev => Math.max(0.5, prev - 0.25))}
- className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
- title="Zoom out"
- >
- <ZoomOut className="w-5 h-5"/>
- </button>
- <span className="text-sm text-gray-300 px-2 min-w-[50px] text-center">{Math.round(scale * 100)}%</span>
- <button
- onClick={() => setScale(prev => Math.min(2.5, prev + 0.25))}
- className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
- title="Zoom in"
- >
- <ZoomIn className="w-5 h-5"/>
- </button>
- </div>
- <button
- onClick={() => setIsFullScreen(false)}
- className="p-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors flex items-center gap-2"
- title="Close full screen"
- >
- <X className="w-5 h-5"/>
- <span className="text-sm font-medium">Close</span>
- </button>
- </div>
- </div>
- <div className="flex-1 overflow-auto flex items-start justify-center p-4 bg-gray-800">
- <Document
- file={note.fileUrl}
- httpHeaders={pdfHeaders}
- withCredentials={false}
- options={pdfOptions}
- className="flex flex-col items-center"
- >
- <div className="bg-white shadow-2xl">
- <Page
- pageNumber={pageNumber}
- scale={scale}
- renderTextLayer={true}
- renderAnnotationLayer={true}
- width={Math.min(window.innerWidth - 48, 900)}
- loading={
- <div className="flex items-center justify-center p-16 min-h-[400px]">
- <div className="w-10 h-10 border-4 border-[#6C63FF]/20 border-t-[#6C63FF] rounded-full animate-spin"/>
- </div>
- }
- />
- </div>
- </Document>
- </div>
- </div>
- )}
- </>
- )}
- </div>
- </div>
- );
+                    <div className={`flex-1 overflow-auto bg-slate-200 p-4 sm:p-8 flex justify-center ${isFullScreen ? "fixed inset-0 z-[100] bg-slate-950 pt-16" : ""}`}>
+                      {isFullScreen && (
+                        <button onClick={() => setIsFullScreen(false)} className="fixed top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-md text-white transition-all">
+                          <X size={24} />
+                        </button>
+                      )}
+                      
+                      <div className="shadow-2xl h-fit">
+                        <Document
+                          file={note.fileUrl}
+                          httpHeaders={pdfHeaders}
+                          options={pdfOptions}
+                          onLoadSuccess={({ numPages }) => {
+                            setNumPages(numPages);
+                            setPdfLoading(false);
+                          }}
+                          onLoadError={(err) => {
+                            console.error("PDF load error:", err);
+                            setPdfError(true);
+                          }}
+                          loading={(
+                            <div className="p-20 text-center flex flex-col items-center gap-4">
+                              <div className="w-10 h-10 border-4 border-[#9f3562] border-t-transparent rounded-full animate-spin" />
+                              <p className="text-slate-500 font-bold text-sm tracking-widest uppercase">Opening PDF...</p>
+                            </div>
+                          )}
+                          className="flex flex-col items-center"
+                        >
+                          <Page
+                            pageNumber={pageNumber}
+                            scale={scale}
+                            width={containerWidth || undefined}
+                            renderTextLayer={true}
+                            renderAnnotationLayer={true}
+                            loading={null}
+                            className="transition-all duration-300"
+                          />
+                        </Document>
+                      </div>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="bg-white border-t border-gray-100 p-4 flex items-center justify-center gap-8">
+                      <button
+                        onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+                        disabled={pageNumber <= 1}
+                        className="p-3 bg-gray-50 hover:bg-gray-100 disabled:opacity-30 rounded-2xl transition-all border border-gray-200"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-gray-900" />
+                      </button>
+                      
+                      <div className="flex flex-col items-center leading-none">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Progress</span>
+                        <span className="text-sm font-black text-gray-900">{pageNumber} <span className="opacity-30">/</span> {numPages || "?"}</span>
+                      </div>
+
+                      <button
+                        onClick={() => setPageNumber(p => Math.min(numPages || 1, p + 1))}
+                        disabled={pageNumber >= (numPages || 1)}
+                        className="p-3 bg-gray-50 hover:bg-gray-100 disabled:opacity-30 rounded-2xl transition-all border border-gray-200"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-900" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center min-h-[500px] p-12 text-center bg-slate-50/50">
+                    <div className="w-20 h-20 bg-[#9f3562]/10 rounded-3xl flex items-center justify-center mb-6">
+                      <Lock className="w-10 h-10 text-[#9f3562]" />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Access Restricted</h3>
+                    <p className="text-gray-500 max-w-sm mb-8">This is a premium study note. Please purchase to view the full document.</p>
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="px-10 py-4 bg-[#9f3562] text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-[#9f3562]/20 hover:scale-105 transition-transform"
+                    >
+                      Unlock for ₹{note.price || 49}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <PaymentModal
+        note={note}
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPaymentSuccess={() => {
+          refetchNote();
+          const alreadyShown = localStorage.getItem("admeasy:welcomeCoinsShown");
+          if (!alreadyShown) setShowWelcomeCoinPopup(true);
+        }}
+      />
+      
+      <WelcomeCoinPopup
+        isOpen={showWelcomeCoinPopup}
+        onClose={() => setShowWelcomeCoinPopup(false)}
+      />
+    </div>
+  );
 };
 
-export default NotesPage;
+export default NotesPage; 

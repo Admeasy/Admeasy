@@ -9,7 +9,7 @@ const subscriptionSchema = new mongoose.Schema({
   },
   mentor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mentors',
+    ref: 'Mentor',
     required: true
   },
   plan: {

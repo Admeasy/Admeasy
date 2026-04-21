@@ -9,18 +9,22 @@ const apiCache = require('../middleware/apiCache');
 const authenticateMentorJWT = require("../middleware/mentorAuth");
 const authenticateJWT = require("../middleware/userAuth");
 const { authenticateRequired } = require("../middleware/combinedAuth");
-const upload = require('../middleware/multer');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
-const { detectUrl, generateLinkPreview } = require('../utils/linkPreview');
-const path = require('path');
-const jwt = require('jsonwebtoken');
-const { verifyAdminToken } = require('../middleware/adminAuth');
-const NotificationService = require('../services/notificationService');
-const NotificationManager = require('../services/notificationManager');
-const { getRankedFeed } = require('../utils/feedRanking');
-const feedController = require('../controllers/feedController');
-const { extractPublicId } = require('../utils/cloudinary');
-const { trackStudentEvent } = require('../services/interactionTrackingService');
+const upload = require("../middleware/multer");
+const {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} = require("../utils/cloudinary");
+const { detectUrl, generateLinkPreview } = require("../utils/linkPreview");
+const path = require("path");
+const jwt = require("jsonwebtoken");
+const { verifyAdminToken } = require("../middleware/adminAuth");
+const NotificationService = require("../services/notificationService");
+const NotificationManager = require("../services/notificationManager");
+const { getRankedFeed } = require("../utils/feedRanking");
+const feedController = require("../controllers/feedController");
+const { extractPublicId } = require("../utils/cloudinary");
+// const { trackStudentEvent } = require("../services/interactionTrackingService");
+const { hasVisiblePostText } = require("../utils/postContent");
 
 const getPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl || typeof imageUrl !== 'string') return null;
@@ -1069,12 +1073,134 @@ router.get("/:postId", async (req, res) => {
 
 /**
  * POST /api/posts
- * Create a new post (mentors and users)
+ * Create a new post (mentors and users, supports regular posts with multiple images and polls)
+ */
+/**
+ * POST /api/posts
+ * Create a new post (mentors and users, supports regular posts with multiple images and polls)
  */
 router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount: 1 }, { name: "images", maxCount: 5 }]), async (req, res) => {
   try {
-    const { content, hashtags, headline, category, spaceId } = req.body;
+    const { type = "post", content, hashtags, headline, category, spaceId, question, options: rawOptions } = req.body;
 
+    // ── POLL branch ──────────────────────────────────────────────────────
+    if (type === "poll") {
+      if (!question || !question.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Question is required for polls",
+        });
+      }
+
+      // Parse options — frontend sends JSON string
+      let options;
+      try {
+        options = typeof rawOptions === "string" ? JSON.parse(rawOptions) : rawOptions;
+      } catch (err) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid options format",
+        });
+      }
+
+      if (!Array.isArray(options) || options.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: "Polls must have at least 2 options",
+        });
+      }
+
+      // Create poll post
+      const postData = {
+        type: "poll",
+        poll: {
+          question: question.trim(),
+          options: options.map(opt => ({ text: opt.text || opt, votedBy: [] })),
+        },
+        category: ['study', 'masti'].includes(category) ? category : 'study',
+        spaceId: spaceId || null,
+        hashtags: hashtags ? JSON.parse(hashtags) : [],
+      };
+
+      if (req.mentor) {
+        postData.mentorId = req.mentor._id;
+      } else if (req.user) {
+        postData.userId = req.user._id;
+      }
+
+      const post = new Post(postData);
+      await post.save();
+
+      // Populate author
+      if (post.mentorId) {
+        await post.populate('mentorId', 'name username image');
+      } else if (post.userId) {
+        const user = await populateUser(post.userId);
+        post.userId = user;
+      }
+
+      const author = post.mentorId
+        ? {
+          _id: post.mentorId._id,
+          name: post.mentorId.name,
+          username: post.mentorId.username,
+          image: post.mentorId.image,
+        }
+        : post.userId
+          ? {
+            _id: post.userId._id,
+            name: post.userId.name,
+            username: post.userId.username || null,
+            image: post.userId.image,
+          }
+          : null;
+
+      // Notification logic for poll
+      (async () => {
+        try {
+          const authorDoc = req.mentor || req.user;
+          const authorId = authorDoc._id;
+          const authorName = author?.name || authorDoc.name || "Someone";
+          const followers = authorDoc.followers || [];
+          if (followers.length > 0) {
+            await NotificationManager.createAndSendMultiple({
+              recipientIds: followers,
+              recipientRole: "user",
+              actorId: authorId,
+              type: "FOLLOWING_POST",
+              entityType: "POST",
+              entityId: post._id,
+              originPath: `/posts/${post._id}`,
+              message: `${authorName} posted a poll`,
+              actorInfo: { name: authorName, username: author?.username },
+            });
+          }
+        } catch (err) {
+          console.error("Error sending poll notification:", err);
+        }
+      })();
+
+      return res.status(201).json({
+        success: true,
+        message: "Poll created successfully",
+        post: {
+          _id: post._id,
+          mentor: author,
+          author: author,
+          type: "poll",
+          poll: post.poll,
+          category: post.category || 'study',
+          space: null,
+          hashtags: post.hashtags || [],
+          likesCount: post.likesCount,
+          commentsCount: post.commentsCount,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+        },
+      });
+    }
+
+    // ── REGULAR POST branch ──────────────────────────────────────────────
     if (!content || !content.trim()) {
       return res.status(400).json({
         success: false,
@@ -1082,45 +1208,28 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
       });
     }
 
-    // Detect URL in content
+    // Detect URL and Link Preview
     const detectedUrl = detectUrl(content);
     let linkPreview = null;
-
     if (detectedUrl) {
-      try {
-        linkPreview = await generateLinkPreview(detectedUrl);
-      } catch (previewError) {
-        console.log('Link preview generation failed:', previewError.message);
-        // Continue without preview
-      }
+      try { linkPreview = await generateLinkPreview(detectedUrl); } catch (e) {}
     }
 
-    // Handle image upload
+    // Handle image upload (Multiple images)
     let imageUrl = null;
     let imagesUrls = [];
-    try {
-      if (req.files) {
-        if (req.files.image && req.files.image.length > 0) {
-          imageUrl = await uploadToCloudinary(req.files.image[0].path, 'posts');
-        }
-        if (req.files.images && req.files.images.length > 0) {
-          for (const file of req.files.images) {
-            const uploadedUrl = await uploadToCloudinary(file.path, 'posts');
-            imagesUrls.push(uploadedUrl);
-          }
-        }
-      } else if (req.file) {
-        imageUrl = await uploadToCloudinary(req.file.path, 'posts');
+    if (req.files) {
+      if (req.files.image && req.files.image.length > 0) {
+        imageUrl = await uploadToCloudinary(req.files.image[0].path, 'posts');
       }
-    } catch (uploadError) {
-      console.error('Error uploading image(s):', uploadError);
-      return res.status(500).json({
-        success: false,
-        message: 'Error uploading image(s)'
-      });
+      if (req.files.images && req.files.images.length > 0) {
+        for (const file of req.files.images) {
+          const uploadedUrl = await uploadToCloudinary(file.path, 'posts');
+          imagesUrls.push(uploadedUrl);
+        }
+      }
     }
 
-    // Create post - support both mentors and users
     const postData = {
       content: content.trim(),
       headline: headline ? headline.trim() : null,
@@ -1131,11 +1240,8 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
       hashtags: hashtags ? JSON.parse(hashtags) : [],
     };
 
-    if (req.mentor) {
-      postData.mentorId = req.mentor._id;
-    } else if (req.user) {
-      postData.userId = req.user._id;
-    }
+    if (req.mentor) postData.mentorId = req.mentor._id;
+    else if (req.user) postData.userId = req.user._id;
 
     if (linkPreview) {
       postData.externalLink = {
@@ -1154,31 +1260,46 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
     const post = new Post(postData);
     await post.save();
 
-    // Populate the appropriate author (mentor or user)
-    if (post.mentorId) {
-      await post.populate('mentorId', 'name username image');
-    } else if (post.userId) {
-      // Manually populate user since it's on a different connection
+    // Population and Author Info
+    if (post.mentorId) await post.populate('mentorId', 'name username image');
+    else if (post.userId) {
       const user = await populateUser(post.userId);
       post.userId = user;
     }
 
-    // Format response based on author type
     const author = post.mentorId
-      ? {
-        _id: post.mentorId._id,
-        name: post.mentorId.name,
-        username: post.mentorId.username,
-        image: post.mentorId.image,
-      }
+      ? { _id: post.mentorId._id, name: post.mentorId.name, username: post.mentorId.username, image: post.mentorId.image }
       : post.userId
-        ? {
-          _id: post.userId._id,
-          name: post.userId.name,
-          username: post.userId.username || null,
-          image: post.userId.image,
-        }
+        ? { _id: post.userId._id, name: post.userId.name, username: post.userId.username || null, image: post.userId.image }
         : null;
+
+    // Notifications
+    (async () => {
+      try {
+        const actorId = req.mentor ? req.mentor._id : req.user._id;
+        const actorRole = req.mentor ? 'mentor' : 'user';
+        const actorName = author?.name || 'Someone';
+        await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
+        
+        const authorDoc = req.mentor || req.user;
+        const followers = authorDoc.followers || [];
+        if (followers.length > 0) {
+          await NotificationManager.createAndSendMultiple({
+            recipientIds: followers,
+            recipientRole: 'user',
+            actorId: actorId,
+            type: 'FOLLOWING_POST',
+            entityType: 'POST',
+            entityId: post._id,
+            originPath: `/posts/${post._id}`,
+            message: `${actorName} posted something new`,
+            actorInfo: { name: actorName, username: author?.username },
+          });
+        }
+      } catch (err) {
+        console.error('Error in post creation notifications:', err);
+      }
+    })();
 
     res.status(201).json({
       success: true,
@@ -1190,7 +1311,6 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
         headline: post.headline || null,
         content: post.content,
         category: post.category || 'study',
-        space: null, // space lookup can be done on feed refresh
         image: post.image,
         images: post.images || [],
         hashtags: post.hashtags || [],
@@ -1199,52 +1319,8 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
         commentsCount: post.commentsCount,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
-        isEdited: post.isEdited || false,
-        editedAt: post.editedAt || null,
       },
     });
-
-    // Create mention notifications (async, don't block response)
-    (async () => {
-      try {
-        const actorId = req.mentor ? req.mentor._id : req.user._id;
-        const actorRole = req.mentor ? 'mentor' : 'user';
-        const actorName = author?.name || 'Someone';
-        await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
-      } catch (err) {
-        console.error('Error creating mention notifications (create):', err);
-      }
-    })();
-
-    // Notify followers using new notification system
-    (async () => {
-      try {
-        const authorDoc = req.mentor || req.user;
-        const authorId = authorDoc._id;
-        const authorName = author ? author.name : (authorDoc.name || 'Someone');
-        const authorRole = req.mentor ? 'mentor' : 'user';
-        const followers = authorDoc.followers || [];
-
-        if (followers.length > 0) {
-          // Determine recipient role (assume users for now, but could be mixed)
-          // For simplicity, we'll use 'user' as default, but this could be enhanced
-          await NotificationManager.createAndSendMultiple({
-            recipientIds: followers,
-            recipientRole: 'user', // Could be enhanced to check actual role
-            actorId: authorId,
-            type: 'FOLLOWING_POST',
-            entityType: 'POST',
-            entityId: post._id,
-            originPath: `/posts/${post._id}`,
-            message: `${authorName} posted something new`,
-            actorInfo: { name: authorName, username: author?.username },
-          });
-        }
-      } catch (err) {
-        console.error('Error sending new post notification:', err);
-      }
-    })();
-
 
   } catch (error) {
     console.error("Error creating post:", error);
@@ -1252,14 +1328,12 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
   }
 });
 
-
 /**
  * PUT /api/posts/:postId
  * Update a post (only the creator - mentor or user)
  */
 router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", maxCount: 1 }, { name: "images", maxCount: 5 }]), async (req, res) => {
   try {
-    // NEW: Also extract hashtags in case the edit form sends them
     const { content, hashtags } = req.body;
     const post = await Post.findById(req.params.postId);
 
@@ -1280,12 +1354,18 @@ router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", max
     }
 
     if (content && content.trim()) {
+      const willHaveImage = Boolean(req.file || post.image);
+      if (!hasVisiblePostText(content) && !willHaveImage) {
+        return res.status(400).json({
+          success: false,
+          message: "Post cannot be empty — add text or keep your image",
+        });
+      }
       post.content = content.trim();
       post.isEdited = true;
       post.editedAt = new Date();
 
       const detectedUrl = detectUrl(content);
-      // ... (Keep your existing linkPreview logic here)
       if (detectedUrl) {
         try {
           const linkPreview = await generateLinkPreview(detectedUrl);
@@ -1310,13 +1390,13 @@ router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", max
       }
     }
 
-    // NEW: Update hashtags if they are provided during edit
+    // Update hashtags if provided
     if (hashtags) {
       post.hashtags = JSON.parse(hashtags);
     }
 
+    // Handle image upload
     if (req.file) {
-      // ... (Keep your existing image upload logic here)
       if (post.image) {
         try {
           const publicId = getPublicIdFromUrl(post.image);
@@ -1329,26 +1409,27 @@ router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", max
       }
 
       try {
-        post.image = await uploadToCloudinary(req.file.path, 'posts');
+        post.image = await uploadToCloudinary(req.file.path, "posts");
       } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
+        console.error("Error uploading image:", uploadError);
         return res.status(500).json({
           success: false,
-          message: 'Error uploading image'
+          message: "Error uploading image",
         });
       }
     }
 
     await post.save();
 
-    // ... (Keep your existing populate and author logic here)
+    // Populate author info
     if (post.mentorId) {
-      await post.populate('mentorId', 'name username image');
+      await post.populate("mentorId", "name username image");
     } else if (post.userId) {
       const user = await populateUser(post.userId);
       post.userId = user;
     }
 
+    // Build author object
     const author = post.mentorId
       ? {
         _id: post.mentorId._id,
@@ -1365,17 +1446,21 @@ router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", max
         }
         : null;
 
+    // Create mention notifications if content was updated (async, don't block response)
     if (content && content.trim()) {
-      const actorId = req.mentor ? req.mentor._id : req.user._id;
-      const actorRole = req.mentor ? 'mentor' : 'user';
-      const actorName = author?.name || 'Someone';
-      createMentionNotifications(content, post._id, actorId, actorRole, actorName).catch(err => {
-        console.error('Error creating mention notifications (update):', err);
-      });
+      (async () => {
+        try {
+          const actorId = req.mentor ? req.mentor._id : req.user._id;
+          const actorRole = req.mentor ? "mentor" : "user";
+          const actorName = author?.name || "Someone";
+          await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
+        } catch (err) {
+          console.error("Error creating mention notifications (update):", err);
+        }
+      })();
     }
 
-    // NEW: Add hashtags to the response!
-    res.json({
+    return res.json({
       success: true,
       message: "Post updated successfully",
       post: {
@@ -1385,7 +1470,8 @@ router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", max
         content: post.content,
         image: post.image,
         images: post.images || [],
-        hashtags: post.hashtags || [], // <--- THIS IS THE CRUCIAL FIX
+        hashtags: post.hashtags || [],
+
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -1397,6 +1483,99 @@ router.put("/:postId", authenticateRequired, upload.fields([{ name: "image", max
     });
   } catch (error) {
     console.error("Error updating post:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+/**
+ * POST /api/posts/:postId/vote
+ * Cast a vote on a poll option (authenticated users and mentors)
+ * Rules:
+ *   - One vote per user per poll (enforced via votedBy array)
+ *   - Cannot change vote once cast
+ *   - Only works on posts with type: "poll"
+ */
+
+router.post("/:postId/vote", authenticateRequired, async (req, res) => {
+  try {
+    const { optionId } = req.body;
+
+    if (!optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "optionId is required",
+      });
+    }
+
+
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    if (post.type !== "poll") {
+      return res.status(400).json({
+        success: false,
+        message: "This post is not a poll",
+      });
+    }
+
+    // Get the voter's ID (works for both users and mentors)
+    const voterId = req.user ? req.user._id : req.mentor._id;
+
+    // Check if this user has already voted on ANY option
+    const alreadyVoted = post.poll.options.some((opt) =>
+      opt.votedBy.some((id) => id.toString() === voterId.toString()),
+    );
+
+    if (alreadyVoted) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already voted on this poll",
+      });
+    }
+
+    // Find the target option
+    const targetOption = post.poll.options.id(optionId);
+
+    // Cast the vote
+    targetOption.votedBy.push(voterId);
+    post.poll.totalVotes = (post.poll.totalVotes || 0) + 1;
+    await post.save();
+
+    // Populate author info
+    let author = null;
+    if (post.mentorId) {
+      await post.populate("mentorId", "name username image");
+      author = {
+        _id: post.mentorId._id,
+        name: post.mentorId.name,
+        username: post.mentorId.username,
+        image: post.mentorId.image,
+      };
+    } else if (post.userId) {
+      author = await populateUser(post.userId);
+    }
+
+    return res.json({
+      success: true,
+      message: "Vote recorded",
+      poll: {
+        _id: post._id,
+        question: post.poll.question,
+        options: post.poll.options.map(opt => ({
+          _id: opt._id,
+          text: opt.text,
+          votes: opt.votedBy.length,
+        })),
+        totalVotes: post.poll.totalVotes,
+        author,
+      },
+    });
+  } catch (error) {
+    console.error("Error casting vote:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
@@ -1425,6 +1604,7 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
       });
     }
 
+    // Delete image from Cloudinary if exists
     if (post.image) {
       try {
         const publicId = getPublicIdFromUrl(post.image);
@@ -1433,6 +1613,7 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
         }
       } catch (deleteError) {
         console.error('Error deleting image:', deleteError);
+        // Continue with post deletion
       }
     }
 
@@ -1440,10 +1621,13 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
 
     res.json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
-    console.error("Error deleting mentor post:", error);
+    console.error("Error deleting post:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-});
+  });
+
+
+
 
 /**
  * PATCH /api/posts/:postId/category
@@ -1453,13 +1637,6 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
 router.patch("/:postId/category", authenticateRequired, async (req, res) => {
   try {
     const { category } = req.body;
-
-    if (!['study', 'masti'].includes(category)) {
-      return res.status(400).json({
-        success: false,
-        message: "category must be 'study' or 'masti'"
-      });
-    }
 
     const post = await Post.findById(req.params.postId);
     if (!post) {
