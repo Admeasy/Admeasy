@@ -46,10 +46,6 @@ const Signup = ({ setAuthMode }) => {
   const recaptchaRef = React.useRef(null);
 
   const hasRecaptchaKey = Boolean(RECAPTCHA_SITE_KEY && RECAPTCHA_SITE_KEY.trim());
-  console.log("Recaptcha Key:", RECAPTCHA_SITE_KEY);
-  if (!hasRecaptchaKey) {
-    console.error("reCAPTCHA site key is missing");
-  }
 
   // Validation functions
   const validateEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
