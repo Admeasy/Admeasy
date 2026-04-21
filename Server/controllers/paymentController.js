@@ -465,12 +465,10 @@ exports.createSubscriptionOrder = async (req, res) => {
     });
 
     if (existingSubscription)
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "You already have an active subscription to this mentor",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "You already have an active subscription to this mentor",
+      });
 
     const price = plan.price[billingPeriod];
     if (!price)
@@ -589,15 +587,13 @@ exports.createSubscriptionOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("Subscription order creation error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message:
-          error?.error?.description ||
-          error?.message ||
-          "Failed to create subscription order",
-      });
+    return res.status(500).json({
+      success: false,
+      message:
+        error?.error?.description ||
+        error?.message ||
+        "Failed to create subscription order",
+    });
   }
 };
 
@@ -606,13 +602,16 @@ exports.createSubscriptionOrder = async (req, res) => {
 // -------------------------------------------------------
 exports.verifySubscriptionPayment = async (req, res) => {
   try {
+    console.log("=== verifySubscriptionPayment START ===");
     const {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
       paymentId,
     } = req.body;
+    console.log("paymentId:", paymentId, "orderId:", razorpay_order_id);
     const userId = req.user._id;
+    console.log("userId:", userId);
 
     const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expected = crypto
@@ -694,13 +693,17 @@ exports.verifySubscriptionPayment = async (req, res) => {
       subscription,
     });
   } catch (error) {
-    console.error("Verify subscription payment error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Subscription payment verification failed",
-      });
+    // console.error("Verify subscription payment error:", error);
+    console.error("Verify subscription payment error DETAILS:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Subscription payment verification failed",
+      debug: error.message,
+    });
   }
 };
 

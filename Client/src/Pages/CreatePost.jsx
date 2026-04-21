@@ -10,6 +10,8 @@ import {
   AtSign,
   User,
   GraduationCap,
+  BarChart2,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import ReactQuill, { Quill } from "react-quill-new";
@@ -35,12 +37,19 @@ const MentorPost = () => {
   const { user } = useUser();
   const { mentor } = useMentor();
   const [content, setContent] = useState("");
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [images, setImages] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState([]);
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState("post");
+
+  const tabItems = [
+    { id: "post", label: "Post", icon: <Send size={16} /> },
+    { id: "note", label: "Note", icon: <ImagePlus size={16} /> },
+    { id: "poll", label: "Poll", icon: <BarChart2 size={16} /> },
+    { id: "mcq", label: "MCQ", icon: <HelpCircle size={16} /> },
+  ];
 
   // Hashtag State
   const [hashtags, setHashtags] = useState([]);
@@ -319,16 +328,45 @@ const MentorPost = () => {
   Handle Image Change
   ----------------------------------- */
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Only image files are allowed");
+    if (images.length + files.length > 5) {
+      toast.error("You can upload a maximum of 5 images");
       return;
     }
 
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
+    const newImages = [];
+    const newPreviews = [];
+
+    files.forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Only image files are allowed");
+        return;
+      }
+
+      const isOversized = file.size > 2 * 1024 * 1024;
+      if (isOversized) {
+        toast.error("Image size is too big");
+      }
+
+      newImages.push(file);
+      newPreviews.push({
+        url: URL.createObjectURL(file),
+        oversized: isOversized,
+      });
+    });
+
+    setImages((prev) => [...prev, ...newImages]);
+    setPreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removeImage = (index) => {
+    if (previews[index]) {
+      URL.revokeObjectURL(previews[index].url);
+    }
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   /* ----------------------------------
@@ -369,8 +407,18 @@ const MentorPost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!headline.trim()) {
+      toast.error("Headline is required");
+      return;
+    }
+
     if (!content.trim() || content === "<p><br></p>") {
       toast.error("Post content is required");
+      return;
+    }
+
+    if (images.some((file) => file.size > 2 * 1024 * 1024)) {
+      toast.error("Please remove images that are too big");
       return;
     }
 
@@ -381,10 +429,9 @@ const MentorPost = () => {
       formData.append("content", content);
       formData.append("headline", headline.trim());
       formData.append("category", category);
-      formData.append("spaceId", spaceId);
-      if (image) formData.append("image", image);
+      if (spaceId) formData.append("spaceId", spaceId);
+      images.forEach((img) => formData.append("images", img));
 
-      // Add hashtags to form data
       if (hashtags.length > 0) {
         formData.append("hashtags", JSON.stringify(hashtags));
       }
@@ -413,8 +460,8 @@ const MentorPost = () => {
       setHeadline("");
       setCategory("study");
       setSpaceId("");
-      setImage(null);
-      setPreview(null);
+      setImages([]);
+      setPreviews([]);
       setHashtags([]);
       fetchPosts();
 
@@ -432,18 +479,18 @@ const MentorPost = () => {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 bg-[#f8fafc] min-h-screen">
       <style>{`
-        /* Modernized Quill */
-        .ql-container.ql-snow { border: none !important; font-family: inherit; font-size: 1rem; }
-        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #f1f5f9 !important; padding: 12px !important; }
-        .ql-editor.ql-blank::before { color: #94a3b8; font-style: normal; }
-        .ql-editor { min-height: 150px; padding: 16px !important; }
-        
-        /* Rich Text Content Styling */
-        .post-content h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .post-content p { margin-bottom: 0.75rem; line-height: 1.6; }
-        .post-content ul { list-style: disc; margin-left: 1.5rem; }
-        .post-content table { border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
-      `}</style>
+ /* Modernized Quill */
+ .ql-container.ql-snow { border: none !important; font-family: inherit; font-size: 1rem; }
+ .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #f1f5f9 !important; padding: 12px !important; }
+ .ql-editor.ql-blank::before { color: #94a3b8; font-style: normal; }
+ .ql-editor { min-height: 150px; padding: 16px !important; }
+ 
+ /* Rich Text Content Styling */
+ .post-content h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+ .post-content p { margin-bottom: 0.75rem; line-height: 1.6; }
+ .post-content ul { list-style: disc; margin-left: 1.5rem; }
+ .post-content table { border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+`}</style>
 
       {/* --- CREATE POST CARD --- */}
       <motion.div
@@ -452,291 +499,261 @@ const MentorPost = () => {
         className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden mb-10"
       >
         <div className="p-6">
-          {/**======CREATE TABS===== */}
-          {!isAskDoubt && (
-            <>
-              {/* Tabs */}
-              <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-1">
-                {[
-                  { label: "Post", value: "post", icon: "📝" },
-                  { label: "Poll", value: "poll", icon: "📊" },
-                  { label: "Q&A", value: "qa", icon: "❓" },
-                  { label: "Notes", value: "notes", icon: "📒" },
-                ].map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap cursor-pointer border ${
-                      activeTab === tab.value
-                        ? "bg-[#9f3562] text-white border-transparent shadow-md"
-                        : "bg-white text-gray-600 hover:bg-gray-200 border-gray-200"
-                    }`}
-                  >
-                    <span>{tab.icon}</span>
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-1 bg-pink-500 rounded-full" />
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+              {isAskDoubt ? "Ask Your Doubt" : "Create Post"}
+            </h2>
+          </div>
 
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-1 bg-pink-500 rounded-full" />
-                <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-                  {activeTab === "post"
-                    ? "Create Post"
-                    : activeTab === "poll"
-                    ? "Create Poll"
-                    : activeTab === "qa"
-                    ? "Create Q&A"
-                    : "Upload Notes"}
-                </h2>
-              </div>
-            </>
-          )}
+          {/* ─── Tabs Navigation ─── */}
+          <div className="flex items-center gap-1 mb-8 p-1.5 bg-slate-50 rounded-2xl border border-slate-100 overflow-x-auto no-scrollbar">
+            {tabItems.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 shrink-0 ${
+                  activeTab === tab.id
+                    ? "bg-white text-[#9f3562] shadow-[0_4px_12px_rgba(159,53,98,0.12)] border border-[#9f3562]/5 scale-[1.02]"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+                }`}
+              >
+                <span className={activeTab === tab.id ? "text-[#9f3562]" : "text-slate-400"}>
+                  {tab.icon}
+                </span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ─── Conditionally Render Tabs ─── */}
+          {activeTab === "note" && <CreateNoteTab />}
+          {activeTab === "poll" && <CreatePollTab />}
+          {activeTab === "mcq" && <CreateMcqTab />}
 
           {activeTab === "post" && (
             <>
               <div className="border border-slate-200 rounded-2xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all duration-300 relative">
-                <div className="px-4 pt-4 pb-2 border-b border-slate-100">
-                  <input
-                    type="text"
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    placeholder="Headline (required) — e.g. 'JEE 2025 strategy that actually works'"
-                    className="w-full text-base font-bold text-gray-900 placeholder:text-gray-300 placeholder:font-normal bg-transparent focus:outline-none"
-                    maxLength={150}
-                  />
-                  <div className="text-[10px] text-gray-300 text-right mt-0.5">
-                    {headline.length}/150
-                  </div>
-                </div>
+            {/* ─── Headline ──────────────────────────────────── */}
+            <div className="px-4 pt-4 pb-2 border-b border-slate-100">
+              <input
+                type="text"
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="Headline (required) — e.g.'JEE 2025 strategy that actually works'"
+                className="w-full text-base font-bold text-gray-900 placeholder:text-gray-300 placeholder:font-normal bg-transparent focus:outline-none"
+                maxLength={150}
+              />
+              <div className="text-[10px] text-gray-300 text-right mt-0.5">{headline.length}/150</div>
+            </div>
 
-                <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-3">
-                  <span className="text-xs text-gray-500 font-semibold shrink-0">
-                    Post to:
-                  </span>
-                  <div className="inline-flex rounded-xl p-0.5 bg-gray-100 gap-0.5">
-                    {[
-                      { key: "study", label: "📚 Study" },
-                      { key: "masti", label: "😎 Masti" },
-                    ].map(({ key, label }) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setCategory(key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                          category === key
-                            ? "bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm"
-                            : "text-gray-500 hover:text-gray-700"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="px-4 py-2 border-b border-slate-100">
-                  <select
-                    value={spaceId}
-                    onChange={(e) => setSpaceId(e.target.value)}
-                    className="w-full text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer appearance-none"
-                    disabled={spacesLoading}
+            {/* ─── Category Toggle ────────────────────────────── */}
+            <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-3">
+              <span className="text-xs text-gray-500 font-semibold shrink-0">Post to:</span>
+              <div className="inline-flex rounded-xl p-0.5 bg-gray-100 gap-0.5">
+                {[
+                  { key: 'study', label: '📚 Study', desc: 'Knowledge & tips' },
+                  { key: 'masti', label: '😎 Masti', desc: 'Fun & campus life' },
+                ].map(({ key, label, desc }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setCategory(key)}
+                    title={desc}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${category === key
+                      ? 'bg-gradient-to-r from-[#9f3562] to-[#b14270] text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'}`}
                   >
-                    <option value="">
-                      {spacesLoading
-                        ? "Loading spaces..."
-                        : "🌐 Select a Space (required)"}
-                    </option>
-                    {spaces.map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
-                  value={content}
-                  onChange={handleContentChange}
-                  modules={quillModules}
-                  placeholder={
-                    isAskDoubt
-                      ? "What's your doubt? Ask a question and get help from mentors..."
-                      : mentor
-                      ? "What's on your mind, Mentor?"
-                      : "What's on your mind?"
-                  }
-                />
+            {/* ─── Space Selector ──────────────────────────────── */}
+            <div className="px-4 py-2 border-b border-slate-100">
+              <select
+                value={spaceId}
+                onChange={(e) => setSpaceId(e.target.value)}
+                className="w-full text-sm text-gray-700 bg-transparent focus:outline-none cursor-pointer appearance-none"
+                disabled={spacesLoading}
+              >
+                <option value="">
+                  {spacesLoading ? 'Loading spaces...' : '🌐 Select a Space'}
+                </option>
+                {spaces.map(s => (
+                  <option key={s._id} value={s._id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                {/* Mention Popup */}
-                <AnimatePresence>
-                  {showMentionPopup && (
-                    <motion.div
-                      ref={mentionPopupRef}
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="fixed z-[100] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden min-w-[280px] max-w-[320px] max-h-[300px] overflow-y-auto"
-                      style={{
-                        top: `${mentionPosition.top}px`,
-                        left: `${mentionPosition.left}px`,
-                      }}
-                    >
-                      {mentionSearching ? (
-                        <div className="p-4 flex items-center justify-center gap-2 text-slate-500">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">Searching...</span>
-                        </div>
-                      ) : mentionSuggestions.length > 0 ? (
-                        <div className="py-1">
-                          {mentionSuggestions.map((mention, index) => (
-                            <motion.button
-                              key={`${mention.type}-${mention._id}`}
-                              whileHover={{ backgroundColor: "#f8fafc" }}
-                              onClick={() => insertMention(mention)}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                index === selectedMentionIndex
-                                  ? "bg-gradient-to-r from-[#9f3562]/10 to-pink-50/50 border-l-2 border-[#9f3562]"
-                                  : "hover:bg-slate-50"
-                              }`}
-                            >
-                              <img
-                                src={
-                                  mention.image ||
-                                  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
-                                }
-                                alt={mention.name}
-                                className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-slate-900 text-sm truncate">
-                                    {mention.name || "User"}
-                                  </span>
-                                  {mention.type === "mentor" && (
-                                    <GraduationCap className="w-3.5 h-3.5 text-[#9f3562] flex-shrink-0" />
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <AtSign className="w-3 h-3 text-slate-400" />
-                                  <span className="text-xs text-slate-500 truncate">
-                                    {mention.username || "no-username"}
-                                  </span>
-                                </div>
-                              </div>
-                            </motion.button>
-                          ))}
-                        </div>
-                      ) : mentionQuery ? (
-                        <div className="p-4 text-center text-slate-500 text-sm">
-                          No users found for "@{mentionQuery}"
-                        </div>
-                      ) : null}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={content}
+              onChange={handleContentChange}
+              modules={useMemo(() => ({
+                toolbar: [
+                  [{ header: [1, 2, false] }],
+                  ["bold", "italic", "link"],
+                  [{ list: "ordered" }, { list: "bullet" }],
+                  ["table"],
+                ],
+                table: true,
+                tableUI: true,
+              }), [])}
+              placeholder={isAskDoubt
+                ? "What's your doubt? Ask a question and get help from mentors..."
+                : (mentor ? "What's on your mind, Mentor?" : "What's on your mind?")}
+            />
 
-                <AnimatePresence>
-                  {preview && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="p-4 pt-0 relative"
-                    >
-                      <div className="relative group">
-                        <img
-                          src={preview}
-                          alt="Preview"
-                          className="rounded-xl w-full max-h-72 object-cover border border-slate-100"
-                        />
-                        <button
-                          onClick={() => {
-                            setImage(null);
-                            setPreview(null);
-                          }}
-                          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm text-slate-800 rounded-full shadow-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+            {/* Mention Popup */}
+            <AnimatePresence>
+              {showMentionPopup && (
+                <motion.div
+                  ref={mentionPopupRef}
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed z-[100] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden min-w-[280px] max-w-[320px] max-h-[300px] overflow-y-auto"
+                  style={{
+                    top: `${mentionPosition.top}px`,
+                    left: `${mentionPosition.left}px`,
+                  }}
+                >
+                  {mentionSearching ? (
+                    <div className="p-4 flex items-center justify-center gap-2 text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Searching...</span>
+                    </div>
+                  ) : mentionSuggestions.length > 0 ? (
+                    <div className="py-1">
+                      {mentionSuggestions.map((mention, index) => (
+                        <motion.button
+                          key={`${mention.type}-${mention._id}`}
+                          whileHover={{ backgroundColor: "#f8fafc" }}
+                          onClick={() => insertMention(mention)}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${index === selectedMentionIndex
+                            ? "bg-gradient-to-r from-[#9f3562]/10 to-pink-50/50 border-l-2 border-[#9f3562]"
+                            : "hover:bg-slate-50"
+                            }`}
                         >
-                          <X size={18} />
+                          <img
+                            src={mention.image || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                            alt={mention.name}
+                            className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-900 text-sm truncate">
+                                {mention.name || "User"}
+                              </span>
+                              {mention.type === "mentor" && (
+                                <GraduationCap className="w-3.5 h-3.5 text-[#9f3562] flex-shrink-0" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <AtSign className="w-3 h-3 text-slate-400" />
+                              <span className="text-xs text-slate-500 truncate">
+                                {mention.username || "no-username"}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  ) : mentionQuery ? (
+                    <div className="p-4 text-center text-slate-500 text-sm">
+                      No users found for"@{mentionQuery}"
+                    </div>
+                  ) : null}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {previews.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-4 pt-0 relative"
+                >
+                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
+                    {previews.map((preview, index) => (
+                      <div key={index} className={`relative group shrink-0 w-[200px] snap-center rounded-xl transition-all ${preview.oversized ? 'ring-2 ring-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]' : ''}`}>
+                        <img
+                          src={preview.url}
+                          alt="Preview"
+                          className={`rounded-xl w-full h-40 object-cover border ${preview.oversized ? 'border-red-500' : 'border-slate-100'}`}
+                        />
+                        {preview.oversized && (
+                          <div className="absolute inset-0 bg-red-500/10 rounded-xl pointer-events-none flex items-center justify-center">
+                            <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg">TOO LARGE</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={(e) => { e.preventDefault(); removeImage(index); }}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-slate-800 rounded-full shadow-lg hover:bg-red-50 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                        >
+                          <X size={16} />
                         </button>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Dynamic Hashtag Input for Post */}
-              <div className="mt-4 mb-2 p-3 border border-slate-200 rounded-xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all flex flex-wrap gap-2 items-center bg-slate-50">
-                {hashtags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="bg-[#9f3562]/10 text-[#9f3562] px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1"
-                  >
-                    #{tag}
-                    <button
-                      type="button"
-                      onClick={() => removeHashtag(tag)}
-                      className="hover:text-red-500 transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={hashtagInput}
-                  onChange={(e) => setHashtagInput(e.target.value)}
-                  onKeyDown={handleHashtagKeyDown}
-                  className="flex-1 outline-none border-none bg-transparent min-w-[150px] text-sm text-slate-700 placeholder:text-slate-400"
-                  placeholder={
-                    hashtags.length === 0
-                      ? "Add Hashtags to reach more people..."
-                      : "Add more tags..."
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between mt-5">
-                <label className="group flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-slate-600 cursor-pointer hover:bg-slate-100 transition-all">
-                  <ImagePlus
-                    size={18}
-                    className="text-pink-500 group-hover:scale-110 transition-transform"
-                  />
-                  <span className="text-sm font-medium">Media</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleImageChange}
-                  />
-                </label>
-
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="relative cursor-pointer group overflow-hidden bg-slate-900 text-white px-8 py-2.5 rounded-xl font-medium transition-all hover:shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-95 disabled:opacity-70"
-                >
-                  <div className="flex items-center gap-2 relative z-10">
-                    {loading ? (
-                      <Loader2 className="animate-spin" size={18} />
-                    ) : (
-                      <Send size={18} />
-                    )}
-                    <span>{loading ? "Publishing..." : "Publish Post"}</span>
+                    ))}
                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Dynamic Hashtag Input for Post */}
+          <div className="mt-4 mb-2 p-3 border border-slate-200 rounded-xl focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50/50 transition-all flex flex-wrap gap-2 items-center bg-slate-50">
+            {hashtags.map((tag, index) => (
+              <span key={index} className="bg-[#9f3562]/10 text-[#9f3562] px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                #{tag}
+                <button type="button" onClick={() => removeHashtag(tag)} className="hover:text-red-500 transition-colors">
+                  <X size={14} />
                 </button>
+              </span>
+            ))}
+            <input
+              type="text"
+              value={hashtagInput}
+              onChange={(e) => setHashtagInput(e.target.value)}
+              onKeyDown={handleHashtagKeyDown}
+              className="flex-1 outline-none border-none bg-transparent min-w-[150px] text-sm text-slate-700 placeholder:text-slate-400"
+              placeholder={hashtags.length === 0 ? "Add Hashtags to reach more people..." : "Add more tags..."}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-5">
+            <div className="flex items-center gap-4">
+              <label className="group flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-100 bg-slate-50 text-slate-600 cursor-pointer hover:bg-slate-100 transition-all">
+                <ImagePlus size={18} className="text-pink-500 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-medium">Media</span>
+                <input type="file" accept="image/*" hidden multiple onChange={handleImageChange} />
+              </label>
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
+                (Size must be less than 2MB)
+              </span>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="relative cursor-pointer group overflow-hidden bg-slate-900 text-white px-8 py-2.5 rounded-xl font-medium transition-all hover:shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-95 disabled:opacity-70"
+            >
+              <div className="flex items-center gap-2 relative z-10">
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                <span>{loading ? "Publishing..." : "Publish Post"}</span>
               </div>
+            </button>
+            </div>
             </>
           )}
-          {/* Poll placeholder */}
-          {activeTab === "poll" && <CreatePollTab />}
-          {activeTab === "qa" && <CreateMcqTab />}
-          {/* Notes placeholder */}
-          {activeTab === "notes" && <CreateNoteTab />}
         </div>
       </motion.div>
 
@@ -769,9 +786,7 @@ const MentorPost = () => {
                   >
                     <div className="relative cursor-pointer">
                       <img
-                        src={
-                          (post.author || post.mentor)?.image || "/avatar.png"
-                        }
+                        src={(post.author || post.mentor)?.image || "/avatar.png"}
                         alt={(post.author || post.mentor)?.name || "User"}
                         className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-50"
                       />
@@ -782,8 +797,7 @@ const MentorPost = () => {
                         className="font-bold text-slate-900 leading-none mb-1 cursor-pointer hover:text-[#9f3562] transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const username = (post.author || post.mentor)
-                            ?.username;
+                          const username = (post.author || post.mentor)?.username;
                           if (username) {
                             navigate(`/${username}`);
                           }
@@ -796,9 +810,7 @@ const MentorPost = () => {
                           className="text-sm text-slate-500 cursor-pointer hover:text-[#9f3562] transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(
-                              `/${(post.author || post.mentor).username}`
-                            );
+                            navigate(`/${(post.author || post.mentor).username}`);
                           }}
                         >
                           @{(post.author || post.mentor).username}
@@ -841,32 +853,29 @@ const MentorPost = () => {
                 ) : (
                   <div
                     className="text-[15px] text-slate-700 post-content leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: post.content ? processMentions(post.content) : "",
-                    }}
+                    dangerouslySetInnerHTML={{ __html: processMentions(post.content) }}
                     onClick={(e) => {
-                      const mentionLink = e.target.closest("a.mention-link");
+                      const mentionLink = e.target.closest('a.mention-link');
                       if (mentionLink) {
                         e.preventDefault();
                         e.stopPropagation();
-                        const username =
-                          mentionLink.getAttribute("data-username");
+                        const username = mentionLink.getAttribute('data-username');
                         if (username) {
                           navigate(`/${username}`);
                         }
                         return;
                       }
 
-                      const link = e.target.closest("a");
+                      const link = e.target.closest('a');
                       if (link && link.href) {
                         e.preventDefault();
                         e.stopPropagation();
                         let cleanUrl = link.href;
-                        cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                        cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                        cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                        cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                        cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                        cleanUrl = cleanUrl.replace(/[<>]/g, '');
                         cleanUrl = cleanUrl.trim();
-                        window.open(cleanUrl, "_blank", "noopener,noreferrer");
+                        window.open(cleanUrl, '_blank', 'noopener,noreferrer');
                       }
                     }}
                   />
@@ -876,16 +885,14 @@ const MentorPost = () => {
                 {post.hashtags && post.hashtags.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {post.hashtags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[#9f3562] text-sm font-medium hover:underline cursor-pointer"
-                      >
+                      <span key={idx} className="text-[#9f3562] text-sm font-medium hover:underline cursor-pointer">
                         #{tag}
                       </span>
                     ))}
                   </div>
                 )}
 
+                {/* Image Display (Single or Multiple) */}
                 {post.image && (
                   <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
                     <img
@@ -895,8 +902,22 @@ const MentorPost = () => {
                     />
                   </div>
                 )}
+                {post.images && post.images.length > 0 && (
+                  <div className="mt-5 grid grid-cols-2 gap-2 overflow-hidden rounded-2xl border border-slate-100">
+                    {post.images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt={`Post image ${i + 1}`}
+                        className={`w-full object-cover transition-transform duration-500 hover:scale-[1.02] ${
+                          post.images.length === 1 ? 'col-span-2 h-[500px]' : 'h-64'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
 
-                {/* Footer/Link */}
+                {/* External Link Preview */}
                 {post.externalLink?.preview && post.externalLink?.url && (
                   <a
                     href={post.externalLink.url}
@@ -905,9 +926,9 @@ const MentorPost = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       let cleanUrl = post.externalLink.url;
-                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, "");
-                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, "");
-                      cleanUrl = cleanUrl.replace(/[<>]/g, "");
+                      cleanUrl = cleanUrl.replace(/%3C\/[^>]*%3E$/i, '');
+                      cleanUrl = cleanUrl.replace(/<[^>]*>/g, '');
+                      cleanUrl = cleanUrl.replace(/[<>]/g, '');
                       cleanUrl = cleanUrl.trim();
                       e.currentTarget.href = cleanUrl;
                     }}
@@ -920,9 +941,7 @@ const MentorPost = () => {
                       <p className="text-sm font-bold text-slate-800 group-hover:text-pink-600 transition-colors">
                         {post.externalLink.preview.title}
                       </p>
-                      <p className="text-xs text-slate-500 line-clamp-1">
-                        {post.externalLink.url}
-                      </p>
+                      <p className="text-xs text-slate-500 line-clamp-1">{post.externalLink.url}</p>
                     </div>
                   </a>
                 )}

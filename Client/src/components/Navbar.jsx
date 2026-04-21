@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Bell, Coins } from "lucide-react";
+import { Search, Bell, Trophy, Coins } from "lucide-react";
 import AnimatedSearchPlaceholder from "./AnimatedSearchPlaceholder";
 const logo = "/favicon.ico";
 import { useUser } from "../context/UserContext";
@@ -107,7 +107,7 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
           <AnimatedSearchPlaceholder className="text-xs" />
         </button>
 
-        {/* ===== RIGHT: COINS + BELL ===== */}
+        {/* ===== RIGHT: COINS + LEADERBOARD + BELL ===== */}
         <div className="flex items-center gap-1 shrink-0">
           {/* Coin balance — only for logged in users, not mentors */}
           {user && coinBalance !== null && (
@@ -123,6 +123,17 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
             </button>
           )}
 
+          {/* ===== MENTOR ONLY: LEADERBOARD ===== */}
+          {!isUserAccount && mentor && (
+            <button
+              onClick={() => navigate("/mentor/leaderboard")}
+              className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#9f3562]/10 transition-colors text-[#9f3562] shrink-0 group"
+              title="Leaderboard"
+            >
+              <Trophy className="w-5 h-5 transition-transform group-hover:scale-110" />
+            </button>
+          )}
+
           {/* Bell */}
           <button
             onClick={() =>
@@ -132,6 +143,15 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
           >
             <Bell className="w-5 h-5" />
           </button>
+
+          {/* Profile / Login */}
+          <div className="flex items-center shrink-0">
+            {!loggedInAccount && (
+              <div className="ml-2">
+                <LoginButton />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>

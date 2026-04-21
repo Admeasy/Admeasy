@@ -17,6 +17,8 @@ import {
  Repeat2,
  MoreVertical,
  Edit,
+  ChevronLeft,
+  ChevronRight,
 } from'lucide-react';
 import { motion, AnimatePresence } from'framer-motion';
 import { toast } from'react-toastify';
@@ -71,12 +73,15 @@ const PostDetail = () => {
  const [showShareModal, setShowShareModal] = useState(false);
  const [showDeletePostModal, setShowDeletePostModal] = useState(false);
  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const scrollRef = useRef(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
  const postMenuRef = useRef(null);
 
  const fallbackProfilePic =
 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
 
  const fetchPost = useCallback(async () => {
+  if (!postId || postId === "undefined") { navigate("/"); return; }
  try {
  setLoading(true);
  const response = await fetch(`/api/posts/${postId}`, {
@@ -1290,17 +1295,39 @@ const PostDetail = () => {
  />
  </div>
 
- {/* Image */}
- {postState.image && (
- <div className="w-full">
- <img
- src={postState.image}
- alt="Post"
- className="w-full h-auto max-h-[300px] sm:max-h-[400px] md:max-h-[600px] object-contain"
- loading="lazy"
- />
- </div>
- )}
+ {/* Images */}
+        {(postState.images && postState.images.length > 1) ? (
+          <div className="w-full relative mt-2">
+            <div className="flex overflow-x-auto snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {postState.images.map((imgUrl, index) => (
+                <div key={index} className="w-full shrink-0 snap-center px-3 sm:px-4 md:px-6 relative">
+                  <div className="bg-black/5 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center relative max-h-[400px] sm:max-h-[500px] md:max-h-[600px]">
+                    <img 
+                      src={imgUrl} 
+                      alt={`Post ${index + 1}`}
+                      className="w-full h-full object-contain max-h-[400px] sm:max-h-[500px] md:max-h-[600px]"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full z-10">
+                      {index + 1}/{postState.images.length} swipe
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (postState.image || (postState.images && postState.images.length > 0)) && (
+          <div className="w-full mt-2 px-3 sm:px-4 md:px-6">
+            <div className="bg-black/5 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center max-h-[400px] sm:max-h-[500px] md:max-h-[600px]">
+              <img
+                src={(postState.images && postState.images.length > 0) ? postState.images[0] : postState.image}
+                alt="Post"
+                className="w-full h-full object-contain max-h-[400px] sm:max-h-[500px] md:max-h-[600px]"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        )}
 
  {/* External link preview */}
  {postState.externalLink && postState.externalLink.url && (

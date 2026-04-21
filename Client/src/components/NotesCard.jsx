@@ -1,6 +1,7 @@
 import React from"react";
 import { FileText, User, File, Heart, Eye } from"lucide-react";
 import { useNavigate } from"react-router-dom";
+import { resolveNoteAuthor } from "../utils/noteAuthor";
 
 /* ---------- SAFE TEXT HELPER ---------- */
 const renderText = (value) => {
@@ -116,8 +117,7 @@ const NotesCard = ({ note, compact = false }) => {
  <div className="flex items-center gap-2 bg-gray-900 text-white px-3 py-1.5 rounded-lg">
  <User className="w-4 h-4"/>
  <span className="text-xs sm:text-sm font-medium truncate max-w-[180px]">
- {renderText(note.uploaderName || note.uploader) ||
-"Unknown uploader"}
+ {authorInfo.displayName}
  </span>
  </div>
 

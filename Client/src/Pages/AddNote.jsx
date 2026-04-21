@@ -104,9 +104,8 @@ const AddNote = () => {
 
  // Validate file size (10MB)
  if (file.size > 10 * 1024 * 1024) {
+ toast.error("Image size is too big");
  setFileError("File size must be less than 10MB");
- setSelectedFile(null);
- return;
  }
 
  setSelectedFile(file);
@@ -188,6 +187,11 @@ const AddNote = () => {
 
  if (!selectedFile) {
  toast.error("Please select a PDF file to upload");
+ return;
+ }
+
+ if (selectedFile.size > 10 * 1024 * 1024) {
+ toast.error("Please remove the file that is too big");
  return;
  }
 
@@ -361,15 +365,15 @@ const AddNote = () => {
  <label className="block text-sm font-medium text-gray-700 mb-2">
  PDF File <span className="text-red-500">*</span>
  </label>
- <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+ <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${selectedFile && selectedFile.size > 10 * 1024 * 1024 ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-blue-400'}`}>
  {selectedFile ? (
  <div className="flex items-center justify-center gap-3">
- <FileText className="text-red-500"size={24} />
+ <FileText className={selectedFile.size > 10 * 1024 * 1024 ? "text-red-600" : "text-red-500"} size={24} />
  <div className="text-left">
- <p className="font-medium text-gray-900">
+ <p className={`font-medium ${selectedFile.size > 10 * 1024 * 1024 ? "text-red-700" : "text-gray-900"}`}>
  {selectedFile.name}
  </p>
- <p className="text-sm text-gray-500">
+ <p className={`text-sm ${selectedFile.size > 10 * 1024 * 1024 ? "text-red-500 font-bold" : "text-gray-500"}`}>
  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
  </p>
  </div>

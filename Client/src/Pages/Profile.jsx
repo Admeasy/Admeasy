@@ -77,6 +77,7 @@ export default function Profile() {
   const menuRef = useRef(null);
   const { setMentor } = useMentor();
   const postsSectionRef = useRef(null);
+  const completion = useProfileCompletion();
 
   const handlePostUpdate = (updatedPost) => {
     setPosts(prev => prev.map(p => p._id === updatedPost._id ? { ...p, ...updatedPost } : p));
@@ -701,42 +702,43 @@ export default function Profile() {
  {/* Profile Image - Overlapping cover */}
  <div className="flex justify-between items-start -mt-12 sm:-mt-16 mb-4">
  <div className="relative">
- <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center overflow-hidden">
- {isOwnProfile ? (
- <ProfileCompletionCircle
- percentage={completion}
- size={window.innerWidth < 640 ? 88 : 120}
- strokeWidth={4}
- >
- <div className="relative">
- <img
- src={profileImageUrl || fallbackProfilePic}
- alt={profile.name || profile.username || 'Profile'}
- className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover"
- onError={(e) => {
- e.target.src = fallbackProfilePic;
- }}
- />
- {/* Percentage Dot - Profile Header */}
- <div className="absolute bottom-1 right-1 bg-white rounded-full p-0.5 shadow-md transform translate-x-1.5 translate-y-1.5">
- <div className="bg-[#9f3562] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">
- {completion}%
- </div>
- </div>
- </div>
- </ProfileCompletionCircle>
- ) : (
- <img
- src={profileImageUrl || fallbackProfilePic}
- alt={profile.name || profile.username || 'Profile'}
- className="w-full h-full object-cover"
- onError={(e) => {
- e.target.src = fallbackProfilePic;
- }}
- />
- )}
- </div>
- </div>
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-xl bg-white flex items-center justify-center overflow-hidden">
+              {isOwnProfile ? (
+                <ProfileCompletionCircle
+                  percentage={completion}
+                  size={window.innerWidth < 640 ? 88 : 120}
+                  strokeWidth={4}
+                >
+                  <img
+                    src={profileImageUrl || fallbackProfilePic}
+                    alt={profile.name || profile.username || 'Profile'}
+                    className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover"
+                    onError={(e) => {
+                      e.target.src = fallbackProfilePic;
+                    }}
+                  />
+                </ProfileCompletionCircle>
+              ) : (
+                <img
+                  src={profileImageUrl || fallbackProfilePic}
+                  alt={profile.name || profile.username || 'Profile'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = fallbackProfilePic;
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Percentage Badge - Moved outside overflow-hidden */}
+            {isOwnProfile && completion < 100 && (
+              <div className="absolute bottom-2 right-2 bg-white rounded-full p-0.5 shadow-xl z-20 transform translate-x-1 translate-y-1 border-2 border-white">
+                <div className="bg-[#9f3562] text-white text-[11px] sm:text-xs font-black px-2 py-0.5 rounded-full shadow-inner tracking-tight">
+                  {completion}%
+                </div>
+              </div>
+            )}
+          </div>
 
  {/* Action Buttons */}
  {isOwnProfile && (
