@@ -43,6 +43,12 @@ const Signup = ({ setAuthMode }) => {
 
   const recaptchaRef = React.useRef(null);
 
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  console.log("Recaptcha Key:", siteKey);
+  if (!siteKey) {
+    console.error("reCAPTCHA site key is missing");
+  }
+
   // Validation functions
   const validateEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
   const validateUsername = (username) => /^[a-z0-9_]{3,20}$/.test(username);
@@ -341,14 +347,16 @@ const Signup = ({ setAuthMode }) => {
             </div>
 
             {/* reCAPTCHA */}
-            <div className="flex justify-center py-2">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                onChange={(token) => setCaptchaToken(token)}
-                onExpired={() => setCaptchaToken(null)}
-              />
-            </div>
+            {siteKey && (
+              <div className="flex justify-center py-2">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={siteKey}
+                  onChange={(token) => setCaptchaToken(token)}
+                  onExpired={() => setCaptchaToken(null)}
+                />
+              </div>
+            )}
 
             {/* Submit Button */}
             {isSubmitting ? (
