@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /me/
+Disallow: /api/
+Disallow: /onboarding/
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Allow important pages
+Allow: /colleges
+Allow: /blog
+Allow: /blogs
+Allow: /notes
+Allow: /mentors
+Allow: /about
+Allow: /contact
+
+Sitemap: https://admeasy.in/sitemap.xml
+
