@@ -178,8 +178,9 @@ exports.uploadNote = async (req, res) => {
     if (!standard || !standard.trim()) missingFields.push('standard');
     if (!course || !course.trim()) missingFields.push('course');
 
-    // ONLY require university and programme if it's a mentor
-    if (uploaderType === 'Mentor') {
+    // ONLY require university and programme if it's a mentor AND not a school note
+    const isSchoolNote = req.body.schoolNotes === 'true' || req.body.schoolNotes === true;
+    if (uploaderType === 'Mentor' && !isSchoolNote) {
       if (!university || !university.trim()) missingFields.push('university');
       if (!programme || !programme.trim()) missingFields.push('programme');
     }
@@ -223,12 +224,12 @@ exports.uploadNote = async (req, res) => {
       });
     }
 
-    console.log('Uploading note:', {
+    console.log(`Uploading note (${uploaderType}):`, {
       title: title.trim(),
-      mentorId: req.mentor._id,
-      mentorName: req.mentor.name,
+      uploaderId: uploader._id,
+      uploaderName: uploader.name || "Unknown",
       fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
-      fileName: req.file.originalname
+      fileName: req.file.originalname,
     });
 
     // Write buffer to temporary file for Cloudinary upload

@@ -11,6 +11,7 @@ import {
   ensureGoogleSignInInitialized,
   tryConsumeGoogleWebRedirect,
 } from '../auth/googleSignIn';
+import { toast } from 'react-toastify';
 
 export default function GoogleSignInBootstrap() {
   const { fetchUser } = useUser();
@@ -30,24 +31,47 @@ export default function GoogleSignInBootstrap() {
     });
   }, []);
 
-  // 2) Web: Capawesome redirect return → hash contains id_token
+  // 2) Web: Capawesome redirect return (hash) OR Passport redirect return (query)
   useEffect(() => {
     if (Capacitor.isNativePlatform()) return;
     if (redirectHandled.current) return;
-    if (!location.pathname.startsWith('/login')) return;
 
+    const query = new URLSearchParams(location.search);
     const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    if (!hash.includes('id_token')) return;
+
+    const isOAuthSuccess = query.get('oauth_success') === 'true';
+    const hasToken = query.has('token') || hash.includes('id_token');
+
+    if (!isOAuthSuccess && !hasToken) return;
 
     redirectHandled.current = true;
     void Promise.resolve().then(async () => {
-      await tryConsumeGoogleWebRedirect({
-        fetchUser,
-        setMentor,
-        navigate,
-      });
+      if (hash.includes('id_token')) {
+        // Old hash-based flow (Capawesome)
+        await tryConsumeGoogleWebRedirect({
+          fetchUser,
+          setMentor,
+          navigate,
+        });
+      } else if (isOAuthSuccess) {
+        // Modern Query-based flow (Passport)
+        const token = query.get('token');
+        const switchToken = query.get('switchToken');
+        
+        console.log('[GoogleSignInBootstrap] Consuming Passport OAuth result');
+        const user = await fetchUser(switchToken, { accessToken: token });
+        
+        if (user) {
+          // Clear query params to clean up URL
+          navigate('/', { replace: true });
+          toast.success("Welcome back!");
+        } else {
+          toast.error("Failed to sync profile. Please log in again.");
+          navigate('/login', { replace: true });
+        }
+      }
     });
-  }, [location.pathname, fetchUser, setMentor, navigate]);
+  }, [location.search, location.hash, fetchUser, setMentor, navigate]);
 
   return null;
 }

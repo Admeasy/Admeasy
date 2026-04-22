@@ -645,45 +645,49 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
             </h2>
           )}
 
-          <div
-            ref={contentRef}
-            className={`text-gray-700 break-words leading-snug text-[13px] sm:text-[14px] post-content ${!isExpanded && hasImages ? 'line-clamp-1' : ''}`}
-            dangerouslySetInnerHTML={{
-              __html: isExpanded
-                ? processedContent
-                : truncatedContent.hasMore
-                  ? truncatedContent.html
-                  : processedContent,
-            }}
-            onClick={(e) => {
-              const mentionLink = e.target.closest("a.mention-link");
-              if (mentionLink) {
-                e.preventDefault();
-                e.stopPropagation();
-                const username = mentionLink.getAttribute("data-username");
-                if (username) navigate(`/${username}`);
-                return;
-              }
+          {postState.type !== "poll" && postState.type !== "mcq" && (
+            <>
+              <div
+                ref={contentRef}
+                className={`text-gray-700 break-words leading-snug text-[13px] sm:text-[14px] post-content ${!isExpanded && hasImages ? 'line-clamp-1' : ''}`}
+                dangerouslySetInnerHTML={{
+                  __html: isExpanded
+                    ? processedContent
+                    : truncatedContent.hasMore
+                      ? truncatedContent.html
+                      : processedContent,
+                }}
+                onClick={(e) => {
+                  const mentionLink = e.target.closest("a.mention-link");
+                  if (mentionLink) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const username = mentionLink.getAttribute("data-username");
+                    if (username) navigate(`/${username}`);
+                    return;
+                  }
 
-              const link = e.target.closest("a");
-              if (link && link.href) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleLinkClick(e, link.href);
-              }
-            }}
-          />
+                  const link = e.target.closest("a");
+                  if (link && link.href) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleLinkClick(e, link.href);
+                  }
+                }}
+              />
 
-          {(hasImages ? (isExpanded || isClipped) : truncatedContent.hasMore) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-              }}
-              className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
-            >
-              {isExpanded ? "Show less" : "Read more"}
-            </button>
+              {(hasImages ? (isExpanded || isClipped) : truncatedContent.hasMore) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="mt-1 text-[#9f3562] hover:text-[#b14270] font-medium text-sm focus:outline-none hover:underline flex items-center gap-0.5 transition-colors"
+                >
+                  {isExpanded ? "Show less" : "Read more"}
+                </button>
+              )}
+            </>
           )}
         </div>
 

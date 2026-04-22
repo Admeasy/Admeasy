@@ -102,9 +102,6 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
         { icon: Gift, label: "Refer & Earn", path: "/referrals" },
       ]
       : []),
-    ...(!loggedInAccount
-      ? [{ icon: UserPlus, label: "Sign Up/Log In", path: "/login" }]
-      : []),
   ];
 
   if (mentor && !isUserAccount) {
@@ -435,7 +432,7 @@ const LeftSidebar = ({ isCollapsed, setIsCollapsed }) => {
           </div>
         ) : (
           /* Not Logged In */
-          <div className="flex flex-col items-center px-3 pb-6">
+          <div className="mt-auto pt-6 border-t border-gray-100 px-3 mb-6 flex flex-col items-center">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

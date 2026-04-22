@@ -1,14 +1,32 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Send, Loader2, BarChart2, Upload } from "lucide-react";
+import { Plus, Trash2, Send, Loader2, BarChart2, Upload, X } from "lucide-react";
 import { toast } from "react-toastify";
 
 const MAX_OPTIONS = 4;
 const MIN_OPTIONS = 2;
 
-const CreatePollTab = () => {
+const CreatePollTab = ({ spaces = [], spacesLoading = false, category = "study", setCategory, spaceId = "", setSpaceId }) => {
   const [question, setQuestion] = useState("");
+  const [headline, setHeadline] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hashtags, setHashtags] = useState([]);
+  const [hashtagInput, setHashtagInput] = useState("");
+
+  const handleHashtagKeyDown = (e) => {
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      const newTag = hashtagInput.trim().replace(/^#/, "");
+      if (newTag && !hashtags.includes(newTag)) {
+        setHashtags([...hashtags, newTag]);
+      }
+      setHashtagInput("");
+    }
+  };
+
+  const removeHashtag = (tagToRemove) => {
+    setHashtags(hashtags.filter((tag) => tag !== tagToRemove));
+  };
 
   /* ── Option Handlers ── */
   const handleOptionChange = (index, value) => {
@@ -28,11 +46,17 @@ const CreatePollTab = () => {
   /* ── Reset ── */
   const resetForm = () => {
     setQuestion("");
+    setHeadline("");
     setOptions(["", ""]);
+    setHashtags([]);
   };
 
   /* ── Validation ── */
   const validate = () => {
+    if (!headline.trim()) {
+      toast.error("Please enter a headline for the poll");
+      return false;
+    }
     if (!question.trim()) {
       toast.error("Please enter a poll question");
       return false;
@@ -54,23 +78,18 @@ const CreatePollTab = () => {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    // const payload = {
-    //   type: "poll",
-    //   question: question.trim(),
-    //   options: options
-    //     .filter((o) => o.trim())
-    //     .map((text) => ({ text: text.trim(), votes: 0 })),
-    // };
-
     try {
       setIsSubmitting(true);
 
-      //build FormData instead of JSON -required because
-      // the backend route uses multer (Upload.single("image")) which expects multipart/form-data not application/json
-
       const formData = new FormData();
       formData.append("type", "poll");
+      formData.append("headline", headline.trim());
       formData.append("question", question.trim());
+      formData.append("category", category);
+      if (spaceId) formData.append("spaceId", spaceId);
+      if (hashtags.length > 0) {
+        formData.append("hashtags", JSON.stringify(hashtags));
+      }
       formData.append(
         "options",
         JSON.stringify(
@@ -82,10 +101,8 @@ const CreatePollTab = () => {
 
       const res = await fetch("/api/posts", {
         method: "POST",
-        // headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: formData,
-        //NO headers because when using FormData, the browser sets the correct Content-Type with boundary automatically. Setting it manually can cause issues.
       });
 
       const data = await res.json();
@@ -107,10 +124,86 @@ const CreatePollTab = () => {
   /* ── UI ── */
   return (
     <div className="space-y-5">
+      {/* ─── Headline ──────────────────────────────────── */}
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-2">
+          Headline <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={headline}
+          onChange={(e) => setHeadline(e.target.value)}
+          placeholder="e.g., 'Which city is best for JEE prep?'"
+          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/20 focus:border-[#9f3562]/50 transition-all text-sm"
+          maxLength={150}
+        />
+        <div className="text-[10px] text-gray-300 text-right mt-0.5">{headline.length}/150</div>
+      </div>
+
+      {/* ─── Category & Space ─────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Post to Category</label>
+          <div className="inline-flex rounded-xl p-1 bg-slate-100 gap-1 w-full">
+            {[
+              { key: 'study', label: '📚 Study' },
+              { key: 'masti', label: '😎 Masti' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCategory(key)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${category === key
+                  ? 'bg-white text-[#9f3562] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Select Space</label>
+          <select
+            value={spaceId}
+            onChange={(e) => setSpaceId(e.target.value)}
+            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#9f3562]/20 focus:border-[#9f3562]/50 transition-all text-sm appearance-none bg-white bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_0.75rem_center] bg-no-repeat"
+            disabled={spacesLoading}
+          >
+            <option value="">🌐 Select a Space (Optional)</option>
+            {spaces.map(s => (
+              <option key={s._id} value={s._id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* ─── Hashtags ─────────────────────────────────── */}
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
+        <div className="w-full p-2.5 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#9f3562]/20 focus-within:border-[#9f3562]/50 min-h-[46px] bg-white flex flex-wrap gap-2 items-center transition-all">
+          {hashtags.map((tag, index) => (
+            <span key={index} className="bg-[#9f3562]/10 text-[#9f3562] px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              #{tag}
+              <button type="button" onClick={() => removeHashtag(tag)} className="hover:text-red-500"><X size={12} /></button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={hashtagInput}
+            onChange={(e) => setHashtagInput(e.target.value)}
+            onKeyDown={handleHashtagKeyDown}
+            className="flex-1 outline-none border-none bg-transparent min-w-[120px] text-sm text-slate-700 placeholder:text-slate-400"
+            placeholder="Add tags..."
+          />
+        </div>
+      </div>
+
       {/* Question */}
       <div>
         <label className="block text-sm font-semibold text-slate-700 mb-2">
-          Question <span className="text-red-500">*</span>
+          Poll Question <span className="text-red-500">*</span>
         </label>
         <textarea
           value={question}

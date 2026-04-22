@@ -116,6 +116,71 @@ async function createMentionNotifications(postContent, postId, actorId, actorRol
   }
 }
 
+// Helper function to format poll data with totals and user status
+function formatPollData(post, currentUserId) {
+  if (!post.poll || post.type !== "poll") return null;
+  
+  const totalVotes = post.poll.options?.reduce((sum, opt) => sum + (opt.votedBy?.length || 0), 0) || 0;
+  let hasVoted = false;
+  let userVotedOption = null;
+
+  const options = post.poll.options?.map(opt => {
+    const isThisOptionVoted = currentUserId && opt.votedBy?.some(id => id.toString() === currentUserId.toString());
+    if (isThisOptionVoted) {
+      hasVoted = true;
+      userVotedOption = opt._id;
+    }
+    
+    return {
+      _id: opt._id,
+      text: opt.text,
+      votes: opt.votedBy?.length || 0,
+      percentage: totalVotes > 0 ? Math.round(((opt.votedBy?.length || 0) / totalVotes) * 100) : 0
+    };
+  }) || [];
+
+  return {
+    question: post.poll.question,
+    options,
+    totalVotes,
+    hasVoted,
+    userVotedOption
+  };
+}
+
+// Helper function to format MCQ data with results and user status
+function formatMcqData(post, currentUserId) {
+  if (!post.mcq || post.type !== "mcq") return null;
+
+  const totalAnswers = post.mcq.options?.reduce((sum, opt) => sum + (opt.chosenBy?.length || 0), 0) || 0;
+  let hasAnswered = false;
+  let userSelectedOptionId = null;
+
+  const options = post.mcq.options?.map(opt => {
+    const isThisOptionChosen = currentUserId && opt.chosenBy?.some(id => id.toString() === currentUserId.toString());
+    if (isThisOptionChosen) {
+      hasAnswered = true;
+      userSelectedOptionId = opt._id;
+    }
+
+    return {
+      _id: opt._id,
+      text: opt.text,
+      isCorrect: opt.isCorrect,
+      votes: opt.chosenBy?.length || 0,
+      percentage: totalAnswers > 0 ? Math.round(((opt.chosenBy?.length || 0) / totalAnswers) * 100) : 0
+    };
+  }) || [];
+
+  return {
+    question: post.mcq.question,
+    options,
+    totalAnswers,
+    hasAnswered,
+    userSelectedOptionId
+  };
+}
+
 async function populateMentor(mentorId) {
   if (!mentorId) return null;
   try {
@@ -251,10 +316,13 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
         return {
           _id: post._id,
           author,
+          type: post.type || 'post',
           content: post.content,
           image: post.image,
-        images: post.images || [],
+          images: post.images || [],
           hashtags: post.hashtags || [],
+          poll: formatPollData(post, null),
+          mcq: formatMcqData(post, null),
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
           isEdited: post.isEdited || false,
@@ -562,6 +630,7 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
 
       return {
         _id: post._id,
+        type: post.type || 'post',
         mentor: author, // Keep 'mentor' key for backward compatibility
         author: author, // Add 'author' key for clarity
         headline: post.headline || null,
@@ -571,6 +640,10 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
         image: post.image,
         images: post.images || [],
         hashtags: post.hashtags || [],
+        poll: formatPollData(post, currentUser?._id),
+        mcq: formatMcqData(post, currentUser?._id),
+        hasVoted: post.type === 'poll' && post.poll?.options?.some(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString())),
+        userVotedOption: post.type === 'poll' ? post.poll?.options?.find(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString()))?._id : null,
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -668,6 +741,7 @@ router.get("/user/:userId", async (req, res) => {
 
       return {
         _id: post._id,
+        type: post.type || 'post',
         mentor: author,
         author: author,
         headline: post.headline || null,
@@ -677,6 +751,10 @@ router.get("/user/:userId", async (req, res) => {
         image: post.image,
         images: post.images || [],
         hashtags: post.hashtags || [],
+        poll: formatPollData(post, currentUser?._id),
+        mcq: formatMcqData(post, currentUser?._id),
+        hasVoted: post.type === 'poll' && post.poll?.options?.some(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString())),
+        userVotedOption: post.type === 'poll' ? post.poll?.options?.find(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString()))?._id : null,
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -798,6 +876,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
 
       return {
         _id: post._id,
+        type: post.type || 'post',
         mentor: author,
         author: author,
         headline: post.headline || null,
@@ -807,6 +886,10 @@ router.get("/mentor/:mentorId", async (req, res) => {
         image: post.image,
         images: post.images || [],
         hashtags: post.hashtags || [],
+        poll: formatPollData(post, currentUser?._id),
+        mcq: formatMcqData(post, currentUser?._id),
+        hasVoted: post.type === 'poll' && post.poll?.options?.some(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString())),
+        userVotedOption: post.type === 'poll' ? post.poll?.options?.find(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString()))?._id : null,
         externalLink: post.externalLink,
         likesCount: post.likesCount,
         commentsCount: post.commentsCount,
@@ -1036,6 +1119,7 @@ router.get("/:postId", async (req, res) => {
 
     const formattedPost = {
       _id: post._id,
+      type: post.type || 'post',
       mentor: author, // Keep 'mentor' key for backward compatibility
       author: author, // Add 'author' key for clarity
       headline: post.headline || null,
@@ -1043,8 +1127,12 @@ router.get("/:postId", async (req, res) => {
       category: post.category || 'study',
       space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
       image: post.image,
-        images: post.images || [],
+      images: post.images || [],
       hashtags: post.hashtags || [],
+      poll: formatPollData(post, currentUser?._id),
+      mcq: formatMcqData(post, currentUser?._id),
+      hasVoted: post.type === 'poll' && post.poll?.options?.some(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString())),
+      userVotedOption: post.type === 'poll' ? post.poll?.options?.find(opt => opt.votedBy?.some(id => id.toString() === currentUser?._id?.toString()))?._id : null,
       externalLink: post.externalLink,
       likes: populatedLikes,
       likesCount: post.likesCount,
@@ -1113,6 +1201,8 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
       // Create poll post
       const postData = {
         type: "poll",
+        headline: headline ? headline.trim() : null,
+        content: question.trim(), // Satisfy required 'content' field
         poll: {
           question: question.trim(),
           options: options.map(opt => ({ text: opt.text || opt, votedBy: [] })),
@@ -1188,14 +1278,131 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
           mentor: author,
           author: author,
           type: "poll",
+          headline: post.headline,
           poll: post.poll,
           category: post.category || 'study',
-          space: null,
+          space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
           hashtags: post.hashtags || [],
           likesCount: post.likesCount,
           commentsCount: post.commentsCount,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
+        },
+      });
+    }
+
+    // ── MCQ branch ──────────────────────────────────────────────────────
+    if (type === "mcq") {
+      if (!question || !question.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Question is required for MCQs",
+        });
+      }
+
+      let options;
+      try {
+        options = typeof rawOptions === "string" ? JSON.parse(rawOptions) : rawOptions;
+      } catch (err) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid options format",
+        });
+      }
+
+      if (!Array.isArray(options) || options.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: "MCQs must have at least 2 options",
+        });
+      }
+
+      const hasCorrect = options.some(opt => opt.isCorrect);
+      if (!hasCorrect) {
+        return res.status(400).json({
+          success: false,
+          message: "MCQs must have at least one correct option",
+        });
+      }
+
+      const postData = {
+        type: "mcq",
+        headline: headline ? headline.trim() : null,
+        content: question.trim(), // Satisfy required 'content' field
+        mcq: {
+          question: question.trim(),
+          options: options.map(opt => ({ 
+            text: opt.text || opt, 
+            isCorrect: !!opt.isCorrect,
+            chosenBy: [] 
+          })),
+        },
+        category: ['study', 'masti'].includes(category) ? category : 'study',
+        spaceId: spaceId || null,
+        hashtags: hashtags ? JSON.parse(hashtags) : [],
+      };
+
+      if (req.mentor) postData.mentorId = req.mentor._id;
+      else if (req.user) postData.userId = req.user._id;
+
+      const post = new Post(postData);
+      await post.save();
+
+      // Populate author
+      if (post.mentorId) {
+        await post.populate('mentorId', 'name username image');
+      } else if (post.userId) {
+        const user = await populateUser(post.userId);
+        post.userId = user;
+      }
+
+      const author = post.mentorId
+        ? { _id: post.mentorId._id, name: post.mentorId.name, username: post.mentorId.username, image: post.mentorId.image }
+        : post.userId
+          ? { _id: post.userId._id, name: post.userId.name, username: post.userId.username || null, image: post.userId.image }
+          : null;
+
+      // Notification logic
+      (async () => {
+        try {
+          const authorDoc = req.mentor || req.user;
+          const authorId = authorDoc._id;
+          const authorName = author?.name || authorDoc.name || "Someone";
+          const followers = authorDoc.followers || [];
+          if (followers.length > 0) {
+            await NotificationManager.createAndSendMultiple({
+              recipientIds: followers,
+              recipientRole: "user",
+              actorId: authorId,
+              type: "FOLLOWING_POST",
+              entityType: "POST",
+              entityId: post._id,
+              originPath: `/posts/${post._id}`,
+              message: `${authorName} posted a Q&A`,
+              actorInfo: { name: authorName, username: author?.username },
+            });
+          }
+        } catch (err) {
+          console.error("Error sending MCQ notification:", err);
+        }
+      })();
+
+      return res.status(201).json({
+        success: true,
+        message: "MCQ created successfully",
+        post: {
+          _id: post._id,
+          mentor: author,
+          author: author,
+          type: "mcq",
+          headline: post.headline,
+          mcq: post.mcq,
+          category: post.category || 'study',
+          space: post.spaceId ? { _id: post.spaceId._id, name: post.spaceId.name, logo: post.spaceId.logo } : null,
+          hashtags: post.hashtags || [],
+          likesCount: 0,
+          commentsCount: 0,
+          createdAt: post.createdAt,
         },
       });
     }
@@ -1324,6 +1531,130 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
 
   } catch (error) {
     console.error("Error creating post:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * POST /api/posts/:postId/vote
+ * Cast a vote in a poll
+ */
+router.post("/:postId/vote", authenticateRequired, async (req, res) => {
+  try {
+    const { optionId } = req.body;
+    const userId = req.user?._id || req.mentor?._id;
+
+    if (!optionId) {
+      return res.status(400).json({ success: false, message: "Option ID is required" });
+    }
+
+    const post = await Post.findById(req.params.postId);
+
+    if (!post || post.type !== "poll") {
+      return res.status(404).json({ success: false, message: "Poll not found" });
+    }
+
+    // Find any existing option where the user has already voted and remove their vote
+    post.poll.options.forEach(opt => {
+      const index = opt.votedBy.findIndex(id => id.toString() === userId.toString());
+      if (index > -1) {
+        opt.votedBy.splice(index, 1);
+      }
+    });
+
+    // Find the new option and add vote
+    const option = post.poll.options.id(optionId);
+    if (!option) {
+      return res.status(404).json({ success: false, message: "Option not found" });
+    }
+
+    option.votedBy.push(userId);
+    await post.save();
+
+    // Calculate percentages
+    const totalVotes = post.poll.options.reduce((sum, opt) => sum + opt.votedBy.length, 0);
+    const optionsWithPercentages = post.poll.options.map(opt => ({
+      _id: opt._id,
+      text: opt.text,
+      votes: opt.votedBy.length,
+      percentage: totalVotes > 0 ? Math.round((opt.votedBy.length / totalVotes) * 100) : 0
+    }));
+
+    res.json({
+      success: true,
+      poll: {
+        options: optionsWithPercentages,
+        totalVotes
+      }
+    });
+  } catch (error) {
+    console.error("Error voting in poll:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+/**
+ * POST /api/posts/:postId/mcq-answer
+ * Submit an answer to an MCQ
+ */
+router.post("/:postId/mcq-answer", authenticateRequired, async (req, res) => {
+  try {
+    const { optionId } = req.body;
+    const userId = req.user?._id || req.mentor?._id;
+
+    if (!optionId) {
+      return res.status(400).json({ success: false, message: "Option ID is required" });
+    }
+
+    const post = await Post.findById(req.params.postId);
+
+    if (!post || post.type !== "mcq") {
+      return res.status(404).json({ success: false, message: "MCQ not found" });
+    }
+
+    // Check if user already answered
+    const alreadyAnswered = post.mcq.options.some(opt => 
+      opt.chosenBy.some(id => id.toString() === userId.toString())
+    );
+
+    if (alreadyAnswered) {
+      return res.status(400).json({ success: false, message: "You have already answered this question" });
+    }
+
+    // Find the option and add answer
+    const option = post.mcq.options.id(optionId);
+    if (!option) {
+      return res.status(404).json({ success: false, message: "Option not found" });
+    }
+
+    option.chosenBy.push(userId);
+    await post.save();
+
+    // Calculate percentages
+    const totalAnswers = post.mcq.options.reduce((sum, opt) => sum + opt.chosenBy.length, 0);
+    const optionsWithResults = post.mcq.options.map(opt => ({
+      _id: opt._id,
+      text: opt.text,
+      isCorrect: opt.isCorrect,
+      votes: opt.chosenBy.length,
+      percentage: totalAnswers > 0 ? Math.round((opt.chosenBy.length / totalAnswers) * 100) : 0
+    }));
+
+    const userSelectedOption = post.mcq.options.id(optionId);
+
+    res.json({
+      success: true,
+      mcq: {
+        question: post.mcq.question,
+        options: optionsWithResults,
+        totalAnswers,
+        hasAnswered: true,
+        userSelectedOptionId: optionId,
+        isUserCorrect: userSelectedOption ? userSelectedOption.isCorrect : false
+      }
+    });
+  } catch (error) {
+    console.error("Error submitting MCQ answer:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });

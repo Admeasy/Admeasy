@@ -433,11 +433,18 @@ const Feed = () => {
       <AskDoubtCTA />
       <AddExamInfoCTA />
 
+      {/* Top Status Bar Activity Ticker */}
+      {!isMasti && (
+        <div className="sticky top-16 md:top-0 z-40 w-full mb-0">
+          <HeroActivityTicker variant="slim" />
+        </div>
+      )}
+
       <div className="flex justify-center relative z-10">
-        <div className="w-full max-w-3xl px-3 sm:px-4 py-2 sm:py-6">
+        <div className="w-full max-w-3xl px-3 sm:px-4 py-2 sm:pt-2 sm:pb-6">
 
           {/* ── Header ─────────────────────────────────────────────────────────── */}
-          <div className="mb-6 sm:mb-8 mt-2">
+          <div className="mb-6 sm:mb-8 mt-0">
             <div className="flex justify-between items-center gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3">
@@ -499,11 +506,6 @@ const Feed = () => {
             </div>
           </div>
 
-          {!isMasti && (
-            <div className="mb-6 sm:mb-8 max-w-lg mx-auto">
-              <HeroActivityTicker variant="feed" />
-            </div>
-          )}
 
           {/* ── Search Bar Section (Unified) ────────────────────────────────── */}
           <div className="mb-6 max-w-lg mx-auto px-2">

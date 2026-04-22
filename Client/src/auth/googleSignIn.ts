@@ -185,7 +185,7 @@ export async function runCapacitorGoogleSignIn(
     console.error("[GoogleSignIn] signIn error:", error);
     console.log(
       "[GoogleSignIn] clientId:",
-      import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      getWebClientId(),
     );
     console.log("[GoogleSignIn] platform:", Capacitor.getPlatform());
 
