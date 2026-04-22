@@ -328,7 +328,7 @@ function App() {
         pauseOnHover
       />
       <GoogleSignInBootstrap />
-      
+
       <Routes>
         {/* ================= SIDEBAR LAYOUT ROUTES ================= */}
         <Route element={<Layout />}>
@@ -340,35 +340,35 @@ function App() {
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/colleges/:id" element={<CollegeDetailed />} />
           <Route path="/colleges/:collegeId/courses/:courseId" element={<Course />} />
-          
+
           <Route path="/me" element={<ProtectedRoute user={user || mentor}><Profile /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute user={user || mentor}><Notification /></ProtectedRoute>} />
           <Route path="/:username" element={<Profile />} />
-          
+
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:id" element={<BlogDetail />} />
-          
+
           <Route path="/notes" element={<Notes />} />
           <Route path="/notes/:id" element={<NotesPage />} />
           <Route path="/notes-search" element={<NotesSearch />} />
           <Route path="/add-note" element={<AddNote />} />
-          
+
           <Route path="/subscription-plans" element={<SubscriptionPlans />} />
           <Route path="/my-subscriptions" element={<ProtectedRoute user={true}><MySubscriptions /></ProtectedRoute>} />
-          
+
           <Route path="/chats" element={<ProtectedRoute user={true}><Chats /></ProtectedRoute>} />
           <Route path="/mentor/chats" element={<ProtectedRoute mentor={true}><MentorChats /></ProtectedRoute>} />
-          
+
           <Route path="/posts/:postId" element={<PostDetail />} />
           <Route path="/posts/create" element={<CreatePost />} />
-          
+
           <Route path="/spaces" element={<Spaces />} />
           <Route path="/spaces/explore" element={<SpacesExplore />} />
           <Route path="/spaces/:id" element={<Space />} />
-          
+
           <Route path="/wallet" element={<ProtectedRoute user={user}><Wallet /></ProtectedRoute>} />
           <Route path="/referrals" element={<ProtectedRoute user={user}><Referral /></ProtectedRoute>} />
-          
+
           <Route path="/mentor/leaderboard" element={<ProtectedRoute mentor={true}><MentorLeaderboard /></ProtectedRoute>} />
         </Route>
 
@@ -385,13 +385,13 @@ function App() {
         <Route path="/mentors/register" element={<MentorRegistration />} />
         <Route path="/mentors/:username" element={<MentorProfile />} />
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
-        
+
         <Route path="/chats/:id" element={<ProtectedRoute user={true}><Chatpage /></ProtectedRoute>} />
         <Route path="/mentor/chats/:id" element={<ProtectedRoute mentor={true}><MentorChat /></ProtectedRoute>} />
-        
+
         <Route path="/policies" element={<PrivacyPolicy />} />
         <Route path="/t&c" element={<TermsAndConditions />} />
-        
+
         {/* Profile Edit Route */}
         <Route path="/me/edit" element={<ProtectedRoute user={user || mentor}>{mentor ? <EditMentorProfile /> : <EditProfile />}</ProtectedRoute>} />
 

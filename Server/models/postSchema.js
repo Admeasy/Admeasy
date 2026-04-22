@@ -160,6 +160,30 @@ const postSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    type: {
+      type: String,
+      enum: ["post", "poll", "mcq"],
+      default: "post",
+    },
+    poll: {
+      question: { type: String, trim: true },
+      options: [
+        {
+          text: { type: String, trim: true },
+          votedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }],
+        },
+      ],
+    },
+    mcq: {
+      question: { type: String, trim: true },
+      options: [
+        {
+          text: { type: String, trim: true },
+          isCorrect: { type: Boolean, default: false },
+          chosenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }],
+        },
+      ],
+    },
     isEdited: {
       type: Boolean,
       default: false,

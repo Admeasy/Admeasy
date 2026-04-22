@@ -357,8 +357,8 @@ app.use('/api/activity', ActivityRoutes);
 app.use('/api/interactions', InteractionRoutes);
 app.use('/api/schools', SchoolRoutes);
 app.use('/api/teachers', TeacherRoutes);
-app.use('/api/referrals',refferalRoutes)
-app.use('/api/wallet',walletRoutes)
+app.use('/api/referrals', refferalRoutes)
+app.use('/api/wallet', walletRoutes)
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);

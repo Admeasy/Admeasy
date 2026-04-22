@@ -34,37 +34,37 @@ function buildMessages(online, notes, { iitMentors, iimMentors, srccMentors, hin
   const iitLines =
     iitMentors > 0
       ? [
-          `${iitMentors} mentors from IIT`,
-          `${iitMentors} IIT bade bhaiya & didi — AIR energy`,
-          `${iitMentors} IIT guru ji ready to decode concepts`,
-        ]
+        `${iitMentors} mentors from IIT`,
+        `${iitMentors} IIT bade bhaiya & didi — AIR energy`,
+        `${iitMentors} IIT guru ji ready to decode concepts`,
+      ]
       : ['IIT toppers & AIR holders — lineup loading ✨'];
 
   const iimLines =
     iimMentors > 0
       ? [
-          `${iimMentors} bhaiya & didi from IIM`,
-          `${iimMentors} IIM mentors — strategy + clarity`,
-          `${iimMentors} IIM waale guiding through chaos`,
-        ]
+        `${iimMentors} bhaiya & didi from IIM`,
+        `${iimMentors} IIM mentors — strategy + clarity`,
+        `${iimMentors} IIM waale guiding through chaos`,
+      ]
       : ['IIM mentors joining — watch this space'];
 
   const srccLines =
     srccMentors > 0
       ? [
-          `${srccMentors} students from SRCC`,
-          `${srccMentors} SRCC mentors — commerce kings & queens`,
-          `${srccMentors} Shri Ram legends on deck`,
-        ]
+        `${srccMentors} students from SRCC`,
+        `${srccMentors} SRCC mentors — commerce kings & queens`,
+        `${srccMentors} Shri Ram legends on deck`,
+      ]
       : ['SRCC mentors on the way — stay put'];
 
   const hinduLines =
     hinduMentor > 0
       ? [
-          `${hinduMentor} mentor${hinduMentor === 1 ? '' : 's'} from Hindu College, DU`,
-          `${hinduMentor} Hindu College guru${hinduMentor === 1 ? '' : 's'} — DU vibes`,
-          `${hinduMentor} Hindu College bhaiya & didi repping North Campus`,
-        ]
+        `${hinduMentor} mentor${hinduMentor === 1 ? '' : 's'} from Hindu College, DU`,
+        `${hinduMentor} Hindu College guru${hinduMentor === 1 ? '' : 's'} — DU vibes`,
+        `${hinduMentor} Hindu College bhaiya & didi repping North Campus`,
+      ]
       : ['Hindu College mentors — North Campus aura incoming'];
 
   msgs.push(...iitLines, ...iimLines, ...srccLines, ...hinduLines);
@@ -156,25 +156,35 @@ const HeroActivityTicker = ({ variant = 'hero' }) => {
     [messages, index]
   );
 
-  const wrapClass =
-    variant === 'hero'
-      ? 'mt-3 sm:mt-4 w-full max-w-xl mx-auto px-2'
+  const containerClass = variant === 'hero'
+    ? 'mt-3 sm:mt-4 w-full max-w-xl mx-auto px-2'
+    : variant === 'slim'
+      ? 'w-full'
       : 'mb-6 w-full';
 
-  const barClass =
-    variant === 'hero'
-      ? 'flex items-center gap-2 min-h-[2.5rem] px-4 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/30 text-white/95 text-xs sm:text-sm shadow-lg'
-      : 'flex items-center gap-2 min-h-[2.5rem] px-4 py-2 rounded-2xl bg-gradient-to-r from-pink-50/90 to-white border border-pink-100/80 text-gray-800 text-xs sm:text-sm shadow-sm';
+  const base = 'flex items-center gap-2 transition-all duration-300';
+  const barClass = variant === 'hero'
+    ? `${base} min-h-[2.5rem] px-4 py-2 rounded-2xl bg-white/15 backdrop-blur-md border border-white/30 text-white/95 text-xs sm:text-sm shadow-lg`
+    : variant === 'slim'
+      ? 'flex items-center justify-center gap-3 h-8 px-4 bg-[#fdf2f7] text-[#9f3562] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider'
+      : `${base} min-h-[2.5rem] px-4 py-2 rounded-2xl bg-gradient-to-r from-pink-50/90 to-white border border-pink-100/80 text-gray-800 text-xs sm:text-sm shadow-sm`;
 
   const iconClass = variant === 'hero' ? 'text-white/90 shrink-0' : 'text-[#9f3562] shrink-0';
 
   if (!line) return null;
 
   return (
-    <div className={wrapClass} aria-live="polite">
+    <div className={containerClass} aria-live="polite">
       <div className={barClass}>
-        <Sparkles className={`w-4 h-4 ${iconClass}`} aria-hidden />
-        <div className="flex-1 min-w-0 overflow-hidden">
+        {variant === 'slim' ? (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+
+          </div>
+        ) : (
+          <Sparkles className={`w-4 h-4 ${iconClass}`} aria-hidden />
+        )}
+
+        <div className={variant === 'slim' ? "" : "flex-1 min-w-0 overflow-hidden text-center"}>
           <AnimatePresence mode="wait">
             <motion.p
               key={line}
@@ -182,7 +192,7 @@ const HeroActivityTicker = ({ variant = 'hero' }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.25 }}
-              className="font-medium leading-snug truncate sm:whitespace-normal sm:overflow-visible"
+              className={variant === 'slim' ? "leading-tight" : "font-medium leading-snug truncate sm:whitespace-normal sm:overflow-visible"}
             >
               {line}
             </motion.p>

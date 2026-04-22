@@ -528,8 +528,26 @@ const MentorPost = () => {
 
           {/* ─── Conditionally Render Tabs ─── */}
           {activeTab === "note" && <CreateNoteTab />}
-          {activeTab === "poll" && <CreatePollTab />}
-          {activeTab === "mcq" && <CreateMcqTab />}
+          {activeTab === "poll" && (
+            <CreatePollTab 
+              spaces={spaces} 
+              spacesLoading={spacesLoading}
+              category={category}
+              setCategory={setCategory}
+              spaceId={spaceId}
+              setSpaceId={setSpaceId}
+            />
+          )}
+          {activeTab === "mcq" && (
+            <CreateMcqTab 
+              spaces={spaces} 
+              spacesLoading={spacesLoading}
+              category={category}
+              setCategory={setCategory}
+              spaceId={spaceId}
+              setSpaceId={setSpaceId}
+            />
+          )}
 
           {activeTab === "post" && (
             <>
@@ -594,16 +612,7 @@ const MentorPost = () => {
               theme="snow"
               value={content}
               onChange={handleContentChange}
-              modules={useMemo(() => ({
-                toolbar: [
-                  [{ header: [1, 2, false] }],
-                  ["bold", "italic", "link"],
-                  [{ list: "ordered" }, { list: "bullet" }],
-                  ["table"],
-                ],
-                table: true,
-                tableUI: true,
-              }), [])}
+              modules={quillModules}
               placeholder={isAskDoubt
                 ? "What's your doubt? Ask a question and get help from mentors..."
                 : (mentor ? "What's on your mind, Mentor?" : "What's on your mind?")}
