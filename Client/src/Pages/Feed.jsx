@@ -435,7 +435,7 @@ const Feed = () => {
 
       {/* Top Status Bar Activity Ticker */}
       {!isMasti && (
-        <div className="sticky top-16 md:top-0 z-40 w-full mb-0">
+        <div className="sticky top-0 z-40 w-full mb-0">
           <HeroActivityTicker variant="slim" />
         </div>
       )}
