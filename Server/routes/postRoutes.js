@@ -4,7 +4,7 @@ const Post = require("../models/postSchema");
 const Mentor = require("../models/mentorSchema");
 const User = require("../models/userSchema");
 const { Users } = require("../db");
-
+const redis = require('../config/redis');
 const apiCache = require('../middleware/apiCache');
 const authenticateMentorJWT = require("../middleware/mentorAuth");
 const authenticateJWT = require("../middleware/userAuth");
@@ -119,7 +119,7 @@ async function createMentionNotifications(postContent, postId, actorId, actorRol
 // Helper function to format poll data with totals and user status
 function formatPollData(post, currentUserId) {
   if (!post.poll || post.type !== "poll") return null;
-  
+
   const totalVotes = post.poll.options?.reduce((sum, opt) => sum + (opt.votedBy?.length || 0), 0) || 0;
   let hasVoted = false;
   let userVotedOption = null;
@@ -130,7 +130,7 @@ function formatPollData(post, currentUserId) {
       hasVoted = true;
       userVotedOption = opt._id;
     }
-    
+
     return {
       _id: opt._id,
       text: opt.text,
@@ -355,7 +355,7 @@ router.get("/admin", verifyAdminToken, async (req, res) => {
  * 
  * Note: Pagination does NOT mark posts as seen. Only explicit view tracking does.
  */
-router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     // Get full user context for ranking (includes exam/academic data)
     const currentUser = await getUserForRanking(req);
@@ -402,7 +402,34 @@ router.get("/", apiCache(300, { userSpecific: true }), async (req, res) => {
     } else {
       // Normal behavior: Use ranking algorithm with category filter
       try {
-        feedResult = await getRankedFeed(currentUser, page, limit, category);
+        const skip = (page - 1) * limit;
+        const postIds = await redis.zrevrange(
+          `feed:${category}`,
+          skip,
+          skip + limit - 1
+        );
+        if (!postIds.length) {
+          throw new Error('Redis Empty')
+        }
+        const posts = await Post.find({ _id: { $in: postIds } })
+          .populate('mentorId', 'name username image')
+          .populate('spaceId', 'name logo')
+          .lean();
+
+        const postMap = new Map(posts.map(p => [p._id.toString(), p]));
+        const orderedPosts = postIds.map(id => postMap.get(id)).filter(Boolean);
+        const total = await redis.zcard(`feed:${category}`);
+
+
+        feedResult = {
+          posts: orderedPosts,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit),
+          },
+        };
       } catch (rankingError) {
         console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
         // Fallback to simple date-based sorting if ranking fails
@@ -801,7 +828,11 @@ router.get("/mentor/:mentorId", async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-
+    const cacheKey = `mentorPosts:${req.params.mentorId}:page:${page}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
     const posts = await Post.find({ mentorId: req.params.mentorId })
       .populate('mentorId', 'name username image')
       .sort({ createdAt: -1 })
@@ -905,8 +936,7 @@ router.get("/mentor/:mentorId", async (req, res) => {
     });
 
     const total = await Post.countDocuments({ mentorId: req.params.mentorId });
-
-    res.json({
+    const response = {
       success: true,
       posts: formattedPosts,
       pagination: {
@@ -915,7 +945,9 @@ router.get("/mentor/:mentorId", async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-    });
+    };
+    await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
+    res.json({ response });
   } catch (error) {
     console.error("Error fetching mentor posts:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -1331,10 +1363,10 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
         content: question.trim(), // Satisfy required 'content' field
         mcq: {
           question: question.trim(),
-          options: options.map(opt => ({ 
-            text: opt.text || opt, 
+          options: options.map(opt => ({
+            text: opt.text || opt,
             isCorrect: !!opt.isCorrect,
-            chosenBy: [] 
+            chosenBy: []
           })),
         },
         category: ['study', 'masti'].includes(category) ? category : 'study',
@@ -1419,7 +1451,7 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
     const detectedUrl = detectUrl(content);
     let linkPreview = null;
     if (detectedUrl) {
-      try { linkPreview = await generateLinkPreview(detectedUrl); } catch (e) {}
+      try { linkPreview = await generateLinkPreview(detectedUrl); } catch (e) { }
     }
 
     // Handle image upload (Multiple images)
@@ -1487,7 +1519,7 @@ router.post("/", authenticateRequired, upload.fields([{ name: "image", maxCount:
         const actorRole = req.mentor ? 'mentor' : 'user';
         const actorName = author?.name || 'Someone';
         await createMentionNotifications(content, post._id, actorId, actorRole, actorName);
-        
+
         const authorDoc = req.mentor || req.user;
         const followers = authorDoc.followers || [];
         if (followers.length > 0) {
@@ -1613,7 +1645,7 @@ router.post("/:postId/mcq-answer", authenticateRequired, async (req, res) => {
     }
 
     // Check if user already answered
-    const alreadyAnswered = post.mcq.options.some(opt => 
+    const alreadyAnswered = post.mcq.options.some(opt =>
       opt.chosenBy.some(id => id.toString() === userId.toString())
     );
 
@@ -1950,12 +1982,28 @@ router.delete("/:postId", authenticateRequired, async (req, res) => {
 
     await Post.findByIdAndDelete(req.params.postId);
 
+    if (post.mentorId) {
+      const mentorId = post.mentorId.toString();
+
+      const keys = await redis.keys(`mentorPosts:${mentorId}:page:*`);
+      if (keys.length) await redis.del(keys);
+    }
+
+    //   clear user cache (if you have user posts API)
+    if (post.userId) {
+      const userId = post.userId.toString();
+
+      const keys = await redis.keys(`userPosts:${userId}:page:*`);
+      if (keys.length) await redis.del(keys);
+    }
+
     res.json({ success: true, message: "Post deleted successfully" });
+
   } catch (error) {
     console.error("Error deleting post:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-  });
+});
 
 
 
@@ -1991,8 +2039,27 @@ router.patch("/:postId/category", authenticateRequired, async (req, res) => {
     await post.save();
 
     // Clear cache so new feeds reflect updated category
-    apiCache.clear('/api/posts');
+    // apiCache.clear('/api/posts');
+    await Promise.all([
+      redis.del(`feed:study`),
+      redis.del(`feed:masti`)
+    ])
 
+    //   clear mentor cache
+    if (post.mentorId) {
+      const mentorId = post.mentorId.toString();
+
+      const keys = await redis.keys(`mentorPosts:${mentorId}:page:*`);
+      if (keys.length) await redis.del(keys);
+    }
+
+    //   clear user cache (if exists)
+    if (post.userId) {
+      const userId = post.userId.toString();
+
+      const keys = await redis.keys(`userPosts:${userId}:page:*`);
+      if (keys.length) await redis.del(keys);
+    }
     res.json({
       success: true,
       message: `Post moved to '${category}' feed`,
@@ -2029,7 +2096,21 @@ router.delete("/admin/:postId", verifyAdminToken, async (req, res) => {
     }
 
     await Post.findByIdAndDelete(req.params.postId);
+    //   clear mentor cache
+    if (post.mentorId) {
+      const mentorId = post.mentorId.toString();
 
+      const keys = await redis.keys(`mentorPosts:${mentorId}:page:*`);
+      if (keys.length) await redis.del(keys);
+    }
+
+    //   clear user cache (if applicable)
+    if (post.userId) {
+      const userId = post.userId.toString();
+
+      const keys = await redis.keys(`userPosts:${userId}:page:*`);
+      if (keys.length) await redis.del(keys);
+    }
     res.json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
     console.error("Error deleting post (admin):", error);
@@ -2074,9 +2155,22 @@ router.post("/:postId/like", authenticateRequired, async (req, res) => {
       });
     }
 
-    // Clear cache for posts feed to ensure fresh data on next load
-    // Clear all user-specific caches for /api/posts
-    apiCache.clear('/api/posts');
+    //   clear feed cache (likes affect ranking)
+    await Promise.all([
+      redis.del(`feed:study`),
+      redis.del(`feed:masti`)
+    ]);
+
+    //   update Redis like set
+    try {
+      if (wasLiked) {
+        await redis.srem(`post:${post._id}:likes`, userId.toString());
+      } else {
+        await redis.sadd(`post:${post._id}:likes`, userId.toString());
+      }
+    } catch (err) {
+      console.error("Redis like update failed:", err);
+    }
 
     res.json({
       success: true,
@@ -2175,6 +2269,18 @@ router.post("/:postId/comment", authenticateRequired, async (req, res) => {
     const user = req.user ? await populateUser(newComment.userId) : await populateMentor(newComment.userId);
     const userData = user || { _id: newComment.userId };
 
+    // clear comments cache (MOST IMPORTANT)
+    await redis.del(`post:${post._id}:comments:page:1`);
+
+    // clear post detail cache (commentsCount changed)
+    await redis.del(`post:${post._id}`);
+
+    // clear feed cache (engagement affects ranking)
+    await Promise.all([
+      redis.del(`feed:study`),
+      redis.del(`feed:masti`)
+    ]);
+
     res.status(201).json({
       success: true,
       message: "Comment added successfully",
@@ -2253,6 +2359,9 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
       await user.save();
       await originalPost.save();
 
+      await redis.del(`feed:${originalPost.category || "study"}`);
+      await redis.del(`post:${originalPost._id}`);
+
       return res.json({
         success: true,
         message: "Repost removed successfully",
@@ -2273,7 +2382,8 @@ router.post("/:postId/repost", authenticateRequired, async (req, res) => {
 
     await user.save();
     await originalPost.save();
-
+    await redis.del(`feed:${originalPost.category || "study"}`);
+    await redis.del(`post:${originalPost._id}`);
     // Mark as engaged when user reposts (only for users, not mentors)
     if (req.user) {
       feedController.markPostAsEngaged(req.user._id, originalPost._id, 'repost', originalPost).catch(err => {
@@ -2355,6 +2465,8 @@ router.post("/:postId/comments/:commentId/like", authenticateRequired, async (re
     }
 
     await post.save();
+
+    await redis.del(`post:${post._id}:comments:page:1`);
 
     res.json({
       success: true,
@@ -2451,6 +2563,17 @@ router.post("/:postId/comments/:commentId/reply", authenticateRequired, async (r
 
     const userData = populatedUser || { _id: newReply.userId };
 
+    await Promise.all([
+      // comments changed
+      redis.del(`post:${post._id}:comments:page:1`),
+
+      // commentsCount changed
+      redis.del(`post:${post._id}`),
+
+      // engagement changed (reply = comment)
+      redis.del(`feed:${post.category || "study"}`)
+    ]);
+
     res.status(201).json({
       success: true,
       message: "Reply added successfully",
@@ -2503,6 +2626,21 @@ router.delete("/:postId/comments/:commentId", authenticateRequired, async (req, 
 
     await post.save();
 
+    try {
+      await Promise.all([
+        // 🔥 comments changed
+        redis.del(`post:${post._id}:comments:page:1`),
+
+        // 🔥 commentsCount changed
+        redis.del(`post:${post._id}`),
+
+        // 🔥 engagement changed
+        redis.del(`feed:${post.category || "study"}`)
+      ]);
+    } catch (err) {
+      console.error("Redis invalidation failed:", err);
+    }
+    
     res.json({
       success: true,
       message: "Comment deleted successfully",

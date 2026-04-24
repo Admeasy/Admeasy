@@ -39,6 +39,7 @@ const TeacherRoutes = require('./routes/teacherRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
+const buildFeedCache = require('./jobs/feedCache.job')
 const app = express();
 const server = http.createServer(app);
 
@@ -90,6 +91,8 @@ app.use(cors({
 // Basic middleware
 app.use(express.json());
 app.use(cookieParser());
+
+
 
 // Auth is JWT-only (httpOnly cookies + optional Bearer); no express-session.
 
@@ -963,4 +966,9 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT} with Socket.io`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} with Socket.io`)
+
+  buildFeedCache()
+  setInterval(buildFeedCache,30000)
+});
