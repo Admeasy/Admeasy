@@ -41,8 +41,9 @@ const Mentor = require('./models/mentorSchema');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
 const buildFeedCache = require('./jobs/feedCache.job')
 const app = express();
+const limits = require("./config/rateLimits")
 const server = http.createServer(app);
-
+const {rateLimiter} = require('./middleware/rateLimiter')
 const allowedOrigins = [
   'https://admeasy.in',
   'https://development.admeasy.in',
@@ -91,7 +92,6 @@ app.use(cors({
 // Basic middleware
 app.use(express.json());
 app.use(cookieParser());
-
 
 
 // Auth is JWT-only (httpOnly cookies + optional Bearer); no express-session.
@@ -249,40 +249,68 @@ function escapeRegex(str) {
 }
 
 // Common username availability check route (before other routes)
-app.get('/api/check-username/:username', async (req, res) => {
-  try {
-    const { username } = req.params;
-    if (!username || username.trim() === '') {
-      return res.status(400).json({ success: false, available: false, message: 'Username is required' });
+app.get(
+  '/api/check-username/:username',
+  rateLimiter(5, 60), // stricter limit for this sensitive route
+  async (req, res) => {
+    try {
+      let { username } = req.params;
+
+      // ✅ validation
+      if (!username || username.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          available: false,
+          message: 'Username is required'
+        });
+      }
+
+      // ✅ normalize (important)
+      const normalizedUsername = username.trim().toLowerCase();
+
+      // ✅ Redis cache key
+      const cacheKey = `username:${normalizedUsername}`;
+
+      // 🔥 1. Check cache first
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return res.status(200).json(JSON.parse(cached));
+      }
+
+      // 🔥 2. DB check (NO REGEX, fast + index friendly)
+      const [existingMentor, existingUser] = await Promise.all([
+        Mentor.findOne({ username: normalizedUsername }).lean(),
+        User.findOne({ username: normalizedUsername }).lean()
+      ]);
+
+      const isAvailable = !existingMentor && !existingUser;
+
+      const response = {
+        success: true,
+        available: isAvailable,
+        message: isAvailable
+          ? 'Username is available'
+          : 'Username is already taken'
+      };
+
+      // 🔥 3. Cache result (short TTL)
+      await redis.set(cacheKey, JSON.stringify(response), 'EX', 60);
+
+      // 🔥 4. Optional small delay (anti-bot)
+      await new Promise(res => setTimeout(res, 150));
+
+      return res.status(200).json(response);
+
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        success: false,
+        available: false,
+        message: 'Internal Server Error'
+      });
     }
-
-    const normalizedUsername = username.trim().toLowerCase();
-    const escapedUsername = escapeRegex(normalizedUsername);
-
-    // Check both mentors and users
-    const Mentor = require('./models/mentorSchema');
-    const User = require('./models/userSchema');
-
-    const existingMentor = await Mentor.findOne({
-      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
-    });
-
-    const existingUser = await User.findOne({
-      username: { $regex: new RegExp(`^${escapedUsername}$`, 'i') }
-    });
-
-    const isAvailable = !existingMentor && !existingUser;
-
-    res.status(200).json({
-      success: true,
-      available: isAvailable,
-      message: isAvailable ? 'Username is available' : 'Username is already taken'
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, available: false, message: 'Internal Server Error' });
   }
-});
+);
 
 // Unified profile route - checks if username belongs to mentor, user, or advertiser
 app.get('/api/profile/:username', async (req, res) => {
@@ -338,7 +366,7 @@ app.get('/api/profile/:username', async (req, res) => {
 
 // API Routes
 app.use('/api/colleges', CollegesRoutes);
-app.use('/api/users', UsersRoutes);
+app.use('/api/users',limits.strict, UsersRoutes);
 app.use('/api/mentors', MentorRoutes);
 app.use('/api/apply', ApplicationsRoutes);
 app.use('/api/admin', AdminRoutes);

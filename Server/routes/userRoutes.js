@@ -19,6 +19,7 @@ const {
 } = require("../utils/auth.js");
 const router = express.Router();
 const User = require("../models/userSchema.js");
+const limits = require("../config/rateLimits");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const multer = require("multer");
@@ -95,13 +96,13 @@ async function processUserImage(user) {
   }
 }
 
-router.get("/", verifyAdminToken, async (req, res) => {
+router.get("/", limits.normal, verifyAdminToken, async (req, res) => {
   const users = await User.find();
   res.json(users);
 });
 
 // SIGN UP
-router.post("/signup", async (req, res) => {
+router.post("/signup", limits.strict, async (req, res) => {
   try {
     const { email, password, username } = req.body;
 
@@ -320,7 +321,7 @@ router.post("/signup", async (req, res) => {
 });
 
 // Complete onboarding and save user data
-router.post("/onboarding", async (req, res) => {
+router.post("/onboarding", limits.normal, async (req, res) => {
   try {
     // get user from token if exists(user might be logged in from signup)
     let user = null;
@@ -526,7 +527,7 @@ router.post("/onboarding", async (req, res) => {
 });
 
 // CHECK ONBOARDING STATUS - Check if user can access onboarding and get completion status
-router.get("/onboarding/status", async (req, res) => {
+router.get("/onboarding/status", limits.normal, async (req, res) => {
   try {
     let user = null;
     if (req.cookies["accessToken"]) {
@@ -581,7 +582,7 @@ router.get("/onboarding/status", async (req, res) => {
 });
 
 // LOG IN
-router.post("/login", async (req, res) => {
+router.post("/login", limits.strict, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -764,7 +765,7 @@ router.post("/logout", async (req, res) => {
 });
 
 // REFRESH TOKEN
-router.post("/refresh", async (req, res) => {
+router.post("/refresh", limits.normal, async (req, res) => {
   try {
     const refreshToken = req.cookies["refreshToken"];
     if (!refreshToken) {
@@ -838,7 +839,7 @@ router.post("/refresh", async (req, res) => {
 });
 
 // GET CURRENT USER (supports both session and JWT)
-router.get("/me", async (req, res) => {
+router.get("/me", limits.normal, async (req, res) => {
   try {
     let user = null;
     if (req.user) {
@@ -901,7 +902,7 @@ router.get("/me", async (req, res) => {
 });
 
 // GET CURRENT USER VERIFICATION STATUS (for email verification modal polling)
-router.get("/me/verification-status", async (req, res) => {
+router.get("/me/verification-status", limits.normal, async (req, res) => {
   try {
     let user = null;
 
@@ -945,7 +946,7 @@ router.get("/me/verification-status", async (req, res) => {
 });
 
 // UPDATE CURRENT USER (supports both session and JWT)
-router.put("/me", upload.single("image"), async (req, res) => {
+router.put("/me", limits.normal, upload.single("image"), async (req, res) => {
   try {
     let user = null;
     if (req.user) {
@@ -1157,7 +1158,7 @@ router.put("/me", upload.single("image"), async (req, res) => {
 });
 
 // GET USER PROFILE PICTURE (supports both session and JWT)
-router.get("/me/pic", async (req, res) => {
+router.get("/me/pic", limits.normal, async (req, res) => {
   try {
     let user = null;
     if (req.user) {
@@ -1237,7 +1238,7 @@ router.get("/me/pic", async (req, res) => {
 });
 
 // PROXY GOOGLE IMAGE (to avoid rate limiting)
-router.get("/proxy-image", async (req, res) => {
+router.get("/proxy-image", limits.high, async (req, res) => {
   try {
     const { url } = req.query;
 
@@ -1285,7 +1286,7 @@ router.get("/proxy-image", async (req, res) => {
 });
 
 // GET AUTHORIZED IMAGE URL FOR OTHER USER (for admin/unlock functionality)
-router.get("/:userId/image", verifyAdminToken, async (req, res) => {
+router.get("/:userId/image", limits.normal, verifyAdminToken, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -1335,6 +1336,7 @@ router.get("/:userId/image", verifyAdminToken, async (req, res) => {
 
 router.delete(
   "/:userId",
+  limits.normal,
   authenticateUserOrAdmin,
   requireSelfOrAdmin,
   async (req, res) => {
@@ -1377,11 +1379,11 @@ router.delete(
 );
 
 // EMAIL VERIFICATION
-router.post("/send-verification-email", sendEmailVerification);
-router.get("/verify-email/:token", verifyEmail);
+router.post("/send-verification-email", limits.strict, sendEmailVerification);
+router.get("/verify-email/:token", limits.strict, verifyEmail);
 
 // GET VERIFICATION STATUS (for frontend polling)
-router.get("/verification-status", async (req, res) => {
+router.get("/verification-status", limits.normal, async (req, res) => {
   try {
     const token = req.cookies["accessToken"];
     if (!token) {
@@ -1413,11 +1415,11 @@ router.get("/verification-status", async (req, res) => {
 });
 
 // RESET PASSWORD
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password/:token", resetPassword);
+router.post("/forgot-password", limits.strict, forgotPassword);
+router.post("/reset-password/:token", limits.strict, resetPassword);
 
 // JOIN SCHOOL (user provides schoolCode)
-router.post("/join-school", authenticateRequired, async (req, res) => {
+router.post("/join-school", limits.normal, authenticateRequired, async (req, res) => {
   try {
     const { schoolCode } = req.body;
     if (!schoolCode || !schoolCode.trim()) {
@@ -1463,7 +1465,7 @@ router.post("/join-school", authenticateRequired, async (req, res) => {
 });
 
 // GET USER BY ID (for mentors who have chats with the user, or users viewing their own profile)
-router.get("/:userId", async (req, res) => {
+router.get("/:userId", limits.normal, async (req, res) => {
   try {
     const { userId } = req.params;
     const token = req.cookies["accessToken"];
@@ -1537,7 +1539,7 @@ router.get("/:userId", async (req, res) => {
  * POST /api/users/:targetId/follow
  * Follow a user or mentor (authenticated users and mentors can follow anyone)
  */
-router.post("/:targetId/follow", async (req, res) => {
+router.post("/:targetId/follow", limits.normal, async (req, res) => {
   try {
     const token = req.cookies?.accessToken;
     if (!token) {
@@ -1713,7 +1715,7 @@ router.post("/:targetId/follow", async (req, res) => {
  * GET /api/users/:targetId/follow-status
  * Check if current user/mentor is following a target user or mentor (optional auth)
  */
-router.get("/:targetId/follow-status", async (req, res) => {
+router.get("/:targetId/follow-status", limits.high, async (req, res) => {
   try {
     const token = req.cookies?.accessToken;
     let isFollowing = false;
@@ -1768,7 +1770,7 @@ router.get("/:targetId/follow-status", async (req, res) => {
  * GET /api/users/:targetId/followers
  * Get list of followers for a user or mentor
  */
-router.get("/:targetId/followers", async (req, res) => {
+router.get("/:targetId/followers", limits.high, async (req, res) => {
   try {
     const targetId = req.params.targetId;
     const Mentor = require("../models/mentorSchema.js");
@@ -1837,7 +1839,7 @@ router.get("/:targetId/followers", async (req, res) => {
  * GET /api/users/:targetId/following
  * Get list of users/mentors that the target is following
  */
-router.get("/:targetId/following", async (req, res) => {
+router.get("/:targetId/following", limits.high, async (req, res) => {
   try {
     const targetId = req.params.targetId;
     const Mentor = require("../models/mentorSchema.js");
