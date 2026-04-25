@@ -35,6 +35,45 @@ const getPublicIdFromUrl = (imageUrl) => {
   }
 };
 
+function safeJsonParse(value, source = 'cache') {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    console.error(`JSON parse error (${source}):`, error);
+    return null;
+  }
+}
+
+async function safeRedisGet(key) {
+  if (!redis || redis.status !== 'ready') {
+    console.warn(`Redis not ready for GET ${key}: status=${redis?.status}`);
+    return null;
+  }
+
+  try {
+    return await redis.get(key);
+  } catch (error) {
+    console.error(`Redis GET error for key ${key}:`, error);
+    return null;
+  }
+}
+
+async function safeRedisSet(key, value, ttlSeconds = 90) {
+  if (!redis || redis.status !== 'ready') {
+    console.warn(`Redis not ready for SET ${key}: status=${redis?.status}`);
+    return false;
+  }
+
+  try {
+    await redis.set(key, value, 'EX', ttlSeconds);
+    return true;
+  } catch (error) {
+    console.error(`Redis SET error for key ${key}:`, error);
+    return false;
+  }
+}
+
 // Helper function to populate user data from Users connection
 // This is needed because Users model is on a different connection than MentorPost
 async function populateUser(userId) {
@@ -825,14 +864,21 @@ router.get("/user/:userId", async (req, res) => {
 router.get("/mentor/:mentorId", async (req, res) => {
   try {
     const currentUser = await getOptionalUser(req);
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
     const cacheKey = `mentorPosts:${req.params.mentorId}:page:${page}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return res.json(JSON.parse(cached));
+
+    let cachedResponse = null;
+    const cachedValue = await safeRedisGet(cacheKey);
+    if (cachedValue) {
+      cachedResponse = safeJsonParse(cachedValue, cacheKey);
+      if (cachedResponse) {
+        return res.json(cachedResponse);
+      }
+      console.warn(`Invalid cached JSON for key ${cacheKey}, falling back to MongoDB`);
     }
+
     const posts = await Post.find({ mentorId: req.params.mentorId })
       .populate('mentorId', 'name username image')
       .sort({ createdAt: -1 })
@@ -840,7 +886,6 @@ router.get("/mentor/:mentorId", async (req, res) => {
       .limit(limit)
       .lean();
 
-    // Batch fetch all users
     const allUserIds = new Set();
     posts.forEach(post => {
       (post.likes || []).forEach(like => {
@@ -883,7 +928,6 @@ router.get("/mentor/:mentorId", async (req, res) => {
         image: post.mentorId.image,
       } : null;
 
-      // Check if current user/mentor is following the author (can be user or mentor)
       let isFollowing = false;
       if (currentUser && currentUser.following && post.mentorId) {
         isFollowing = currentUser.following.some(id => id.toString() === post.mentorId._id.toString());
@@ -893,13 +937,10 @@ router.get("/mentor/:mentorId", async (req, res) => {
         ? currentUser.reposts.some(id => id.toString() === post._id.toString())
         : false;
 
-      // Check if current user/mentor liked this post
-      // Handle both ObjectId directly or populated user object
       let isLiked = false;
       if (currentUser) {
         isLiked = (post.likes || []).some(like => {
           if (!like.userId) return false;
-          // like.userId can be ObjectId directly (when using .lean()) or populated
           const likeUserId = like.userId._id ? like.userId._id.toString() : like.userId.toString();
           return likeUserId === currentUser._id.toString();
         });
@@ -946,7 +987,8 @@ router.get("/mentor/:mentorId", async (req, res) => {
         pages: Math.ceil(total / limit),
       },
     };
-    await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
+
+    void safeRedisSet(cacheKey, JSON.stringify(response), 90);
     res.json({ response });
   } catch (error) {
     console.error("Error fetching mentor posts:", error);
