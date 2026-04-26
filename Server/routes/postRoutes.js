@@ -3,6 +3,7 @@ const router = express.Router();
 const Post = require("../models/postSchema");
 const Mentor = require("../models/mentorSchema");
 const User = require("../models/userSchema");
+const Space = require("../models/spaceSchema");
 const { Users } = require("../db");
 const redis = require('../config/redis');
 const apiCache = require('../middleware/apiCache');
