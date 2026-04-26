@@ -3,6 +3,7 @@ const router = express.Router();
 const Post = require("../models/postSchema");
 const Mentor = require("../models/mentorSchema");
 const User = require("../models/userSchema");
+const Space = require("../models/spaceSchema");
 const { Users } = require("../db");
 const redis = require('../config/redis');
 const apiCache = require('../middleware/apiCache');
@@ -421,7 +422,7 @@ router.get("/", async (req, res) => {
 
       const filteredPosts = await Post.find(filter)
         .populate('mentorId', 'name username image')
-        .populate('spaceId', 'name logo')
+        .populate({ path: 'spaceId', model: Space, select: 'name logo' })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -452,7 +453,7 @@ router.get("/", async (req, res) => {
         }
         const posts = await Post.find({ _id: { $in: postIds } })
           .populate('mentorId', 'name username image')
-          .populate('spaceId', 'name logo')
+          .populate({ path: 'spaceId', model: Space, select: 'name logo' })
           .lean();
 
         const postMap = new Map(posts.map(p => [p._id.toString(), p]));
@@ -475,7 +476,7 @@ router.get("/", async (req, res) => {
         const skip = (page - 1) * limit;
         const fallbackPosts = await Post.find(categoryFilter)
           .populate('mentorId', 'name username image')
-          .populate('spaceId', 'name logo')
+          .populate({ path: 'spaceId', model: Space, select: 'name logo' })
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)

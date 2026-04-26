@@ -36,18 +36,6 @@ const postSchema = new mongoose.Schema(
       ref: 'Space',
       default: null,
     },
-    // category: 'study' | 'masti'. Defaults to 'study' for all existing posts.
-    category: {
-      type: String,
-      enum: ['study', 'masti'],
-      default: 'study',
-    },
-    // spaceId: Optional. Not required for old posts.
-    spaceId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Space',
-      default: null,
-    },
     hashtags: [{          // NEW: Array of strings for hashtags
       type: String,
       trim: true,
@@ -222,5 +210,6 @@ postSchema.index({ createdAt: -1, likesCount: -1 });
 postSchema.index({ category: 1, createdAt: -1 });
 postSchema.index({ spaceId: 1, createdAt: -1 });
 
-module.exports = Admeasy.models.PPosts || Admeasy.model('Posts', postSchema);
+const Post = Admeasy.models.Posts || Admeasy.model('Posts', postSchema);
+module.exports = Post;
 

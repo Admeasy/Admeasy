@@ -200,5 +200,12 @@ spaceSchema.index({ name: 'text', description: 'text' });
 spaceSchema.index({ type: 1 });
 spaceSchema.index({ schoolId: 1 });
 
-module.exports = Admeasy.models.Spaces || Admeasy.model('Spaces', spaceSchema);
+const Space = Admeasy.models.Space || Admeasy.model('Space', spaceSchema);
+
+// Keep legacy alias if any part of the app still references the old model name
+if (!Admeasy.models.Spaces) {
+  Admeasy.model('Spaces', spaceSchema);
+}
+
+module.exports = Space;
 
