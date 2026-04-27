@@ -4,12 +4,13 @@
  * Native: Codetrix plugin (GoogleAuth) + idToken exchange with backend.
  * Web: existing Passport redirect flow stays unchanged.
  */
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { Capacitor } from '@capacitor/core';
-import { toast } from 'react-toastify';
-import type { NavigateFunction } from 'react-router-dom';
-import { enableNotifications } from '../Firebase/enableNotifications';
-import { GOOGLE_WEB_CLIENT_ID } from './googleSignInConstants';
+// import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
+import { Capacitor } from "@capacitor/core";
+import { toast } from "react-toastify";
+import type { NavigateFunction } from "react-router-dom";
+import { enableNotifications } from "../Firebase/enableNotifications";
+import { GOOGLE_WEB_CLIENT_ID } from "./googleSignInConstants";
 
 import {
   ensureGoogleSignInInitialized,
@@ -92,7 +93,7 @@ export async function completeGoogleSessionFromIdToken(
     return;
   }
 
-  console.log('[GoogleSignIn] Backend exchange OK, loading user data');
+  console.log("[GoogleSignIn] Backend exchange OK, loading user data");
 
   deps.setMentor(null);
 
@@ -166,9 +167,13 @@ export async function runCapacitorGoogleSignIn(
     await ensureGoogleSignInInitialized();
     console.log("[GoogleSignIn] signIn() starting (native)");
 
-    const nativeUser = await GoogleAuth.signIn();
-    const idToken = nativeUser?.authentication?.idToken ?? null;
-    const email = nativeUser?.email ?? null;
+    // const nativeUser = await GoogleAuth.signIn();
+    // const idToken = nativeUser?.authentication?.idToken ?? null;
+    // const email = nativeUser?.email ?? null;
+
+    const result = await GoogleSignIn.signIn();
+    const idToken = result.idToken ?? null;
+    const email = result.email ?? null;
 
     console.log("[GoogleSignIn] signIn() resolved, has idToken:", !!idToken);
     await completeGoogleSessionFromSignInResult(
@@ -183,15 +188,12 @@ export async function runCapacitorGoogleSignIn(
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[GoogleSignIn] signIn error:", error);
-    console.log(
-      "[GoogleSignIn] clientId:",
-      getWebClientId(),
-    );
+    console.log("[GoogleSignIn] clientId:", getWebClientId());
     console.log("[GoogleSignIn] platform:", Capacitor.getPlatform());
 
     // Silent user cancellation
     if (/cancel|dismiss|user denied|12501|16|Canceled|abort/i.test(msg)) {
-      console.log('[GoogleSignIn] User cancelled');
+      console.log("[GoogleSignIn] User cancelled");
       return;
     }
     toast.error(msg || "Google sign-in failed. Please try again.");
