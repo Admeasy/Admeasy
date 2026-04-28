@@ -76,8 +76,9 @@ export async function completeGoogleSessionFromIdToken(
     "[GoogleSignIn] POST /api/auth/google …",
     meta?.email ?? "(no email yet)",
   );
+  // "/api/auth/google"
 
-  const res = await fetch("/api/auth/google", {
+  const res = await fetch("https://admeasy.in/api/auth/google", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -180,7 +181,7 @@ export async function runCapacitorGoogleSignIn(
       {
         idToken,
         email,
-        userId: nativeUser?.id ?? null,
+        userId: result.userId ?? null,
         referralCode: options?.referralCode ?? null,
       },
       deps,
