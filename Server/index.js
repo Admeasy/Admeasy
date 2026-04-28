@@ -36,6 +36,7 @@ const walletRoutes = require('./routes/walletRoutes')
 const InteractionRoutes = require('./routes/interactionRoutes');
 const SchoolRoutes = require('./routes/schoolRoutes');
 const TeacherRoutes = require('./routes/teacherRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
@@ -390,6 +391,7 @@ app.use('/api/schools', SchoolRoutes);
 app.use('/api/teachers', TeacherRoutes);
 app.use('/api/referrals', refferalRoutes)
 app.use('/api/wallet', walletRoutes)
+app.use('/api/ai', aiRoutes);
 // Socket.io connection handling with JWT authentication
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);

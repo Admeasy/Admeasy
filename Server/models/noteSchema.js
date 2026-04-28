@@ -120,6 +120,12 @@ const noteSchema = new mongoose.Schema(
     publishedAt: {
       type: Date,
     },
+    extractedText: {
+      type: String,
+    },
+    aiSummary: {
+      type: mongoose.Schema.Types.Mixed,
+    },
   },
   {
     timestamps: true,
