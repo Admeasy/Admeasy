@@ -5,6 +5,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const { trackStudentEvent } = require('../services/interactionTrackingService');
+const redis = require('../config/redis');
+
+const CACHE_TTL = 3600; // 1 hour
 
 const buildFilter = ({ search, university, programme, course, hashtag, uploader }) => { // Added hashtag
   const filter = { status: 'published' };
@@ -51,8 +54,24 @@ const bufferToTempFile = async (buffer, originalFilename) => {
 
 exports.getNotes = async (req, res) => {
   try {
+    const cacheKey = `notes:all:${JSON.stringify(req.query)}`;
+    
+    // Try to get from cache
+    if (redis && redis.status === 'ready') {
+      const cachedData = await redis.get(cacheKey);
+      if (cachedData) {
+        return res.json({ success: true, data: JSON.parse(cachedData), source: 'cache' });
+      }
+    }
+
     const filter = buildFilter(req.query);
     const notes = await Note.find(filter).sort({ isFeatured: -1, likes: -1, createdAt: -1 });
+    
+    // Save to cache
+    if (redis && redis.status === 'ready') {
+      await redis.set(cacheKey, JSON.stringify(notes), 'EX', CACHE_TTL);
+    }
+
     res.json({ success: true, data: notes });
   } catch (error) {
     console.error('Error fetching notes:', error);
@@ -66,10 +85,25 @@ exports.getNoteById = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid note id.' });
     }
 
+    const cacheKey = `note:${req.params.id}`;
+    
+    // Try to get from cache
+    if (redis && redis.status === 'ready') {
+      const cachedNote = await redis.get(cacheKey);
+      if (cachedNote) {
+        return res.json({ success: true, data: JSON.parse(cachedNote), source: 'cache' });
+      }
+    }
+
     const note = await Note.findById(req.params.id);
 
     if (!note || note.status !== 'published') {
       return res.status(404).json({ success: false, message: 'Note not found.' });
+    }
+
+    // Save to cache
+    if (redis && redis.status === 'ready') {
+      await redis.set(cacheKey, JSON.stringify(note), 'EX', CACHE_TTL);
     }
 
     res.json({ success: true, data: note });
@@ -323,6 +357,12 @@ exports.uploadNote = async (req, res) => {
 
       await note.save();
       console.log('Note saved successfully:', note._id);
+
+      // Invalidate notes list cache
+      if (redis && redis.status === 'ready') {
+        const keys = await redis.keys('notes:all:*');
+        if (keys.length > 0) await redis.del(keys);
+      }
     } catch (dbError) {
       console.error('Database error saving note:', dbError);
       // Try to delete from Cloudinary if database save fails
@@ -440,6 +480,13 @@ exports.updateNote = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Note not found' });
     }
 
+    // Invalidate cache
+    if (redis && redis.status === 'ready') {
+      await redis.del(`note:${id}`);
+      const keys = await redis.keys('notes:all:*');
+      if (keys.length > 0) await redis.del(keys);
+    }
+
     res.json({ success: true, data: note });
   } catch (error) {
     console.error('Error updating note:', error);
@@ -475,6 +522,13 @@ exports.deleteNote = async (req, res) => {
 
     // Delete from database
     await Note.findByIdAndDelete(id);
+
+    // Invalidate cache
+    if (redis && redis.status === 'ready') {
+      await redis.del(`note:${id}`);
+      const keys = await redis.keys('notes:all:*');
+      if (keys.length > 0) await redis.del(keys);
+    }
 
     res.json({ success: true, message: 'Note deleted successfully' });
   } catch (error) {

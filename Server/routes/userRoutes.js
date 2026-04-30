@@ -1,4 +1,5 @@
 const express = require("express");
+const redis = require("../config/redis");
 const generateUniqueReferralCode = require("../utils/generateReferralCode.js");
 const Referral = require("../models/referralSchema.js");
 const {
@@ -513,6 +514,11 @@ router.post("/onboarding", limits.normal, async (req, res) => {
     }
 
     await user.save();
+
+    // Invalidate user profile cache
+    if (redis && redis.status === 'ready') {
+      await redis.del(`userProfile:${user._id}`);
+    }
 
     res.status(200).json({
       success: true,
@@ -1143,6 +1149,12 @@ router.put("/me", limits.normal, upload.single("image"), async (req, res) => {
     }
 
     await user.save();
+
+    // Invalidate user profile cache
+    if (redis && redis.status === 'ready') {
+      await redis.del(`userProfile:${user._id}`);
+    }
+
     const updatedUser = await User.findById(user._id).select(
       "-password -refreshToken",
     );
@@ -1515,6 +1527,17 @@ router.get("/:userId", limits.normal, async (req, res) => {
       }
     }
 
+    // Check Redis cache
+    const cacheKey = `userProfile:${userId}`;
+    if (redis && redis.status === 'ready') {
+      const cachedUser = await redis.get(cacheKey);
+      if (cachedUser) {
+        const user = JSON.parse(cachedUser);
+        const processedUser = await processUserImage(user);
+        return res.json(processedUser);
+      }
+    }
+
     // Find the user - OPTIMIZED: Using lean() for faster queries
     const user = await User.findById(userId)
       .select("-password -refreshToken")
@@ -1523,6 +1546,11 @@ router.get("/:userId", limits.normal, async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
+    }
+
+    // Save to cache
+    if (redis && redis.status === 'ready') {
+      await redis.set(cacheKey, JSON.stringify(user), 'EX', 3600);
     }
 
     // Process image if needed
