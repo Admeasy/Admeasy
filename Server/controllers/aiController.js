@@ -13,9 +13,16 @@ exports.summarizeNote = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Note ID is required' });
     }
 
-    const note = await Note.findById(noteId);
+    let note;
+    try {
+      note = await Note.findById(noteId);
+    } catch (err) {
+      console.error('Invalid Note ID format:', noteId);
+      return res.status(400).json({ success: false, message: 'Invalid Note ID format' });
+    }
+
     if (!note) {
-      return res.status(404).json({ success: false, message: 'Note not found' });
+      return res.status(404).json({ success: false, message: 'Note not found in database' });
     }
 
     // Return cached summary if available
@@ -48,8 +55,11 @@ exports.summarizeNote = async (req, res) => {
 
     return res.status(200).json({ success: true, summary });
   } catch (error) {
-    console.error('Error in summarizeNote:', error);
-    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    console.error(`Error in summarizeNote for noteId ${req.body?.noteId}:`, error);
+    return res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Internal Server Error' 
+    });
   }
 };
 
@@ -65,7 +75,13 @@ exports.chatNote = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Note ID and prompt are required' });
     }
 
-    const note = await Note.findById(noteId);
+    let note;
+    try {
+      note = await Note.findById(noteId);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: 'Invalid Note ID format' });
+    }
+
     if (!note) {
       return res.status(404).json({ success: false, message: 'Note not found' });
     }
@@ -86,7 +102,10 @@ exports.chatNote = async (req, res) => {
 
     return res.status(200).json({ success: true, reply });
   } catch (error) {
-    console.error('Error in chatNote:', error);
-    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    console.error(`Error in chatNote for noteId ${req.body?.noteId}:`, error);
+    return res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Internal Server Error' 
+    });
   }
 };

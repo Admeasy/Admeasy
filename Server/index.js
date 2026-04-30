@@ -39,6 +39,7 @@ const TeacherRoutes = require('./routes/teacherRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
+const redis = require('./config/redis');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
 const buildFeedCache = require('./jobs/feedCache.job')
 const app = express();
@@ -278,10 +279,11 @@ app.get(
         return res.status(200).json(JSON.parse(cached));
       }
 
-      // 🔥 2. DB check (NO REGEX, fast + index friendly)
+      // 🔥 2. DB check (Case-insensitive check)
+      const escapedUsername = normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const [existingMentor, existingUser] = await Promise.all([
-        Mentor.findOne({ username: normalizedUsername }).lean(),
-        User.findOne({ username: normalizedUsername }).lean()
+        Mentor.findOne({ username: { $regex: new RegExp(`^${escapedUsername}$`, "i") } }).lean(),
+        User.findOne({ username: { $regex: new RegExp(`^${escapedUsername}$`, "i") } }).lean()
       ]);
 
       const isAvailable = !existingMentor && !existingUser;
@@ -323,7 +325,7 @@ app.get('/api/profile/:username', async (req, res) => {
     const Advertiser = require('./models/advertiserSchema');
 
     // Check mentor first
-    let mentor = await Mentor.findOne({ username });
+    let mentor = await Mentor.findOne({ username: { $regex: new RegExp(`^${escapeRegex(username)}$`, "i") } });
     if (mentor) {
       return res.status(200).json({
         success: true,

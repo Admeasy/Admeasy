@@ -132,14 +132,23 @@ export default function Onboarding() {
 
     setUsernameStatus("checking");
     try {
-      const res = await fetch(`/api/check-username/${val}`);
+      const res = await fetch(`/api/check-username/${encodeURIComponent(val)}`);
+      if (!res.ok) {
+        throw new Error("Failed to check username");
+      }
       const data = await res.json();
-      if (data.available) {
-        setUsernameStatus("available");
-        setUsernameMessage("Username is available!");
+      
+      if (data.success) {
+        if (data.available) {
+          setUsernameStatus("available");
+          setUsernameMessage("Username is available!");
+        } else {
+          setUsernameStatus("taken");
+          setUsernameMessage("Username is already taken");
+        }
       } else {
-        setUsernameStatus("taken");
-        setUsernameMessage("Username is already taken");
+        setUsernameStatus("invalid");
+        setUsernameMessage(data.message || "Could not verify username");
       }
     } catch (err) {
       console.error("Check username error:", err);
@@ -599,13 +608,21 @@ function Step1({ form }) {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Email Address
         </label>
-        <input
-          {...register("email")}
-          type="email"
-          placeholder="your.email@example.com"
-          disabled={!!user?.email}
-          className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-600"
-        />
+        <div className="relative">
+          <input
+            {...register("email")}
+            type="email"
+            placeholder="your.email@example.com"
+            disabled={!!user?.email || !!user?.googleId}
+            className="w-full border-2 border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:bg-gray-50 disabled:cursor-not-allowed text-gray-500 font-medium"
+          />
+          {(user?.googleId || user?.email) && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2 py-1 bg-green-50 text-green-600 rounded-md border border-green-100 shadow-sm">
+              <Check size={14} strokeWidth={3} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Verified</span>
+            </div>
+          )}
+        </div>
         {errors.email && (
           <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
         )}

@@ -158,7 +158,7 @@ export function UserProvider({ children }) {
       // Parent effects run before child effects: /me would 401 before Google OAuth handler
       // binds JWT cookies — do not clear user / storage during this return trip.
       if (oauthReturn) {
-        if (isMounted) setIsLoading(false);
+        // Keep loading true while GoogleSignInBootstrap handles the token
         return;
       }
 
@@ -324,6 +324,7 @@ export function UserProvider({ children }) {
         ? options.accessToken
         : null;
 
+    setIsLoading(true);
     try {
       // Authorization header is used for access token auth (e.g., from Google OAuth flow).
       // If no accessToken: rely on refresh token cookie + call /refresh first.
@@ -346,11 +347,13 @@ export function UserProvider({ children }) {
           localStorage.removeItem(USER_STORAGE_KEY);
           localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
           localStorage.removeItem(ACTIVE_ACCOUNT_ID_KEY);
+          setIsLoading(false);
           return null;
         }
 
         if (!refreshRes.ok) {
           console.error("Refresh failed:", refreshRes.status);
+          setIsLoading(false);
           return null;
         }
       }
@@ -363,6 +366,7 @@ export function UserProvider({ children }) {
 
       if (!res.ok) {
         console.error("User profile fetch failed:", res.status);
+        setIsLoading(false);
         return null;
       }
 
@@ -387,9 +391,11 @@ export function UserProvider({ children }) {
       if (switchTokenToSave) {
         addSavedAccount(userObj, switchTokenToSave);
       }
+      setIsLoading(false);
       return userObj;
     } catch (err) {
       console.error("fetchUser error:", err);
+      setIsLoading(false);
       return null;
     }
   };
