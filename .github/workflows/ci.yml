@@ -1,10 +1,3 @@
-# Production CI/CD: Build → Validate → Deploy to VPS (PM2)
-# Repo: Client (Vite/React) + Server (Node/Express)
-# Required GitHub Secrets:
-# - VPS_HOST
-# - VPS_USER
-# - SSH_PRIVATE_KEY
-
 name: CI/CD Pipeline
 
 on:
@@ -82,7 +75,6 @@ jobs:
           node <<'EOF'
           const fs = require('fs');
           const path = require('path');
-
           const exts = ['.js', '.json'];
           let failed = false;
 
@@ -104,13 +96,11 @@ jobs:
 
           function resolveImport(baseDir, importPath) {
             const full = path.resolve(baseDir, importPath);
-
             const candidates = [
               full,
               ...exts.map(ext => full + ext),
               ...exts.map(ext => path.join(full, 'index' + ext)),
             ];
-
             return candidates.find(p => fs.existsSync(p) && existsCaseSensitive(p));
           }
 
@@ -137,7 +127,7 @@ jobs:
                     const rel = match[1];
                     const resolved = resolveImport(path.dirname(full), rel);
                     if (!resolved) {
-                      console.error(`❌ Broken or case-mismatched import in ${full} → ${rel}`);
+                      console.error(`❌ Broken import in ${full} → ${rel}`);
                       failed = true;
                     }
                   }
@@ -148,11 +138,8 @@ jobs:
 
           walk('./Server');
 
-          if (failed) {
-            process.exit(1);
-          } else {
-            console.log('✅ No broken/case-mismatched relative imports found');
-          }
+          if (failed) process.exit(1);
+          else console.log('✅ Imports OK');
           EOF
 
   deploy:
@@ -178,30 +165,18 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Backup server .env before deploy
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+      - name: Backup .env
         run: |
           SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
-          ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "
+          ssh $SSH_OPTS "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
             mkdir -p ${DEPLOY_PATH}/backup
-            if [ -f ${DEPLOY_PATH}/Server/.env ]; then
-              cp ${DEPLOY_PATH}/Server/.env ${DEPLOY_PATH}/backup/.env.backup
-              echo '✅ Existing .env backed up'
-            else
-              echo '⚠️ No existing .env found to back up'
-            fi
+            [ -f ${DEPLOY_PATH}/Server/.env ] && cp ${DEPLOY_PATH}/Server/.env ${DEPLOY_PATH}/backup/.env.backup || true
           "
 
-      - name: Deploy to VPS (rsync + PM2)
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+      - name: Deploy (rsync + PM2)
         run: |
           SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
 
-          # Sync server source safely (preserve .env and runtime files)
           rsync -avz --delete \
             --exclude 'node_modules' \
             --exclude '.git' \
@@ -212,29 +187,26 @@ jobs:
             --exclude '.env' \
             --exclude 'uploads' \
             -e "ssh $SSH_OPTS" \
-            Server/ "$VPS_USER@$VPS_HOST:${DEPLOY_PATH}/Server/"
+            Server/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/Server/"
 
-          # Sync built client into Express-served dist
           rsync -avz --delete \
             -e "ssh $SSH_OPTS" \
-            client-dist/ "$VPS_USER@$VPS_HOST:${DEPLOY_PATH}/Server/dist/"
+            client-dist/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${DEPLOY_PATH}/Server/dist/"
 
-          # Restore .env if somehow missing, install deps, restart PM2
-          ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "
+          ssh $SSH_OPTS "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
             set -e
             cd ${DEPLOY_PATH}/Server
 
             if [ ! -f .env ] && [ -f ${DEPLOY_PATH}/backup/.env.backup ]; then
               cp ${DEPLOY_PATH}/backup/.env.backup .env
-              echo '✅ Restored .env from backup'
             fi
 
-            export NODE_ENV=production
+            npm ci --omit=dev || npm install --omit=dev
 
-            npm ci --omit=dev --no-audit --no-fund 2>/dev/null || npm install --omit=dev --no-audit --no-fund
+            # 🔥 FIX: Run backend + worker
+            pm2 delete all || true
+            pm2 start ecosystem.config.js
 
-            pm2 restart ${PM2_APP_NAME} --update-env || pm2 start index.js --name ${PM2_APP_NAME}
             pm2 save
-
-            echo '🚀 Deployment complete'
+            echo '🚀 Deployment complete with worker'
           "
