@@ -63,8 +63,14 @@ export default function GoogleSignInBootstrap() {
         
         if (user) {
           // Clear query params to clean up URL
-          navigate('/', { replace: true });
-          toast.success("Welcome back!");
+          // If already on onboarding, stay there. Otherwise go home.
+          if (!window.location.pathname.startsWith('/onboarding')) {
+            navigate('/', { replace: true });
+            toast.success("Welcome back!");
+          } else {
+            // Just clean the URL without full navigation
+            navigate(window.location.pathname, { replace: true });
+          }
         } else {
           toast.error("Failed to sync profile. Please log in again.");
           navigate('/login', { replace: true });

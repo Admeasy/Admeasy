@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, X, Lock, School, GraduationCap } from "lucide-react";
+import { FileText, User, File, Share2, Eye, Heart, ArrowLeft, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, X, Lock, School, GraduationCap, Bot, Sparkles } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import PaymentModal from "../components/PaymentModal";
 import WelcomeCoinPopup from "../components/popups/WelcomeCoinPopup";
+import AISidebar from "../components/AISidebar";
 import { useUser } from "../context/UserContext";
 import { Document, Page, pdfjs } from "react-pdf";
 import { toast } from "react-toastify";
@@ -45,7 +46,16 @@ const NotesPage = () => {
   const [pdfLoading, setPdfLoading] = useState(true);
   const [containerWidth, setContainerWidth] = useState(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth >= 1024 ? Math.floor(window.innerWidth / 2) : 420);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const refetchNote = () => setReloadKey(prev => prev + 1);
 
@@ -207,7 +217,10 @@ const NotesPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
+    <div 
+      className="min-h-screen bg-gray-50 pb-10 transition-all duration-300 ease-in-out"
+      style={{ paddingRight: isSidebarOpen && isDesktop ? sidebarWidth : 0 }}
+    >
       <SEO
         title={note ? `${note.title} - Study Notes | Admeasy` : 'Study Notes | Admeasy'}
         description={note?.description || 'Access premium study notes'}
@@ -245,7 +258,8 @@ const NotesPage = () => {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Sidebar - Info */}
-            <div className="lg:col-span-1 space-y-6 order-2 lg:order-1">
+            {!(isSidebarOpen && isDesktop) && (
+              <div className="lg:col-span-1 space-y-6 order-2 lg:order-1 transition-all duration-300">
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
                 <div className="flex items-center justify-between mb-6">
                    <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest ${note.isFree ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
@@ -314,9 +328,10 @@ const NotesPage = () => {
                 </div>
               )}
             </div>
+            )}
 
             {/* Right Content - PDF Viewer */}
-            <div className="lg:col-span-2 order-1 lg:order-2">
+            <div className={`${isSidebarOpen && isDesktop ? 'lg:col-span-3' : 'lg:col-span-2'} order-1 lg:order-2 transition-all duration-300`}>
               <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 min-h-[600px] flex flex-col">
                 {canViewPdf ? (
                   <div className="relative flex flex-col h-full" data-pdf-container>
@@ -334,14 +349,25 @@ const NotesPage = () => {
                         </div>
                     </div>
 
-                    <div className={`flex-1 overflow-auto bg-slate-200 p-4 sm:p-8 flex justify-center ${isFullScreen ? "fixed inset-0 z-[100] bg-slate-950 pt-16" : ""}`}>
+                    <div className={`flex-1 relative overflow-hidden flex flex-col ${isFullScreen ? "fixed inset-0 z-[100] bg-slate-950" : ""}`}>
+                      
+                      {/* Floating AI Summarize Button */}
+                      <button 
+                        onClick={() => setIsSidebarOpen(true)} 
+                        title="Summarize with AI"
+                        className={`absolute ${isFullScreen ? "top-6 right-20" : "top-4 right-4 sm:top-6 sm:right-6"} z-[90] flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#9f3562] to-[#c24b7a] text-white rounded-full hover:scale-110 transition-transform cursor-pointer group`}
+                      >
+                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse group-hover:animate-none" /> 
+                      </button>
+
                       {isFullScreen && (
-                        <button onClick={() => setIsFullScreen(false)} className="fixed top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 p-3 rounded-full backdrop-blur-md text-white transition-all">
+                        <button onClick={() => setIsFullScreen(false)} className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full backdrop-blur-md text-white transition-all cursor-pointer">
                           <X size={24} />
                         </button>
                       )}
                       
-                      <div className="shadow-2xl h-fit">
+                      <div className={`w-full h-full overflow-auto bg-slate-200 p-4 sm:p-8 flex justify-center custom-scrollbar ${isFullScreen ? "pt-24" : ""}`}>
+                        <div className="shadow-2xl h-fit">
                         <Document
                           file={note.fileUrl}
                           httpHeaders={pdfHeaders}
@@ -372,6 +398,7 @@ const NotesPage = () => {
                             className="transition-all duration-300"
                           />
                         </Document>
+                        </div>
                       </div>
                     </div>
 
@@ -419,6 +446,15 @@ const NotesPage = () => {
           </div>
         )}
       </div>
+
+      <AISidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        noteId={note?._id}
+        noteTitle={note?.title}
+        sidebarWidth={sidebarWidth}
+        setSidebarWidth={setSidebarWidth}
+      />
 
       <PaymentModal
         note={note}
