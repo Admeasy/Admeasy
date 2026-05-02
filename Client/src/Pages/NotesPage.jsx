@@ -351,14 +351,7 @@ const NotesPage = () => {
 
                     <div className={`flex-1 relative overflow-hidden flex flex-col ${isFullScreen ? "fixed inset-0 z-[100] bg-slate-950" : ""}`}>
                       
-                      {/* Floating AI Summarize Button */}
-                      <button 
-                        onClick={() => setIsSidebarOpen(true)} 
-                        title="Summarize with AI"
-                        className={`absolute ${isFullScreen ? "top-6 right-20" : "top-4 right-4 sm:top-6 sm:right-6"} z-[90] flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#9f3562] to-[#c24b7a] text-white rounded-full hover:scale-110 transition-transform cursor-pointer group`}
-                      >
-                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse group-hover:animate-none" /> 
-                      </button>
+  
 
                       {isFullScreen && (
                         <button onClick={() => setIsFullScreen(false)} className="absolute top-6 right-6 z-[110] bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full backdrop-blur-md text-white transition-all cursor-pointer">
@@ -447,6 +440,29 @@ const NotesPage = () => {
         )}
       </div>
 
+      {/* Bottom-Right AI Button FAB with Tooltip */}
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          title="AI Summarizer"
+          className="fixed bottom-8 right-8 z-50 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#9f3562] to-[#c24b7a] text-white rounded-full shadow-2xl shadow-[#9f3562]/40 hover:scale-110 hover:shadow-[#9f3562]/60 active:scale-95 transition-all duration-200 group backdrop-blur-sm border border-white/20"
+        >
+          <Sparkles className="w-6 h-6 group-hover:animate-spin" />
+          
+          {/* Tooltip - Appears on Left */}
+          <div className="absolute right-full mr-4 bottom-1/2 translate-y-1/2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-300 ease-out -translate-x-2 group-hover:translate-x-0">
+            <div className="bg-gradient-to-r from-gray-900 to-slate-800 text-white px-4 py-3 rounded-2xl whitespace-nowrap font-semibold text-sm shadow-2xl border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                <span>Summarise with Admeasy AI</span>
+              </div>
+              {/* Arrow pointing to button */}
+              <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0 border-8 border-transparent border-l-gray-900"></div>
+            </div>
+          </div>
+        </button>
+      )}
+
       <AISidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -454,6 +470,9 @@ const NotesPage = () => {
         noteTitle={note?.title}
         sidebarWidth={sidebarWidth}
         setSidebarWidth={setSidebarWidth}
+        user={user}
+        mentor={mentor}
+        isAuthenticated={Boolean(user || mentor)}
       />
 
       <PaymentModal

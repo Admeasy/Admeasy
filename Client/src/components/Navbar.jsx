@@ -4,7 +4,6 @@ import AnimatedSearchPlaceholder from "./AnimatedSearchPlaceholder";
 const logo = "/favicon.ico";
 import { useUser } from "../context/UserContext";
 import { useMentor } from "../context/MentorContext";
-import LoginButton from "./LoginButton";
 import { useState, useEffect, useRef } from "react";
 
 const fallbackProfilePic =
@@ -143,15 +142,6 @@ const Navbar = ({ isCollapsed, setIsCollapsed }) => {
           >
             <Bell className="w-5 h-5" />
           </button>
-
-          {/* Profile / Login */}
-          <div className="flex items-center shrink-0">
-            {!loggedInAccount && (
-              <div className="ml-2">
-                <LoginButton />
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </nav>
