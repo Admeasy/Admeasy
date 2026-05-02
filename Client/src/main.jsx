@@ -12,6 +12,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 import axios from 'axios';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 axios.defaults.withCredentials = true;
 
@@ -32,6 +33,12 @@ const queryClient = new QueryClient({
   },
 });
 
+
+GoogleAuth.initialize({
+  clientId: '131243298453-f8l1eud7gadl0mgap85smr5le64g7k95.apps.googleusercontent.com',
+  scopes: ['profile', 'email'],
+  grantOfflineAccess: true,
+});
 // Native splash: hide Capacitor splash + custom HTML splash when app is ready
 const hideNativeSplash = async () => {
   if (!Capacitor.isNativePlatform()) return
