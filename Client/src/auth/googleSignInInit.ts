@@ -69,7 +69,7 @@
 // }
 import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 import { Capacitor } from "@capacitor/core";
-import { GOOGLE_WEB_CLIENT_ID } from "./googleSignInConstants";
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from "./googleSignInConstants";
 
 export const GOOGLE_SIGN_IN_SCOPES = ["profile", "email"];
 
@@ -88,8 +88,13 @@ export const ensureGoogleSignInInitialized = async (): Promise<void> => {
       return;
     }
 
+    // Use Android Client ID for native platforms, Web Client ID fallback
+    const clientId = platform === "android" ? GOOGLE_ANDROID_CLIENT_ID : GOOGLE_WEB_CLIENT_ID;
+    
+    console.log("[GoogleSignIn] Using clientId for platform " + platform);
+
     await GoogleSignIn.initialize({
-      clientId: GOOGLE_WEB_CLIENT_ID,
+      clientId,
     });
 
     console.log("[GoogleSignIn] initialize() OK (native)");
