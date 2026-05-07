@@ -218,36 +218,148 @@ function calculateRecencyScore(createdAt) {
 }
 
 /**
+ * Get the author id for a post, whether mentor or student
+ * @param {Object} post
+ * @returns {String|null}
+ */
+function getPostAuthorId(post) {
+  if (!post) return null;
+  if (post.mentorId) return post.mentorId.toString();
+  if (post.userId) return post.userId.toString();
+  return null;
+}
+
+/**
+ * Calculate a normalized engagement signal for trending weight
+ * @param {Object} post
+ * @returns {Number}
+ */
+function calculateEngagementSignal(post) {
+  const likes = post.likesCount || 0;
+  const comments = post.commentsCount || 0;
+  const reposts = post.repostCount || 0;
+  return likes + comments * 2 + reposts * 3;
+}
+
+/**
+ * Score a post for trending relevance.
+ * Trending posts should be recent but also engagement-worthy.
+ * @param {Object} post
+ * @returns {Number}
+ */
+function calculateTrendingScore(post) {
+  const engagement = calculateEngagementSignal(post);
+  if (engagement === 0) return 0;
+
+  const ageInHours = (new Date() - new Date(post.createdAt)) / (1000 * 60 * 60);
+  const recencyFactor = ageInHours < 168 ? Math.max(0.35, 1 - ageInHours / 168) : 0.35;
+  return Math.min(35, engagement * recencyFactor);
+}
+
+/**
+ * Boost score for posts that match student or mentor role priorities.
+ * @param {Object} post
+ * @param {Object} user
+ * @returns {Number}
+ */
+function calculateRoleRelevanceScore(post, user) {
+  const content = (post.content || '').toLowerCase();
+  const hashtags = (post.hashtags || []).map(tag => tag.toLowerCase());
+  const isMentorPost = !!post.mentorId;
+  const isStudentPost = !!post.userId;
+  let score = 0;
+
+  const collegeTerms = /college|admission|application|cutoff|rank|career|campus|hostel|university|branch|course|entrance/;
+  const studyTerms = /notes|study|revision|syllabus|exam|question|doubt|strategy|preparation|tips|formula|practice|mcq/;
+  const doubtTerms = /doubt|question|help|stuck|issue|problem|clarify|confused/;
+
+  if (user?.role === 'mentor') {
+    if (isStudentPost) score += 30;
+    if (doubtTerms.test(content) || hashtags.some(tag => ['doubt', 'question', 'help'].includes(tag))) {
+      score += 30;
+    }
+    if (studyTerms.test(content) || hashtags.some(tag => ['study', 'notes', 'exam', 'revision'].includes(tag))) {
+      score += 20;
+    }
+    if (collegeTerms.test(content) || hashtags.some(tag => ['college', 'admission', 'application', 'cutoff'].includes(tag))) {
+      score += 15;
+    }
+  } else {
+    if (isMentorPost) score += 25;
+    if (collegeTerms.test(content) || hashtags.some(tag => ['college', 'admission', 'application', 'cutoff', 'rank'].includes(tag))) {
+      score += 30;
+    }
+    if (studyTerms.test(content) || hashtags.some(tag => ['study', 'notes', 'exam', 'revision', 'mcq'].includes(tag))) {
+      score += 25;
+    }
+    if (doubtTerms.test(content) || hashtags.some(tag => ['doubt', 'question', 'help'].includes(tag))) {
+      score += 15;
+    }
+    if (post.type === 'poll' || post.type === 'mcq') {
+      score += 10;
+    }
+  }
+
+  if (hashtags.includes('masti') && user?.role !== 'mentor') {
+    score -= 10;
+  }
+
+  return Math.max(0, Math.min(score, 70));
+}
+
+/**
+ * Boost for post view state to avoid repeats and surface unseen content.
+ * @param {Object} post
+ * @param {Map<String, String>} viewStateMap
+ * @returns {Number}
+ */
+function calculateViewStateBoost(post, viewStateMap) {
+  if (!viewStateMap || !post || !post._id) return 0;
+  const state = viewStateMap.get(post._id.toString());
+  if (state === 'UNSEEN') return 35;
+  if (state === 'SEEN') return 10;
+  if (state === 'ENGAGED') return -20;
+  return 0;
+}
+
+/**
  * Calculate total relevance score for a post
  * @param {Object} post - Post object
  * @param {Object} user - User object
  * @param {Object} mentor - Mentor object (if post is from mentor)
+ * @param {Map<String, String>} viewStateMap - view states for user posts
  * @returns {Promise<Number>} - Total relevance score
  */
-async function calculatePostRelevanceScore(post, user, mentor) {
+async function calculatePostRelevanceScore(post, user, mentor, viewStateMap) {
   let totalScore = 0;
 
-  // 1. Exam Relevance (Primary Signal) - Weight: 100
   const examScore = calculateExamRelevanceScore(post, user, mentor);
   totalScore += examScore;
 
-  // 2. Following Boost - Weight: 30
-  const followingScore = calculateFollowingBoost(post, user);
-  totalScore += followingScore;
+  const followScore = calculateFollowingBoost(post, user);
+  totalScore += followScore;
 
-  // 3. Keyword Affinity - Weight: 50
   const keywordScore = await calculateKeywordAffinityScore(post, user?._id);
   totalScore += keywordScore;
 
-  // 4. Academic Context - Weight: 20
   const academicScore = calculateAcademicContextScore(post, user);
   totalScore += academicScore;
 
-  // 5. Recency - Weight: 10 (small, not dominant)
   const recencyScore = calculateRecencyScore(post.createdAt);
   totalScore += recencyScore;
 
-  return totalScore;
+  const trendingScore = calculateTrendingScore(post);
+  totalScore += trendingScore;
+
+  const roleScore = calculateRoleRelevanceScore(post, user);
+  totalScore += roleScore;
+
+  const viewStateBoost = calculateViewStateBoost(post, viewStateMap);
+  totalScore += viewStateBoost;
+
+  totalScore += Math.random() * 5;
+
+  return Math.min(Math.max(totalScore, 0), 220);
 }
 
 /**
@@ -261,6 +373,55 @@ function getUserFollowingIds(user) {
 }
 
 /**
+ * Reorder posts so the same author does not appear twice in a row when possible.
+ * @param {Array<Object>} posts
+ * @returns {Array<Object>}
+ */
+function interleavePostsByAuthor(posts) {
+  const buckets = new Map();
+  posts.forEach(post => {
+    const authorId = getPostAuthorId(post) || '__unknown';
+    if (!buckets.has(authorId)) buckets.set(authorId, []);
+    buckets.get(authorId).push(post);
+  });
+
+  const orderedAuthors = Array.from(buckets.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([author]) => author);
+
+  const result = [];
+  while (result.length < posts.length) {
+    let added = false;
+    const lastAuthor = result.length ? getPostAuthorId(result[result.length - 1]) : null;
+
+    for (const authorId of orderedAuthors) {
+      const bucket = buckets.get(authorId);
+      if (!bucket || bucket.length === 0) continue;
+      if (authorId === lastAuthor && orderedAuthors.some(id => id !== authorId && buckets.get(id)?.length > 0)) {
+        continue;
+      }
+      result.push(bucket.shift());
+      added = true;
+    }
+
+    if (!added) {
+      for (const authorId of orderedAuthors) {
+        const bucket = buckets.get(authorId);
+        if (bucket && bucket.length > 0) {
+          result.push(bucket.shift());
+          added = true;
+          break;
+        }
+      }
+    }
+
+    if (!added) break;
+  }
+
+  return result;
+}
+
+/**
  * Rank and fetch feed posts
  * @param {Object} user - Current user (optional, for personalized feed)
  * @param {Number} page - Page number
@@ -270,23 +431,20 @@ function getUserFollowingIds(user) {
 async function getRankedFeed(user = null, page = 1, limit = 20, category = 'study') {
   try {
     const skip = (page - 1) * limit;
-    // Category filter:
-    // - 'study': include posts explicitly set to study OR with no category field (old posts)
-    // - 'masti': strict match only
     const categoryFilter = category === 'study'
       ? { $or: [{ category: 'study' }, { category: { $exists: false } }, { category: null }] }
       : { category: 'masti' };
 
-    // Step 1: Get post view states for current user
     let unseenPostIds = [];
     let seenPostIds = [];
     let engagedPostIds = [];
+    const viewStateMap = new Map();
 
     if (user) {
       const postViews = await PostView.find({ userId: user._id }).lean();
-
       postViews.forEach(view => {
         const postIdStr = view.postId.toString();
+        viewStateMap.set(postIdStr, view.state);
         if (view.state === 'UNSEEN') {
           unseenPostIds.push(postIdStr);
         } else if (view.state === 'SEEN') {
@@ -297,123 +455,125 @@ async function getRankedFeed(user = null, page = 1, limit = 20, category = 'stud
       });
     }
 
-    // Step 2: Fetch posts prioritizing UNSEEN, then SEEN, then ENGAGED
-    let posts = [];
-    const targetCount = limit * 3; // Fetch more to rank, then take top N
+    const allViewedPostIds = user ? [...unseenPostIds, ...seenPostIds, ...engagedPostIds] : [];
+    const followingIds = getUserFollowingIds(user);
+    const followerQuery = followingIds.length > 0 ? { $or: [{ mentorId: { $in: followingIds } }, { userId: { $in: followingIds } }] } : null;
 
-    // Collect all post IDs that user has interacted with (for exclusion)
-    const allViewedPostIds = user
-      ? [...unseenPostIds, ...seenPostIds, ...engagedPostIds]
-      : [];
+    const targetCount = Math.min(220, Math.max(limit * 4, limit * (page + 2)));
+    const discoveryLimit = Math.min(50, targetCount);
+    const recentWindow = new Date(Date.now() - 1000 * 60 * 60 * 24 * 21);
 
-    // First, try to get UNSEEN posts (posts user has never seen)
-    if (user && unseenPostIds.length > 0) {
-      const unseenPosts = await Post.find({
-        _id: { $in: unseenPostIds },
-        ...categoryFilter,
-      })
-        .populate('mentorId', 'name username image competitiveExamsCleared')
-        .lean()
-        .limit(targetCount);
-      posts.push(...unseenPosts);
+    const candidateQueries = [];
+    if (followerQuery) {
+      candidateQueries.push(
+        Post.find({ ...categoryFilter, ...followerQuery })
+          .populate('mentorId', 'name username image competitiveExamsCleared')
+          .sort({ createdAt: -1 })
+          .lean()
+          .limit(targetCount)
+      );
     }
 
-    // If no unseen posts or need more, get posts that haven't been viewed at all
-    if (posts.length < targetCount && user) {
-      const unviewedPosts = await Post.find({
-        _id: { $nin: allViewedPostIds },
+    candidateQueries.push(
+      Post.find({ ...categoryFilter, createdAt: { $gte: recentWindow } })
+        .populate('mentorId', 'name username image competitiveExamsCleared')
+        .sort({ likesCount: -1, commentsCount: -1, repostCount: -1, createdAt: -1 })
+        .lean()
+        .limit(targetCount)
+    );
+
+    candidateQueries.push(
+      Post.find({ ...categoryFilter })
+        .populate('mentorId', 'name username image competitiveExamsCleared')
+        .sort({ createdAt: -1 })
+        .lean()
+        .limit(targetCount)
+    );
+
+    candidateQueries.push(
+      Post.find({
         ...categoryFilter,
+        ...(allViewedPostIds.length ? { _id: { $nin: allViewedPostIds } } : {}),
       })
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .sort({ createdAt: -1 })
         .lean()
-        .limit(targetCount - posts.length);
-      posts.push(...unviewedPosts);
+        .limit(discoveryLimit)
+    );
+
+    const candidateResults = await Promise.all(candidateQueries);
+    let followedPosts = [];
+    let trendingPosts = [];
+    let recentPosts = [];
+    let discoveryPosts = [];
+
+    if (candidateResults.length === 4) {
+      [followedPosts, trendingPosts, recentPosts, discoveryPosts] = candidateResults;
+    } else if (candidateResults.length === 3) {
+      [trendingPosts, recentPosts, discoveryPosts] = candidateResults;
     }
 
-    // If still not enough, get SEEN but not ENGAGED posts
-    if (posts.length < targetCount && user && seenPostIds.length > 0) {
-      const seenPosts = await Post.find({
-        _id: { $in: seenPostIds },
-        ...categoryFilter,
-      })
-        .populate('mentorId', 'name username image competitiveExamsCleared')
-        .lean()
-        .limit(targetCount - posts.length);
-      posts.push(...seenPosts);
-    }
+    const sourcePosts = [
+      ...followedPosts,
+      ...trendingPosts,
+      ...recentPosts,
+      ...discoveryPosts,
+    ];
 
-    // Last resort: get ENGAGED posts (heavily deprioritized)
-    if (posts.length < targetCount && user && engagedPostIds.length > 0) {
-      const engagedPosts = await Post.find({
-        _id: { $in: engagedPostIds },
-        ...categoryFilter,
-      })
-        .populate('mentorId', 'name username image competitiveExamsCleared')
-        .lean()
-        .limit(Math.min(limit / 2, targetCount - posts.length)); // Only half of limit
-      posts.push(...engagedPosts);
-    }
-
-    // For non-authenticated users or if still need more posts, fetch recent posts
-    if (posts.length < targetCount) {
-      const query = user && allViewedPostIds.length > 0
-        ? { _id: { $nin: allViewedPostIds }, ...categoryFilter }
-        : { ...categoryFilter };
-
-      const morePosts = await Post.find(query)
-        .populate('mentorId', 'name username image competitiveExamsCleared')
-        .sort({ createdAt: -1 })
-        .lean()
-        .limit(targetCount - posts.length);
-      posts.push(...morePosts);
-    }
-
-    // Deduplicate posts based on _id before scoring
     const uniquePostsMap = new Map();
-    posts.forEach(post => {
+    sourcePosts.forEach(post => {
       if (post && post._id) {
         uniquePostsMap.set(post._id.toString(), post);
       }
     });
-    const uniquePosts = Array.from(uniquePostsMap.values());
 
-    // Step 3: Calculate relevance scores for all posts
+    if (uniquePostsMap.size < Math.max(skip + limit, limit * 2)) {
+      const fallbackQuery = {
+        ...categoryFilter,
+        _id: { $nin: [...Array.from(uniquePostsMap.keys()).map(id => id), ...allViewedPostIds] },
+      };
+      const fallbackPosts = await Post.find(fallbackQuery)
+        .populate('mentorId', 'name username image competitiveExamsCleared')
+        .sort({ createdAt: -1 })
+        .lean()
+        .limit(Math.max(limit * 2, skip + limit) - uniquePostsMap.size);
+      fallbackPosts.forEach(post => {
+        if (post && post._id && !uniquePostsMap.has(post._id.toString())) {
+          uniquePostsMap.set(post._id.toString(), post);
+        }
+      });
+    }
+
+    const allCandidatePosts = Array.from(uniquePostsMap.values());
+
     const postsWithScores = await Promise.all(
-      uniquePosts.map(async (post) => {
+      allCandidatePosts.map(async (post) => {
         const mentor = post.mentorId || null;
-        const score = await calculatePostRelevanceScore(post, user, mentor);
+        const score = await calculatePostRelevanceScore(post, user, mentor, viewStateMap);
         return { post, score };
       })
     );
 
-    // Step 4: Sort by score (descending), then by recency
     postsWithScores.sort((a, b) => {
-      if (b.score !== a.score) {
-        return b.score - a.score; // Higher score first
-      }
-      // Tie-breaker: newer posts first
+      if (b.score !== a.score) return b.score - a.score;
       return new Date(b.post.createdAt) - new Date(a.post.createdAt);
     });
 
-    // Step 5: Extract posts and apply pagination
-    const rankedPosts = postsWithScores
-      .slice(skip, skip + limit)
-      .map(item => item.post);
+    const orderedPosts = interleavePostsByAuthor(postsWithScores.map(item => item.post));
+    const pagedPosts = orderedPosts.slice(skip, skip + limit);
 
-    // Step 6: Get total count for pagination
     const totalPosts = await Post.countDocuments(categoryFilter);
     const totalPages = Math.ceil(totalPosts / limit);
 
     return {
-      posts: rankedPosts,
+      posts: pagedPosts,
       pagination: {
         page,
         limit,
         total: totalPosts,
         pages: totalPages,
       },
-      hasMore: skip + limit < postsWithScores.length,
+      hasMore: skip + limit < orderedPosts.length,
     };
   } catch (error) {
     console.error('Error in getRankedFeed:', error);
