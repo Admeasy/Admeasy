@@ -36,7 +36,7 @@ const fetchFeedPage = async ({ pageParam = 1, queryKey }) => {
   const [, feedType, hashtag] = queryKey;
   const params = new URLSearchParams({
     page: pageParam,
-    limit: 20,
+    limit: 25,
     type: feedType,
   });
   if (hashtag) params.set('hashtag', hashtag);
@@ -80,6 +80,8 @@ const Feed = () => {
   const [loadingAds, setLoadingAds] = useState(false);
   const completionPercentage = useProfileCompletion();
   const observerTargetRef = useRef(null);
+  const prefetchTriggerRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
   const [searchInput, setSearchInput] = useState('');
 
   const handleSearch = (e) => {
@@ -119,15 +121,13 @@ const Feed = () => {
   useEffect(() => {
     if (data) {
       const merged = data.pages.flatMap(p => p.posts || []);
-      // Deduplicate by _id
       const seen = new Set();
       const unique = merged.filter(p => {
         if (!p || !p._id || seen.has(p._id)) return false;
         seen.add(p._id);
         return true;
       });
-      const sorted = unique.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setAllPosts(sorted);
+      setAllPosts(unique);
     }
   }, [data]);
 
@@ -146,11 +146,66 @@ const Feed = () => {
       (entries) => {
         if (entries[0].isIntersecting) fetchNextPage();
       },
-      { root: null, rootMargin: '250px', threshold: 0.1 }
+      { root: null, rootMargin: '800px 0px 600px 0px', threshold: 0 }
     );
     if (observerTargetRef.current) observer.observe(observerTargetRef.current);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // ── Near-end prefetch trigger (1-2 posts away) ─────────────────────────
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) fetchNextPage();
+      },
+      { root: null, rootMargin: '0px', threshold: 0.25 }
+    );
+    if (prefetchTriggerRef.current) observer.observe(prefetchTriggerRef.current);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // ── Scroll progress prefetch guard (70-80% scroll) ──────────────────────
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    const handleScroll = () => {
+      if (scrollTimeoutRef.current) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        const scrollTop = window.scrollY || window.pageYOffset;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = window.innerHeight;
+        if (!scrollHeight) return;
+        const progress = (scrollTop + clientHeight) / scrollHeight;
+        if (progress >= 0.75) {
+          fetchNextPage();
+        }
+      }, 120);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      if (scrollTimeoutRef.current) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // ── Guarantee enough page content when screen is short ─────────────────
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    if (typeof window === 'undefined') return;
+    if (document.documentElement.scrollHeight <= window.innerHeight * 1.1) {
+      fetchNextPage();
+    }
+  }, [allPosts, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   // ── Fetch ads (one-shot, independent of feed type) ────────────────────
   useEffect(() => {
@@ -576,9 +631,14 @@ const Feed = () => {
                 const shouldShowAd = ads.length > 0 && index > 0 && index % 6 === 0;
                 const adIndex = Math.floor(index / 6) % ads.length;
                 const ad = shouldShowAd ? ads[adIndex] : null;
+                const prefetchIndex = allPosts.length >= 4 ? allPosts.length - 4 : -1;
 
                 return (
-                  <div key={post._id} className="relative">
+                  <div
+                    key={post._id}
+                    ref={index === prefetchIndex ? prefetchTriggerRef : null}
+                    className="relative"
+                  >
                     {/* Mentor Swiper — lead the feed, compact (Study only, index 0) */}
                     {index === 0 && !tagFilter && !isMasti && (
                       <div className="mb-2">
@@ -591,6 +651,7 @@ const Feed = () => {
                         post={post}
                         onPostUpdate={updatePostInFeed}
                         isMastiMode={isMasti}
+                        compact
                       />
                     </PostViewTracker>
 

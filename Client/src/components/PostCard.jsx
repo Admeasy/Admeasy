@@ -52,8 +52,8 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
 
   const isAuthed = Boolean(user || mentor);
   const [showShareModal, setShowShareModal] = useState(false);
-  const scrollRef = useRef(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageFits, setImageFits] = useState({});
+  const [imageMetrics, setImageMetrics] = useState({});
 
   // Read More State
   const [isExpanded, setIsExpanded] = useState(false);
@@ -65,6 +65,11 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
   // SINGLE SOURCE OF TRUTH
   const [postState, setPostState] = useState(post);
   const hasImages = (postState.images?.length > 0) || (post.images?.length > 0) || !!postState.image || !!post.image;
+
+  useEffect(() => {
+    setImageFits({});
+    setImageMetrics({});
+  }, [postState.images, post.images]);
 
   // Calculate processed and truncated content
   const processedContent = useMemo(
@@ -721,7 +726,7 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
           </div>
         )}
 
-        {/* Multi-Image Carousel */}
+        {/* Feed-style media preview */}
         {(() => {
           const images = (postState.images || post.images || []).filter(img => !!img);
           if (images.length === 0 && (postState.image || post.image)) {
@@ -729,72 +734,87 @@ const PostCard = ({ post, onPostUpdate, isMastiMode, compact }) => {
           }
           if (images.length === 0) return null;
 
-          const handleScroll = (e) => {
-            const element = e.target;
-            const index = Math.round(element.scrollLeft / element.clientWidth);
-            setCurrentImageIndex(index);
-          };
-
-          const scroll = (direction) => {
-            if (!scrollRef.current) return;
-            const scrollAmount = scrollRef.current.clientWidth;
-            scrollRef.current.scrollBy({
-              left: direction === "left" ? -scrollAmount : scrollAmount,
-              behavior: "smooth",
-            });
-          };
+          const visibleImages = images.slice(0, 4);
+          const extraImages = images.length - visibleImages.length;
+          const isSingleImage = visibleImages.length === 1;
+          const gridCols = visibleImages.length === 1 ? "grid-cols-1" : "grid-cols-2";
+          const gridRows = visibleImages.length > 2 ? "grid-rows-2" : "grid-rows-1";
+          const containerHeight = compact ? "h-[240px] sm:h-[280px] md:h-[320px] lg:h-[360px] xl:h-[400px]" : "h-[260px] sm:h-[300px] md:h-[340px] lg:h-[380px] xl:h-[420px]";
+          const singleAspect = imageMetrics[0]?.aspect || 1.0;
+          const singleMaxWidth = isSingleImage
+            ? singleAspect < 0.85
+              ? 520
+              : singleAspect <= 1.15
+                ? 620
+                : 900
+            : undefined;
 
           return (
-            <div className="relative w-full overflow-hidden bg-gray-50/50 group/image">
-              <div
-                ref={scrollRef}
-                onScroll={handleScroll}
-                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth hide-scrollbar"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {images.map((imgUrl, idx) => (
-                  <div key={idx} className={`relative shrink-0 snap-center w-full ${compact ? "aspect-video" : "max-h-[250px] sm:max-h-[500px]"}`} style={{ display: "flex", justifyContent: "center" }}>
-                    <motion.img
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.4 }}
-                      src={imgUrl}
-                      alt={`Post Image ${idx + 1}`}
-                      className="w-full h-full object-cover cursor-zoom-in"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFullscreenImageUrl(imgUrl);
-                      }}
-                      loading="lazy"
-                      onDoubleClick={(e) => {
-                        e.stopPropagation();
-                        handleLike(e);
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
+            <div
+              className={`relative w-full overflow-hidden rounded-3xl bg-slate-100/70 border border-slate-200 ${containerHeight} ${isSingleImage ? 'mx-auto' : ''}`}
+              style={isSingleImage ? { maxWidth: singleMaxWidth, width: '100%' } : undefined}
+            >
+              <div className={`grid h-full w-full ${gridCols} ${gridRows} gap-1`}>
+                {visibleImages.map((imgUrl, idx) => {
+                  const isBottomFull = visibleImages.length === 3 && idx === 2;
+                  const currentFit = imageFits[idx] || "contain";
+                  return (
+                    <div
+                      key={idx}
+                      className={`relative overflow-hidden rounded-3xl bg-slate-100 ${isBottomFull ? "col-span-2" : ""}`}
+                    >
+                      <motion.img
+    whileHover={{ scale: currentFit === "cover" ? 1.02 : 1 }}
+    transition={{ duration: 0.3 }}
+    src={imgUrl}
+    alt={`Post Image ${idx + 1}`}
+    className={`
+      w-full h-full rounded-3xl
+      cursor-zoom-in
+      transition-all duration-300
+      
+      ${
+        currentFit === "contain"
+          ? "object-contain bg-slate-100"
+          : "object-cover"
+      }
+    `}
+    onLoad={(e) => {
+      const { naturalWidth, naturalHeight } = e.target;
+      const aspect = naturalWidth / naturalHeight;
+      const fit = aspect > 1.45 ? "cover" : "contain";
 
-              {images.length > 1 && (
-                <>
-                  <div className="absolute top-3 right-3 bg-black/60 text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none backdrop-blur-sm shadow-md z-20">
-                    {currentImageIndex + 1}/{images.length}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); scroll("left"); }}
-                    className={`absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm text-gray-800 shadow-lg transition-all hover:bg-white z-20 ${currentImageIndex === 0 ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); scroll("right"); }}
-                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm text-gray-800 shadow-lg transition-all hover:bg-white z-20 ${currentImageIndex === images.length - 1 ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </>
-              )}
+      setImageFits((prev) => ({
+        ...prev,
+        [idx]: fit,
+      }));
+      setImageMetrics((prev) => ({
+        ...prev,
+        [idx]: { aspect },
+      }));
+    }}
+    onClick={(e) => {
+      e.stopPropagation();
+      setFullscreenImageUrl(imgUrl);
+    }}
+    loading="lazy"
+    onDoubleClick={(e) => {
+      e.stopPropagation();
+      handleLike(e);
+    }}
+  />
+
+  {idx === 3 && extraImages > 0 && (
+    <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-3xl">
+      <span className="text-white text-2xl font-bold">
+        +{extraImages}
+      </span>
+    </div>
+  )}
+</div>
+                  );
+                })}
+              </div>
 
               <AnimatePresence>
                 {showLikeAnimation && (
