@@ -302,12 +302,12 @@ async function getUserForRanking(req) {
       const mentor = await Mentor.findById(decoded.id || decoded._id)
         .select('following reposts _id competitiveExamsCleared')
         .lean();
-      return mentor || null;
+      return mentor ? { ...mentor, role: 'mentor' } : null;
     } else {
       const user = await User.findById(decoded.id || decoded._id)
         .select('following reposts _id examsPreparingFor class board educationType stream')
         .lean();
-      return user || null;
+      return user ? { ...user, role: 'user' } : null;
     }
   } catch (err) {
     if (process.env.NODE_ENV === 'development') {
