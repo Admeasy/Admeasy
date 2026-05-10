@@ -187,6 +187,16 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+
+  // Inactivity notification fields
+  lastActive: {
+    type: Date,
+    default: Date.now,
+  },
+  lastNotifiedMilestone: {
+    type: Number,
+    default: 0, // 0, 7, 15, 30
+  },
 });
 
 // Replace the pre-save hook with this:

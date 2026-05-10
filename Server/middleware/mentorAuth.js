@@ -26,6 +26,18 @@ async function authenticateMentorJWT(req, res, next) {
         }
 
         req.mentor = mentor;
+        
+        // Track activity (Asynchronous to not block the request)
+        Mentor.updateOne(
+            { _id: mentor._id },
+            { 
+                $set: { 
+                    lastActive: new Date(), 
+                    lastNotifiedMilestone: 0 // Reset milestone as they are active
+                } 
+            }
+        ).catch(err => console.error('Error tracking activity in mentorAuth:', err));
+
         next();
 
     } catch (err) {

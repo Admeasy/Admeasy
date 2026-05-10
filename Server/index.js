@@ -41,7 +41,8 @@ const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
 const redis = require('./config/redis');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
-const buildFeedCache = require('./jobs/feedCache.job')
+const buildFeedCache = require('./jobs/feedCache.job');
+const { startInactiveUserNotifierCron } = require('./cron/inactiveUserNotifier');
 const app = express();
 const limits = require("./config/rateLimits")
 const server = http.createServer(app);
@@ -1002,5 +1003,8 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT} with Socket.io`)
 
   buildFeedCache()
-  setInterval(buildFeedCache,30000)
+  setInterval(buildFeedCache, 30000)
+  
+  // Start inactive user and mentor notifier cron job
+  startInactiveUserNotifierCron();
 });

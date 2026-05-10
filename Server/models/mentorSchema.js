@@ -97,6 +97,15 @@ const Schema = new mongoose.Schema({
     },
     resetPasswordExpire: {
         type: Date
+    },
+    // Inactivity notification fields
+    lastActive: {
+        type: Date,
+        default: Date.now,
+    },
+    lastNotifiedMilestone: {
+        type: Number,
+        default: 0, // 0, 7, 15, 30
     }
 });
 

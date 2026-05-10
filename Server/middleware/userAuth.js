@@ -48,6 +48,18 @@ async function authenticateJWT(req, res, next) {
         }
 
         req.user = user;
+        
+        // Track activity (Asynchronous to not block the request)
+        User.updateOne(
+            { _id: user._id },
+            { 
+                $set: { 
+                    lastActive: new Date(), 
+                    lastNotifiedMilestone: 0 // Reset milestone as they are active
+                } 
+            }
+        ).catch(err => console.error('Error tracking activity in userAuth:', err));
+
         next();
     } catch (err) {
         return res.status(401).json({ success: false, message: 'Invalid or expired token' });

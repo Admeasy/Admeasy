@@ -901,6 +901,17 @@ router.get("/me", limits.normal, async (req, res) => {
     // Process the user's image (handle Google URLs vs Backblaze files)
     const processedUser = await processUserImage(user);
 
+    // Track activity (Asynchronous to not block the request)
+    User.updateOne(
+      { _id: user._id },
+      { 
+        $set: { 
+          lastActive: new Date(), 
+          lastNotifiedMilestone: 0 // Reset milestone as they are active
+        } 
+      }
+    ).catch(err => console.error('Error tracking activity in /me:', err));
+
     res.json({ success: true, user: processedUser });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
