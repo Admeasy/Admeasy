@@ -1286,53 +1286,58 @@ router.get("/proxy-image", limits.high, async (req, res) => {
 });
 
 // GET AUTHORIZED IMAGE URL FOR OTHER USER (for admin/unlock functionality)
-router.get("/:userId/image", limits.normal, verifyAdminToken, async (req, res) => {
-  try {
-    const { userId } = req.params;
+router.get(
+  "/:userId/image",
+  limits.normal,
+  verifyAdminToken,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
 
-    // Find the user
-    const user = await User.findById(userId);
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
-
-    if (!user.image) {
-      return res.json(null);
-    }
-
-    // Check if it's a Google URL (contains googleusercontent.com)
-    if (user.image.includes("googleusercontent.com")) {
-      // Return proxy URL to avoid rate limiting
-      return res.json(
-        `/api/users/proxy-image?url=${encodeURIComponent(user.image)}`,
-      );
-    } else if (user.image.includes("cloudinary.com")) {
-      // It's a Cloudinary URL, return as-is (already public)
-      return res.json(user.image);
-    } else {
-      // It's a Backblaze file, get authorized URL (for backward compatibility)
-      try {
-        const files = await b2.listFiles(user.image);
-        if (!files || files.length === 0) {
-          return res.json(null);
-        }
-        const fileName = files[0].fileName;
-        const auth = await b2.getDownloadAuthorization(fileName);
-        res.json(auth.url);
-      } catch (err) {
-        console.error("Error getting Backblaze authorization:", err);
-        res
-          .status(500)
-          .json({ success: false, message: "Error retrieving image" });
+      // Find the user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
       }
+
+      if (!user.image) {
+        return res.json(null);
+      }
+
+      // Check if it's a Google URL (contains googleusercontent.com)
+      if (user.image.includes("googleusercontent.com")) {
+        // Return proxy URL to avoid rate limiting
+        return res.json(
+          `/api/users/proxy-image?url=${encodeURIComponent(user.image)}`,
+        );
+      } else if (user.image.includes("cloudinary.com")) {
+        // It's a Cloudinary URL, return as-is (already public)
+        return res.json(user.image);
+      } else {
+        // It's a Backblaze file, get authorized URL (for backward compatibility)
+        try {
+          const files = await b2.listFiles(user.image);
+          if (!files || files.length === 0) {
+            return res.json(null);
+          }
+          const fileName = files[0].fileName;
+          const auth = await b2.getDownloadAuthorization(fileName);
+          res.json(auth.url);
+        } catch (err) {
+          console.error("Error getting Backblaze authorization:", err);
+          res
+            .status(500)
+            .json({ success: false, message: "Error retrieving image" });
+        }
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ success: false, message: err.message });
     }
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+  },
+);
 
 router.delete(
   "/:userId",
@@ -1419,50 +1424,55 @@ router.post("/forgot-password", limits.strict, forgotPassword);
 router.post("/reset-password/:token", limits.strict, resetPassword);
 
 // JOIN SCHOOL (user provides schoolCode)
-router.post("/join-school", limits.normal, authenticateRequired, async (req, res) => {
-  try {
-    const { schoolCode } = req.body;
-    if (!schoolCode || !schoolCode.trim()) {
+router.post(
+  "/join-school",
+  limits.normal,
+  authenticateRequired,
+  async (req, res) => {
+    try {
+      const { schoolCode } = req.body;
+      if (!schoolCode || !schoolCode.trim()) {
+        return res
+          .status(400)
+          .json({ success: false, message: "School code is required" });
+      }
+      const School = require("../models/schoolSchema");
+      const UserProfile = require("../models/userProfileSchema");
+      const code = schoolCode.trim().toUpperCase();
+      const school = await School.findOne({ schoolCode: code })
+        .select("_id schoolName")
+        .lean();
+      if (!school) {
+        return res
+          .status(404)
+          .json({ success: false, message: "School not found" });
+      }
+      const userId = req.user._id;
+      let profile = await UserProfile.findOne({ userId });
+      if (!profile) {
+        profile = new UserProfile({ userId });
+      }
+      profile.schoolId = school._id;
+      profile.schoolName = school.schoolName;
+      profile.schoolRole = "student";
+      await profile.save();
+      return res.json({
+        success: true,
+        message: "Joined school successfully",
+        school: {
+          _id: school._id,
+          schoolName: school.schoolName,
+          schoolCode: code,
+        },
+      });
+    } catch (err) {
+      console.error("join-school error:", err);
       return res
-        .status(400)
-        .json({ success: false, message: "School code is required" });
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
     }
-    const School = require("../models/schoolSchema");
-    const UserProfile = require("../models/userProfileSchema");
-    const code = schoolCode.trim().toUpperCase();
-    const school = await School.findOne({ schoolCode: code })
-      .select("_id schoolName")
-      .lean();
-    if (!school) {
-      return res
-        .status(404)
-        .json({ success: false, message: "School not found" });
-    }
-    const userId = req.user._id;
-    let profile = await UserProfile.findOne({ userId });
-    if (!profile) {
-      profile = new UserProfile({ userId });
-    }
-    profile.schoolId = school._id;
-    profile.schoolName = school.schoolName;
-    profile.schoolRole = "student";
-    await profile.save();
-    return res.json({
-      success: true,
-      message: "Joined school successfully",
-      school: {
-        _id: school._id,
-        schoolName: school.schoolName,
-        schoolCode: code,
-      },
-    });
-  } catch (err) {
-    console.error("join-school error:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error" });
-  }
-});
+  },
+);
 
 // GET USER BY ID (for mentors who have chats with the user, or users viewing their own profile)
 router.get("/:userId", limits.normal, async (req, res) => {
@@ -1697,6 +1707,12 @@ router.post("/:targetId/follow", limits.normal, async (req, res) => {
           console.error("Error sending follow notification:", notifyError);
         }
       })();
+
+      // Track follow for suggestion funnel (only student following a mentor)
+      if (followerType === "user" && targetType === "mentor") {
+        const { trackFollowed } = require("../utils/suggestionFunnel");
+        trackFollowed(follower._id, target._id);
+      }
 
       return res.json({
         success: true,

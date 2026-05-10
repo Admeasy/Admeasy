@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "30534383626",
+    "project_id": "admeasy",
+    "storage_bucket": "admeasy.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30534383626:android:debug",
+        "android_client_info": {
+          "package_name": "in.admeasy.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "30534383626-qqo5jaejamspravl66odf2m4i5aejtf9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.admeasy.app",
+            "certificate_hash": "6c2254e17a4f3463155e0910348daedd5ea84227"
+          }
+        },
+        {
+          "client_id": "131243298453-f8l1eud7gadl0mgap85smr5le64g7k95.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "131243298453-f8l1eud7gadl0mgap85smr5le64g7k95.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

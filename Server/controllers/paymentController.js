@@ -13,6 +13,7 @@ const {
   coinsToRupees,
   rupeesToCoins,
 } = require("../utils/coinHelper");
+const { trackSubscribed } = require("../utils/suggestionFunnel");
 
 let razorpay = null;
 const razorpayKeysPresent =
@@ -686,6 +687,30 @@ exports.verifySubscriptionPayment = async (req, res) => {
       endDate,
       payment: payment._id,
     });
+
+    // Log student_subscribed on the mentor's activity log (fire-and-forget)
+    if (payment.mentor) {
+      const { logMentorActivity } = require("../utils/logMentorActivity");
+      logMentorActivity(payment.mentor, "student_subscribed", {
+        userId,
+        planId: payment.subscriptionPlan,
+        billingPeriod: payment.billingPeriod,
+        subscriptionId: subscription._id,
+      });
+
+      // Also keep lastActiveAt fresh (a subscription is a strong signal of mentor activity)
+      const MentorModel = require("../models/mentorSchema");
+      MentorModel.findByIdAndUpdate(payment.mentor, {
+        lastActiveAt: new Date(),
+      }).catch((err) =>
+        console.error(
+          "[verifySubscriptionPayment] lastActiveAt update failed:",
+          err,
+        ),
+      );
+    }
+
+    trackSubscribed(userId, payment.mentor);
 
     return res.json({
       success: true,

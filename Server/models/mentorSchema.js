@@ -1,103 +1,148 @@
-const mongoose = require('mongoose');
-const { Admeasy } = require('../db');
+const mongoose = require("mongoose");
+const { Admeasy } = require("../db");
 
 const Schema = new mongoose.Schema({
-    image: {
-        type: String,
-    },
+  image: {
+    type: String,
+  },
+  name: {
+    type: String,
+    trim: true,
+  },
+  username: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true, // Allows multiple null values
+  },
+  email: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  password: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  phone: {
+    type: Number,
+    trim: true,
+  },
+  dateOfBirth: {
+    type: Date,
+  },
+  college: {
     name: {
-        type: String,
-        trim: true
+      type: String,
+      trim: true,
     },
-    username: {
+    id: {
+      type: String,
+      trim: true,
+    },
+  },
+  course: {
+    name: {
+      type: String,
+      trim: true,
+    },
+    id: {
+      type: String,
+      trim: true,
+    },
+  },
+  tagline: {
+    type: String,
+    trim: true,
+  },
+  bio: {
+    type: String,
+    trim: true,
+  },
+
+  //suggestion fields
+  stream: {
+    type: String,
+    default: null,
+  },
+
+  examsCoaching: {
+    // e.g. ["JEE", "NEET", "UPSC"]
+    type: [String],
+    default: [],
+  },
+
+  languages: {
+    // e.g. ["Hindi", "English"]
+    type: [String],
+    default: [],
+  },
+
+  city: {
+    type: String,
+    default: null,
+  },
+
+  lastActiveAt: {
+    type: Date,
+    default: null,
+  },
+
+  responseRate: {
+    // 0–100 percentage
+    type: Number,
+    min: 0,
+    max: 100,
+    default: null,
+  },
+
+  isEligibleForSuggestions: {
+    // Admin toggles this to include mentor in suggestion pool
+    type: Boolean,
+    default: false,
+  },
+  //Array of competitive exams cleared
+  competitiveExamsCleared: [
+    {
+      name: {
         type: String,
         trim: true,
-        unique: true,
-        sparse: true // Allows multiple null values
-    },
-    email: {
-        type: String,
         required: true,
-        trim: true
+      },
     },
-    password: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    phone: {
-        type: Number,
-        trim: true
-    },
-    dateOfBirth: {
-        type: Date,
-    },
-    college: {
-        name: {
-            type: String,
-            trim: true,
-        },
-        id: {
-            type: String,
-            trim: true,
-        }
-    },
-    course: {
-        name: {
-            type: String,
-            trim: true
-        },
-        id: {
-            type: String,
-            trim: true
-        }
-    },
-    tagline: {
-        type: String,
-        trim: true
-    },
-    bio: {
-        type: String,
-        trim: true
-    },
-    competitiveExamsCleared: [{
-        name: {
-            type: String,
-            trim: true,
-            required: true
-        }
-    }],
-    // Array of follower IDs (can be Users or Mentors)
-    followers: {
-        type: [mongoose.Schema.Types.ObjectId],
-        default: []
-    },
-    // Array of followed user/mentor IDs (can be Users or Mentors)
-    following: {
-        type: [mongoose.Schema.Types.ObjectId],
-        default: []
-    },
-    notesUploaded: {
-        type: String,
-        trim: true,
-    },
-    rating: {
-        type: Number,
-        default: 5.0,
-        min: 0,
-        max: 5
-    },
-    refreshToken: {
-        type: String,
-        default: null
-    },
-    resetPasswordToken: {
-        type: String,
-        trim: true
-    },
-    resetPasswordExpire: {
-        type: Date
-    }
+  ],
+  // Array of follower IDs (can be Users or Mentors)
+  followers: {
+    type: [mongoose.Schema.Types.ObjectId],
+    default: [],
+  },
+  // Array of followed user/mentor IDs (can be Users or Mentors)
+  following: {
+    type: [mongoose.Schema.Types.ObjectId],
+    default: [],
+  },
+  notesUploaded: {
+    type: String,
+    trim: true,
+  },
+  rating: {
+    type: Number,
+    default: 5.0,
+    min: 0,
+    max: 5,
+  },
+  refreshToken: {
+    type: String,
+    default: null,
+  },
+  resetPasswordToken: {
+    type: String,
+    trim: true,
+  },
+  resetPasswordExpire: {
+    type: Date,
+  },
 });
 
-module.exports = Admeasy.model('Mentor', Schema);
+module.exports = Admeasy.model("Mentor", Schema);
