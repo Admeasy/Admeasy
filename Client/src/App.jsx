@@ -60,6 +60,7 @@ import CreatePost from './Pages/CreatePost';
 import Layout from './components/Layout';
 import Explore from "./Pages/Explore";
 import VerifyEmail from './Pages/VerifyEmail';
+import CuetCalculator from './Pages/CuetCalculator';
 import { enableNotifications } from './Firebase/enableNotifications';
 import { onMessage } from 'firebase/messaging';
 import { messaging } from './Firebase/Firebase';
@@ -244,6 +245,7 @@ function App() {
     "/signup",
     "/policies",
     "/t&c",
+    "/cuet-calculator",
   ];
 
   const layoutRoutes = [
@@ -263,6 +265,7 @@ function App() {
     '/mentor/chats',
     '/mentor/leaderboard',
     '/posts',
+    '/cuet-calculator',
   ];
 
   const usesLayout = layoutRoutes.some((path) => {
@@ -340,6 +343,7 @@ function App() {
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/colleges/:id" element={<CollegeDetailed />} />
           <Route path="/colleges/:collegeId/courses/:courseId" element={<Course />} />
+          <Route path="/cuet-calculator" element={<CuetCalculator />} />
 
           <Route path="/me" element={<ProtectedRoute user={user || mentor}><Profile /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute user={user || mentor}><Notification /></ProtectedRoute>} />

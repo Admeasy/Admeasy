@@ -39,6 +39,7 @@ const TeacherRoutes = require('./routes/teacherRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const User = require('./models/userSchema');
 const Mentor = require('./models/mentorSchema');
+const cuetRoute= require('./routes/cuet')
 const redis = require('./config/redis');
 const { ensureMasterTagsSeeded } = require('./services/interactionTrackingService');
 const buildFeedCache = require('./jobs/feedCache.job')
@@ -48,6 +49,7 @@ const server = http.createServer(app);
 const {rateLimiter} = require('./middleware/rateLimiter')
 const allowedOrigins = [
   'https://admeasy.in',
+  'https://ai.admeasy.in',
   'https://development.admeasy.in',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -84,6 +86,7 @@ if (Admeasy.readyState === 1) {
 app.use(cors({
   origin: [
     "http://localhost:5173",
+    'https://ai.admeasy.in',
     "https://admeasy.in",
     "https://www.admeasy.in",
     "https://development.admeasy.in",
@@ -382,6 +385,7 @@ app.use('/api', ChatRoutes);
 app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', PostRoutes);
 app.use("/api", SearchRoutes);
+app.use("/api/cuet",cuetRoute)
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
 app.use('/api/subscriptions', SubscriptionRoutes);
 app.use('/api/notifications', NotificationRoutes);
