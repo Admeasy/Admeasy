@@ -27,6 +27,18 @@ const CollegesSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  slug: {
+    type: String,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    index: true
+  },
+  university: {
+   type: String,
+   trim: true,
+   index: true
+},
   rating: {
     overall: {
       type: Number,

@@ -1,12 +1,11 @@
-import { useEffect } from'react';
-import { useLocation } from'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
- const pathname = useLocation();
- const location = useLocation()
+ const location = useLocation();
  useEffect(() => {
- window.scrollTo(0, 0);
- }, [pathname]);
+   window.scrollTo(0, 0);
+ }, [location.pathname]);
 
  useEffect(() => {
  if (location.hash) {
@@ -72,6 +71,22 @@ const PrivacyPolicy = () => {
  <li>Customer support and communication</li>
  <li><strong>We do not sell, rent, or share your data</strong> with third parties.</li>
  </ul>
+ </section>
+
+ <section className="mb-8">
+ <h3 className="text-2xl font-admeasy-extrabold mb-3">CUET Predictor & Mentorship Recommendations</h3>
+ <p className="mb-3 ml-3">
+   When you use the CUET College Predictor at <strong>/cuet-calculator</strong>, we collect only the information needed to power fit recommendations: your CUET score, category, and selected course preference.
+ </p>
+ <p className="mb-3 ml-3">
+   This data is used to generate safe, target, and dream college recommendations and to surface mentor matches related to your chosen course. We do not use your score or course selection for unsolicited marketing or sell this admissions profile data to third parties.
+ </p>
+ <p className="mb-3 ml-3">
+   If you connect with a mentor via the predictor experience, only the details you choose to share in the connection request are passed along: your name, email, score summary, and selected course. Mentor conversations are initiated only after explicit action from you.
+ </p>
+ <p className="mb-3 ml-3">
+   By using the CUET Predictor, you consent to this limited, purpose-driven use of your information as described in this policy.
+ </p>
  </section>
 
  {/* 4. Data Security */}
