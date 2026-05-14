@@ -6,6 +6,9 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
+const cuetDiscussionRoute = require(
+  "./routes/cuetDiscussion"
+);
 require('dotenv').config();
 const CollegesRoutes = require('./routes/collegeRoutes');
 const UsersRoutes = require('./routes/userRoutes');
@@ -385,7 +388,8 @@ app.use('/api', ChatRoutes);
 app.use('/api/payments', PaymentRoutes);
 app.use('/api/posts', PostRoutes);
 app.use("/api", SearchRoutes);
-app.use("/api/cuet",cuetRoute)
+app.use("/api/cuet",cuetRoute);
+app.use("/api/cuet-discussions",cuetDiscussionRoute);
 app.use('/api/subscription-plans', SubscriptionPlanRoutes);
 app.use('/api/subscriptions', SubscriptionRoutes);
 app.use('/api/notifications', NotificationRoutes);

@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import SEO from '../components/SEO';
+import {
+  buildCuetCalculatorJsonLd,
+  buildCuetProgrammaticPath,
+  CUET_CALCULATOR_CANONICAL_URL,
+  CUET_CALCULATOR_KEYWORDS,
+  CUET_CALCULATOR_META_DESCRIPTION,
+  CUET_CALCULATOR_OG_IMAGE,
+  CUET_CALCULATOR_PAGE_TITLE,
+  CUET_FAQ_ITEMS,
+  CUET_PROGRAMMATIC_ROUTE_EXAMPLES,
+} from '../seo/cuetCalculatorPage.seo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
@@ -24,6 +36,7 @@ import {
   Target,
   XCircle,
 } from 'lucide-react';
+import CuetDiscussionSection from '../components/discussion/CuetDiscussionSection';
 
 const CATEGORY_OPTIONS = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS', 'PWBD'];
 const STREAM_OPTIONS = ['Commerce', 'Science', 'Arts'];
@@ -258,12 +271,25 @@ const CollegeCard = ({ college }) => {
   const safeCollege = college || {};
   const collegeName = safeText(safeCollege.collegeName, 'Unknown college');
   const courseLabel = safeText(safeCollege.course, 'Course not specified');
-  const cutoffValue = safeText(safeCollege.cutoff, 'N/A');
+  const cutoffMax = Number(safeCollege.cutoffMaxMarks);
+  const cutoffRaw = safeCollege.cutoff;
+  const cutoffValue =
+    Number.isFinite(cutoffMax) && cutoffMax > 0
+      ? `${safeText(cutoffRaw, 'N/A')} / ${cutoffMax}`
+      : safeText(cutoffRaw, 'N/A');
+  const parsedPctDiff = Number(safeCollege.percentageDifference);
   const parsedDifference = Number(safeCollege.difference);
-  const scoreDiff = Number.isFinite(parsedDifference)
-    ? parsedDifference
-    : Number(safeCollege.score || 0) - Number(safeCollege.cutoff || 0);
-  const deltaLabel = scoreDiff >= 0 ? `+${scoreDiff}` : `${scoreDiff}`;
+  const hasNormalized = Number.isFinite(parsedPctDiff);
+  const scoreDiff = hasNormalized
+    ? parsedPctDiff
+    : Number.isFinite(parsedDifference)
+      ? parsedDifference
+      : Number(safeCollege.score || 0) - Number(safeCollege.cutoff || 0);
+  const deltaLabel = hasNormalized
+    ? `${scoreDiff >= 0 ? '+' : ''}${scoreDiff.toFixed(2)}%`
+    : scoreDiff >= 0
+      ? `+${scoreDiff}`
+      : `${scoreDiff}`;
   const chanceLabel = safeText(safeCollege?.chance?.label || safeCollege?.chance, 'LOW').toUpperCase();
   const chanceMeta =
     chanceLabel === 'HIGH'
@@ -271,13 +297,22 @@ const CollegeCard = ({ college }) => {
       : chanceLabel === 'MEDIUM'
       ? { text: 'Possible', tone: 'bg-amber-50 text-amber-700 border-amber-200' }
       : { text: 'Reach', tone: 'bg-rose-50 text-rose-700 border-rose-200' };
-  const eligibility =
-    scoreDiff >= 0
+  const eligibility = hasNormalized
+    ? scoreDiff >= 0
+      ? { text: 'Eligible', tone: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: CheckCircle2 }
+      : scoreDiff >= -2
+        ? { text: 'Borderline', tone: 'text-amber-700 bg-amber-50 border-amber-200', icon: AlertTriangle }
+        : { text: 'Difficult', tone: 'text-rose-700 bg-rose-50 border-rose-200', icon: XCircle }
+    : scoreDiff >= 0
       ? { text: 'Eligible', tone: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: CheckCircle2 }
       : Math.abs(scoreDiff) <= 15
-      ? { text: 'Borderline', tone: 'text-amber-700 bg-amber-50 border-amber-200', icon: AlertTriangle }
-      : { text: 'Difficult', tone: 'text-rose-700 bg-rose-50 border-rose-200', icon: XCircle };
+        ? { text: 'Borderline', tone: 'text-amber-700 bg-amber-50 border-amber-200', icon: AlertTriangle }
+        : { text: 'Difficult', tone: 'text-rose-700 bg-rose-50 border-rose-200', icon: XCircle };
   const EligibilityIcon = eligibility.icon;
+  const studentPct = Number(safeCollege.studentPercentage);
+  const cutoffPct = Number(safeCollege.cutoffPercentage);
+  const showPctStrip =
+    Number.isFinite(studentPct) && Number.isFinite(cutoffPct);
 
   return (
     <motion.div
@@ -298,9 +333,12 @@ const CollegeCard = ({ college }) => {
         <div className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
           <div className="font-medium text-slate-500"> Cutoff</div>
           <div className="mt-1 text-sm font-semibold text-slate-900">{cutoffValue}</div>
+          {showPctStrip ? (
+            <div className="mt-1 text-[11px] text-slate-500">Cutoff {cutoffPct.toFixed(2)}% of total</div>
+          ) : null}
         </div>
         <div className="rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          <div className="font-medium text-slate-500">📈 Difference</div>
+          <div className="font-medium text-slate-500">{hasNormalized ? '📈 vs cutoff (% pts)' : '📈 Difference'}</div>
           <div className={`mt-1 text-sm font-semibold ${scoreDiff >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
             {deltaLabel}
           </div>
@@ -311,6 +349,9 @@ const CollegeCard = ({ college }) => {
             <EligibilityIcon className="h-4 w-4" />
             {eligibility.text}
           </div>
+          {showPctStrip && Number.isFinite(studentPct) ? (
+            <div className="mt-1.5 text-[11px] font-normal opacity-90">Your score ≈ {studentPct.toFixed(2)}% (normalized)</div>
+          ) : null}
         </div>
       </div>
     </motion.div>
@@ -631,8 +672,12 @@ const MentorCard = ({ mentor, onConnect }) => {
               e.currentTarget.src = fallbackImage;
             }}
             alt={name}
+            width={64}
+            height={64}
             className="h-full w-full object-cover"
             loading="lazy"
+            decoding="async"
+            fetchPriority="low"
           />
         </div>
 
@@ -685,6 +730,7 @@ const MentorCard = ({ mentor, onConnect }) => {
 
 const PredictionForm = ({
   score,
+  maxMarksTotal,
   category,
   stream,
   selectedCourse,
@@ -721,14 +767,14 @@ const PredictionForm = ({
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-slate-700">
-          CUET Score
+          CUET Score (raw marks)
           <input
             type="number"
             min={0}
-            max={800}
+            max={Number(maxMarksTotal) > 0 ? Number(maxMarksTotal) : 800}
             value={score}
             onChange={(e) => onFieldChange('score', e.target.value)}
-            placeholder="0 - 800"
+            placeholder={`0 – ${Number(maxMarksTotal) > 0 ? maxMarksTotal : 800}`}
             className={fieldClass}
           />
         </label>
@@ -746,6 +792,21 @@ const PredictionForm = ({
           </select>
         </label>
       </div>
+
+      <label className="flex flex-col space-y-2 text-sm font-medium text-slate-700">
+        <span>Total marks (your exam scale)</span>
+        <select
+          value={maxMarksTotal}
+          onChange={(e) => onFieldChange('maxMarksTotal', e.target.value)}
+          className={fieldClass}
+        >
+          <option value="800">800 (legacy CUET total)</option>
+          <option value="1000">1000 (updated scale)</option>
+        </select>
+        <span className="text-xs font-normal text-slate-500">
+          Cutoffs are compared using percentages, so e.g. 780/800 and 975/1000 can rank fairly together.
+        </span>
+      </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
 
@@ -835,7 +896,9 @@ const ResultsPanel = ({ results, loading }) => {
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Working</p>
-            <h2 className="text-2xl font-semibold text-slate-900">Finding your best-fit colleges</h2>
+            <p role="status" className="text-2xl font-semibold text-slate-900">
+              Finding your best-fit colleges
+            </p>
           </div>
           <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700">Loading</span>
         </div>
@@ -847,7 +910,7 @@ const ResultsPanel = ({ results, loading }) => {
   if (!results) {
     return (
       <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Results will appear here</h2>
+        <p className="text-xl font-semibold text-slate-900">Results will appear here</p>
         <p className="mt-2 text-sm text-slate-500">Submit the form above to see a concise college recommendation breakdown.</p>
       </div>
     );
@@ -860,9 +923,23 @@ const ResultsPanel = ({ results, loading }) => {
   };
 
   const totalCount = safeResults.safe.length + safeResults.target.length + safeResults.dream.length;
+  const summaryPct = results?.studentPercentage;
+  const summaryMax = results?.maxMarks;
+  const usedDefaultMax = results?.maxMarksWasDefaulted;
 
   return (
     <div className="space-y-5">
+      {Number.isFinite(Number(summaryPct)) && Number(summaryMax) > 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <span className="font-semibold text-slate-900">Your normalized performance:</span>{' '}
+          {Number(summaryPct).toFixed(2)}% of {summaryMax} total marks.
+          {usedDefaultMax ? (
+            <span className="block mt-1 text-xs text-slate-500">
+              Total marks defaulted to 800; change the form if you sat the 1000-mark scale.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <div className="space-y-4">
         <ResultGroup
           title="Safe"
@@ -901,11 +978,104 @@ const ResultsPanel = ({ results, loading }) => {
   );
 };
 
+const CuetCalculatorFaqSection = () => (
+  <section
+    id="cuet-predictor-faq"
+    className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm"
+    aria-labelledby="cuet-faq-heading"
+  >
+    <h2 id="cuet-faq-heading" className="text-xl font-semibold text-slate-900 sm:text-2xl">
+      CUET college predictor — frequently asked questions
+    </h2>
+    <p className="mt-2 max-w-3xl text-sm text-slate-600">
+      Quick answers for students searching CUET cutoff predictors, DU admission chances, and how safe, target, and dream
+      colleges are decided.
+    </p>
+    <div className="mt-6 divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-slate-50/80">
+      {CUET_FAQ_ITEMS.map((item) => (
+        <details key={item.question} className="group px-4 py-3 sm:px-5">
+          <summary className="cursor-pointer list-none pr-8 text-sm font-semibold text-slate-900 marker:content-none [&::-webkit-details-marker]:hidden">
+            <span className="flex items-start justify-between gap-3">
+              <span>{item.question}</span>
+              <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" />
+            </span>
+          </summary>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.answer}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+);
+
+const CuetCalculatorGuideSection = () => (
+  <section
+    className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm [content-visibility:auto]"
+    aria-labelledby="cuet-guide-heading"
+  >
+
+      <div>
+        <h3 className="text-base font-semibold text-slate-900">Explore Admeasy next</h3>
+        <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-600">
+          <li>
+            <Link to="/colleges" className="font-medium text-[#9f3562] underline-offset-2 hover:underline">
+              DU &amp; India colleges directory
+            </Link>{' '}
+            — open a college, then browse linked{' '}
+            <span className="text-slate-800">course detail pages</span> for deeper context.
+          </li>
+          <li>
+            <Link to="/mentors" className="font-medium text-[#9f3562] underline-offset-2 hover:underline">
+              Verified admission mentors
+            </Link>{' '}
+            for stream-specific CUET and DU counselling (Commerce, Science, Arts).
+          </li>
+          <li>
+            <Link to="/" className="font-medium text-[#9f3562] underline-offset-2 hover:underline">
+              Feed &amp; Posts
+            </Link>{' '}
+            on strategy, timelines, and cutoffs.
+          </li>
+          <li>
+            <Link to="/policies" className="font-medium text-[#9f3562] underline-offset-2 hover:underline">
+              Privacy policy
+            </Link>{' '}
+            for how predictor inputs are used.
+          </li>
+        </ul>
+      </div>
+  </section>
+);
+
+const CuetProgrammaticRoutesTeaser = () => (
+  <section
+    className="rounded-[2rem] border border-dashed border-gray-200 bg-slate-50/90 p-6 shadow-sm"
+    aria-labelledby="cuet-programmatic-heading"
+  >
+    <h2 id="cuet-programmatic-heading" className="text-lg font-semibold text-slate-900">
+      Programmatic CUET landing pages (roadmap)
+    </h2>
+    <p className="mt-2 text-sm text-slate-600">
+      URL patterns reserved for future SEO pages — implement routes in <code className="rounded bg-white px-1 py-0.5 text-xs">App.jsx</code> using{' '}
+      <code className="rounded bg-white px-1 py-0.5 text-xs">buildCuetProgrammaticPath()</code> from{' '}
+      <code className="rounded bg-white px-1 py-0.5 text-xs">src/seo/cuetCalculatorPage.seo.js</code>.
+    </p>
+    <ul className="mt-4 space-y-2 font-mono text-xs text-slate-700 sm:text-sm">
+      {CUET_PROGRAMMATIC_ROUTE_EXAMPLES.map((ex) => (
+        <li key={ex.slug}>
+          <span className="text-slate-500">{buildCuetProgrammaticPath(ex.slug)}</span>
+          <span className="ml-2 text-slate-400">— {ex.label}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+);
+
 const CuetCalculatorPage = () => {
   const navigate = useNavigate();
   const swiperPrevRef = useRef(null);
   const swiperNextRef = useRef(null);
   const [score, setScore] = useState('720');
+  const [maxMarksTotal, setMaxMarksTotal] = useState('800');
   const [category, setCategory] = useState('GENERAL');
   const [stream, setStream] = useState('');
   const [courses, setCourses] = useState([]);
@@ -1006,12 +1176,13 @@ const CuetCalculatorPage = () => {
     setFormError('');
 
     const numericScore = Number(score);
+    const cap = Number(maxMarksTotal);
     if (!selectedCourse?.value) {
       setFormError('Please choose a course from the list.');
       return;
     }
-    if (!numericScore || numericScore < 0 || numericScore > 800) {
-      setFormError('Enter a valid CUET score between 0 and 800.');
+    if (!Number.isFinite(numericScore) || numericScore < 0 || !Number.isFinite(cap) || cap <= 0 || numericScore > cap) {
+      setFormError(`Enter a valid CUET score between 0 and ${Number.isFinite(cap) && cap > 0 ? cap : 800} for the selected total marks.`);
       return;
     }
 
@@ -1021,8 +1192,10 @@ const CuetCalculatorPage = () => {
     try {
       const response = await axios.post('/api/cuet/predict', {
         score: numericScore,
+        maxMarks: cap,
         category,
         course: selectedCourse.value,
+        ...(stream ? { stream } : {}),
       });
 
       const payload = response.data;
@@ -1031,16 +1204,34 @@ const CuetCalculatorPage = () => {
       }
 
       setResults({
+        studentPercentage: payload.filters?.studentPercentage,
+        maxMarks: payload.filters?.maxMarks,
+        maxMarksWasDefaulted: payload.filters?.maxMarksWasDefaulted,
         safe: Array.isArray(payload.recommendations.safe) ? payload.recommendations.safe : [],
         target: Array.isArray(payload.recommendations.target) ? payload.recommendations.target : [],
         dream: Array.isArray(payload.recommendations.dream) ? payload.recommendations.dream : [],
       });
+
+      // Smooth-scroll to the results section so the user sees the recommendations
+      setTimeout(() => {
+        try {
+          const el = document.getElementById('cuet-results-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {}
+      }, 80);
     } catch (error) {
       console.error('Prediction error:', error);
       setFormError(
         error?.response?.data?.message ||
           'Prediction service is unavailable. Please try again in a moment.',
       );
+      // Scroll to results area to surface the error message
+      setTimeout(() => {
+        try {
+          const el = document.getElementById('cuet-results-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (e) {}
+      }, 80);
     } finally {
       setIsPredicting(false);
     }
@@ -1085,24 +1276,67 @@ const CuetCalculatorPage = () => {
   }, [mentors, selectedCourse, stream]);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-slate-900">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <span className="inline-block rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-[#9f3562] border border-pink-100 mb-3">
-            CUET 2026
-          </span>
-          <h1 className="text-2xl font-semibold text-slate-900 mb-2">
-            Predict your best-fit DU colleges
-          </h1>
-          <p className="text-sm text-slate-600">
-            Previous year cutoff analysis powered by Admeasy.
-          </p>
-        </section>
+    <>
+      <SEO
+        title={CUET_CALCULATOR_PAGE_TITLE}
+        description={CUET_CALCULATOR_META_DESCRIPTION}
+        keywords={CUET_CALCULATOR_KEYWORDS}
+        image={CUET_CALCULATOR_OG_IMAGE}
+        canonicalUrl={CUET_CALCULATOR_CANONICAL_URL}
+        jsonLd={buildCuetCalculatorJsonLd()}
+        type="website"
+      />
+      <div className="min-h-screen bg-gray-50 text-slate-900">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <header className="rounded-2xl border border-transparent bg-white/60 p-5 sm:p-6 shadow-sm">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between gap-4">
+              <span className="inline-flex items-center gap-2 rounded-full bg-pink-50/60 px-3 py-1 text-xs font-semibold text-[#9f3562]">
+                DU-focused CUET predictor
+              </span>
+            </div>
 
-        <div className="mt-6 space-y-6">
-          <section className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm">
+            <h1 className="mt-4 text-2xl font-semibold text-slate-900 leading-tight sm:text-3xl">
+              Predict your best-fit DU colleges
+            </h1>
+
+            <p className="mt-2 text-sm text-slate-600 max-w-2xl">
+              Estimate safe, target, and dream colleges using previous year CUET cutoff trends.
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Updated CUET data
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1">
+                <HiLightBulb className="h-4 w-4 text-amber-600" />
+                Smart normalization
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1">
+                <ShieldCheck className="h-4 w-4 text-sky-600" />
+                DU-focused insights
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main id="cuet-calculator-main" className="mt-6 space-y-6">
+          <section
+            className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm"
+            aria-labelledby="cuet-form-heading"
+          >
+            <h2 id="cuet-form-heading" className="text-lg font-semibold text-slate-900">
+              CUET score calculator &amp; college planner
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Same tool powers “CUET marks vs college” and “DU college predictor” intent — adjust total marks if you
+              used the 1000-scale exam.
+            </p>
+            <div className="mt-5">
             <PredictionForm
               score={score}
+              maxMarksTotal={maxMarksTotal}
               category={category}
               stream={stream}
               selectedCourse={selectedCourse}
@@ -1113,6 +1347,7 @@ const CuetCalculatorPage = () => {
               formError={formError}
               onFieldChange={(field, value) => {
                 if (field === 'score') setScore(value);
+                if (field === 'maxMarksTotal') setMaxMarksTotal(value);
                 if (field === 'courseQuery') {
                   setCourseQuery(value);
                   if (!value.trim()) {
@@ -1135,32 +1370,59 @@ const CuetCalculatorPage = () => {
               onSubmit={handlePredict}
               retryCourses={fetchCourses}
             />
+            </div>
             <p className="mt-4 text-xs text-slate-500">
               By using this tool, you agree to our{' '}
-              <a href="/policies" className="font-semibold text-[#9f3562] underline">
+              <Link to="/policies" className="font-semibold text-[#9f3562] underline">
                 Privacy Policy
-              </a>.
+              </Link>
+              .
             </p>
           </section>
 
-          <section className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm">
+              {/* College result */}
+          <section id="cuet-results-section" className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm" aria-labelledby="cuet-results-heading">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">College results</h2>
-                <p className="mt-1 text-sm text-slate-500">Scan your best-fit options quickly.</p>
+                <h2 id="cuet-results-heading" className="text-xl font-semibold text-slate-900">
+                  College prediction results
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Safe, target, and dream DU lists — aligned with “CUET expected college” and “college predictor by CUET
+                  marks” search intent.
+                </p>
               </div>
             </div>
             <ResultsPanel results={results} loading={isPredicting} />
           </section>
 
-          <section className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-slate-900">{mentorHeading}</h2>
-              <p className="mt-2 text-sm text-slate-500">{mentorSubtitle}</p>
-            </div>
+          
+          {/* Student discussion section (anonymous, mobile-optimized) */}
+          <CuetDiscussionSection
+            selectedCourse={selectedCourse}
+            stream={stream}
+            category={category}
+            score={score}
+          />
 
+
+          {/* Mentors carousel placed above results for better flow */}
+          <section
+            className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm [content-visibility:auto]"
+            aria-labelledby="cuet-mentors-heading"
+          >
+            <div className="mb-6">
+              <h2 id="cuet-mentors-heading" className="text-2xl font-semibold text-slate-900">{mentorHeading}</h2>
+              <p className="mt-2 text-sm text-slate-500">{mentorSubtitle}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                Prefer human guidance after this <span className="font-medium text-slate-700">CUET cutoff predictor</span>?{' '}
+                <Link to="/mentors" className="font-semibold text-[#9f3562] underline">
+                  Browse all mentors
+                </Link>
+                .
+              </p>
+            </div>
             <div className="relative">
-              {/* Navigation Buttons */}
               <div className="absolute left-0 top-1/2 z-10 -translate-y-1/2 -translate-x-16 hidden lg:block">
                 <button
                   ref={swiperPrevRef}
@@ -1181,7 +1443,6 @@ const CuetCalculatorPage = () => {
                 </button>
               </div>
 
-              {/* Swiper Carousel */}
               <Swiper
                 modules={[Navigation, Pagination]}
                 spaceBetween={16}
@@ -1235,9 +1496,17 @@ const CuetCalculatorPage = () => {
               </Swiper>
             </div>
           </section>
-        </div>
+
+          <CuetCalculatorGuideSection />
+
+          {/* How it works (FAQ Section) */}
+          <CuetCalculatorFaqSection />
+
+          {/* <CuetProgrammaticRoutesTeaser /> */}
+        </main>
       </div>
     </div>
+    </>
   );
 };
 
