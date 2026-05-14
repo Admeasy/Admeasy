@@ -1,6 +1,14 @@
 const CuetCutoffs = require("../models/CuetCutoffSchema");
 
 // -----------------------------------
+// CONSTANTS
+// -----------------------------------
+
+const DEFAULT_STUDENT_MAX_MARKS = 800;
+const DEFAULT_COLLEGE_MAX_MARKS = 800;
+const MAX_MARKS_UPPER_CAP = 10000;
+
+// -----------------------------------
 // HELPERS
 // -----------------------------------
 
@@ -12,28 +20,89 @@ const sanitizeText = (text = "") => {
     .replace(/[^\w\s().,&-]/g, "");
 };
 
-const getChanceLevel = (score, cutoff) => {
+const round2 = (n) => {
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 100) / 100;
+};
 
-  const diff = score - cutoff;
-
-  if (diff >= 25) {
+/**
+ * Resolves max marks for the student's score sheet.
+ * Invalid / missing → DEFAULT_STUDENT_MAX_MARKS (legacy 800).
+ */
+const resolveStudentMaxMarks = (raw) => {
+  if (raw === undefined || raw === null || raw === "") {
     return {
-      label: "HIGH",
-      color: "green"
+      value: DEFAULT_STUDENT_MAX_MARKS,
+      usedFallback: true,
+      invalidSent: false
     };
   }
-
-  if (diff >= 5) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0 || n > MAX_MARKS_UPPER_CAP) {
     return {
-      label: "MEDIUM",
-      color: "yellow"
+      value: DEFAULT_STUDENT_MAX_MARKS,
+      usedFallback: true,
+      invalidSent: true
     };
   }
-
   return {
-    label: "LOW",
-    color: "red"
+    value: n,
+    usedFallback: false,
+    invalidSent: false
   };
+};
+
+/**
+ * Per-cutoff max marks from DB; invalid → legacy default.
+ */
+const resolveCollegeMaxMarks = (college) => {
+  const n = Number(college?.maxMarks);
+  if (!Number.isFinite(n) || n <= 0 || n > MAX_MARKS_UPPER_CAP) {
+    return { value: DEFAULT_COLLEGE_MAX_MARKS, usedFallback: true };
+  }
+  return { value: n, usedFallback: false };
+};
+
+const toPercentage = (score, maxMarks) => {
+  if (!Number.isFinite(score) || !Number.isFinite(maxMarks) || maxMarks <= 0) {
+    return null;
+  }
+  return (score / maxMarks) * 100;
+};
+
+/**
+ * HIGH / MEDIUM / LOW from normalized margin (percentage points above cutoff).
+ */
+const getChanceLevel = (percentageDifference) => {
+  const diff = Number(percentageDifference);
+  if (!Number.isFinite(diff)) {
+    return { label: "LOW", color: "red" };
+  }
+
+  if (diff >= 3) {
+    return { label: "HIGH", color: "green" };
+  }
+
+  if (diff >= -2) {
+    return { label: "MEDIUM", color: "yellow" };
+  }
+
+  return { label: "LOW", color: "red" };
+};
+
+/**
+ * Recommendation bucket using percentage bands (not raw marks).
+ * Priority: safe → target → dream (mutually exclusive).
+ */
+const getRecommendationBucket = (studentPercent, cutoffPercent) => {
+  const sp = studentPercent;
+  const cp = cutoffPercent;
+  if (!Number.isFinite(sp) || !Number.isFinite(cp)) {
+    return "dream";
+  }
+  if (sp >= cp + 3) return "safe";
+  if (sp >= cp - 2 && sp < cp + 3) return "target";
+  return "dream";
 };
 
 // -----------------------------------
@@ -46,6 +115,7 @@ exports.predictCollege = async (req, res) => {
 
     let {
       score,
+      maxMarks: bodyMaxMarks,
       category,
       stream,
       course,
@@ -77,13 +147,22 @@ exports.predictCollege = async (req, res) => {
       });
     }
 
-    if (score < 0 || score > 800) {
+    const studentMaxMeta = resolveStudentMaxMarks(bodyMaxMarks);
+    const studentMaxMarks = studentMaxMeta.value;
+
+    if (score < 0 || score > studentMaxMarks) {
       return res.status(400).json({
         success: false,
         message:
-          "Score must be between 0 and 800"
+          `Score must be between 0 and ${studentMaxMarks}` +
+          (studentMaxMeta.usedFallback
+            ? " (max marks defaulted to 800; send a valid maxMarks if your total is different)"
+            : "")
       });
     }
+
+    const studentPercentRaw = toPercentage(score, studentMaxMarks);
+    const studentPercentage = round2(studentPercentRaw);
 
     category = sanitizeText(
       category.toUpperCase()
@@ -101,6 +180,9 @@ exports.predictCollege = async (req, res) => {
 
     console.log("Incoming Filters:", {
       score,
+      maxMarks: studentMaxMarks,
+      maxMarksFallback: studentMaxMeta.usedFallback,
+      studentPercentage,
       category,
       stream,
       course
@@ -180,25 +262,56 @@ exports.predictCollege = async (req, res) => {
     }
 
     // -----------------------------------
-    // PROCESS RESULTS
+    // PROCESS RESULTS (normalized comparison)
     // -----------------------------------
 
     const processed = colleges.map(
       (college) => {
 
-        const chance =
-          getChanceLevel(
-            score,
-            college.closingScore
-          );
+        const collegeMaxMeta = resolveCollegeMaxMarks(college);
+        const collegeMaxMarks = collegeMaxMeta.value;
 
-        const difference =
-          Number(
+        const closingRaw = Number(college.closingScore);
+        const closingScore = Number.isFinite(closingRaw) ? closingRaw : NaN;
+
+        const cutoffPercentRaw = Number.isFinite(closingScore)
+          ? toPercentage(
+            closingScore,
+            collegeMaxMarks
+          )
+          : null;
+        const cutoffPercentage = round2(cutoffPercentRaw);
+
+        let percentageDifference = null;
+        if (
+          Number.isFinite(studentPercentRaw) &&
+          Number.isFinite(cutoffPercentRaw)
+        ) {
+          percentageDifference = round2(
+            studentPercentRaw - cutoffPercentRaw
+          );
+        }
+
+        const eligible =
+          Number.isFinite(studentPercentRaw) &&
+          Number.isFinite(cutoffPercentRaw) &&
+          studentPercentRaw >= cutoffPercentRaw;
+
+        const chance = getChanceLevel(percentageDifference);
+
+        const rawMarksDifference = Number.isFinite(closingScore)
+          ? Number(
             (
               score -
-              college.closingScore
+              closingScore
             ).toFixed(2)
-          );
+          )
+          : null;
+
+        const bucket = getRecommendationBucket(
+          studentPercentRaw,
+          cutoffPercentRaw
+        );
 
         return {
 
@@ -222,18 +335,31 @@ exports.predictCollege = async (req, res) => {
           round:
             college.round,
 
+          year:
+            college.year,
+
           cutoff:
-            Number(
-              college.closingScore.toFixed(2)
-            ),
+            Number.isFinite(closingScore)
+              ? Number(closingScore.toFixed(2))
+              : null,
 
-          difference,
+          cutoffMaxMarks: collegeMaxMarks,
 
-          eligible:
-            score >=
-            college.closingScore,
+          studentMaxMarks,
 
-          chance
+          studentPercentage,
+
+          cutoffPercentage,
+
+          percentageDifference,
+
+          difference: rawMarksDifference,
+
+          eligible,
+
+          chance,
+
+          _recommendationBucket: bucket
 
         };
 
@@ -246,7 +372,7 @@ exports.predictCollege = async (req, res) => {
 
     processed.sort((a, b) => {
 
-      // Eligible colleges first
+      // Eligible colleges first (normalized)
       if (
         a.eligible &&
         !b.eligible
@@ -257,16 +383,19 @@ exports.predictCollege = async (req, res) => {
         b.eligible
       ) return 1;
 
-      // Then closest cutoff
-      return (
-        Math.abs(a.difference) -
-        Math.abs(b.difference)
-      );
+      // Then closest in percentage space
+      const da = Number.isFinite(a.percentageDifference)
+        ? Math.abs(a.percentageDifference)
+        : Infinity;
+      const db = Number.isFinite(b.percentageDifference)
+        ? Math.abs(b.percentageDifference)
+        : Infinity;
+      return da - db;
 
     });
 
     // -----------------------------------
-    // SPLIT RESULTS
+    // SPLIT RESULTS (percentage-based)
     // -----------------------------------
 
     const dream = [];
@@ -275,23 +404,26 @@ exports.predictCollege = async (req, res) => {
 
     processed.forEach((college) => {
 
-      if (
-        college.chance.label === "LOW"
-      ) {
+      const bucket = college._recommendationBucket;
+
+      if (bucket === "safe") {
+        safe.push(college);
+      } else if (bucket === "target") {
+        target.push(college);
+      } else {
         dream.push(college);
       }
 
-      else if (
-        college.chance.label === "MEDIUM"
-      ) {
-        target.push(college);
-      }
-
-      else {
-        safe.push(college);
-      }
-
     });
+
+    const stripInternal = (row) => {
+      const { _recommendationBucket, ...rest } = row;
+      return rest;
+    };
+
+    const safeOut = safe.map(stripInternal);
+    const targetOut = target.map(stripInternal);
+    const dreamOut = dream.map(stripInternal);
 
     // -----------------------------------
     // RESPONSE
@@ -303,6 +435,10 @@ exports.predictCollege = async (req, res) => {
 
       filters: {
         score,
+        maxMarks: studentMaxMarks,
+        maxMarksWasDefaulted: studentMaxMeta.usedFallback,
+        maxMarksInvalidIgnored: studentMaxMeta.invalidSent,
+        studentPercentage,
         category,
         stream,
         course
@@ -312,21 +448,21 @@ exports.predictCollege = async (req, res) => {
         processed.length,
 
       breakdown: {
-        safe: safe.length,
-        target: target.length,
-        dream: dream.length
+        safe: safeOut.length,
+        target: targetOut.length,
+        dream: dreamOut.length
       },
 
       recommendations: {
 
         safe:
-          safe.slice(0, limit),
+          safeOut.slice(0, limit),
 
         target:
-          target.slice(0, limit),
+          targetOut.slice(0, limit),
 
         dream:
-          dream.slice(0, limit)
+          dreamOut.slice(0, limit)
 
       }
 

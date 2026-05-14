@@ -13,6 +13,7 @@ import axios from 'axios';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Toaster } from 'react-hot-toast';
 import {
   GOOGLE_WEB_CLIENT_ID,
   GOOGLE_ANDROID_CLIENT_ID,
@@ -89,6 +90,33 @@ createRoot(document.getElementById('root')).render(
         <UserProvider>
           <MentorProvider>
             <SocketProvider>
+              <Toaster 
+                position="top-right" 
+                reverseOrder={false}
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#fff',
+                    color: '#333',
+                    fontSize: '14px',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  },
+                  success: {
+                    style: {
+                      background: 'linear-gradient(135deg, #9f3562 0%, #b14270 100%)',
+                      color: '#fff',
+                    },
+                    icon: '✓',
+                  },
+                  error: {
+                    style: {
+                      background: '#fecaca',
+                      color: '#dc2626',
+                    },
+                  },
+                }}
+              />
               <App />
             </SocketProvider>
           </MentorProvider>
