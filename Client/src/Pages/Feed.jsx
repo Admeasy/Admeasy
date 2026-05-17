@@ -20,6 +20,7 @@ import { toast } from 'react-toastify';
 import SEO from '../components/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
 import CollegeSuggestionSwiper from '../components/CollegeSuggestionSwiper';
+import CuetPromoBanner from '../components/feed/CuetPromoBanner';
 
 // ---------------- NEW SAFE COLLEGE SWIPER ----------------
 function CollegeSuggestionSwiperSafe() {
@@ -497,6 +498,9 @@ const Feed = () => {
 
       <div className="flex justify-center relative z-10">
         <div className="w-full max-w-3xl px-3 sm:px-4 py-2 sm:pt-2 sm:pb-6">
+          <div className="mb-4">
+            <CuetPromoBanner />
+          </div>
 
           {/* ── Header ─────────────────────────────────────────────────────────── */}
           <div className="mb-6 sm:mb-8 mt-0">

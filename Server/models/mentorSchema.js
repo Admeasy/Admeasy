@@ -32,6 +32,10 @@ const Schema = new mongoose.Schema({
     dateOfBirth: {
         type: Date,
     },
+    univeristy:{
+    type:String,
+    trim: true
+    },
     college: {
         name: {
             type: String,
