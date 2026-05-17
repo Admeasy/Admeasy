@@ -234,7 +234,7 @@ const CuetDiscussionSection = ({ selectedCourse, stream, category, score }) => {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 id="cuet-discussion-heading" className="text-lg font-semibold text-slate-900">Student Discussion</h3>
-            <p className="mt-1 text-sm text-slate-500">Discuss expected colleges, cutoffs, preferences, and CUET strategy with other aspirants.</p>
+            <p className="mt-1 text-[12px] text-slate-500">Discuss expected colleges, cutoffs, preferences, and CUET strategy with other aspirants.</p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
             <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" /> Live Discussions

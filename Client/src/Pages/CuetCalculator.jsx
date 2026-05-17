@@ -1329,10 +1329,6 @@ const CuetCalculatorPage = () => {
             <h2 id="cuet-form-heading" className="text-lg font-semibold text-slate-900">
               CUET score calculator &amp; college planner
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Same tool powers “CUET marks vs college” and “DU college predictor” intent — adjust total marks if you
-              used the 1000-scale exam.
-            </p>
             <div className="mt-5">
             <PredictionForm
               score={score}
@@ -1387,10 +1383,6 @@ const CuetCalculatorPage = () => {
                 <h2 id="cuet-results-heading" className="text-xl font-semibold text-slate-900">
                   College prediction results
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Safe, target, and dream DU lists — aligned with “CUET expected college” and “college predictor by CUET
-                  marks” search intent.
-                </p>
               </div>
             </div>
             <ResultsPanel results={results} loading={isPredicting} />
@@ -1414,7 +1406,7 @@ const CuetCalculatorPage = () => {
             <div className="mb-6">
               <h2 id="cuet-mentors-heading" className="text-2xl font-semibold text-slate-900">{mentorHeading}</h2>
               <p className="mt-2 text-sm text-slate-500">{mentorSubtitle}</p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-[12px] text-slate-500">
                 Prefer human guidance after this <span className="font-medium text-slate-700">CUET cutoff predictor</span>?{' '}
                 <Link to="/mentors" className="font-semibold text-[#9f3562] underline">
                   Browse all mentors
