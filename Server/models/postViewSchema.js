@@ -38,6 +38,14 @@ const postViewSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    lastSeenAt: {
+      type: Date,
+      default: null,
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
     viewDuration: {
       type: Number, // milliseconds
       default: 0,
@@ -83,16 +91,26 @@ postViewSchema.methods.upgradeState = function(newState, data = {}) {
 
     if (newState === 'SEEN') {
       this.firstSeenAt = data.firstSeenAt || new Date();
+      this.lastSeenAt = data.lastSeenAt || new Date();
+      this.viewCount = (this.viewCount || 0) + 1;
       this.viewDuration = data.viewDuration || 0;
       this.viewportPercentage = data.viewportPercentage || 0;
     } else if (newState === 'ENGAGED') {
       this.engagedAt = data.engagedAt || new Date();
+      this.lastSeenAt = this.lastSeenAt || this.engagedAt;
+      this.viewCount = Math.max(this.viewCount || 0, 1);
       this.engagementType = data.engagementType || null;
       // If not already SEEN, mark as SEEN first
       if (currentOrder === 0) {
         this.firstSeenAt = this.engagedAt;
       }
     }
+  } else if (newState === 'SEEN' && currentOrder === 1) {
+    // Refresh view counters for repeated views in the same seen state
+    this.lastSeenAt = data.lastSeenAt || new Date();
+    this.viewCount = (this.viewCount || 0) + 1;
+    this.viewDuration = data.viewDuration || this.viewDuration;
+    this.viewportPercentage = data.viewportPercentage || this.viewportPercentage;
   }
 };
 

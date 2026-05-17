@@ -54,16 +54,23 @@ const trackPostView = async (req, res) => {
         userId,
         postId,
         state: 'UNSEEN',
+        viewCount: 0,
       });
     }
 
-    // Upgrade to SEEN if conditions are met and not already ENGAGED
+    // Track repeat views and enforce feed cooldown metadata
+    postView.lastSeenAt = new Date();
+    postView.viewCount = (postView.viewCount || 0) + 1;
+
     if (postView.state !== 'ENGAGED') {
       postView.upgradeState('SEEN', {
         viewDuration,
         viewportPercentage,
-        firstSeenAt: postView.firstSeenAt || new Date(),
+        lastSeenAt: postView.lastSeenAt,
+        firstSeenAt: postView.firstSeenAt || postView.lastSeenAt,
       });
+      await postView.save();
+    } else {
       await postView.save();
     }
 
@@ -115,8 +122,13 @@ const markPostAsEngaged = async (userId, postId, engagementType, post = null) =>
         userId,
         postId,
         state: 'UNSEEN',
+        viewCount: 1,
+        lastSeenAt: new Date(),
       });
     }
+
+    postView.lastSeenAt = postView.lastSeenAt || new Date();
+    postView.viewCount = Math.max(postView.viewCount || 0, 1);
 
     // Upgrade to ENGAGED (will also upgrade UNSEEN → SEEN if needed)
     postView.upgradeState('ENGAGED', {

@@ -442,37 +442,9 @@ router.get("/", async (req, res) => {
     } else {
       // Normal behavior: Use ranking algorithm with category filter
       try {
-        const skip = (page - 1) * limit;
-        const postIds = await redis.zrevrange(
-          `feed:${category}`,
-          skip,
-          skip + limit - 1
-        );
-        if (!postIds.length) {
-          throw new Error('Redis Empty')
-        }
-        const posts = await Post.find({ _id: { $in: postIds } })
-          .populate('mentorId', 'name username image')
-          .populate({ path: 'spaceId', model: Space, select: 'name logo' })
-          .lean();
-
-        const postMap = new Map(posts.map(p => [p._id.toString(), p]));
-        const orderedPosts = postIds.map(id => postMap.get(id)).filter(Boolean);
-        const total = await redis.zcard(`feed:${category}`);
-
-
-        feedResult = {
-          posts: orderedPosts,
-          pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit),
-          },
-        };
+        feedResult = await getRankedFeed(currentUser, page, limit, category);
       } catch (rankingError) {
         console.error('Error in feed ranking algorithm, falling back to simple sort:', rankingError);
-        // Fallback to simple date-based sorting if ranking fails
         const skip = (page - 1) * limit;
         const fallbackPosts = await Post.find(categoryFilter)
           .populate('mentorId', 'name username image')
