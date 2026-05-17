@@ -310,15 +310,76 @@ function calculateRoleRelevanceScore(post, user) {
 /**
  * Boost for post view state to avoid repeats and surface unseen content.
  * @param {Object} post
- * @param {Map<String, String>} viewStateMap
+ * @param {Map<String, Object>} viewStateMap
  * @returns {Number}
  */
 function calculateViewStateBoost(post, viewStateMap) {
-  if (!viewStateMap || !post || !post._id) return 0;
-  const state = viewStateMap.get(post._id.toString());
-  if (state === 'UNSEEN') return 35;
-  if (state === 'SEEN') return 10;
-  if (state === 'ENGAGED') return -20;
+  if (!viewStateMap || !post || !post._id) return 60;
+  const view = viewStateMap.get(post._id.toString());
+  if (!view) return 60;
+
+  const now = Date.now();
+  const lastSeenAt = view.lastSeenAt ? new Date(view.lastSeenAt).getTime() : null;
+  const viewCount = view.viewCount || 0;
+  let boost = 0;
+
+  if (view.state === 'UNSEEN') {
+    boost += 70;
+  } else if (view.state === 'SEEN') {
+    boost += 8;
+  } else if (view.state === 'ENGAGED') {
+    boost -= 18;
+  }
+
+  if (viewCount === 1) {
+    boost += 8;
+  } else if (viewCount === 2) {
+    boost -= 22;
+  } else if (viewCount >= 3) {
+    boost -= 66;
+  }
+
+  if (lastSeenAt) {
+    const ageHours = (now - lastSeenAt) / (1000 * 60 * 60);
+    if (ageHours < 3) {
+      boost -= 40;
+    } else if (ageHours < 12) {
+      boost -= 25;
+    } else if (ageHours < 24) {
+      boost -= 12;
+    } else if (ageHours < 72) {
+      boost -= 6;
+    } else if (ageHours > 168 && viewCount >= 2) {
+      boost += 4;
+    }
+  }
+
+  return Math.max(-60, Math.min(boost, 80));
+}
+
+/**
+ * Penalize authors who are over-represented in the candidate pool.
+ * @param {Object} post
+ * @param {Map<String, Number>} authorFrequency
+ * @returns {Number}
+ */
+function calculateAuthorDiversityPenalty(post, authorFrequency) {
+  if (!authorFrequency || !post) return 0;
+  const count = authorFrequency.get(getPostAuthorId(post)) || 0;
+  return Math.max(0, (count - 1) * 6);
+}
+
+/**
+ * Reward fresh authors and new creator signals.
+ * @param {Object} post
+ * @param {Map<String, Number>} authorFrequency
+ * @returns {Number}
+ */
+function calculateCreatorDiversityBonus(post, authorFrequency) {
+  if (!authorFrequency || !post) return 0;
+  const count = authorFrequency.get(getPostAuthorId(post)) || 0;
+  if (count === 1) return 10;
+  if (count === 2) return 4;
   return 0;
 }
 
@@ -435,38 +496,33 @@ async function getRankedFeed(user = null, page = 1, limit = 20, category = 'stud
       ? { $or: [{ category: 'study' }, { category: { $exists: false } }, { category: null }] }
       : { category: 'masti' };
 
-    let unseenPostIds = [];
-    let seenPostIds = [];
-    let engagedPostIds = [];
     const viewStateMap = new Map();
+    const allViewedPostIds = [];
 
     if (user) {
-      const postViews = await PostView.find({ userId: user._id }).lean();
+      const postViews = await PostView.find({ userId: user._id })
+        .select('postId state viewCount lastSeenAt engagedAt')
+        .lean();
+
       postViews.forEach(view => {
         const postIdStr = view.postId.toString();
-        viewStateMap.set(postIdStr, view.state);
-        if (view.state === 'UNSEEN') {
-          unseenPostIds.push(postIdStr);
-        } else if (view.state === 'SEEN') {
-          seenPostIds.push(postIdStr);
-        } else if (view.state === 'ENGAGED') {
-          engagedPostIds.push(postIdStr);
-        }
+        viewStateMap.set(postIdStr, view);
+        allViewedPostIds.push(postIdStr);
       });
     }
 
-    const allViewedPostIds = user ? [...unseenPostIds, ...seenPostIds, ...engagedPostIds] : [];
     const followingIds = getUserFollowingIds(user);
     const followerQuery = followingIds.length > 0 ? { $or: [{ mentorId: { $in: followingIds } }, { userId: { $in: followingIds } }] } : null;
 
-    const targetCount = Math.min(220, Math.max(limit * 4, limit * (page + 2)));
-    const discoveryLimit = Math.min(50, targetCount);
-    const recentWindow = new Date(Date.now() - 1000 * 60 * 60 * 24 * 21);
+    const now = new Date();
+    const recentWindow = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 21);
+    const globalWindow = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 90);
+    const targetCount = Math.min(280, Math.max(limit * (page + 4), limit * 10));
 
     const candidateQueries = [];
     if (followerQuery) {
       candidateQueries.push(
-        Post.find({ ...categoryFilter, ...followerQuery })
+        Post.find({ ...categoryFilter, ...followerQuery, createdAt: { $gte: recentWindow } })
           .populate('mentorId', 'name username image competitiveExamsCleared')
           .sort({ createdAt: -1 })
           .lean()
@@ -483,42 +539,15 @@ async function getRankedFeed(user = null, page = 1, limit = 20, category = 'stud
     );
 
     candidateQueries.push(
-      Post.find({ ...categoryFilter })
+      Post.find({ ...categoryFilter, createdAt: { $gte: globalWindow } })
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .sort({ createdAt: -1 })
         .lean()
         .limit(targetCount)
     );
 
-    candidateQueries.push(
-      Post.find({
-        ...categoryFilter,
-        ...(allViewedPostIds.length ? { _id: { $nin: allViewedPostIds } } : {}),
-      })
-        .populate('mentorId', 'name username image competitiveExamsCleared')
-        .sort({ createdAt: -1 })
-        .lean()
-        .limit(discoveryLimit)
-    );
-
     const candidateResults = await Promise.all(candidateQueries);
-    let followedPosts = [];
-    let trendingPosts = [];
-    let recentPosts = [];
-    let discoveryPosts = [];
-
-    if (candidateResults.length === 4) {
-      [followedPosts, trendingPosts, recentPosts, discoveryPosts] = candidateResults;
-    } else if (candidateResults.length === 3) {
-      [trendingPosts, recentPosts, discoveryPosts] = candidateResults;
-    }
-
-    const sourcePosts = [
-      ...followedPosts,
-      ...trendingPosts,
-      ...recentPosts,
-      ...discoveryPosts,
-    ];
+    const sourcePosts = candidateResults.flat();
 
     const uniquePostsMap = new Map();
     sourcePosts.forEach(post => {
@@ -527,30 +556,39 @@ async function getRankedFeed(user = null, page = 1, limit = 20, category = 'stud
       }
     });
 
-    if (uniquePostsMap.size < Math.max(skip + limit, limit * 2)) {
+    if (uniquePostsMap.size < Math.max(skip + limit, targetCount)) {
+      const fallbackLimit = Math.max(skip + limit, targetCount);
       const fallbackQuery = {
         ...categoryFilter,
-        _id: { $nin: [...Array.from(uniquePostsMap.keys()).map(id => id), ...allViewedPostIds] },
       };
+
       const fallbackPosts = await Post.find(fallbackQuery)
         .populate('mentorId', 'name username image competitiveExamsCleared')
         .sort({ createdAt: -1 })
         .lean()
-        .limit(Math.max(limit * 2, skip + limit) - uniquePostsMap.size);
+        .limit(fallbackLimit);
+
       fallbackPosts.forEach(post => {
-        if (post && post._id && !uniquePostsMap.has(post._id.toString())) {
+        if (post && post._id) {
           uniquePostsMap.set(post._id.toString(), post);
         }
       });
     }
 
     const allCandidatePosts = Array.from(uniquePostsMap.values());
+    const authorFrequency = new Map();
+    allCandidatePosts.forEach(post => {
+      const authorId = getPostAuthorId(post) || '__unknown';
+      authorFrequency.set(authorId, (authorFrequency.get(authorId) || 0) + 1);
+    });
 
     const postsWithScores = await Promise.all(
       allCandidatePosts.map(async (post) => {
         const mentor = post.mentorId || null;
         const score = await calculatePostRelevanceScore(post, user, mentor, viewStateMap);
-        return { post, score };
+        const authorPenalty = calculateAuthorDiversityPenalty(post, authorFrequency);
+        const creatorBonus = calculateCreatorDiversityBonus(post, authorFrequency);
+        return { post, score: score - authorPenalty + creatorBonus };
       })
     );
 
